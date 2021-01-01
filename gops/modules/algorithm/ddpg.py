@@ -17,8 +17,9 @@ from copy import deepcopy
 import torch
 import torch.nn as nn
 from torch.optim import Adam
-from modules.create_pkg.create_apprfunc import create_apprfunc
 
+from modules.create_pkg.create_apprfunc import create_apprfunc
+from modules.algorithm.utils import ActorCriticApprFunc
 
 
 class AC_ApprFunc(nn.Module):
@@ -39,6 +40,7 @@ class DDPG():
 
         #print(kwargs['action_high_limit'][0])
 
+        # TODO add def function
         actor_dict = {'apprfunc':kwargs['apprfunc'],
                       'name':kwargs['policy_func_name'],
                       'obs_dim':kwargs['obsv_dim'],
@@ -118,8 +120,6 @@ class DDPG():
         q_pi = self.model.q(o, self.model.pi(o))
         return -q_pi.mean()
 
-    def getEnvModel(self,func):
-        pass
 
 if __name__ == '__main__':
     pass
