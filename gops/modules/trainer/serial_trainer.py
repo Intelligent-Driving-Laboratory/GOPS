@@ -13,7 +13,7 @@ __all__ = ['SerialTrainer']
 
 import numpy as np
 import torch
-from ocp_tools.modules.create_pkg.create_buffer import create_buffer
+from modules.create_pkg.create_buffer import create_buffer
 
 
 class SerialTrainer():

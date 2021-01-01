@@ -11,9 +11,9 @@
 
 
 import argparse
-from ocp_tools.modules.create_pkg.create_env import create_env
-from ocp_tools.modules.create_pkg.create_alg import create_alg
-from ocp_tools.modules.create_pkg.create_trainer import create_trainer
+from modules.create_pkg.create_env import create_env
+from modules.create_pkg.create_alg import create_alg
+from modules.create_pkg.create_trainer import create_trainer
 
 
 if __name__ == "__main__":

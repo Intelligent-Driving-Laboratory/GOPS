@@ -17,7 +17,7 @@ from copy import deepcopy
 import torch
 import torch.nn as nn
 from torch.optim import Adam
-from ocp_tools.modules.create_pkg.create_apprfunc import create_apprfunc
+from modules.create_pkg.create_apprfunc import create_apprfunc
 
 
 
