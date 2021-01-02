@@ -9,14 +9,15 @@ import parser
 
 
 def get_apprfunc_dict(name, **kwargs):
-    pass
+    paras = {}
+    return paras
 
 
 class ActorCriticApprFunc(nn.Module):
-    def __init__(self, actor,critic):
+    def __init__(self, pi,q):
         super().__init__()
-        self.pi = actor
-        self.q = critic
+        self.pi = pi
+        self.q = q
 
     def act(self, obs):
         with torch.no_grad():

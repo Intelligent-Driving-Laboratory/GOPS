@@ -2,9 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="05a13f0f-6be2-48ab-954d-58c801fa05f8" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/modules/algorithm/utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/algorithm/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/algorithm/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/modules/algorithm/ddpg.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/algorithm/ddpg.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/algorithm/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/algorithm/utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -75,7 +77,10 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1609468073076</updated>
-      <workItem from="1609468074192" duration="3611000" />
+      <workItem from="1609468074192" duration="3865000" />
+      <workItem from="1609552770158" duration="2364000" />
+      <workItem from="1609559541205" duration="1234000" />
+      <workItem from="1609584991119" duration="1088000" />
     </task>
     <servers />
   </component>
@@ -83,6 +88,6 @@
     <option name="version" value="3" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/gops$ddpg_mlp_cartpoleconti_serial.coverage" NAME="ddpg_mlp_cartpoleconti_serial Coverage Results" MODIFIED="1609468356267" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
+    <SUITE FILE_PATH="coverage/gops$ddpg_mlp_cartpoleconti_serial.coverage" NAME="ddpg_mlp_cartpoleconti_serial Coverage Results" MODIFIED="1609586885108" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
   </component>
 </project>

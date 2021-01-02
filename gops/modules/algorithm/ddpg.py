@@ -19,27 +19,12 @@ import torch.nn as nn
 from torch.optim import Adam
 
 from modules.create_pkg.create_apprfunc import create_apprfunc
+from modules.algorithm.utils import get_apprfunc_dict
 from modules.algorithm.utils import ActorCriticApprFunc
-
-
-class AC_ApprFunc(nn.Module):
-    def __init__(self, actor,critic):
-        super().__init__()
-        self.pi = actor
-        self.q = critic
-
-    def act(self, obs):
-        with torch.no_grad():
-            return self.pi(obs).numpy()
 
 
 class DDPG():
     def __init__(self,pi_lr=0.001,q_lr=0.001,gamma=0.99,polyak=0.995,**kwargs):
-        # 创建网络：和算法相关，返回：算法所有的网近似函数
-        # 多进程，加载其它网络参数：输入：字典 key，net（参数） 返回：null
-
-        #print(kwargs['action_high_limit'][0])
-
         # TODO add def function
         actor_dict = {'apprfunc':kwargs['apprfunc'],
                       'name':kwargs['policy_func_name'],
@@ -61,17 +46,17 @@ class DDPG():
         actor = create_apprfunc(**actor_dict) #(name,**dict)
         critic = create_apprfunc(**critic_dict)
 
-        self.model = AC_ApprFunc(actor,critic)  # TODO change name: model->apprfunc
+        self.apprfunc = ActorCriticApprFunc(actor,critic)  # TODO change name: model->apprfunc
 
-        self.target_model =  deepcopy(self.model)
-        for p in self.target_model.parameters():
+        self.target_apprfunc =  deepcopy(self.apprfunc)
+        for p in self.target_apprfunc.parameters():
             p.requires_grad = False
 
         # 配置q与pi网络的优化器
         self.gamma = gamma
         self.polyak = polyak
-        self.pi_optimizer = Adam(self.model.pi.parameters(), lr=pi_lr) #
-        self.q_optimizer = Adam(self.model.q.parameters(), lr=q_lr)
+        self.pi_optimizer = Adam(self.apprfunc.pi.parameters(), lr=pi_lr) #
+        self.q_optimizer = Adam(self.apprfunc.q.parameters(), lr=q_lr)
 
 
     def learn(self,data):
@@ -82,7 +67,7 @@ class DDPG():
         self.q_optimizer.step()
 
         #
-        for p in self.model.q.parameters():
+        for p in self.apprfunc.q.parameters():
             p.requires_grad = False
 
         #
@@ -92,24 +77,24 @@ class DDPG():
         self.pi_optimizer.step()
 
         #
-        for p in self.model.q.parameters():
+        for p in self.apprfunc.q.parameters():
             p.requires_grad = True
         #
         with torch.no_grad():
-            for p, p_targ in zip(self.model.parameters(), self.target_model.parameters()):
+            for p, p_targ in zip(self.apprfunc.parameters(), self.target_apprfunc.parameters()):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
 
 
     def predict(self,obs):
-        return self.model.act(obs)
+        return self.apprfunc.act(obs)
 
     def compute_loss_q(self,data):  # TODO change name: q->Q
         o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
-        q = self.model.q(o,a)
+        q = self.apprfunc.q(o,a)
 
         with torch.no_grad():
-            q_pi_targ = self.target_model.q(o2, self.target_model.pi(o2))
+            q_pi_targ = self.target_apprfunc.q(o2, self.target_apprfunc.pi(o2))
             backup = r +  self.gamma * (1 - d) * q_pi_targ
 
         loss_q = ((q - backup)**2).mean()
@@ -117,7 +102,7 @@ class DDPG():
 
     def compute_loss_pi(self,data): # TODO change name: pi->policy
         o = data['obs']
-        q_pi = self.model.q(o, self.model.pi(o))
+        q_pi = self.apprfunc.q(o, self.apprfunc.pi(o))
         return -q_pi.mean()
 
 
