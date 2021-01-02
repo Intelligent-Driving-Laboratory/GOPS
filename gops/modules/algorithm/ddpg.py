@@ -26,11 +26,11 @@ from modules.utils.utils import ActorCriticApprFunc
 class DDPG():
     def __init__(self,**kwargs):
 
-        critic_q_paras = get_apprfunc_dict('value',**kwargs)
-        critic = create_apprfunc(**critic_q_paras)
+        critic_q_args = get_apprfunc_dict('value',**kwargs)
+        critic = create_apprfunc(**critic_q_args)
 
-        actor_paras = get_apprfunc_dict('policy',**kwargs)
-        actor = create_apprfunc(**actor_paras)
+        actor_args = get_apprfunc_dict('policy',**kwargs)
+        actor = create_apprfunc(**actor_args)
 
         self.apprfunc = ActorCriticApprFunc(actor,critic)
         self.target_apprfunc =  deepcopy(self.apprfunc)

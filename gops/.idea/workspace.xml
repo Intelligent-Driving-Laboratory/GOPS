@@ -2,16 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="05a13f0f-6be2-48ab-954d-58c801fa05f8" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/other.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/modules/utils/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/modules/utils/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/ddpg_mlp_cartpoleconti_serial.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/ddpg_mlp_cartpoleconti_serial.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/modules/algorithm/ddpg.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/algorithm/ddpg.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/algorithm/utils.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/apprfunc/mlp.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/apprfunc/mlp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/create_pkg/create_alg.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/create_pkg/create_alg.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/create_pkg/create_apprfunc.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/create_pkg/create_apprfunc.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -97,7 +88,7 @@
       <workItem from="1609468074192" duration="3865000" />
       <workItem from="1609552770158" duration="2364000" />
       <workItem from="1609559541205" duration="1234000" />
-      <workItem from="1609584991119" duration="8195000" />
+      <workItem from="1609584991119" duration="8375000" />
     </task>
     <servers />
   </component>
