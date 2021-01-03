@@ -15,7 +15,6 @@ def create_buffer(**kwargs):
     except NotImplementedError:
         raise NotImplementedError('This buffer does not exist')
 
-    #
     obs_dim = kwargs['obsv_dim']
     act_dim = kwargs['action_dim']
     size = kwargs['buffer_max_size']

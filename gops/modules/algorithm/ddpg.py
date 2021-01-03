@@ -8,6 +8,7 @@
 #
 #  Author: Sun Hao
 #  Update Date: 2020-11-13
+#  Update Date: 2021-01-03
 #  Comments: ?
 
 
@@ -71,7 +72,7 @@ class DDPG():
         return self.apprfunc.act(obs)
 
     def compute_loss_q(self,data):
-        o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
+        o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done'] # TODO  解耦字典
         q = self.apprfunc.q(o,a)
 
         with torch.no_grad():
@@ -88,4 +89,21 @@ class DDPG():
 
 
 if __name__ == '__main__':
-    pass
+    print('11111')
+    import mujoco_py
+    print('11111')
+    import os
+    print('11111')
+    mj_path, _ = mujoco_py.utils.discover_mujoco()
+    print('11111')
+    xml_path = os.path.join(mj_path, 'model', 'humanoid.xml')
+    print('11111')
+    model = mujoco_py.load_model_from_path(xml_path)
+    print('11111')
+    sim = mujoco_py.MjSim(model)
+
+    print(sim.data.qpos)
+    # [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+
+    sim.step()
+    print(sim.data.qpos)

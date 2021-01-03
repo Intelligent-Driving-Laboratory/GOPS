@@ -13,24 +13,26 @@ __all__ = ['SerialTrainer']
 
 import numpy as np
 import torch
+import tensorboardX # TODO save data and visualization
+
 from modules.create_pkg.create_buffer import create_buffer
 
 
 class SerialTrainer():
-    def __init__(self,alg,env,NOISE=0.05,REWARD_SCALE=0.1,BATCH_SIZE=32,TRAIN_EPISODE=5000,IS_RENDER=False,**kwargs):
+    def __init__(self,alg,env,**kwargs):
         self.algo = alg
         self.env = env
 
-        self.noise = NOISE
-        self.reward_scale = REWARD_SCALE
-        self.batch_size = BATCH_SIZE
-        self.train_eposode = TRAIN_EPISODE
-        self.render = IS_RENDER
-
-        self.buffer = create_buffer(**kwargs)
+        self.batch_size = kwargs['batch_size']
+        self.render = kwargs['is_render']
         self.warm_size = kwargs['buffer_warm_size']
-        # 创建网络
-        # 定义优化器
+        self.reward_scale = kwargs['reward_scale']
+        self.max_train_episode = kwargs['max_train_episode']
+        self.episode_len = kwargs['episode_length']
+        self.noise = kwargs['noise']
+
+        self.has_render = hasattr(env,'render')
+        self.buffer = create_buffer(**kwargs)
 
 
     def run_episode(self):
@@ -55,12 +57,27 @@ class SerialTrainer():
             obs = next_obs
             total_reward += reward
 
-            #print(self.algo.rpm.size)
-            if done or steps >= 200:
+            if done or steps >= self.episode_len:
                 break
+
         return total_reward
 
-    def evaluate(self):
+    def train(self):
+        # store data in buffer
+        while self.buffer.size < self.warm_size:
+            self.run_episode()
+
+        episode = 0
+        while episode < self.max_train_episode:
+            for i in range(50):
+                total_reward = self.run_episode()
+                episode += 1
+
+
+            print("total reward = ",total_reward)
+
+
+    def eval(self): # TODO test eval func  # TODO add render in eval function
         eval_reward = []
         for i in range(5):
             obs = self.env.reset()
@@ -77,24 +94,11 @@ class SerialTrainer():
                 obs = next_obs
                 total_reward += reward
 
-                if self.render:
+                if self.render and self.has_render :
                     self.env.render()
+
                 if done or steps >= 200:
                     break
+
             eval_reward.append(total_reward)
         return np.mean(eval_reward)
-
-
-    def train(self):
-        # 往经验池中预存数据
-        while self.buffer.size < self.warm_size:
-            self.run_episode()
-
-
-        episode = 0
-        while episode < self.train_eposode:
-            for i in range(50):
-                total_reward = self.run_episode()
-                episode += 1
-
-            print("total reward = ",total_reward)

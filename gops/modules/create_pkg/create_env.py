@@ -21,9 +21,8 @@ Note: create_env() requires that either 2 or 3 is satisfied.
 #  Update Date: 2020-11-10, Yuhang ZHANG:
 
 
-def create_env(env_name):
-    # print(os.path.join(module_path, env_name))
-    #
+def create_env(**kwargs):
+    env_name = kwargs['env_id']
     try:
         file = __import__(env_name)
     except NotImplementedError:
@@ -41,6 +40,7 @@ def create_env(env_name):
         raise NotImplementedError("This environment is not properly defined")
     print("Create environment successfully!")
     return env
+
 
 def formatter(src: str, firstUpper: bool = True):
     arr = src.split('_')
