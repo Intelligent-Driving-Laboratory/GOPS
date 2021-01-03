@@ -61,7 +61,7 @@ if __name__ == "__main__":
     parser.add_argument('--episode_length', type=int, default=200, help='')
     parser.add_argument('--max_sample_num', type=int, default=100000, help='')
     0
-    parser.add_argument('--eval_length', type=int, default=parser.parse_args().cost_horizon, help='')
+    parser.add_argument('--eval_length', type=int, default=parser.parse_args().episode_length, help='')
     parser.add_argument('--buffer_name', type=str, default='replay_buffer')
     parser.add_argument('--buffer_warm_size', type=int, default=1000)
     parser.add_argument('--buffer_max_size', type=int, default=100000)
