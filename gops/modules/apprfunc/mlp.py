@@ -8,7 +8,7 @@
 #
 #  Author: Sun Hao
 
-__all__=['ACTOR','CRITIC']
+__all__=['ACTOR','CRITIC','Q_VALUE']
 
 
 import numpy as np
@@ -44,7 +44,17 @@ class ACTOR(nn.Module):
     def forward(self, obs):
         return self.act_limit * self.pi(obs)
 
-#class VALUE(nn.Module):
+
+class Q_VALUE(nn.Module):
+    def __init__(self, **kwargs):
+        super().__init__()
+        obs_dim  = kwargs['obs_dim']
+        act_dim = kwargs['act_dim']
+        hidden_sizes = kwargs['hidden_sizes']
+        self.q = mlp([obs_dim] + list(hidden_sizes) + [act_dim], nn.ReLU)
+
+    def forward(self, obs):
+        return self.q(obs)
 
 
 class CRITIC(nn.Module):
