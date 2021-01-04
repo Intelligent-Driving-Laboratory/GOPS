@@ -74,6 +74,10 @@ class SerialTrainer():
                 total_reward = self.run_episode()
                 episode += 1
 
+            # log save
+
+            # apprfunc save
+
             # eval and render
             eval_reward = self.eval(self.render)
             print("episode =", episode ,",training reward = ",total_reward,",eval reward = ",eval_reward)
