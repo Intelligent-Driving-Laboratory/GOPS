@@ -44,7 +44,7 @@ class SerialTrainer():
             batch_obs = np.expand_dims(obs, axis=0)
             action = self.algo.predict(torch.from_numpy(batch_obs.astype('float32')))
             # 增加探索扰动, 输出限制在 [-1.0, 1.0] 范围内
-            action = np.clip(np.random.normal(action, self.noise), -1.0, 1.0)
+            action = np.clip(np.random.normal(action, self.noise), -1.0, 1.0) # todo add train nosie
             next_obs, reward, done, info = self.env.step(action)
             action = [action]
             # store in buffer
@@ -68,37 +68,36 @@ class SerialTrainer():
             self.run_episode()
 
         episode = 0
+        total_reward = 0
         while episode < self.max_train_episode:
             for i in range(50):
                 total_reward = self.run_episode()
                 episode += 1
 
+            # eval and render
+            eval_reward = self.eval()
+            print("episode =", episode ,",training reward = ",total_reward,"eval reward = ",eval_reward)
 
-            print("total reward = ",total_reward)
 
+    def eval(self):
+        obs = self.env.reset()
+        total_reward = 0
+        steps = 0
+        while True:
+            batch_obs = np.expand_dims(obs, axis=0)
+            action = self.algo.predict(torch.from_numpy(batch_obs.astype('float32')))
+            action = np.clip(action, -1.0, 1.0)
 
-    def eval(self): # TODO test eval func  # TODO add render in eval function
-        eval_reward = []
-        for i in range(5):
-            obs = self.env.reset()
-            total_reward = 0
-            steps = 0
-            while True:
-                batch_obs = np.expand_dims(obs, axis=0)
-                action = self.algo.predict(batch_obs.astype('float32'))
-                action = np.clip(action, -1.0, 1.0)
+            steps += 1
+            next_obs, reward, done, info = self.env.step(action)
 
-                steps += 1
-                next_obs, reward, done, info = self.env.step(action)
+            obs = next_obs
+            total_reward += reward
 
-                obs = next_obs
-                total_reward += reward
+            if self.render and self.has_render :
+                self.env.render()
 
-                if self.render and self.has_render :
-                    self.env.render()
+            if done or steps >= self.episode_len:
+                break
 
-                if done or steps >= 200:
-                    break
-
-            eval_reward.append(total_reward)
-        return np.mean(eval_reward)
+        return total_reward
