@@ -61,7 +61,7 @@ if __name__ == "__main__":
     parser.add_argument('--noise', type=float, default=0.2, help='')
     parser.add_argument('--reward_scale', type=float, default=0.1, help='')
     parser.add_argument('--batch_size', type=int, default=256, help='')
-    parser.add_argument('--is_render', type=bool, default=False)
+    parser.add_argument('--is_render', type=bool, default=True)
 
     # Data savings
     parser.add_argument('--save_folder', type=str,default='./results/' + parser.parse_args().algorithm)

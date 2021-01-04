@@ -2,9 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="05a13f0f-6be2-48ab-954d-58c801fa05f8" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/gops.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gops.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/ddpg_mlp_cartpoleconti_serial.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/ddpg_mlp_cartpoleconti_serial.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/trainer/serial_trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/trainer/serial_trainer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/dqn_mlp_cartpole_serial.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/dqn_mlp_cartpole_serial.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -40,8 +41,8 @@
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
-    <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../../carla_platform/carla_api" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
@@ -51,7 +52,7 @@
       <recent name="E:\prog\gops\gops\modules\utils" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.ddpg_mlp_cartpoleconti_serial">
+  <component name="RunManager" selected="Python.dqn_mlp_cartpole_serial">
     <configuration name="ddpg" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="gops" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -96,14 +97,37 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="dqn_mlp_cartpole_serial" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="gops" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/examples/dqn_mlp_cartpole_serial.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.dqn_mlp_cartpole_serial" />
         <item itemvalue="Python.ddpg_mlp_cartpoleconti_serial" />
         <item itemvalue="Python.ddpg" />
       </list>
     </recent_temporary>
   </component>
-  <component name="SpellCheckerSettings" BundledDictionaries="0" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" Dictionaries="0" CorrectionsLimit="5" DefaultDictionary="application-level" UseSingleDictionary="true" />
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="SvnConfiguration">
     <configuration />
   </component>
@@ -127,36 +151,16 @@
       <workItem from="1609731632730" duration="1549000" />
       <workItem from="1609735774747" duration="761000" />
       <workItem from="1609741085400" duration="3142000" />
+      <workItem from="1609754922669" duration="3017000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
-    <option name="version" value="2" />
-  </component>
-  <component name="WindowStateProjectService">
-    <state width="1877" height="285" key="GridCell.Tab.0.bottom" timestamp="1609744230786">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1877" height="285" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1609744230786" />
-    <state width="1877" height="285" key="GridCell.Tab.0.center" timestamp="1609744230785">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1877" height="285" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1609744230785" />
-    <state width="1877" height="285" key="GridCell.Tab.0.left" timestamp="1609744230785">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1877" height="285" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1609744230785" />
-    <state width="1877" height="285" key="GridCell.Tab.0.right" timestamp="1609744230785">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1877" height="285" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1609744230785" />
-    <state x="461" y="164" key="SettingsEditor" timestamp="1609742039310">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="461" y="164" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1609742039310" />
+    <option name="version" value="3" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/gops$ddpg_mlp_cartpoleconti_serial.coverage" NAME="ddpg_mlp_cartpoleconti_serial Coverage Results" MODIFIED="1609743454872" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
     <SUITE FILE_PATH="coverage/gops$ddpg.coverage" NAME="ddpg Coverage Results" MODIFIED="1609731652135" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/modules/algorithm" />
+    <SUITE FILE_PATH="coverage/gops$ddpg_mlp_cartpoleconti_serial.coverage" NAME="ddpg_mlp_cartpoleconti_serial Coverage Results" MODIFIED="1609755195603" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
+    <SUITE FILE_PATH="coverage/gops$dqn_mlp_cartpole_serial.coverage" NAME="dqn_mlp_cartpole_serial Coverage Results" MODIFIED="1609774827237" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
   </component>
 </project>
