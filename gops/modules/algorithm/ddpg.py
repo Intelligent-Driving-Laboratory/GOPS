@@ -8,6 +8,7 @@
 #
 #  Author: Sun Hao
 #  Update Date: 2020-11-13
+#  Update Date: 2021-01-03
 #  Comments: ?
 
 
@@ -19,67 +20,48 @@ import torch.nn as nn
 from torch.optim import Adam
 
 from modules.create_pkg.create_apprfunc import create_apprfunc
-from modules.algorithm.utils import get_apprfunc_dict
-from modules.algorithm.utils import ActorCriticApprFunc
+from modules.utils.utils import get_apprfunc_dict
+from modules.utils.utils import ActorCriticApprFunc
 
 
 class DDPG():
-    def __init__(self,pi_lr=0.001,q_lr=0.001,gamma=0.99,polyak=0.995,**kwargs):
-        # TODO add def function
-        actor_dict = {'apprfunc':kwargs['apprfunc'],
-                      'name':kwargs['policy_func_name'],
-                      'obs_dim':kwargs['obsv_dim'],
-                      'act_dim':kwargs['action_dim'],
-                      'hidden_sizes':(kwargs['policy_hidden_units'],kwargs['policy_hidden_units']),
-                      'activation': kwargs['policy_output_activation'],
-                      'act_limit': 1
-                      }
+    def __init__(self,**kwargs):
 
-        critic_dict = {'apprfunc':kwargs['apprfunc'],
-                       'name':kwargs['value_func_name'],
-                       'obs_dim': kwargs['obsv_dim'],
-                       'act_dim': kwargs['action_dim'],
-                       'hidden_sizes': (kwargs['value_hidden_units'],kwargs['value_hidden_units']),
-                       'activation': kwargs['value_output_activation'],
-                       }
+        critic_q_args = get_apprfunc_dict('value',**kwargs)
+        critic = create_apprfunc(**critic_q_args)
 
-        actor = create_apprfunc(**actor_dict) #(name,**dict)
-        critic = create_apprfunc(**critic_dict)
+        actor_args = get_apprfunc_dict('policy',**kwargs)
+        actor = create_apprfunc(**actor_args)
 
-        self.apprfunc = ActorCriticApprFunc(actor,critic)  # TODO change name: model->apprfunc
-
+        self.apprfunc = ActorCriticApprFunc(actor,critic)
         self.target_apprfunc =  deepcopy(self.apprfunc)
+
         for p in self.target_apprfunc.parameters():
             p.requires_grad = False
 
-        # 配置q与pi网络的优化器
-        self.gamma = gamma
-        self.polyak = polyak
-        self.pi_optimizer = Adam(self.apprfunc.pi.parameters(), lr=pi_lr) #
-        self.q_optimizer = Adam(self.apprfunc.q.parameters(), lr=q_lr)
+        self.gamma = kwargs['gamma']
+        self.polyak = 1 - kwargs['tau']
+        self.pi_optimizer = Adam(self.apprfunc.pi.parameters(), lr=kwargs['policy_learning_rate']) #
+        self.q_optimizer = Adam(self.apprfunc.q.parameters(), lr=kwargs['value_learning_rate'])
 
 
     def learn(self,data):
-        #
         self.q_optimizer.zero_grad()
         loss_q = self.compute_loss_q(data)
         loss_q.backward()
         self.q_optimizer.step()
 
-        #
         for p in self.apprfunc.q.parameters():
             p.requires_grad = False
 
-        #
         self.pi_optimizer.zero_grad()
         loss_pi = self.compute_loss_pi(data)
         loss_pi.backward()
         self.pi_optimizer.step()
 
-        #
         for p in self.apprfunc.q.parameters():
             p.requires_grad = True
-        #
+
         with torch.no_grad():
             for p, p_targ in zip(self.apprfunc.parameters(), self.target_apprfunc.parameters()):
                 p_targ.data.mul_(self.polyak)
@@ -89,8 +71,8 @@ class DDPG():
     def predict(self,obs):
         return self.apprfunc.act(obs)
 
-    def compute_loss_q(self,data):  # TODO change name: q->Q
-        o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
+    def compute_loss_q(self,data):
+        o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done'] # TODO  解耦字典
         q = self.apprfunc.q(o,a)
 
         with torch.no_grad():
@@ -100,11 +82,28 @@ class DDPG():
         loss_q = ((q - backup)**2).mean()
         return loss_q
 
-    def compute_loss_pi(self,data): # TODO change name: pi->policy
+    def compute_loss_pi(self,data):
         o = data['obs']
         q_pi = self.apprfunc.q(o, self.apprfunc.pi(o))
         return -q_pi.mean()
 
 
 if __name__ == '__main__':
-    pass
+    print('11111')
+    import mujoco_py
+    print('11111')
+    import os
+    print('11111')
+    mj_path, _ = mujoco_py.utils.discover_mujoco()
+    print('11111')
+    xml_path = os.path.join(mj_path, 'model', 'humanoid.xml')
+    print('11111')
+    model = mujoco_py.load_model_from_path(xml_path)
+    print('11111')
+    sim = mujoco_py.MjSim(model)
+
+    print(sim.data.qpos)
+    # [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+
+    sim.step()
+    print(sim.data.qpos)

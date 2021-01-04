@@ -27,13 +27,3 @@ def create_alg(**kwargs):
     print("Create alg successfully!")
     return alg
 
-
-# def formatter(src: str, firstUpper: bool = True):
-#     arr = src.split('_')
-#     res = ''
-#     for i in arr:
-#         res = res + i[0].upper() + i[1:]
-#
-#     if not firstUpper:
-#         res = res[0].lower() + res[1:]
-#     return res

@@ -22,7 +22,7 @@ from torch.optim import Adam
 from modules.create_pkg.create_apprfunc import create_apprfunc
 
 class DQN():
-    def __init__(self, learning_rate=0.001, gamma=0.995, polyak=0.995,**kwargs):
+    def __init__(self, learning_rate=0.001, gamma=0.995, tau=0.005,**kwargs):
         """Deep Q-Network (DQN) algorithm
 
         A DQN implementation with soft target update.
@@ -33,13 +33,13 @@ class DQN():
         Args:
             learning_rate (float, optional): Q network learning rate. Defaults to 0.001.
             gamma (float, optional): Discount factor. Defaults to 0.995.
-            polyak (float, optional): Polyak average factor. Defaults to 0.995.
+            tau (float, optional): Average factor. Defaults to 0.005.
         """
         Q_network_dict = {'apprfunc':kwargs['apprfunc'],
                        'name':kwargs['value_func_name'],
                        'obs_dim': kwargs['obsv_dim'],
                        'act_dim': kwargs['action_num'],
-                       'hidden_sizes': (kwargs['value_hidden_units'],) * kwargs['value_hidden_layers'],
+                       'hidden_sizes': kwargs['value_hidden_sizes'],
                        'activation': kwargs['value_output_activation'],
                        }
         Q_network = create_apprfunc(**Q_network_dict)
@@ -49,7 +49,7 @@ class DQN():
         self.target_apprfunc =  target_network
         self.target_apprfunc.eval()
 
-        self.polyak = polyak
+        self.polyak = 1 - tau
         self.gamma = gamma
         self.lr = learning_rate
         self.optimizer = Adam(self.apprfunc.parameters(), lr=self.lr)

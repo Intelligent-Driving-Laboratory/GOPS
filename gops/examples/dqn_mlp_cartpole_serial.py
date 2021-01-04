@@ -38,46 +38,49 @@ if __name__ == "__main__":
     # 2. Parameters for approximate function
     parser.add_argument('--value_func_name', type=str, default='q_value', help='')
     parser.add_argument('--value_func_type', type=str, default=parser.parse_args().apprfunc, help='')
-    parser.add_argument('--value_hidden_units', type=int, default=256, help='')
-    parser.add_argument('--value_hidden_layers', type=int, default=2)
+    parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256])
     parser.add_argument('--value_hidden_activation', type=str, default='relu', help='')
     parser.add_argument('--value_output_activation', type=str, default='linear', help='')
 
     # 3. Parameters for algorithm
-    parser.add_argument('--cost_horizon', type=int, default=100000, help='')
     parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--batch_size', type=int, default=256, help='')
-    parser.add_argument('--tau', type=float, default=0.001, help='')
-    parser.add_argument('--polyak', type=float, default=0.99, help='')
+    parser.add_argument('--tau', type=float, default=0.01, help='')
     parser.add_argument('--learning_rate', type=float, default=1e-4, help='')
     parser.add_argument('--delay_update', type=int, default=1, help='')
     parser.add_argument('--max_sampled_number', type=int, default=2000)
-
+ 
     # 4. Parameters for trainer
-    parser.add_argument('--max_iteration', type=int, default=2000,help='')
-    parser.add_argument('--max_sample_num', type=int, default=100000,help='')
-    parser.add_argument('--eval_length', type=int, default=parser.parse_args().cost_horizon,help='')
+    parser.add_argument('--max_train_episode', type=int, default=2000, help='')
+    parser.add_argument('--episode_length', type=int, default=200, help='')
+    parser.add_argument('--max_sample_num', type=int, default=100000, help='')
+
+    parser.add_argument('--eval_length', type=int, default=parser.parse_args().episode_length, help='')
     parser.add_argument('--buffer_name', type=str, default='replay_buffer')
     parser.add_argument('--buffer_warm_size', type=int, default=1000)
     parser.add_argument('--buffer_max_size', type=int, default=100000)
+    parser.add_argument('--reward_scale', type=float, default=0.1, help='')
+    parser.add_argument('--batch_size', type=int, default=256, help='')
+    parser.add_argument('--is_render', type=bool, default=False)
 
     # Data savings
-    parser.add_argument('--save_folder', type=str, default='./results/'+parser.parse_args().algorithm) # TODO: save file
-    parser.add_argument('--model_save_interval', type=int, default=1000)
-    parser.add_argument('--log_save_interval', type=int, default=10)
+    parser.add_argument('--save_folder', type=str,default='./results/' + parser.parse_args().algorithm)
+    parser.add_argument('--apprfunc_save_interval', type=int, default=1000)
+    parser.add_argument('--log_save_interval', type=int, default=10) # reward?
 
-    args = parser.parse_args()
+
+    # get parameter dict
+    args = vars(parser.parse_args())
 
     # Step 1: create environment
-    env = create_env(args.env_id) #
-    args.obsv_dim = env.observation_space.shape[0]
-    args.action_num = env.action_space.n
-
+    env = create_env(**args)  #
+    args['obsv_dim'] = env.observation_space.shape[0]
+    args['action_num'] = env.action_space.n
+    
     # Step 2: create algorithm and approximate function
-    alg = create_alg(**vars(args)) # create appr_model in algo **vars(args)
+    alg = create_alg(**args) # create appr_model in algo **vars(args)
 
     # Step 3: create trainer
-    trainer = create_trainer(args.trainer,args,env,alg)
+    trainer = create_trainer(env, alg, **args)
 
     # start training
     trainer.train()

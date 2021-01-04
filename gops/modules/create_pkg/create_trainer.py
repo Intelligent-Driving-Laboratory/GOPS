@@ -11,7 +11,8 @@ resources:
 
 #import modules.trainer.serial_trainer
 
-def create_trainer(trainer_name,args,env,alg):
+def create_trainer(env,alg,**kwargs):
+    trainer_name = kwargs['trainer']
     try:
         file = __import__(trainer_name)
     except NotImplementedError:
@@ -21,7 +22,7 @@ def create_trainer(trainer_name,args,env,alg):
     # get
     if hasattr(file, trainer_name_camel):
         trainer_cls = getattr(file, trainer_name_camel)
-        trainer = trainer_cls(alg=alg,env=env,**vars(args))
+        trainer = trainer_cls(alg=alg,env=env,**kwargs)
     else:
         raise NotImplementedError("This trainer is not properly defined")
     print("Create trainer successfully!")
