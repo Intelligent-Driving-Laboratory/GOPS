@@ -8,7 +8,8 @@
 #
 #  Author: Sun Hao
 
-__all__ = ['Actor', 'CriticQ']
+__all__=['Actor','CriticQ','QValue']
+
 
 import numpy as np
 import torch
@@ -44,6 +45,18 @@ class Actor(nn.Module):
 
     def forward(self, obs):
         return self.act_limit * self.pi(obs)
+
+
+class QValue(nn.Module):
+    def __init__(self, **kwargs):
+        super().__init__()
+        obs_dim  = kwargs['obs_dim']
+        act_dim = kwargs['act_dim']
+        hidden_sizes = kwargs['hidden_sizes']
+        self.q = mlp([obs_dim] + list(hidden_sizes) + [act_dim], nn.ReLU)
+
+    def forward(self, obs):
+        return self.q(obs)
 
 
 class CriticQ(nn.Module):

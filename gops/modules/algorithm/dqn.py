@@ -7,71 +7,77 @@
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 #  Author: Sun Hao
+#  Update Date: 2021-01-03, Yuxuan JIANG & Guojian ZHAN : implement DQN
 
 
-__all__=['CartPoleDQN']
+__all__=['DQN']
 
 
-import copy
+from copy import deepcopy
 import torch
-import torch.optim as optim
+import torch.nn as nn
 import torch.nn.functional as F
-import parl
-import numpy as np
+from torch.optim import Adam
 
+from modules.create_pkg.create_apprfunc import create_apprfunc
 
-class CartPoleDQN(parl.Algorithm):
-    def __init__(self, model, gamma, lr):
-        """ 自定义的 DQN algorithm
+class DQN():
+    def __init__(self, learning_rate=0.001, gamma=0.995, tau=0.005,**kwargs):
+        """Deep Q-Network (DQN) algorithm
+
+        A DQN implementation with soft target update.
+
+        Mnih, V., Kavukcuoglu, K., Silver, D. et al. Human-level control through deep reinforcement learning.
+        Nature 518, 529–533 (2015). https://doi.org/10.1038/nature14236
+        
+        Args:
+            learning_rate (float, optional): Q network learning rate. Defaults to 0.001.
+            gamma (float, optional): Discount factor. Defaults to 0.995.
+            tau (float, optional): Average factor. Defaults to 0.005.
         """
-        super(CartPoleDQN,self).__init__(model)
-        self.model = model
-        self.target_model = copy.deepcopy(model)
-        #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        #self.apprfunc.to(device)
-        #self.target_model.to(device)
+        Q_network_dict = {'apprfunc':kwargs['apprfunc'],
+                       'name':kwargs['value_func_name'],
+                       'obs_dim': kwargs['obsv_dim'],
+                       'act_dim': kwargs['action_num'],
+                       'hidden_sizes': kwargs['value_hidden_sizes'],
+                       'activation': kwargs['value_output_activation'],
+                       }
+        Q_network = create_apprfunc(**Q_network_dict)
+        target_network = deepcopy(Q_network)
 
-        assert isinstance(gamma, float) # debug
-        assert isinstance(lr, float)
+        self.apprfunc = Q_network
+        self.target_apprfunc =  target_network
+        self.target_apprfunc.eval()
+
+        self.polyak = 1 - tau
         self.gamma = gamma
-        self.lr = lr
+        self.lr = learning_rate
+        self.optimizer = Adam(self.apprfunc.parameters(), lr=self.lr)
 
-        self.mse_loss = torch.nn.MSELoss()
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
-
-    def predict(self, obs_np):
-        """
-        """
-        obs = torch.from_numpy(obs_np).float()
-        with torch.no_grad():
-            pred_q = self.model(obs)
-        return pred_q
-
-    def learn(self, obs_np, action_np, reward_np, next_obs_np, terminal_np):
-        """ 类似监督学习
-        进入数据为np.array
-        从obs开始计算梯度
-        """
-        #-------------------------------
-        obs = torch.from_numpy(obs_np).float()
-        action = torch.from_numpy(action_np.astype(np.int64))
-        reward = torch.from_numpy(reward_np).float()
-        next_obs = torch.from_numpy(next_obs_np).float()
-        terminal = torch.from_numpy(terminal_np).float()
-        obs.requires_grad = True # 开始计算梯度
-        # -------------------------------
-        #print("action",action)
-        temp = self.model(obs)
-        #print(temp)
-        pred_value = temp.gather(1, action)
-        with torch.no_grad():
-            max_v = self.target_model(next_obs).max(1, keepdim=True)[0]
-            target = reward + (1 - terminal) * self.gamma * max_v
+    def learn(self, data):
         self.optimizer.zero_grad()
-        loss = self.mse_loss(pred_value, target)
+        loss = self.compute_loss(data)
         loss.backward()
         self.optimizer.step()
-        return loss.item()
 
-    def sync_target(self):
-        self.model.sync_weights_to(self.target_model)
+        # Soft update
+        with torch.no_grad():
+            for p, p_targ in zip(self.apprfunc.parameters(), self.target_apprfunc.parameters()):
+                p_targ.data.mul_(self.polyak)
+                p_targ.data.add_((1 - self.polyak) * p.data)
+
+    def predict(self,obs):
+        with torch.no_grad():
+            return self.apprfunc(obs).argmax().item()
+
+    def compute_loss(self,data):  
+        obs, action, reward, next_obs, done = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
+        q_policy = self.apprfunc(obs).gather(1, action.to(torch.long)).squeeze()
+
+        with torch.no_grad():
+            q_target,_ = torch.max(self.target_apprfunc(next_obs),1)
+        q_expect = reward +  self.gamma * (1 - done) * q_target
+
+        loss = F.mse_loss(q_policy, q_expect)
+
+        return loss
