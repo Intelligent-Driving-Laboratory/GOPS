@@ -44,7 +44,7 @@ class SerialTrainer():
             batch_obs = np.expand_dims(obs, axis=0)
             action = self.algo.predict(torch.from_numpy(batch_obs.astype('float32')))
             # 增加探索扰动, 输出限制在 [-1.0, 1.0] 范围内
-            action = np.clip(np.random.normal(action, self.noise), -1.0, 1.0) # todo add train nosie
+            # action = np.clip(np.random.normal(action, self.noise), -1.0, 1.0) # todo add train nosie
             next_obs, reward, done, info = self.env.step(action)
             action = [action]
             # store in buffer
@@ -75,11 +75,11 @@ class SerialTrainer():
                 episode += 1
 
             # eval and render
-            eval_reward = self.eval()
-            print("episode =", episode ,",training reward = ",total_reward,"eval reward = ",eval_reward)
+            eval_reward = self.eval(self.render)
+            print("episode =", episode ,",training reward = ",total_reward,",eval reward = ",eval_reward)
 
 
-    def eval(self):
+    def eval(self,is_render=True):
         obs = self.env.reset()
         total_reward = 0
         steps = 0
@@ -94,7 +94,7 @@ class SerialTrainer():
             obs = next_obs
             total_reward += reward
 
-            if self.render and self.has_render :
+            if is_render and self.has_render :
                 self.env.render()
 
             if done or steps >= self.episode_len:

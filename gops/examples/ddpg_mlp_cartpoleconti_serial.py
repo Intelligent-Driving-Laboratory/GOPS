@@ -68,7 +68,7 @@ if __name__ == "__main__":
     parser.add_argument('--noise', type=float, default=0.5, help='')
     parser.add_argument('--reward_scale', type=float, default=0.1, help='')
     parser.add_argument('--batch_size', type=int, default=32, help='')
-    parser.add_argument('--is_render', type=bool, default=True)
+    parser.add_argument('--is_render', type=bool, default=False)
 
     # Data savings
     parser.add_argument('--save_folder', type=str,default='./results/' + parser.parse_args().algorithm)
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     print("Training is Done!")
 
     # start evaluating
-    # TODO add eval func
+    trainer.eval()
 
     # save data
     # TODO save all data
