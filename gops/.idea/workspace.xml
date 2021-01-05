@@ -2,10 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="05a13f0f-6be2-48ab-954d-58c801fa05f8" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/gops.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gops.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/dqn_mlp_cartpole_serial.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/dqn_mlp_cartpole_serial.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/ddpg_mlp_cartpoleconti_serial.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/ddpg_mlp_cartpoleconti_serial.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/trainer/serial_trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/trainer/serial_trainer.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -52,7 +51,7 @@
       <recent name="E:\prog\gops\gops\modules\utils" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.dqn_mlp_cartpole_serial">
+  <component name="RunManager" selected="Python.ddpg_mlp_cartpoleconti_serial">
     <configuration name="ddpg" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="gops" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -121,8 +120,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.dqn_mlp_cartpole_serial" />
         <item itemvalue="Python.ddpg_mlp_cartpoleconti_serial" />
+        <item itemvalue="Python.dqn_mlp_cartpole_serial" />
         <item itemvalue="Python.ddpg" />
       </list>
     </recent_temporary>
@@ -152,6 +151,7 @@
       <workItem from="1609735774747" duration="761000" />
       <workItem from="1609741085400" duration="3142000" />
       <workItem from="1609754922669" duration="3017000" />
+      <workItem from="1609811926465" duration="5619000" />
     </task>
     <servers />
   </component>
@@ -160,7 +160,7 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/gops$ddpg.coverage" NAME="ddpg Coverage Results" MODIFIED="1609731652135" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/modules/algorithm" />
-    <SUITE FILE_PATH="coverage/gops$ddpg_mlp_cartpoleconti_serial.coverage" NAME="ddpg_mlp_cartpoleconti_serial Coverage Results" MODIFIED="1609755195603" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
+    <SUITE FILE_PATH="coverage/gops$ddpg_mlp_cartpoleconti_serial.coverage" NAME="ddpg_mlp_cartpoleconti_serial Coverage Results" MODIFIED="1609819835354" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
     <SUITE FILE_PATH="coverage/gops$dqn_mlp_cartpole_serial.coverage" NAME="dqn_mlp_cartpole_serial Coverage Results" MODIFIED="1609774827237" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
   </component>
 </project>

@@ -57,7 +57,7 @@ if __name__ == "__main__":
     parser.add_argument('--max_sampled_number', type=int, default=2000)
 
     # 4. Parameters for trainer
-    parser.add_argument('--max_train_episode', type=int, default=2000, help='')
+    parser.add_argument('--max_train_episode', type=int, default=1000, help='')
     parser.add_argument('--episode_length', type=int, default=200, help='')
     parser.add_argument('--max_sample_num', type=int, default=100000, help='')
     
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     # Data savings
     parser.add_argument('--save_folder', type=str,default='./results/' + parser.parse_args().algorithm)
     parser.add_argument('--apprfunc_save_interval', type=int, default=1000)
-    parser.add_argument('--log_save_interval', type=int, default=10) # reward?
+    parser.add_argument('--log_save_interval', type=int, default=50) # reward?
 
     # get parameter dict
     args = vars(parser.parse_args())

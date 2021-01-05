@@ -12,9 +12,11 @@
 
 __all__ = ['SerialTrainer']
 
+import time
+import os
 import numpy as np
 import torch
-import tensorboardX # TODO save data and visualization
+from tensorboardX import SummaryWriter
 
 from modules.create_pkg.create_buffer import create_buffer
 
@@ -45,6 +47,14 @@ class SerialTrainer():
 
         # Store additional arguments
         self.additional_args = kwargs
+
+        # save data
+        self.save_folder = kwargs['save_folder'] # TODO get parent dir
+        self.log_save_interval = kwargs['log_save_interval']
+        dir = str(time.time())
+        self.writer = SummaryWriter(os.path.join(self.save_folder,dir))
+        self.apprfunc_save_interval = kwargs['apprfunc_save_interval']
+
 
     def run_episode(self):
         obs = self.env.reset()
@@ -83,21 +93,26 @@ class SerialTrainer():
         while self.buffer.size < self.warm_size:
             self.run_episode()
 
-        episode = 0
+        episode = 1
         total_reward = 0
-        while episode < self.max_train_episode:
-            for i in range(50):
+        while episode <= self.max_train_episode:
+            for i in range(self.log_save_interval):
                 total_reward = self.run_episode()
                 episode += 1
 
-            # log save
-
-            # apprfunc save
-
             # eval and render
             eval_reward = self.eval(self.render)
-            print("episode =", episode ,",training reward = ",total_reward,",eval reward = ",eval_reward)
+            print("episode =", episode, ",training reward = ", total_reward, ",eval reward = ", eval_reward)
+            # log save
+            self.writer.add_scalar('training reward',total_reward,episode)
+            self.writer.add_scalar('eval reward',eval_reward,episode)
+            # apprfunc save
+            if episode % self.apprfunc_save_interval == 0:
+                # TODO save
+                # torch.save(self.algo.ap.state_dict(), '\parameter.pkl')
+                pass
 
+        self.writer.close()
 
     def eval(self,is_render=True):
         obs = self.env.reset()
