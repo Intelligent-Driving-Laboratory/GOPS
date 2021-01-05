@@ -3,7 +3,7 @@ import math
 from gym import spaces
 import gym
 import numpy as np
-from resources import cartpole
+from modules.env.resources import cartpole
 
 class SimuCartpole(gym.Env):
     reward_range = (-float('inf'), float('inf'))
