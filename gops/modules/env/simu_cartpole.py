@@ -6,72 +6,34 @@ import numpy as np
 from resources import cartpole
 
 class SimuCartpole(gym.Env):
-    reward_range = (-float('inf'), float('inf'))
+
     def __init__(self):
-        self._physics = None
-
-        # define action and state spaces
-        self.theta_threshold_radians = 12 * 2 * math.pi / 360
-        self.x_threshold = 2.4
-        self.min_action = -1.0
-        self.max_action = 1.0
+        self._physics = cartpole.cartpoleModelClass_wrapper()
         high = np.array([
-            self.x_threshold * 2,
-            np.finfo(np.float32).max,
-            self.theta_threshold_radians * 2,
-            np.finfo(np.float32).max])
-
-        self.action_space = spaces.Box(
-            low=self.min_action,
-            high=self.max_action,
-            shape=(1,)
-        )
+            self._physics.get_param()['x_threshold'] * 2, np.finfo(np.float32).max,
+            self._physics.get_param()['theta_threshold_radians'] * 2, np.finfo(np.float32).max])
+        self.action_space = spaces.Box(low=self._physics.get_param()['f_threshold'][0], high=self._physics.get_param()['f_threshold'][1], shape=(1,))
         self.observation_space = spaces.Box(-high, high)
-
         self.reset()
 
     def step(self, action):
         action = { 'Force': action[0,0]}
-        state = self._step_physics(action)[0][[0, 1, 3, 4]]
-
-        # reward and is_done is computed in python instead of simulink
-        x, x_dot, theta, theta_dot = state
-        done = x < -self.x_threshold \
-               or x > self.x_threshold \
-               or theta < -self.theta_threshold_radians \
-               or theta > self.theta_threshold_radians
-        done = bool(done)
-
-        if not done:
-            reward = 1.0
-        else:
-            reward = 0.0
-        ret = state, reward, done, {}
-        # state = self._step_physics(action)
-        # ret = np.array(state, dtype=ExtY_dtype), self.get_reward(state, action), self.is_done(state), {}
+        state, done, reward = self._step_physics(action)
         self.state = state
-        return ret
-
-    def seed(self, seed=None):
-        '''
-        NOTE: Ramdomness is not properly handled yet !!!
-        '''
-        return [seed]
+        return state, reward, done, {}
 
     def reset(self):
-        '''Reset the environment.'''
-
-        if self._physics is not None:
-            self._physics.terminate()
+        self._physics.terminate()
         self._physics = cartpole.cartpoleModelClass_wrapper()
+        self.state = np.random.uniform(low=-0.05, high=0.05, size=(4,))
+        param = self._physics.get_param()
+        param.update(list(zip(('x_o','xdot_o','theta_o','thetadot_o'), self.state.tolist())))
+        self._physics.set_param(param)
         self._physics.initialize()
-        #self.state = SimuCartpole.initial_state
-        self.state, _, _, _ = self.step(np.zeros([1,1])+2*np.random.random()-1)
         return self.state
 
-    def render(self, mode='human'):
-        '''Render the environment.'''
-        super(SimuCartpole, self).render(mode=mode)  # Just raise an exception
+    def render(self):
+        pass
 
     def close(self):
         self._physics.renderterminate()
@@ -86,8 +48,8 @@ if __name__ == "__main__":
 
     env = SimuCartpole()
     s = env.reset()
-    for i in range(20):
-        a = np.ones([1,1])
+    for i in range(50):
+        a = np.ones([1, 1])*2
         sp, r, d, _ = env.step(a)
-        print(s, a, r)
+        print(s, a, r, d)
         s = sp
