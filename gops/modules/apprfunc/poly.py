@@ -18,29 +18,10 @@ from modules.utils.utils import get_activation_func
 
 # import tensorboardX
 # import tensorboard
-
-class RBF(nn.Module):
-    def __init__(self, input_dim=5,out_dim=10, k=3):
-        super(RBF, self).__init__()
-        self.input_dim=input_dim
-        self.k = k
-        self.C = nn.Parameter(torch.randn(1, k, input_dim))  # (n,k,5)
-        self.sigma = nn.Parameter(torch.randn(1, k))  # (n,k)
-        self.w = nn.Parameter(torch.randn(1, out_dim, k))  # (n,1,k)
-        self.b = nn.Parameter(torch.randn(1, out_dim, 1))  # (n,1,1)
-        self.tanh = nn.Tanh()
-
-    def forward(self, x):  # (n,5)
-        r = torch.sqrt(torch.sum((x.view(-1, 1, self.input_dim) - self.C) ** 2, dim=-1))  # (n,k)
-        phi = torch.exp(-r ** 2 / (2 * self.sigma ** 2)).unsqueeze(-1)  # (n,k,1)
-        return self.tanh(self.w @ phi + self.b).squeeze(-1)
-
-def mlp(sizes, activation, output_activation=nn.Identity):
-    layers = []
-    for j in range(len(sizes) - 1):
-        act = activation if j < len(sizes) - 2 else output_activation
-        layers += [nn.Linear(sizes[j], sizes[j + 1]), act()]
-    return nn.Sequential(*layers)
+def make_features(x,degree=4):
+    batch = x.shape[0]
+    x = x.unsqueeze(1)
+    return torch.cat([x ** i for i in range(0, degree)], 1).reshape(batch,-1)
 
 
 def count_vars(module):
@@ -52,12 +33,14 @@ class Actor(nn.Module):
         super().__init__()
         obs_dim = kwargs['obs_dim']
         act_dim = kwargs['act_dim']
+        hidden_sizes = kwargs['hidden_sizes']
         act_limit = kwargs['action_high_limit']
-        #num_kernel = kwargs['num_rbf_kernel']
-        self.pi = RBF(obs_dim,act_dim)
+        self.degree=4
+        self.pi = nn.Linear(obs_dim*self.degree,act_dim)
         self.act_limit =   torch.from_numpy(act_limit)
 
     def forward(self, obs):
+        obs=make_features(obs,self.degree)
         return self.act_limit * self.pi(obs)
 
 
@@ -65,10 +48,13 @@ class QValue(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim  = kwargs['obs_dim']
-        #num_kernel = kwargs['num_rbf_kernel']
-        self.q = RBF(obs_dim, 1)
+        act_dim = kwargs['act_dim']
+        hidden_sizes = kwargs['hidden_sizes']
+        self.degree = 4
+        self.q = nn.Linear(obs_dim*self.degree,1)
 
     def forward(self, obs):
+        obs = make_features(obs, self.degree)
         return self.q(obs)
 
 
@@ -77,11 +63,17 @@ class CriticQ(nn.Module):
         super().__init__()
         obs_dim = kwargs['obs_dim']
         act_dim = kwargs['act_dim']
-        #num_kernel = kwargs['num_rbf_kernel']
-        self.q = RBF(obs_dim + act_dim, 1)
-
+        hidden_sizes = kwargs['hidden_sizes']
+        self.degree = 4
+        self.q = nn.Linear((obs_dim+act_dim) * self.degree, 1)
 
     def forward(self, obs, act):
-        q = self.q(torch.cat([obs, act], dim=-1))
+        input=torch.cat([obs, act], dim=-1)
+        input = make_features(input, self.degree)
+        q = self.q(input)
         return torch.squeeze(q, -1)
+
+
+# class CriticV(nn.Module):
+#
 

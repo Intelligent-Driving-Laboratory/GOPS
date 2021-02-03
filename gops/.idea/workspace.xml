@@ -40,7 +40,7 @@
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/modules/env/resources" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
@@ -52,7 +52,7 @@
       <recent name="E:\prog\gops\gops\modules\utils" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.ddpg_mlp_cartpoleconti_serial_slx">
+  <component name="RunManager" selected="Python.ddpg_mlp_cartpoleconti_serial">
     <configuration name="ddpg" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="gops" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -143,8 +143,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.ddpg_mlp_cartpoleconti_serial_slx" />
         <item itemvalue="Python.ddpg_mlp_cartpoleconti_serial" />
+        <item itemvalue="Python.ddpg_mlp_cartpoleconti_serial_slx" />
         <item itemvalue="Python.dqn_mlp_cartpole_serial" />
         <item itemvalue="Python.ddpg" />
       </list>
