@@ -74,6 +74,10 @@ class ReplayBuffer():
         self.ptr = (self.ptr+1) % self.max_size # 控制buffer的内存
         self.size = min(self.size+1, self.max_size)
 
+    def add_batch(self, samples):
+        for sample in samples:
+            self.store(*sample)
+
     def sample_batch(self, batch_size=32):
         idxs = np.random.randint(0, self.size, size=batch_size)
         batch = dict(obs=self.obs_buf[idxs],

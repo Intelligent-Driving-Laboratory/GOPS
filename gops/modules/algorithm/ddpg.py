@@ -21,78 +21,98 @@ from torch.optim import Adam
 
 from modules.create_pkg.create_apprfunc import create_apprfunc
 from modules.utils.utils import get_apprfunc_dict
-from modules.utils.utils import ActorCriticApprFunc
 
 
-class DDPG():
-    def __init__(self,**kwargs):
-
-        critic_q_args = get_apprfunc_dict('value',**kwargs)
-        critic = create_apprfunc(**critic_q_args)
-
-        actor_args = get_apprfunc_dict('policy',**kwargs)
-        actor = create_apprfunc(**actor_args)
-
-        self.apprfunc = ActorCriticApprFunc(actor,critic)
-        self.target_apprfunc =  deepcopy(self.apprfunc)
-
-        for p in self.target_apprfunc.parameters():
-            p.requires_grad = False
-
-        self.gamma = kwargs['gamma']
+class ApproxContainer(nn.Module):
+    def __init__(self, **kwargs):
+        super().__init__()
         self.polyak = 1 - kwargs['tau']
-        self.pi_optimizer = Adam(self.apprfunc.pi.parameters(), lr=kwargs['policy_learning_rate']) #
-        self.q_optimizer = Adam(self.apprfunc.q.parameters(), lr=kwargs['value_learning_rate'])
+        self.delay_update = kwargs['delay_update']
+        q_args = get_apprfunc_dict('value', **kwargs)
+        self.q = create_apprfunc(**q_args)
 
+        policy_args = get_apprfunc_dict('policy', **kwargs)
+        self.policy = create_apprfunc(**policy_args)
 
-    def learn(self,data):
-        self.q_optimizer.zero_grad()
-        loss_q = self.compute_loss_q(data)
-        loss_q.backward()
-        self.q_optimizer.step()
+        self.q_target = deepcopy(self.q)
+        self.policy_target = deepcopy(self.policy)
 
-        for p in self.apprfunc.q.parameters():
+        for p in self.q_target.parameters():
             p.requires_grad = False
+        for p in self.policy_target.parameters():
+            p.requires_grad = False
+        self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs['policy_learning_rate'])  #
+        self.q_optimizer = Adam(self.q.parameters(), lr=kwargs['value_learning_rate'])
 
-        self.pi_optimizer.zero_grad()
-        loss_pi = self.compute_loss_pi(data)
-        loss_pi.backward()
-        self.pi_optimizer.step()
-
-        for p in self.apprfunc.q.parameters():
-            p.requires_grad = True
-
+    def update(self, grads, iteration):
+        q_grad_len = len(list(self.q.parameters()))
+        q_grad, policy_grad = grads[:q_grad_len], grads[q_grad_len:]
+        for p, grad in zip(self.q.parameters(), q_grad):
+            p._grad = torch.from_numpy(grad)
+        for p, grad in zip(self.policy.parameters(), policy_grad):
+            p._grad = torch.from_numpy(grad)
+        self.q_optimizer.step()
+        if iteration % self.delay_update == 0:
+            self.policy_optimizer.step()
         with torch.no_grad():
-            for p, p_targ in zip(self.apprfunc.parameters(), self.target_apprfunc.parameters()):
+            for p, p_targ in zip(self.q.parameters(), self.q_target.parameters()):
+                p_targ.data.mul_(self.polyak)
+                p_targ.data.add_((1 - self.polyak) * p.data)
+            for p, p_targ in zip(self.policy.parameters(), self.policy_target.parameters()):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
 
 
-    def predict(self,obs):
-        return self.apprfunc.act(obs)
+class DDPG():
+    def __init__(self, **kwargs):
+        self.networks = ApproxContainer(**kwargs)
+        self.gamma = kwargs['gamma']
+        self.polyak = 1 - kwargs['tau']
+        self.policy_optimizer = Adam(self.networks.policy.parameters(), lr=kwargs['policy_learning_rate'])  #
+        self.q_optimizer = Adam(self.networks.q.parameters(), lr=kwargs['value_learning_rate'])
 
-    def compute_loss_q(self,data):
-        o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done'] # TODO  解耦字典
-        q = self.apprfunc.q(o,a)
+    def compute_gradient(self, data):
+        self.q_optimizer.zero_grad()
+        loss_q = self.compute_loss_q(data)
+        loss_q.backward()
+
+        # for p in self.networks.q.parameters():
+        #     p.requires_grad = False
+
+        self.policy_optimizer.zero_grad()
+        loss_policy = self.compute_loss_policy(data)
+        loss_policy.backward()
+
+        # for p in self.networks.q.parameters():
+        #     p.requires_grad = True
+        q_grad = [p._grad.numpy() for p in self.networks.q.parameters()]
+        policy_grad = [p._grad.numpy() for p in self.networks.policy.parameters()]
+        return q_grad + policy_grad
+
+    def compute_loss_q(self, data):
+        o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']  # TODO  解耦字典
+        q = self.networks.q(o, a)
 
         with torch.no_grad():
-            q_pi_targ = self.target_apprfunc.q(o2, self.target_apprfunc.pi(o2))
-            backup = r +  self.gamma * (1 - d) * q_pi_targ
+            q_policy_targ = self.networks.q_target(o2, self.networks.policy(o2))
+            backup = r + self.gamma * (1 - d) * q_policy_targ
 
-        loss_q = ((q - backup)**2).mean()
+        loss_q = ((q - backup) ** 2).mean()
         return loss_q
 
-    def compute_loss_pi(self,data):
+    def compute_loss_policy(self, data):
         o = data['obs']
-        q_pi = self.apprfunc.q(o, self.apprfunc.pi(o))
-        return -q_pi.mean()
+        q_policy = self.networks.q(o, self.networks.policy(o))
+        return -q_policy.mean()
 
 
 if __name__ == '__main__':
     print('11111')
     import mujoco_py
+
     print('11111')
     import os
+
     print('11111')
     mj_path, _ = mujoco_py.utils.discover_mujoco()
     print('11111')

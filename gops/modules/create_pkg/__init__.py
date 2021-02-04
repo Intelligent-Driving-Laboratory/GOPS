@@ -32,8 +32,12 @@ trainer_file='trainer'
 trainer_path = os.path.join(modules_path,trainer_file)
 sys.path.append(trainer_path)
 
-# add trainer\buffer file to sys path
+# add buffer file to sys path
 buffer_file='buffer'
 buffer_path = os.path.join(modules_path,trainer_file,buffer_file)
 sys.path.append(buffer_path)
 
+# add sampler file to sys path
+sampler_file='sampler'
+sampler_path = os.path.join(modules_path,trainer_file,sampler_file)
+sys.path.append(sampler_path)
