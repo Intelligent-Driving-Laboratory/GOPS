@@ -41,7 +41,11 @@
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
+<<<<<<< HEAD
     <property name="last_opened_file_path" value="$PROJECT_DIR$/../../carla_platform/proj" />
+=======
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+>>>>>>> muyao
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
@@ -168,7 +172,10 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.ddpg_mlp_cartpoleconti_serial" />
+<<<<<<< HEAD
         <item itemvalue="Python.test" />
+=======
+>>>>>>> muyao
         <item itemvalue="Python.ddpg_mlp_cartpoleconti_serial_slx" />
         <item itemvalue="Python.dqn_mlp_cartpole_serial" />
         <item itemvalue="Python.ddpg" />
