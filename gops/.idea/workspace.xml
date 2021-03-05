@@ -2,24 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="05a13f0f-6be2-48ab-954d-58c801fa05f8" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/modules/create_pkg/create_evaluator.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/modules/create_pkg/create_sampler.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/modules/trainer/sampler/mc_sampler.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/modules/utils/action_distributions.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/modules/utils/noise.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/gops.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gops.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/ddpg_mlp_cartpoleconti_serial.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/ddpg_mlp_cartpoleconti_serial.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/algorithm/ddpg.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/algorithm/ddpg.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/create_pkg/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/create_pkg/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/create_pkg/create_trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/create_pkg/create_trainer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/trainer/buffer/replay_buffer.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/trainer/buffer/replay_buffer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/trainer/evaluator.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/trainer/evaluator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/trainer/sampler/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/trainer/sampler/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/trainer/serial_trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/trainer/serial_trainer.py" afterDir="false" />
     </list>
-    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -43,6 +29,7 @@
       <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
     </file-type-list>
   </component>
+  <component name="JupyterTrust" id="38fda7b1-df77-404f-b3d0-eb033dda7134" />
   <component name="ProjectId" id="1mRt8aVXCdzdXhEEoxLh3AQ4JiO" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
@@ -54,7 +41,7 @@
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/modules/trainer" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../../carla_platform/proj" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
@@ -66,18 +53,6 @@
       <recent name="D:\prog\gops\gops\modules\env\resources" />
       <recent name="E:\prog\gops\gops\examples" />
     </key>
-  </component>
-  <component name="RunDashboard">
-    <option name="ruleStates">
-      <list>
-        <RuleState>
-          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
-        </RuleState>
-        <RuleState>
-          <option name="name" value="StatusDashboardGroupingRule" />
-        </RuleState>
-      </list>
-    </option>
   </component>
   <component name="RunManager" selected="Python.ddpg_mlp_cartpoleconti_serial">
     <configuration name="ddpg" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
@@ -200,7 +175,7 @@
       </list>
     </recent_temporary>
   </component>
-  <component name="SpellCheckerSettings" BundledDictionaries="0" Folders="0" CustomDictionaries="0" Dictionaries="0" CorrectionsLimit="5" DefaultDictionary="application-level" UseSingleDictionary="true" />
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="SvnConfiguration">
     <configuration />
   </component>
@@ -242,24 +217,35 @@
       <workItem from="1611118961296" duration="14675000" />
       <workItem from="1611305555964" duration="2681000" />
       <workItem from="1611385190693" duration="2080000" />
+      <workItem from="1614920948701" duration="1970000" />
+      <workItem from="1614922934994" duration="908000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
-    <option name="version" value="1" />
+    <option name="version" value="3" />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
       <map>
         <entry key="MAIN">
           <value>
-            <State>
-              <option name="COLUMN_ORDER" />
-            </State>
+            <State />
           </value>
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="740" y="275" key="FileChooserDialogImpl" timestamp="1614922074154">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="740" y="275" key="FileChooserDialogImpl/0.0.1920.1040@0.0.1920.1040" timestamp="1614922074154" />
+    <state x="461" y="164" key="SettingsEditor" timestamp="1614921782467">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="461" y="164" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1614921782467" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -278,10 +264,10 @@
     </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/gops$dqn_mlp_cartpole_serial.coverage" NAME="dqn_mlp_cartpole_serial Coverage Results" MODIFIED="1609774827237" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
     <SUITE FILE_PATH="coverage/gops$ddpg.coverage" NAME="ddpg Coverage Results" MODIFIED="1609731652135" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/modules/algorithm" />
-    <SUITE FILE_PATH="coverage/gops$ddpg_mlp_cartpoleconti_serial.coverage" NAME="ddpg_mlp_cartpoleconti_serial Coverage Results" MODIFIED="1611387290513" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
     <SUITE FILE_PATH="coverage/gops$ddpg_mlp_cartpoleconti_serial_slx.coverage" NAME="ddpg_mlp_cartpoleconti_serial_slx Coverage Results" MODIFIED="1609821727911" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
     <SUITE FILE_PATH="coverage/gops$test.coverage" NAME="test Coverage Results" MODIFIED="1610334633581" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/gops$ddpg_mlp_cartpoleconti_serial.coverage" NAME="ddpg_mlp_cartpoleconti_serial Coverage Results" MODIFIED="1611387290513" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
+    <SUITE FILE_PATH="coverage/gops$dqn_mlp_cartpole_serial.coverage" NAME="dqn_mlp_cartpole_serial Coverage Results" MODIFIED="1609774827237" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
   </component>
 </project>
