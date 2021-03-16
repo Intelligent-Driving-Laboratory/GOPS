@@ -68,10 +68,11 @@ class McSampler():
                 action = self.noise_processor.sample(action)
 
             next_obs, reward, self.done, info = self.env.step(action)
-            if self.render:
-                self.env.render()
+            #if self.render:
+             #   self.env.render()
             batch_data.append(
                 (self.obs.copy(), action, reward * self.reward_scale, next_obs.copy(), self.done))  # TODO  加入logp
+            self.obs = next_obs
             if self.done:
                 self.obs = self.env.reset()
         return batch_data

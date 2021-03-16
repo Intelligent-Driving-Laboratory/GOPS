@@ -72,5 +72,14 @@ class CriticQ(nn.Module):
         return torch.squeeze(q, -1)
 
 
-# class CriticV(nn.Module):
+class CriticV(nn.Module):
+    def __init__(self, **kwargs):
+        super().__init__()
+        obs_dim = kwargs['obs_dim']
+        hidden_sizes = kwargs['hidden_sizes']
+        self.v = mlp([obs_dim] + list(hidden_sizes) + [1], get_activation_func(kwargs['hidden_activation']), )
+
+    def forward(self, obs):
+        return self.v(obs)
+
 #
