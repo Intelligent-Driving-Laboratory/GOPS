@@ -45,7 +45,6 @@ class McSampler():
             if self.action_type == 'conti':
                 self.noise_processor = GaussNoise(**self.noise_params)
             else:
-                self.noise_params.update(dict(action_num=3))  # TODO
                 self.noise_processor = EpsilonGreedy(**self.noise_params)
 
     def sample(self):

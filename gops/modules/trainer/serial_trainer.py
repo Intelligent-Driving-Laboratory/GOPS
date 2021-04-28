@@ -35,6 +35,7 @@ class SerialTrainer():
         self.iteration = 0
         self.max_iteration = 1000  #  TODO
         self.warm_size = kwargs['buffer_warm_size']
+        self.batch_size = kwargs['batch_size']
         while self.buffer.size < self.warm_size:
             samples = self.sampler.sample()
             self.buffer.add_batch(samples)
@@ -53,7 +54,7 @@ class SerialTrainer():
         self.buffer.add_batch(samples)
 
         # replay
-        samples = self.buffer.sample_batch()
+        samples = self.buffer.sample_batch(self.batch_size)
 
         # learning
         self.alg.networks.load_state_dict(self.networks.state_dict())

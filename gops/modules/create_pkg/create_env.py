@@ -23,8 +23,9 @@ Note: create_env() requires that either 2 or 3 is satisfied.
 
 def create_env(**kwargs):
     env_name = kwargs['env_id']
+    env_name_data = env_name + '_data'
     try:
-        file = __import__(env_name)
+        file = __import__(env_name_data)
     except NotImplementedError:
         raise NotImplementedError('This environment does not exist')
 
@@ -37,6 +38,7 @@ def create_env(**kwargs):
         y = getattr(file, env_name_camel)
         env = y()
     else:
+        print("Env name: ",env_name_camel)
         raise NotImplementedError("This environment is not properly defined")
     print("Create environment successfully!")
     return env

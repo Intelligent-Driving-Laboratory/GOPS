@@ -54,6 +54,7 @@ class Evaluator():
             action = action_distribution.mode()
             action = action.detach().numpy()[0]
             next_obs, reward, done, info = self.env.step(action)
+            obs = next_obs
             if render: self.env.render()
             reward_list.append(reward)
         episode_return = sum(reward_list)

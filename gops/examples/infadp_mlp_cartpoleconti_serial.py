@@ -6,7 +6,7 @@
 #  Update Date: 2020-11-13, Hao SUN：add new ddpg demo
 #  Update Date: 2020-12-11, Hao SUN：move buffer to trainer
 #  Update Date: 2020-12-12, Hao SUN：move create_* files to create_pkg
-#  Update Date: 2021-01-01, Hao SUN：chang name
+#  Update Date: 2021-01-01, Hao SUN：change name
 
 
 #  General Optimal control Problem Solver (GOPS)
@@ -22,18 +22,19 @@ import numpy as np
 
 from modules.create_pkg.create_alg import create_alg
 from modules.create_pkg.create_buffer import create_buffer
-from modules.create_pkg.create_env import create_env
+from modules.create_pkg.create_env_model import create_env_model
 from modules.create_pkg.create_evaluator import create_evaluator
 from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
 from modules.utils.utils import change_type
+from modules.utils.plot import self_plot, start_tensorboard, read_tensorboard
 
 if __name__ == "__main__":
     # Parameters Setup
     parser = argparse.ArgumentParser()
 
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='gym_cartpole_conti', help='')
+    parser.add_argument('--env_id', type=str, default='gym_cartpoleconti', help='')
     parser.add_argument('--apprfunc', type=str, default='MLP', help='')
     parser.add_argument('--algorithm', type=str, default='INFADP', help='')
     parser.add_argument('--trainer', type=str, default='serial_trainer', help='')
@@ -91,7 +92,7 @@ if __name__ == "__main__":
 
     # get parameter dict
     args = vars(parser.parse_args())
-    env = create_env(**args)
+    env = create_env_model(**args)
     args['obsv_dim'] = env.observation_space.shape[0]
     args['action_dim'] = env.action_space.shape[0]
     args['action_high_limit'] = env.action_space.high  # NOTE: [type is np.ndarray, not list]
@@ -107,6 +108,7 @@ if __name__ == "__main__":
     with open(args['save_folder'] + '/config.json', 'w', encoding='utf-8') as f:
         json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
 
+    start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
     # Step 2: create sampler in trainer
@@ -120,3 +122,10 @@ if __name__ == "__main__":
 
     # start training
     trainer.train()
+
+    # plot and save training curve
+    data = read_tensorboard(args['save_folder'], 'episode_return')
+    self_plot(data['episode_return'],
+              os.path.join(args['save_folder'], "episode_return.tiff"),
+              xlabel='Iteration Steps',
+              ylabel="Episode_Return")

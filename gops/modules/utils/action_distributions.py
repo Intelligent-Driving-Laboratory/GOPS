@@ -39,7 +39,7 @@ class ValueDiracDistribution():
         self.logits = logits
 
     def sample(self):
-        return torch.argmax(self.logits)
+        return torch.argmax(self.logits, dim=-1)
 
     def mode(self):
-        return torch.argmax(self.logits)
+        return torch.argmax(self.logits, dim=-1)
