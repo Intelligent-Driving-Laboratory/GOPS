@@ -8,7 +8,7 @@
 #
 #  Author: Sun Hao
 
-__all__=['Actor','CriticQ','QValue']
+__all__=['DetermPolicy','StochaPolicy','ActionValue','ActionValueDis','StateValue']
 
 
 import numpy as np
@@ -16,8 +16,6 @@ import torch
 import torch.nn as nn
 from modules.utils.utils import get_activation_func
 
-# import tensorboardX
-# import tensorboard
 
 def mlp(sizes, activation, output_activation=nn.Identity):
     layers = []
@@ -31,7 +29,7 @@ def count_vars(module):
     return sum([np.prod(p.shape) for p in module.parameters()])
 
 
-class Actor(nn.Module):
+class DetermPolicy(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs['obs_dim']
@@ -46,20 +44,24 @@ class Actor(nn.Module):
     def forward(self, obs):
         return self.act_limit * self.pi(obs)
 
-
-class QValue(nn.Module):
+class StochaPolicy(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        obs_dim  = kwargs['obs_dim']
+        obs_dim = kwargs['obs_dim']
         act_dim = kwargs['act_dim']
         hidden_sizes = kwargs['hidden_sizes']
-        self.q = mlp([obs_dim] + list(hidden_sizes) + [act_dim], nn.ReLU)
+        act_limit = kwargs['action_high_limit']
+
+        pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim]
+        self.mean = mlp(pi_sizes, get_activation_func(kwargs['hidden_activation']), get_activation_func(kwargs['output_activation']))
+        self.std = mlp(pi_sizes, get_activation_func(kwargs['hidden_activation']),
+                        get_activation_func(kwargs['output_activation']))
+        self.act_limit =   torch.from_numpy(act_limit)
 
     def forward(self, obs):
-        return self.q(obs)
+        return self.act_limit * self.mean(obs), torch.exp(self.std(obs))
 
-
-class CriticQ(nn.Module):
+class ActionValue(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs['obs_dim']
@@ -72,7 +74,19 @@ class CriticQ(nn.Module):
         return torch.squeeze(q, -1)
 
 
-class CriticV(nn.Module):
+
+class ActionValueDis(nn.Module):
+    def __init__(self, **kwargs):
+        super().__init__()
+        obs_dim  = kwargs['obs_dim']
+        act_dim = kwargs['act_dim']
+        hidden_sizes = kwargs['hidden_sizes']
+        self.q = mlp([obs_dim] + list(hidden_sizes) + [act_dim], nn.ReLU)
+
+    def forward(self, obs):
+        return self.q(obs)
+
+class StateValue(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs['obs_dim']

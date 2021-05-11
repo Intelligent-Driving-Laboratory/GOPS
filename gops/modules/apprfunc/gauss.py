@@ -8,7 +8,7 @@
 #
 #  Author: Sun Hao
 
-__all__=['Actor','CriticQ','QValue']
+__all__=['DetermPolicy','StochaPolicy','ActionValue','ActionValueDis','StateValue']
 
 
 import numpy as np
@@ -16,17 +16,14 @@ import torch
 import torch.nn as nn
 from modules.utils.utils import get_activation_func
 
-# import tensorboardX
-# import tensorboard
 
 class RBF(nn.Module):
-    def __init__(self, input_dim=5,out_dim=10, k=3):
-        super(RBF, self).__init__()
+    def __init__(self, input_dim=5,out_dim=10, kernel_num=3):
         self.input_dim=input_dim
-        self.k = k
-        self.C = nn.Parameter(torch.randn(1, k, input_dim))  # (n,k,5)
-        self.sigma = nn.Parameter(torch.randn(1, k))  # (n,k)
-        self.w = nn.Parameter(torch.randn(1, out_dim, k))  # (n,1,k)
+        self.kernel = kernel_num
+        self.C = nn.Parameter(torch.randn(1, self.kernel, input_dim))  # (n,k,5)
+        self.sigma = nn.Parameter(torch.randn(1, self.kernel))  # (n,k)
+        self.w = nn.Parameter(torch.randn(1, out_dim, self.kernel))  # (n,1,k)
         self.b = nn.Parameter(torch.randn(1, out_dim, 1))  # (n,1,1)
         self.tanh = nn.Tanh()
 
@@ -47,7 +44,7 @@ def count_vars(module):
     return sum([np.prod(p.shape) for p in module.parameters()])
 
 
-class Actor(nn.Module):
+class DetermPolicy(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs['obs_dim']
@@ -58,10 +55,38 @@ class Actor(nn.Module):
         self.act_limit =   torch.from_numpy(act_limit)
 
     def forward(self, obs):
-        return self.act_limit * self.pi(obs)
+        return self.act_limit * self.pi.forward(obs)
+
+class StochaPolicy(nn.Module):
+    def __init__(self, **kwargs):
+        super().__init__()
+        obs_dim = kwargs['obs_dim']
+        act_dim = kwargs['act_dim']
+        act_limit = kwargs['action_high_limit']
+        #num_kernel = kwargs['num_rbf_kernel']
+
+        self.mean = RBF(obs_dim, act_dim)
+        self.std = RBF(obs_dim, act_dim)
+        self.act_limit =   torch.from_numpy(act_limit)
+
+    def forward(self, obs):
+        return self.act_limit * self.mean(obs), torch.exp(self.std(obs))
 
 
-class QValue(nn.Module):
+class ActionValue(nn.Module):
+    def __init__(self, **kwargs):
+        super().__init__()
+        obs_dim = kwargs['obs_dim']
+        act_dim = kwargs['act_dim']
+        self.q = RBF(obs_dim + act_dim, 1)
+
+
+    def forward(self, obs, act):
+        q = self.q.forward(torch.cat([obs, act], dim=-1))
+        return torch.squeeze(q, -1)
+
+
+class ActionValueDis(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim  = kwargs['obs_dim']
@@ -69,19 +94,16 @@ class QValue(nn.Module):
         self.q = RBF(obs_dim, 1)
 
     def forward(self, obs):
-        return self.q(obs)
+        return  self.q.forward(obs)
 
 
-class CriticQ(nn.Module):
+
+
+class StateValue(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs['obs_dim']
-        act_dim = kwargs['act_dim']
-        #num_kernel = kwargs['num_rbf_kernel']
-        self.q = RBF(obs_dim + act_dim, 1)
+        self.v = RBF(obs_dim, 1)
 
-
-    def forward(self, obs, act):
-        q = self.q(torch.cat([obs, act], dim=-1))
-        return torch.squeeze(q, -1)
-
+    def forward(self, obs):
+        return self.v.forward(obs)

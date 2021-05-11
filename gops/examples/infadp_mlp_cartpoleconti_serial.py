@@ -48,13 +48,13 @@ if __name__ == "__main__":
     parser.add_argument('--is_render', type=bool, default=False)
 
     # 2. Parameters for approximate function
-    parser.add_argument('--value_func_name', type=str, default='critic_v', help='')
+    parser.add_argument('--value_func_name', type=str, default='ActionValue', help='')
     parser.add_argument('--value_func_type', type=str, default=parser.parse_args().apprfunc, help='')
     parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256])
     parser.add_argument('--value_hidden_activation', type=str, default='relu', help='')
     parser.add_argument('--value_output_activation', type=str, default='linear', help='')
 
-    parser.add_argument('--policy_func_name', type=str, default='actor', help='')
+    parser.add_argument('--policy_func_name', type=str, default='DetermPolicy', help='')
     parser.add_argument('--policy_func_type', type=str, default=parser.parse_args().apprfunc, help='')
     parser.add_argument('--policy_hidden_sizes', type=list, default=[256, 256])
     parser.add_argument('--policy_hidden_activation', type=str, default='relu', help='')

@@ -14,7 +14,7 @@
     ],
     "action_type": "conti",
     "is_render": false,
-    "value_func_name": "critic_q",
+    "value_func_name": "",
     "value_func_type": "MLP",
     "value_hidden_sizes": [
         256,
