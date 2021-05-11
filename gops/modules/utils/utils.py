@@ -2,6 +2,7 @@
 
 
 """
+import time
 
 import torch
 import torch.nn as nn
@@ -67,3 +68,22 @@ def change_type(obj):
         return obj
     else:
         return obj
+
+
+class Timer(object):
+    def __init__(self, writer, tag='Performance/Time', step=None):
+        self.writer = writer
+        self.tag = tag
+        self.step = step
+
+    def __enter__(self):
+        self.start = time.time()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # print(time.time() - self.start)
+        self.writer.add_scalar(self.tag, time.time() - self.start, self.step)
+
+
+def add_scalars(tb_info, writer, step):
+    for key, value in tb_info.items():
+        writer.add_scalar(key, value, step)

@@ -17,6 +17,7 @@ import os
 import numpy as np
 import torch
 from tensorboardX import SummaryWriter
+from modules.utils.utils import Timer, add_scalars
 
 
 class SerialTrainer():
@@ -44,6 +45,7 @@ class SerialTrainer():
         self.log_save_interval = kwargs['log_save_interval']
         self.sample_sync_interval = kwargs['sample_sync_interval']
         self.apprfunc_save_interval = kwargs['apprfunc_save_interval']
+        # setattr(self.alg, "writer", self.evaluator.writer)
 
     def step(self):
         # sampling
@@ -74,10 +76,15 @@ class SerialTrainer():
 
     def train(self):
         while self.iteration < self.max_iteration:
-            self.step()
+            # setattr(self.alg, "iteration", self.iteration)
+            with Timer(self.evaluator.writer,step=self.iteration):
+                self.step()
+            if hasattr(self.alg, 'tb_info'):
+                add_scalars(self.alg.tb_info, self.evaluator.writer, step=self.iteration)
+
             self.iteration += 1
             if self.iteration%10 == 0:
-                print('Itertaion = ',self.iteration)
+                print('Itertaion = ', self.iteration)
 
 
 

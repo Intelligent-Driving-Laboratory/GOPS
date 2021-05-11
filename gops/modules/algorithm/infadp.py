@@ -77,8 +77,10 @@ class INFADP():
         self.policy_optimizer = Adam(self.networks.policy.parameters(), lr=kwargs['policy_learning_rate'])  #
         self.v_optimizer = Adam(self.networks.v.parameters(), lr=kwargs['value_learning_rate'])
         torch.autograd.set_detect_anomaly(True)
+        self.tb_info = dict()
 
     def compute_gradient(self, data):
+        self.tb_info = dict()
         self.v_optimizer.zero_grad()
         loss_v = self.compute_loss_v(deepcopy(data))
         loss_v.backward()
@@ -114,6 +116,11 @@ class INFADP():
 
             backup += (~d) * self.gamma ** (self.forward_step) * self.networks.v(o2)
         loss_v = ((v - backup) ** 2).mean()
+
+        self.tb_info["Loss/loss_value"] = loss_v.item()
+        # self.tb_info["Performance/mean_reward"] = r.mean().item()
+        # self.writer.add_scalar("Loss/loss_value", loss_v.item(), self.iteration)
+        # self.writer.add_scalar("Performance/mean_reward", r.mean().item(), self.iteration)
         return loss_v
 
     def compute_loss_policy(self, data):
@@ -138,8 +145,10 @@ class INFADP():
         v_pi += self.gamma ** (self.forward_step) * self.networks.v(o2)
         for p in self.networks.v.parameters():
             p.requires_grad = True
-        return -v_pi.mean()
 
+        self.tb_info["Loss/loss_policy"] = -v_pi.mean().item()
+        # self.writer.add_scalar("Loss/loss_policy", -v_pi.mean().item(), self.iteration)
+        return -v_pi.mean()
 
 if __name__ == '__main__':
     print('11111')

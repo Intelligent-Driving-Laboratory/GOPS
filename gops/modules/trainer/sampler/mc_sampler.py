@@ -46,6 +46,12 @@ class McSampler():
                 self.noise_processor = GaussNoise(**self.noise_params)
             else:
                 self.noise_processor = EpsilonGreedy(**self.noise_params)
+        else:
+            if self.action_type == 'conti':
+                self.noise_processor = GaussNoise()
+            else:
+                self.noise_processor = EpsilonGreedy()
+
 
     def sample(self):
         batch_data = []
