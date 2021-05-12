@@ -27,6 +27,7 @@ from modules.create_pkg.create_evaluator import create_evaluator
 from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
 from modules.utils.utils import change_type
+from modules.utils.plot import self_plot, start_tensorboard, read_tensorboard
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -104,6 +105,7 @@ if __name__ == "__main__":
     with open(args['save_folder'] + '/config.json', 'w', encoding='utf-8') as f:
         json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
 
+    start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
     # Step 2: create sampler in trainer
@@ -117,3 +119,11 @@ if __name__ == "__main__":
 
     # start training
     trainer.train()
+
+    # plot and save training curve
+    data = read_tensorboard(args['save_folder'], 'episode_return')
+    self_plot(data['episode_return'],
+              os.path.join(args['save_folder'], "episode_return.tiff"),
+              xlabel='Iteration Steps',
+              ylabel="Episode_Return")
+
