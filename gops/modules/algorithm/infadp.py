@@ -28,22 +28,22 @@ class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         self.polyak = 1 - kwargs['tau']
-        self.delay_update = kwargs['delay_update']
         v_args = get_apprfunc_dict('value', **kwargs)
         self.v = create_apprfunc(**v_args)
-
+        self.pev_step = kwargs['pev_step']
+        self.pim_step = kwargs['pim_step']
         policy_args = get_apprfunc_dict('policy', **kwargs)
-        self.policy = create_apprfunc(**policy_args)
+        self.new_policy = create_apprfunc(**policy_args)
 
-        # self.v_target = deepcopy(self.v)
-        # self.policy_target = deepcopy(self.policy)
+        self.v_target = deepcopy(self.v)
+        self.policy = deepcopy(self.new_policy)
 
-        '''for p in self.v_target.parameters():
+        for p in self.v_target.parameters():
             p.requires_grad = False
-        for p in self.policy_target.parameters():
+        for p in self.policy.parameters():
             p.requires_grad = False
-        '''
-        self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs['policy_learning_rate'])  #
+
+        self.policy_optimizer = Adam(self.new_policy.parameters(), lr=kwargs['policy_learning_rate'])  #
         self.v_optimizer = Adam(self.v.parameters(), lr=kwargs['value_learning_rate'])
 
     def update(self, grads, iteration):
@@ -51,19 +51,20 @@ class ApproxContainer(nn.Module):
         v_grad, policy_grad = grads[:v_grad_len], grads[v_grad_len:]
         for p, grad in zip(self.v.parameters(), v_grad):
             p._grad = torch.from_numpy(grad)
-        for p, grad in zip(self.policy.parameters(), policy_grad):
+        for p, grad in zip(self.new_policy.parameters(), policy_grad):
             p._grad = torch.from_numpy(grad)
-        self.v_optimizer.step()
-        if iteration % self.delay_update == 0:
+
+        if iteration % (self.pev_step + self.pim_step) < self.pev_step:
+            self.v_optimizer.step()
+        else:
             self.policy_optimizer.step()
-        '''with torch.no_grad():
+        with torch.no_grad():
             for p, p_targ in zip(self.v.parameters(), self.v_target.parameters()):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
-            for p, p_targ in zip(self.policy.parameters(), self.policy_target.parameters()):
+            for p, p_targ in zip(self.new_policy.parameters(), self.policy.parameters()):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
-        '''
 
 
 class INFADP():
@@ -71,12 +72,12 @@ class INFADP():
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
         self.gamma = kwargs['gamma']
-        self.forward_step = 10
+        self.forward_step = 20
         self.reward_scale = kwargs['reward_scale']
-        # self.polyak = 1 - kwargs['tau']
+        self.polyak = 1 - kwargs['tau']
         self.policy_optimizer = Adam(self.networks.policy.parameters(), lr=kwargs['policy_learning_rate'])  #
         self.v_optimizer = Adam(self.networks.v.parameters(), lr=kwargs['value_learning_rate'])
-        torch.autograd.set_detect_anomaly(True)
+        # torch.autograd.set_detect_anomaly(True)
         self.tb_info = dict()
 
     def compute_gradient(self, data):
@@ -95,7 +96,7 @@ class INFADP():
         # for p in self.networks.q.parameters():
         #     p.requires_grad = True
         v_grad = [p._grad.numpy() for p in self.networks.v.parameters()]
-        policy_grad = [p._grad.numpy() for p in self.networks.policy.parameters()]
+        policy_grad = [p._grad.numpy() for p in self.networks.new_policy.parameters()]
         return v_grad + policy_grad
 
     def compute_loss_v(self, data):
@@ -105,22 +106,23 @@ class INFADP():
         with torch.no_grad():
             for step in range(self.forward_step):
                 if step == 0:
-                    a = self.networks.policy(o)
+                    a = self.networks.new_policy(o)
                     o2, r, d, _ = self.envmodel.step(o, a)
                     backup = self.reward_scale * r
                 else:
-                    o = o2.detach()
-                    a = self.networks.policy(o)
+                    o = o2
+                    a = self.networks.new_policy(o)
                     o2, r, d, _ = self.envmodel.step(o, a)
                     backup += self.reward_scale * self.gamma ** step * r
 
-            backup += (~d) * self.gamma ** (self.forward_step) * self.networks.v(o2)
+            backup += (~d) * self.gamma ** (self.forward_step) * self.networks.v_target(o2)
         loss_v = ((v - backup) ** 2).mean()
 
         self.tb_info["Loss/loss_value"] = loss_v.item()
         # self.tb_info["Performance/mean_reward"] = r.mean().item()
         # self.writer.add_scalar("Loss/loss_value", loss_v.item(), self.iteration)
         # self.writer.add_scalar("Performance/mean_reward", r.mean().item(), self.iteration)
+        # print('Loss = ',loss_v.item())
         return loss_v
 
     def compute_loss_policy(self, data):
@@ -130,24 +132,21 @@ class INFADP():
             p.requires_grad = False
         for step in range(self.forward_step):
             if step == 0:
-                a = self.networks.policy(o)
-                # a.retain_grad()
+                a = self.networks.new_policy(o)
                 o2, r, d, _ = self.envmodel.step(o, a)
-                # o2.retain_grad()
-
-                # print(a.grad)
                 v_pi = self.reward_scale * r
             else:
-                o.copy_(o2.detach())
-                a = self.networks.policy(o)
+                o = o2
+                a = self.networks.new_policy(o)
                 o2, r, d, _ = self.envmodel.step(o, a)
                 v_pi += self.reward_scale * self.gamma ** step * r
-        v_pi += self.gamma ** (self.forward_step) * self.networks.v(o2)
+        v_pi += self.gamma ** (self.forward_step) * self.networks.v_target(o2)
         for p in self.networks.v.parameters():
             p.requires_grad = True
 
         self.tb_info["Loss/loss_policy"] = -v_pi.mean().item()
         # self.writer.add_scalar("Loss/loss_policy", -v_pi.mean().item(), self.iteration)
+        # print('V =',v_pi.mean().item())
         return -v_pi.mean()
 
 if __name__ == '__main__':
