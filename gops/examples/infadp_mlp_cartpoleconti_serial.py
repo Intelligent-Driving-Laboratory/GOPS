@@ -66,8 +66,8 @@ if __name__ == "__main__":
     parser.add_argument('--value_learning_rate', type=float, default=1e-3, help='')
     parser.add_argument('--policy_learning_rate', type=float, default=1e-3, help='')
     parser.add_argument('--delay_update', type=int, default=1, help='')
-    parser.add_argument('--pev_step', type=int, default=100, help='')
-    parser.add_argument('--pim_step', type=int, default=100, help='')
+    parser.add_argument('--pev_step', type=int, default=10, help='')
+    parser.add_argument('--pim_step', type=int, default=10, help='')
     parser.add_argument('--distribution_type', type=str, default='Dirac')
 
     # 4. Parameters for trainer
@@ -79,7 +79,7 @@ if __name__ == "__main__":
                         help='')
     parser.add_argument('--reward_scale', type=float, default=0.1, help='')
     parser.add_argument('--batch_size', type=int, default=256, help='')
-    parser.add_argument('--sample_sync_interval', type=int, default=1000, help='')
+    parser.add_argument('--sample_sync_interval', type=int, default=1, help='')
     # Parameters for buffer
     parser.add_argument('--buffer_name', type=str, default='replay_buffer')
     parser.add_argument('--buffer_warm_size', type=int, default=1000)

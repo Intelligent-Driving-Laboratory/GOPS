@@ -72,10 +72,10 @@ class INFADP():
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
         self.gamma = kwargs['gamma']
-        self.forward_step = 20
+        self.forward_step = 5
         self.reward_scale = kwargs['reward_scale']
         self.polyak = 1 - kwargs['tau']
-        self.policy_optimizer = Adam(self.networks.policy.parameters(), lr=kwargs['policy_learning_rate'])  #
+        self.policy_optimizer = Adam(self.networks.new_policy.parameters(), lr=kwargs['policy_learning_rate'])  #
         self.v_optimizer = Adam(self.networks.v.parameters(), lr=kwargs['value_learning_rate'])
         # torch.autograd.set_detect_anomaly(True)
         self.tb_info = dict()
