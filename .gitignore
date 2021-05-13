@@ -3,6 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+#add by SUN-Hao
+./gops/.idea/*
+./gops/results/*
+./.idea/*
+
 # C extensions
 *.so
 
