@@ -6,8 +6,6 @@
 #  Update Date: 2020-11-13, Hao SUN：add new ddpg demo
 #  Update Date: 2020-12-11, Hao SUN：move buffer to trainer
 #  Update Date: 2020-12-12, Hao SUN：move create_* files to create_pkg
-#  Update Date: 2021-01-01, Hao SUN：chang name
-
 
 #  General Optimal control Problem Solver (GOPS)
 
@@ -27,14 +25,13 @@ from modules.create_pkg.create_evaluator import create_evaluator
 from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
 from modules.utils.utils import change_type
-from modules.utils.plot import self_plot, start_tensorboard, read_tensorboard
 
 if __name__ == "__main__":
     # Parameters Setup
     parser = argparse.ArgumentParser()
 
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='gym_cartpoleconti', help='')
+    parser.add_argument('--env_id', type=str, default='gym_mountaincarconti', help='')
     parser.add_argument('--apprfunc', type=str, default='MLP', help='')
     parser.add_argument('--algorithm', type=str, default='DDPG', help='')
     parser.add_argument('--trainer', type=str, default='serial_trainer', help='')
@@ -48,7 +45,7 @@ if __name__ == "__main__":
     parser.add_argument('--is_render', type=bool, default=False)
 
     # 2. Parameters for approximate function
-    parser.add_argument('--value_func_name', type=str, default='ActionValue', help='')
+    parser.add_argument('--value_func_name', type=str, default='', help='')
     parser.add_argument('--value_func_type', type=str, default=parser.parse_args().apprfunc, help='')
     parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256])
     parser.add_argument('--value_hidden_activation', type=str, default='relu', help='')
@@ -72,7 +69,9 @@ if __name__ == "__main__":
     # Parameters for sampler
     parser.add_argument('--sample_batch_size', type=int, default=256, help='')
     parser.add_argument('--sampler_name', type=str, default='mc_sampler')
-    parser.add_argument('--noise_params', type=dict, default={'mean': np.array([0],dtype=np.float32), 'std': np.array([1],dtype=np.float32)}, help='')
+    parser.add_argument('--noise_params', type=dict,
+                        default={'mean': np.array([0], dtype=np.float32), 'std': np.array([1], dtype=np.float32)},
+                        help='')
     parser.add_argument('--reward_scale', type=float, default=0.1, help='')
     parser.add_argument('--batch_size', type=int, default=32, help='')
     parser.add_argument('--sample_sync_interval', type=int, default=300, help='')
@@ -91,40 +90,19 @@ if __name__ == "__main__":
     # get parameter dict
     args = vars(parser.parse_args())
     env = create_env(**args)
-    args['obsv_dim'] = env.observation_space.shape[0]
-    args['action_dim'] = env.action_space.shape[0]
-    args['action_high_limit'] = env.action_space.high  # NOTE: [type is np.ndarray, not list]
-    args['action_low_limit'] = env.action_space.low
+    args.obsv_dim = env.observation_space.shape[0]
+    args.action_dim = env.action_space.shape[0]
+    args.action_high_limit = env.action_space.high
+    args.action_low_limit = env.action_space.low
 
-    # create save arguments
-    if args['save_folder'] is None:
-        args['save_folder'] = os.path.join('../results/' +
-                                           parser.parse_args().algorithm, datetime.datetime.now().strftime("%m%d-%H%M%S"))
-    os.makedirs(args['save_folder'], exist_ok=True)
-    os.makedirs(args['save_folder'] + '/apprfunc', exist_ok=True)
+    # Step 2: create algorithm and approximate function
+    alg = create_alg(**vars(args)) # create appr_model in algo **vars(args)
 
-    with open(args['save_folder'] + '/config.json', 'w', encoding='utf-8') as f:
-        json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
-
-    start_tensorboard(args['save_folder'])
-    # Step 1: create algorithm and approximate function
-    alg = create_alg(**args)  # create appr_model in algo **vars(args)
-    # Step 2: create sampler in trainer
-    sampler = create_sampler(**args)  # 调用alg里面的函数，创建自己的网络
-    # Step 3: create buffer in trainer
-    buffer = create_buffer(**args)
-    # Step 4: create evaluator in trainer
-    evaluator = create_evaluator(**args)
-    # Step 5: create trainer
-    trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
+    # Step 3: create trainer # create buffer in trainer
+    trainer = create_trainer(args.trainer,args,env,alg)
 
     # start training
     trainer.train()
+    print("Training is Done!")
 
-    # plot and save training curve
-    data = read_tensorboard(args['save_folder'], 'episode_return')
-    self_plot(data['episode_return'],
-              os.path.join(args['save_folder'], "episode_return.tiff"),
-              xlabel='Iteration Steps',
-              ylabel="Episode_Return")
 

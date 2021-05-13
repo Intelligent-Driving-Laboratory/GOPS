@@ -34,7 +34,7 @@ class SerialTrainer():
         ApproxContainer= getattr(file, 'ApproxContainer')
         self.networks = ApproxContainer(**kwargs)
         self.iteration = 0
-        self.max_iteration = 1000  #  TODO
+        self.max_iteration = kwargs.get('max_iteration',2000)
         self.warm_size = kwargs['buffer_warm_size']
         self.batch_size = kwargs['batch_size']
         while self.buffer.size < self.warm_size:

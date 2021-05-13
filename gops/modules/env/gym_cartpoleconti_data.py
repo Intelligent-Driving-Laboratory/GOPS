@@ -61,6 +61,9 @@ class GymCartpoleconti(gym.Env):
 
         self.steps_beyond_done = None
 
+        self.max_episode_steps = 200
+        self.steps = 0
+
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -92,6 +95,12 @@ class GymCartpoleconti(gym.Env):
             or theta > self.theta_threshold_radians
         done = bool(done)
 
+        #-----------------
+        self.steps += 1
+        if self.steps >=self.max_episode_steps:
+            done = True
+        # ---------------
+
         if not done:
             reward = 1.0
         elif self.steps_beyond_done is None:
@@ -108,11 +117,13 @@ Any further steps are undefined behavior.
             self.steps_beyond_done += 1
             reward = 0.0
 
+
         return np.array(self.state), reward, done, {}
 
     def reset(self):
         self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
+        self.steps = 0
         return np.array(self.state)
 
     def render(self, mode='human'):

@@ -103,7 +103,7 @@ if __name__ == "__main__":
     # create save arguments
     if args['save_folder'] is None:
         args['save_folder'] = os.path.join('../results/' + parser.parse_args().algorithm,
-                                           datetime.datetime.now().strftime("%m-%d-%H-%M"))
+                                           datetime.datetime.now().strftime("%m%d-%H%M%S"))
     os.makedirs(args['save_folder'], exist_ok=True)
     os.makedirs(args['save_folder'] + '/apprfunc', exist_ok=True)
 

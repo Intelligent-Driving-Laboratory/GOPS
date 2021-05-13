@@ -76,15 +76,16 @@ class DDPG():
         loss_q = self.compute_loss_q(data)
         loss_q.backward()
 
-        # for p in self.networks.q.parameters():
-        #     p.requires_grad = False
+        for p in self.networks.q.parameters():
+            p.requires_grad = False
 
         self.policy_optimizer.zero_grad()
         loss_policy = self.compute_loss_policy(data)
         loss_policy.backward()
 
-        # for p in self.networks.q.parameters():
-        #     p.requires_grad = True
+        for p in self.networks.q.parameters():
+            p.requires_grad = True
+
         q_grad = [p._grad.numpy() for p in self.networks.q.parameters()]
         policy_grad = [p._grad.numpy() for p in self.networks.policy.parameters()]
         return q_grad + policy_grad
