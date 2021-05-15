@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+from modules.utils.tensorboard_tools import tb_tags
 
 def get_activation_func(key: str):
     assert isinstance(key, str)
@@ -71,7 +72,7 @@ def change_type(obj):
 
 
 class Timer(object):
-    def __init__(self, writer, tag='Performance/Time', step=None):
+    def __init__(self, writer, tag=tb_tags['time'], step=None):
         self.writer = writer
         self.tag = tag
         self.step = step
@@ -84,6 +85,4 @@ class Timer(object):
         self.writer.add_scalar(self.tag, time.time() - self.start, self.step)
 
 
-def add_scalars(tb_info, writer, step):
-    for key, value in tb_info.items():
-        writer.add_scalar(key, value, step)
+

@@ -22,7 +22,7 @@ from torch.optim import Adam
 from modules.create_pkg.create_apprfunc import create_apprfunc
 from modules.create_pkg.create_env_model import create_env_model
 from modules.utils.utils import get_apprfunc_dict
-
+from modules.utils.tensorboard_tools import tb_tags
 
 class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
@@ -118,7 +118,7 @@ class INFADP():
             backup += (~d) * self.gamma ** (self.forward_step) * self.networks.v_target(o2)
         loss_v = ((v - backup) ** 2).mean()
 
-        self.tb_info["Loss/loss_value"] = loss_v.item()
+        self.tb_info[tb_tags["loss_critic"]] = loss_v.item()
         # self.tb_info["Performance/mean_reward"] = r.mean().item()
         # self.writer.add_scalar("Loss/loss_value", loss_v.item(), self.iteration)
         # self.writer.add_scalar("Performance/mean_reward", r.mean().item(), self.iteration)
@@ -144,7 +144,7 @@ class INFADP():
         for p in self.networks.v.parameters():
             p.requires_grad = True
 
-        self.tb_info["Loss/loss_policy"] = -v_pi.mean().item()
+        self.tb_info[tb_tags["loss_actor"]] = -v_pi.mean().item()
         # self.writer.add_scalar("Loss/loss_policy", -v_pi.mean().item(), self.iteration)
         # print('V =',v_pi.mean().item())
         return -v_pi.mean()

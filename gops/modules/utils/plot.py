@@ -2,20 +2,16 @@
 #
 #  Creator: Zhang Yuhang
 #  Description: plot_figure, load_tensorboard_file
-#  Update Date: 2020-11-10, Hao SUN: renew env para
-#  Update Date: 2020-11-13, Hao SUN：add new ddpg demo
-#  Update Date: 2020-12-11, Hao SUN：move buffer to trainer
-#  Update Date: 2020-12-12, Hao SUN：move create_* files to create_pkg
-#  Update Date: 2021-01-01, Hao SUN：change name
-
 
 #  General Optimal control Problem Solver (GOPS)
 
+import os
+import string
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from itertools import cycle
-
+from modules.utils.tensorboard_tools import read_tensorboard
 import numpy as np
 
 
@@ -107,33 +103,6 @@ def self_plot(data,
         plt.show()
 
 
-def read_tensorboard(path, keys):
-    """
-    input the dir of the tensorboard log
-    """
-    from tensorboard.backend.event_processing import event_accumulator
-
-    if isinstance(keys, str):
-        keys = [keys]
-    ea = event_accumulator.EventAccumulator(path)
-    ea.Reload()
-    print("All available keys in Tensorboard", ea.scalars.Keys())
-    valid_key_list = [i for i in keys if i in ea.scalars.Keys()]
-    assert len(valid_key_list) != 0, "invalid keys"
-
-    output_dict = dict()
-    for key in valid_key_list:
-        event_list = ea.scalars.Items(key)
-        x, y = [], []
-        for e in event_list:
-            x.append(e.step)
-            y.append(e.value)
-
-        data_dict = {'x': np.array(x), 'y': np.array(y)}
-        output_dict[key] = data_dict
-    return output_dict
-
-
 def cm2inch(*tupl):
     inch = 2.54
     if isinstance(tupl[0], tuple):
@@ -142,44 +111,26 @@ def cm2inch(*tupl):
         return tuple(i/inch for i in tupl)
 
 
-def start_tensorboard(logdir, port=6006):
-    import os
-    import time
-    import webbrowser
-    import platform
-    
-    sys_name = platform.system()
-    if sys_name == 'Linux':
-        cmd_line = "gnome-terminal -- tensorboard --logdir {} --port {}".format(logdir, port)
-    elif sys_name == 'Windows':
-        cmd_line = '''start cmd.exe /k "tensorboard --logdir {} --port {}"'''.format(logdir, port)
-    else:
-        print("Unsupported os")
-        
-    os.system(cmd_line)
-    time.sleep(3)
+def plot_all(path):
+    data = read_tensorboard(path)
+    for (key, values) in data.items():
+        self_plot(values,
+                  os.path.join(path, str_edit(key) + ".tiff"),
+                  xlabel='Iteration Steps',
+                  ylabel=str_edit(key))
 
-    webbrowser.open("http://localhost:{}/".format(port))
+
+def str_edit(str_):
+    str_ = str_.replace('\\', '/')
+    if '/' in str_:
+        str_ = str_.split('/')
+        str_ = str_[-1]
+    return string.capwords(str_, '_')
 
 
 if __name__ == '__main__':
     import numpy as np
 
-    x = np.linspace(0, 100)
-    y1 = np.power(x, 2)
-    y2 = np.power(x, 3)
-    y3 = np.power(x, 4)
-
-    data1 = {'x': x, 'y': y1}
-    data2 = {'x': x, 'y': y2}
-    data3 = {'x': x, 'y': y3}
-    data = [data1, data2, data3]
-
-    self_plot(data, 
-            './test.tiff',
-            xlabel='Xlabel',
-            ylabel='Ylabel',
-            legend=[r'$\alpha$=  5e-4', r'$\alpha$=  7e-4', r'$\alpha$=10e-4'],
-            legend_loc='lower right',
-            display=True)
+    s = "Total_average_return"
+    print(str_edit(s))
 

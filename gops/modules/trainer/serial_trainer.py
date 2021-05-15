@@ -16,8 +16,9 @@ import time
 import os
 import numpy as np
 import torch
-from tensorboardX import SummaryWriter
-from modules.utils.utils import Timer, add_scalars
+from torch.utils.tensorboard import SummaryWriter
+from modules.utils.utils import Timer
+from modules.utils.tensorboard_tools import add_scalars
 
 
 class SerialTrainer():
@@ -34,7 +35,7 @@ class SerialTrainer():
         ApproxContainer= getattr(file, 'ApproxContainer')
         self.networks = ApproxContainer(**kwargs)
         self.iteration = 0
-        self.max_iteration = kwargs.get('max_iteration',2000)
+        self.max_iteration = kwargs.get('max_iteration', 300)
         self.warm_size = kwargs['buffer_warm_size']
         self.batch_size = kwargs['batch_size']
         while self.buffer.size < self.warm_size:
@@ -77,7 +78,7 @@ class SerialTrainer():
     def train(self):
         while self.iteration < self.max_iteration:
             # setattr(self.alg, "iteration", self.iteration)
-            with Timer(self.evaluator.writer,step=self.iteration):
+            with Timer(self.evaluator.writer, step=self.iteration):
                 self.step()
             if hasattr(self.alg, 'tb_info'):
                 add_scalars(self.alg.tb_info, self.evaluator.writer, step=self.iteration)
@@ -85,6 +86,8 @@ class SerialTrainer():
             self.iteration += 1
             if self.iteration%10 == 0:
                 print('Itertaion = ', self.iteration)
+
+        self.evaluator.writer.flush()
 
 
 

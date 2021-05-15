@@ -11,12 +11,14 @@
 import datetime
 import os
 import logging
+import time
+
 import numpy as np
 import torch
 from modules.create_pkg.create_env import create_env
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 from modules.utils.action_distributions import GaussDistribution, DiracDistribution, ValueDiracDistribution
-
+from modules.utils.tensorboard_tools import tb_tags
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
@@ -33,9 +35,12 @@ class Evaluator():
         self.render = kwargs['is_render']
         self.save_folder = kwargs['save_folder']  # TODO get parent dir
         self.num_eval_episode = kwargs['num_eval_episode']
-        self.writer = SummaryWriter(logdir=self.save_folder)
-        self.distribution_type = kwargs['distribution_type']
+        self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
+        self.writer.add_scalar(tb_tags['time'], 0, 0)
 
+        self.writer.flush()
+
+        self.distribution_type = kwargs['distribution_type']
         if self.distribution_type == 'Dirac':
             self.action_distirbution_cls = DiracDistribution
         elif self.distribution_type == 'Gauss':
@@ -67,4 +72,4 @@ class Evaluator():
         return np.mean(episode_return_list)
 
     def run_evaluation(self, iteration):
-        self.writer.add_scalar('episode_return', self.run_n_episodes(self.num_eval_episode), iteration)
+        self.writer.add_scalar(tb_tags['total_average_return'], self.run_n_episodes(self.num_eval_episode), iteration)
