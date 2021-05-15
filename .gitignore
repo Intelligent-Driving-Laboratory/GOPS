@@ -4,9 +4,11 @@ __pycache__/
 *$py.class
 
 #add by SUN-Hao
-./gops/.idea/*
-./gops/results/*
-./.idea/*
+gops/.idea/*
+gops/results/*
+.idea/*
+**/__pycache__
+*.pyc
 
 # C extensions
 *.so

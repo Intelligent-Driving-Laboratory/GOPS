@@ -27,7 +27,7 @@ from modules.create_pkg.create_evaluator import create_evaluator
 from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
 from modules.utils.utils import change_type
-from modules.utils.plot import self_plot, start_tensorboard, read_tensorboard
+from modules.utils.tensorboard_tools import start_tensorboard, read_tensorboard
 
 if __name__ == "__main__":
     # Parameters Setup
