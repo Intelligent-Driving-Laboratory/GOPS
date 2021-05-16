@@ -20,7 +20,8 @@ Note: create_env() requires that either 2 or 3 is satisfied.
 
 
 #  Update Date: 2020-11-10, Yuhang ZHANG:
-
+import gym
+gym.logger.setLevel(gym.logger.ERROR)
 
 def create_env_model(**kwargs):
     env_model_name = kwargs['env_id'] + '_model'

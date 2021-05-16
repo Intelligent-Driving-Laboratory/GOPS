@@ -48,23 +48,24 @@ class SerialTrainer():
         self.apprfunc_save_interval = kwargs['apprfunc_save_interval']
         # setattr(self.alg, "writer", self.evaluator.writer)
 
-    def step(self):
-        # sampling
-        if self.iteration % self.sample_sync_interval == 0:
-            self.sampler.networks.load_state_dict(self.networks.state_dict())
+    def step(self, iteration):
+        with Timer(self.evaluator.writer, step=iteration):
+            # sampling
+            if self.iteration % self.sample_sync_interval == 0:
+                self.sampler.networks.load_state_dict(self.networks.state_dict())
 
-        samples = self.sampler.sample()
-        self.buffer.add_batch(samples)
+            samples = self.sampler.sample()
+            self.buffer.add_batch(samples)
 
-        # replay
-        samples = self.buffer.sample_batch(self.batch_size)
+            # replay
+            samples = self.buffer.sample_batch(self.batch_size)
 
-        # learning
-        self.alg.networks.load_state_dict(self.networks.state_dict())
-        grads = self.alg.compute_gradient(samples)
+            # learning
+            self.alg.networks.load_state_dict(self.networks.state_dict())
+            grads = self.alg.compute_gradient(samples)
 
-        # apply grad
-        self.networks.update(grads, self.iteration)
+            # apply grad
+            self.networks.update(grads, self.iteration)
 
         # evaluate
         if self.iteration % self.log_save_interval == 0:
@@ -78,8 +79,9 @@ class SerialTrainer():
     def train(self):
         while self.iteration < self.max_iteration:
             # setattr(self.alg, "iteration", self.iteration)
-            with Timer(self.evaluator.writer, step=self.iteration):
-                self.step()
+
+            self.step(self.iteration)
+
             if hasattr(self.alg, 'tb_info'):
                 add_scalars(self.alg.tb_info, self.evaluator.writer, step=self.iteration)
 
