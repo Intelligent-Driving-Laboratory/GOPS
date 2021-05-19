@@ -36,6 +36,11 @@ class ApproxContainer(nn.Module):
         # create policy network
         policy_args = get_apprfunc_dict('policy', **kwargs)
         self.policy = create_apprfunc(**policy_args)
+        for p in self.q.parameters():
+            p.requires_grad = True
+        for p in self.policy.parameters():
+            p.requires_grad = True
+
         #  create target networks
         self.q_target = deepcopy(self.q)
         self.policy_target = deepcopy(self.policy)
@@ -52,14 +57,14 @@ class ApproxContainer(nn.Module):
         q_grad_len = len(list(self.q.parameters()))
         q_grad, policy_grad = grads[:q_grad_len], grads[q_grad_len:]
         #  zip()  : [()], list[tuple]
+        # update q network
         for p, grad in zip(self.q.parameters(), q_grad):
             p._grad = torch.from_numpy(grad)
-        for p, grad in zip(self.policy.parameters(), policy_grad):
-            p._grad = torch.from_numpy(grad)
-        # update q network
         self.q_optimizer.step()
         # update policy network
         if iteration % self.delay_update == 0:
+            for p, grad in zip(self.policy.parameters(), policy_grad):
+                p._grad = torch.from_numpy(grad)
             self.policy_optimizer.step()
        # update target networks
         with torch.no_grad():
@@ -75,30 +80,29 @@ class DDPG():
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs)
         self.gamma = kwargs['gamma']
-        self.polyak = 1 - kwargs['tau']
-        self.policy_optimizer = Adam(self.networks.policy.parameters(), lr=kwargs['policy_learning_rate'])  #
-        self.q_optimizer = Adam(self.networks.q.parameters(), lr=kwargs['value_learning_rate'])
 
     def compute_gradient(self, data):
-        self.q_optimizer.zero_grad()
-        loss_q = self.compute_loss_q(data)
+        self.networks.q_optimizer.zero_grad()
+        loss_q = self._compute_loss_q(data)
         loss_q.backward()
 
-        for p in self.networks.q.parameters():
+        #  ----------------------------------
+        for p in  self.networks.q.parameters():
             p.requires_grad = False
 
-        self.policy_optimizer.zero_grad()
-        loss_policy = self.compute_loss_policy(data)
+        self.networks.policy_optimizer.zero_grad()
+        loss_policy = self._compute_loss_policy(data)
         loss_policy.backward()
 
-        for p in self.networks.q.parameters():
+        for p in  self.networks.q.parameters():
             p.requires_grad = True
+        #  ----------------------------------
 
         q_grad = [p._grad.numpy() for p in self.networks.q.parameters()]
         policy_grad = [p._grad.numpy() for p in self.networks.policy.parameters()]
         return q_grad + policy_grad
 
-    def compute_loss_q(self, data):
+    def _compute_loss_q(self, data):
         o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
         q = self.networks.q(o, a)
 
@@ -109,7 +113,7 @@ class DDPG():
         loss_q = ((q - backup) ** 2).mean()
         return loss_q
 
-    def compute_loss_policy(self, data):
+    def _compute_loss_policy(self, data):
         o = data['obs']
         q_policy = self.networks.q(o, self.networks.policy(o))
         return -q_policy.mean()

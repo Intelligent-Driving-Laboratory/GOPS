@@ -28,6 +28,8 @@ from modules.create_pkg.create_evaluator import create_evaluator
 from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
 from modules.utils.utils import change_type
+from modules.utils.plot import plot_all
+from modules.utils.tensorboard_tools import start_tensorboard
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -70,6 +72,7 @@ if __name__ == "__main__":
     parser.add_argument('--distribution_type', type=str, default='Dirac')
 
     # 4. Parameters for trainer
+    parser.add_argument('--max_iteration', type=int, default=2000, help='')
     # Parameters for sampler
     parser.add_argument('--sample_batch_size', type=int, default=256, help='')
     parser.add_argument('--sampler_name', type=str, default='mc_sampler')
@@ -95,8 +98,9 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
     env = create_env(**args)
     args['obsv_dim'] = env.observation_space.shape[0]
+    # print(env.action_space) # TODO
     args['action_dim'] = env.action_space.shape[0]
-    args['action_high_limit'] = env.action_space.high  # NOTE: [type is np.ndarray, not list]
+    args['action_high_limit'] = env.action_space.high
     args['action_low_limit'] = env.action_space.low
 
     # create save arguments
@@ -109,6 +113,7 @@ if __name__ == "__main__":
     with open(args['save_folder'] + '/config.json', 'w', encoding='utf-8') as f:
         json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
 
+    start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
     # Step 2: create sampler in trainer
@@ -123,6 +128,5 @@ if __name__ == "__main__":
     # start training
     trainer.train()
 
-# save data
-    # TODO save all data
-    # TODO: save parse to json
+    # plot and save training curve
+    plot_all(args['save_folder'])
