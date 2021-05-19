@@ -36,7 +36,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='simu_cartpole', help='')
+    parser.add_argument('--env_id', type=str, default='simu_cartpoleconti', help='')
     parser.add_argument('--apprfunc', type=str, default='MLP', help='')
     parser.add_argument('--algorithm', type=str, default='DDPG', help='')
     parser.add_argument('--trainer', type=str, default='serial_trainer', help='')
