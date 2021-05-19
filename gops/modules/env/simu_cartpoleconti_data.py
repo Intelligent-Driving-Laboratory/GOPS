@@ -1,11 +1,9 @@
-cartpole_SAMPLE_TIME = 0.01
-import math
 from gym import spaces
 import gym
-import numpy as np
 from modules.env.resources import cartpole
+import numpy as np
 
-class SimuCartpole(gym.Env):
+class SimuCartpoleconti(gym.Env):
 
     def __init__(self):
         self._physics = cartpole.cartpoleModelClass_wrapper()
@@ -17,7 +15,7 @@ class SimuCartpole(gym.Env):
         self.reset()
 
     def step(self, action):
-        action = { 'Force': action[0]}
+        action = {'Action': action[0]}
         state, is_done, reward = self._step_physics(action)
         self.state = state
         return state, reward, is_done, {}
@@ -25,6 +23,8 @@ class SimuCartpole(gym.Env):
     def reset(self):
         self._physics.terminate()
         self._physics = cartpole.cartpoleModelClass_wrapper()
+
+        # randomized initiate
         self.state = np.random.uniform(low=-0.05, high=0.05, size=(4,))
         param = self._physics.get_param()
         param.update(list(zip(('x_o','xdot_o','theta_o','thetadot_o'), self.state.tolist())))
