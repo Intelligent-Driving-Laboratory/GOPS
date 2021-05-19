@@ -10,14 +10,18 @@ class SimuCartpoleconti(gym.Env):
         high = np.array([
             self._physics.get_param()['x_threshold'] * 2, np.finfo(np.float32).max,
             self._physics.get_param()['theta_threshold_radians'] * 2, np.finfo(np.float32).max])
-        self.action_space = spaces.Box(low=self._physics.get_param()['f_threshold'][0], high=self._physics.get_param()['f_threshold'][1], shape=(1,))
+        self.action_space = spaces.Box(low=self._physics.get_param()['f_threshold'][0]/30, high=self._physics.get_param()['f_threshold'][1]/30, shape=(1,))
         self.observation_space = spaces.Box(-high, high)
+        self.max_episode_steps = 200
+        self.steps = 0
         self.reset()
 
     def step(self, action):
-        action = {'Action': action[0]}
+        action = {'Action': action[0]*30}
         state, is_done, reward = self._step_physics(action)
+        is_done = is_done or (self.steps >= self.max_episode_steps)
         self.state = state
+        self.steps += 1
         return state, reward, is_done, {}
 
     def reset(self):
@@ -25,6 +29,7 @@ class SimuCartpoleconti(gym.Env):
         self._physics = cartpole.cartpoleModelClass_wrapper()
 
         # randomized initiate
+        self.steps = 0
         self.state = np.random.uniform(low=-0.05, high=0.05, size=(4,))
         param = self._physics.get_param()
         param.update(list(zip(('x_o','xdot_o','theta_o','thetadot_o'), self.state.tolist())))
@@ -46,7 +51,7 @@ if __name__ == "__main__":
     import gym
     import numpy as np
 
-    env = SimuCartpole()
+    env = SimuCartpoleconti()
     s = env.reset()
     for i in range(50):
         a = np.ones([1, 1])*2
