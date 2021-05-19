@@ -107,7 +107,7 @@ class DDPG():
         q = self.networks.q(o, a)
 
         with torch.no_grad():
-            q_policy_targ = self.networks.q_target(o2, self.networks.policy(o2))
+            q_policy_targ = self.networks.q_target(o2, self.networks.policy_target(o2))
             backup = r + self.gamma * (1 - d) * q_policy_targ
 
         loss_q = ((q - backup) ** 2).mean()
