@@ -49,7 +49,7 @@ def start_tensorboard(logdir, port=6006):
         print("Unsupported os")
 
     os.system(cmd_line)
-    time.sleep(5)
+    time.sleep(10)
 
     webbrowser.open("http://localhost:{}/".format(port))
 

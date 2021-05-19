@@ -26,6 +26,8 @@ from modules.create_pkg.create_evaluator import create_evaluator
 from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
 from modules.utils.utils import change_type
+from modules.utils.plot import self_plot
+from modules.utils.tensorboard_tools import start_tensorboard, read_tensorboard
 
 
 if __name__ == "__main__":
@@ -59,6 +61,7 @@ if __name__ == "__main__":
     parser.add_argument('--distribution_type', type=str, default='ValueDirac')
 
     # 4. Parameters for trainer
+    parser.add_argument('--max_iteration', type=int, default=1000, help='')
     # Parameters for sampler
     parser.add_argument('--sample_batch_size', type=int, default=256, help='')
     parser.add_argument('--sampler_name', type=str, default='mc_sampler')
@@ -98,6 +101,7 @@ if __name__ == "__main__":
     with open(args['save_folder'] + '/config.json', 'w', encoding='utf-8') as f:
         json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
 
+    start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     # Step 2: create sampler in trainer
@@ -111,3 +115,10 @@ if __name__ == "__main__":
 
     # start training
     trainer.train()
+
+    # plot and save training curve
+    data = read_tensorboard(args['save_folder'])
+    self_plot(data['Performance/total_average_return'],
+              os.path.join(args['save_folder'], "total_average_return.tiff"),
+              xlabel='Iteration Steps',
+              ylabel="Total Average Return")
