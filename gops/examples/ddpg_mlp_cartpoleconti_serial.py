@@ -61,7 +61,7 @@ if __name__ == "__main__":
     parser.add_argument('--distribution_type', type=str, default='Dirac')
 
     # 4. Parameters for trainer
-    parser.add_argument('--max_iteration', type=int, default=2000, help='')
+    parser.add_argument('--max_iteration', type=int, default=3000, help='')
     # Parameters for sampler
     parser.add_argument('--sample_batch_size', type=int, default=256, help='')
     parser.add_argument('--sampler_name', type=str, default='mc_sampler')

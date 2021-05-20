@@ -25,6 +25,8 @@ from modules.create_pkg.create_evaluator import create_evaluator
 from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
 from modules.utils.utils import change_type
+from modules.utils.plot import plot_all
+from modules.utils.tensorboard_tools import start_tensorboard
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -45,7 +47,7 @@ if __name__ == "__main__":
     parser.add_argument('--is_render', type=bool, default=False)
 
     # 2. Parameters for approximate function
-    parser.add_argument('--value_func_name', type=str, default='', help='')
+    parser.add_argument('--value_func_name', type=str, default='ActionValue', help='')
     parser.add_argument('--value_func_type', type=str, default=parser.parse_args().apprfunc, help='')
     parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256])
     parser.add_argument('--value_hidden_activation', type=str, default='relu', help='')
@@ -60,21 +62,22 @@ if __name__ == "__main__":
     # 3. Parameters for algorithm
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--tau', type=float, default=0.005, help='')
-    parser.add_argument('--value_learning_rate', type=float, default=1e-3, help='')
-    parser.add_argument('--policy_learning_rate', type=float, default=1e-3, help='')
-    parser.add_argument('--delay_update', type=int, default=1, help='')
+    parser.add_argument('--value_learning_rate', type=float, default=1e-4, help='')
+    parser.add_argument('--policy_learning_rate', type=float, default=1e-4, help='')
+    parser.add_argument('--delay_update', type=int, default=3, help='')
     parser.add_argument('--distribution_type', type=str, default='Dirac')
 
     # 4. Parameters for trainer
+    parser.add_argument('--max_iteration', type=int, default=2000, help='')
     # Parameters for sampler
     parser.add_argument('--sample_batch_size', type=int, default=256, help='')
     parser.add_argument('--sampler_name', type=str, default='mc_sampler')
     parser.add_argument('--noise_params', type=dict,
-                        default={'mean': np.array([0], dtype=np.float32), 'std': np.array([1], dtype=np.float32)},
+                        default={'mean': np.array([0], dtype=np.float32), 'std': np.array([0.1], dtype=np.float32)},
                         help='')
     parser.add_argument('--reward_scale', type=float, default=0.1, help='')
-    parser.add_argument('--batch_size', type=int, default=32, help='')
-    parser.add_argument('--sample_sync_interval', type=int, default=300, help='')
+    parser.add_argument('--batch_size', type=int, default=64, help='')
+    parser.add_argument('--sample_sync_interval', type=int, default=1, help='')
     # Parameters for buffer
     parser.add_argument('--buffer_name', type=str, default='replay_buffer')
     parser.add_argument('--buffer_warm_size', type=int, default=1000)
@@ -90,19 +93,36 @@ if __name__ == "__main__":
     # get parameter dict
     args = vars(parser.parse_args())
     env = create_env(**args)
-    args.obsv_dim = env.observation_space.shape[0]
-    args.action_dim = env.action_space.shape[0]
-    args.action_high_limit = env.action_space.high
-    args.action_low_limit = env.action_space.low
+    args['obsv_dim'] = env.observation_space.shape[0]
+    args['action_dim'] = env.action_space.shape[0]
+    args['action_high_limit'] = env.action_space.high  # NOTE: [type is np.ndarray, not list]
+    args['action_low_limit'] = env.action_space.low
 
-    # Step 2: create algorithm and approximate function
-    alg = create_alg(**vars(args)) # create appr_model in algo **vars(args)
+    # create save arguments
+    if args['save_folder'] is None:
+        args['save_folder'] = os.path.join('../results/' +
+                                           parser.parse_args().algorithm,
+                                           datetime.datetime.now().strftime("%m%d-%H%M%S"))
+    os.makedirs(args['save_folder'], exist_ok=True)
+    os.makedirs(args['save_folder'] + '/apprfunc', exist_ok=True)
 
-    # Step 3: create trainer # create buffer in trainer
-    trainer = create_trainer(args.trainer,args,env,alg)
+    with open(args['save_folder'] + '/config.json', 'w', encoding='utf-8') as f:
+        json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
+
+    start_tensorboard(args['save_folder'])
+    # Step 1: create algorithm and approximate function
+    alg = create_alg(**args)  # create appr_model in algo **vars(args)
+    # Step 2: create sampler in trainer
+    sampler = create_sampler(**args)  # 调用alg里面的函数，创建自己的网络
+    # Step 3: create buffer in trainer
+    buffer = create_buffer(**args)
+    # Step 4: create evaluator in trainer
+    evaluator = create_evaluator(**args)
+    # Step 5: create trainer
+    trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
 
     # start training
     trainer.train()
-    print("Training is Done!")
 
-
+    # plot and save training curve
+    plot_all(args['save_folder'])
