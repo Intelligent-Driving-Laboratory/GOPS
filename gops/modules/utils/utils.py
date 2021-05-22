@@ -19,6 +19,9 @@ def get_activation_func(key: str):
     elif key == 'tanh':
         activation_func = nn.Tanh
 
+    elif key == 'linear':
+        activation_func = nn.Identity
+
     if activation_func is None:
         print('input activation name:' + key)
         raise RuntimeError

@@ -1,22 +1,22 @@
-#   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+#  Creator: Yao MU
+#  Description: Structural definition for approximation function
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Author: Sun Hao
+#  Update Date: 2021-05-21, Shengbo Li: revise headline
+
 
 __all__=['DetermPolicy','StochaPolicy','ActionValue','ActionValueDis','StateValue']
 
 
-import numpy as np
+import numpy as np  # Matrix computation library
 import torch
 import torch.nn as nn
 from modules.utils.utils import get_activation_func
 
-
+# Define MLP function
 def mlp(sizes, activation, output_activation=nn.Identity):
     layers = []
     for j in range(len(sizes) - 1):
@@ -24,11 +24,11 @@ def mlp(sizes, activation, output_activation=nn.Identity):
         layers += [nn.Linear(sizes[j], sizes[j + 1]), act()]
     return nn.Sequential(*layers)
 
-
+# Count parameter number of MLP
 def count_vars(module):
     return sum([np.prod(p.shape) for p in module.parameters()])
 
-
+# Deterministic policy
 class DetermPolicy(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
@@ -38,12 +38,15 @@ class DetermPolicy(nn.Module):
         act_limit = kwargs['action_high_limit']
 
         pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim]
-        self.pi = mlp(pi_sizes, get_activation_func(kwargs['hidden_activation']), get_activation_func(kwargs['output_activation']))
-        self.act_limit =   torch.from_numpy(act_limit)
+        self.pi = mlp(pi_sizes,
+                      get_activation_func(kwargs['hidden_activation']),
+                      get_activation_func(kwargs['output_activation']))
+        self.act_limit = torch.from_numpy(act_limit)
 
     def forward(self, obs):
-        return self.act_limit * self.pi(obs)
+        return self.act_limit * (torch.tanh(self.pi(obs)))
 
+# Stochastic Policy
 class StochaPolicy(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
@@ -53,13 +56,16 @@ class StochaPolicy(nn.Module):
         act_limit = kwargs['action_high_limit']
 
         pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim]
-        self.mean = mlp(pi_sizes, get_activation_func(kwargs['hidden_activation']), get_activation_func(kwargs['output_activation']))
-        self.std = mlp(pi_sizes, get_activation_func(kwargs['hidden_activation']),
+        self.mean = mlp(pi_sizes,
+                        get_activation_func(kwargs['hidden_activation']),
                         get_activation_func(kwargs['output_activation']))
-        self.act_limit =   torch.from_numpy(act_limit)
+        self.std = mlp(pi_sizes,
+                       get_activation_func(kwargs['hidden_activation']),
+                       get_activation_func(kwargs['output_activation']))
+        self.act_limit = torch.from_numpy(act_limit)
 
     def forward(self, obs):
-        return self.act_limit * self.mean(obs), torch.exp(self.std(obs))
+        return self.act_limit * torch.tanh(self.mean(obs)), torch.exp(self.std(obs))
 
 class ActionValue(nn.Module):
     def __init__(self, **kwargs):
@@ -67,7 +73,9 @@ class ActionValue(nn.Module):
         obs_dim = kwargs['obs_dim']
         act_dim = kwargs['act_dim']
         hidden_sizes = kwargs['hidden_sizes']
-        self.q = mlp([obs_dim + act_dim] + list(hidden_sizes) + [1], get_activation_func(kwargs['hidden_activation']))
+        self.q = mlp([obs_dim + act_dim] + list(hidden_sizes) + [1],
+                     get_activation_func(kwargs['hidden_activation']),
+                     get_activation_func(kwargs['output_activation']))
 
     def forward(self, obs, act):
         q = self.q(torch.cat([obs, act], dim=-1))
@@ -78,10 +86,13 @@ class ActionValue(nn.Module):
 class ActionValueDis(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        obs_dim  = kwargs['obs_dim']
+        obs_dim = kwargs['obs_dim']
         act_dim = kwargs['act_dim']
         hidden_sizes = kwargs['hidden_sizes']
-        self.q = mlp([obs_dim] + list(hidden_sizes) + [act_dim], nn.ReLU)
+        print(kwargs['output_activation'])
+        self.q = mlp([obs_dim] + list(hidden_sizes) + [act_dim],
+                     get_activation_func(kwargs['hidden_activation']),
+                     get_activation_func(kwargs['output_activation']))
 
     def forward(self, obs):
         return self.q(obs)
@@ -91,7 +102,9 @@ class StateValue(nn.Module):
         super().__init__()
         obs_dim = kwargs['obs_dim']
         hidden_sizes = kwargs['hidden_sizes']
-        self.v = mlp([obs_dim] + list(hidden_sizes) + [1], get_activation_func(kwargs['hidden_activation']), )
+        self.v = mlp([obs_dim] + list(hidden_sizes) + [1],
+                     get_activation_func(kwargs['hidden_activation']),
+                     get_activation_func(kwargs['output_activation']))
 
     def forward(self, obs):
         return self.v(obs)
