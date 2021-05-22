@@ -1,12 +1,11 @@
-#   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+#  Creator: Yao MU
+#  Description: Structural definition for approximation function
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Author: Sun Hao
+#  Update Date: 2021-05-21, Shengbo Li: revise headline
 
 __all__=['DetermPolicy','StochaPolicy','ActionValue','ActionValueDis','StateValue']
 
@@ -63,7 +62,7 @@ class ActionValue(nn.Module):
         super().__init__()
         obs_dim = kwargs['obs_dim']
         act_dim = kwargs['act_dim']
-        self.degree = 4
+        self.degree = 2
         self.q = nn.Linear((obs_dim+act_dim) * self.degree, 1)
 
     def forward(self, obs, act):
@@ -76,8 +75,9 @@ class ActionValueDis(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim  = kwargs['obs_dim']
-        self.degree = 4
-        self.q = nn.Linear(obs_dim*self.degree,1)
+        act_dim = kwargs['act_dim']
+        self.degree = 2
+        self.q = nn.Linear(obs_dim*self.degree,act_dim)
 
     def forward(self, obs):
         obs = make_features(obs, self.degree)
