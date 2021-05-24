@@ -1,4 +1,6 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: Yuhang ZHANG
 #  Description: Create environments
@@ -19,8 +21,7 @@ Note: create_env() requires that either 2 or 3 is satisfied.
 """
 
 #  Update Date: 2020-11-10, Yuhang ZHANG:
-import gym
-gym.logger.setLevel(gym.logger.ERROR)
+
 
 def create_env(**kwargs):
     env_name = kwargs['env_id']

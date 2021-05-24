@@ -44,12 +44,12 @@ def start_tensorboard(logdir, port=6006):
     if sys_name == 'Linux':
         cmd_line = "gnome-terminal -- tensorboard --logdir {} --port {}".format(logdir, port)
     elif sys_name == 'Windows':
-        cmd_line = '''start cmd.exe /k "tensorboard --logdir {} --port {}"'''.format(logdir, port)
+        cmd_line = '''start /b cmd.exe /k "tensorboard --logdir {} --port {}"'''.format(logdir, port)
     else:
         print("Unsupported os")
 
     os.system(cmd_line)
-    time.sleep(10)
+    time.sleep(5)
 
     webbrowser.open("http://localhost:{}/".format(port))
 
@@ -112,8 +112,9 @@ def kill_port(port=6006):
 
 tb_tags = {'loss_actor': 'Loss/loss_actor',
            'loss_critic': 'Loss/loss_critic',
-           'time': 'Performance/time',
-           'total_average_return': 'Performance/total_average_return'}
+           'time': 'Train/time',
+           'total_average_return': 'Evaluation/total_average_return',
+           "critic_avg_value": 'Train/critic_average_value',}
 
 
 if __name__ == '__main__':

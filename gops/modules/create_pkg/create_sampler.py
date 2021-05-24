@@ -1,4 +1,6 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: Yang GUAN
 #  Description: Create sampler
@@ -7,11 +9,10 @@ def create_sampler(**kwargs):
     sampler_file_name = kwargs['sampler_name'].lower()
     try:
         file = __import__(sampler_file_name)
-        print(file)
     except NotImplementedError:
         raise NotImplementedError('This sampler does not exist')
     sampler_name = formatter(sampler_file_name)
-    #
+
     if hasattr(file, sampler_name): #
         sampler_cls = getattr(file, sampler_name)
         sampler = sampler_cls(**kwargs)

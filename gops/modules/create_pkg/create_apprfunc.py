@@ -1,4 +1,6 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: Hao SUN
 #  Description: Create apprfunc
@@ -29,7 +31,7 @@ def create_apprfunc(**kwargs):
     else:
         raise NotImplementedError("This apprfunc is not properly defined")
 
-    print("Create apprfunc successfully!"+name)
+    # print("--Initialize appr func: " + name + "...")
     return apprfunc
 
 
