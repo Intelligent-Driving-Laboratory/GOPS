@@ -1,50 +1,17 @@
-#   Copyright (c) 2018 PaddlePaddle Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
+#  Creator: Yang GUAN
+#  Description: Reply buffer
 
 
 import random
 import collections
 import numpy as np
 import torch
-__all__=['ReplayMemory','ReplayBuffer']
 
-
-
-class ReplayMemory(object):
-    """
-    :returns np vars
-    """
-    def __init__(self, max_size):
-        self.buffer = collections.deque(maxlen=max_size)
-
-    def append(self, exp):
-        self.buffer.append(exp)
-
-    def sample(self, batch_size):
-        mini_batch = random.sample(self.buffer, batch_size)
-        obs_batch, action_batch, reward_batch, next_obs_batch, done_batch = [], [], [], [], []
-
-        for experience in mini_batch:
-            s, a, r, s_p, done = experience
-            obs_batch.append(s)
-            action_batch.append(a)
-            reward_batch.append(r)
-            next_obs_batch.append(s_p)
-            done_batch.append(done)
-
-        return np.array(obs_batch).astype('float32'), \
-            np.array(action_batch).astype('float32'), np.array(reward_batch).astype('float32'),\
-            np.array(next_obs_batch).astype('float32'), np.array(done_batch).astype('float32')
-
-    def __len__(self):
-        return len(self.buffer)
-
+__all__ = ['ReplayBuffer']
 
 
 def combined_shape(length, shape=None):
@@ -57,7 +24,11 @@ class ReplayBuffer():
     """
     return torch.tensors
     """
-    def __init__(self, obs_dim, act_dim, size,**kwargs):
+
+    def __init__(self, **kwargs):
+        obs_dim = kwargs['obsv_dim']
+        act_dim = kwargs['action_dim']
+        size = kwargs['buffer_max_size']
         self.obs_buf = np.zeros(combined_shape(size, obs_dim), dtype=np.float32)
         self.obs2_buf = np.zeros(combined_shape(size, obs_dim), dtype=np.float32)
         self.act_buf = np.zeros(combined_shape(size, act_dim), dtype=np.float32)
@@ -71,8 +42,8 @@ class ReplayBuffer():
         self.act_buf[self.ptr] = act
         self.rew_buf[self.ptr] = rew
         self.done_buf[self.ptr] = done
-        self.ptr = (self.ptr+1) % self.max_size # 控制buffer的内存
-        self.size = min(self.size+1, self.max_size)
+        self.ptr = (self.ptr + 1) % self.max_size  # 控制buffer的内存
+        self.size = min(self.size + 1, self.max_size)
 
     def add_batch(self, samples):
         for sample in samples:
@@ -85,4 +56,4 @@ class ReplayBuffer():
                      act=self.act_buf[idxs],
                      rew=self.rew_buf[idxs],
                      done=self.done_buf[idxs])
-        return {k: torch.as_tensor(v, dtype=torch.float32) for k,v in batch.items()}
+        return {k: torch.as_tensor(v, dtype=torch.float32) for k, v in batch.items()}

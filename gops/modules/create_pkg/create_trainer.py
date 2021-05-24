@@ -1,4 +1,6 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: Hao SUN
 #  Description: Create trainers

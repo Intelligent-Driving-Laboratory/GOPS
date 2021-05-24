@@ -55,7 +55,7 @@ class EpsilonGreedy():
 
 
 class GaussNoise():
-    def __init__(self, mean=0, std=1):
+    def __init__(self, mean, std):
         self.mean = mean
         self.std = std
 

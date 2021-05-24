@@ -1,4 +1,6 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: Hao SUN
 #  Description: Create algorithm
@@ -24,6 +26,6 @@ def create_alg(**kwargs):
     else:
         raise NotImplementedError("This algorithm is not properly defined")
 
-    print("Create alg successfully!")
+    print("Create algorithm successfully!")
     return alg
 

@@ -1,4 +1,6 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: Hao SUN
 #  Description: Create buffer
@@ -15,15 +17,13 @@ def create_buffer(**kwargs):
     except NotImplementedError:
         raise NotImplementedError('This buffer does not exist')
 
-    obs_dim = kwargs['obsv_dim']
-    act_dim = kwargs['action_dim']
-    size = kwargs['buffer_max_size']
+
     buffer_name = formatter(buffer_file_name)
     #print(buffer_name)
 
     if hasattr(file, buffer_name): #
         buffer_cls = getattr(file, buffer_name) # 返回
-        buffer = buffer_cls(obs_dim = obs_dim,act_dim=act_dim,size=size)
+        buffer = buffer_cls(**kwargs)
     else:
         raise NotImplementedError("This buffer is not properly defined")
 
