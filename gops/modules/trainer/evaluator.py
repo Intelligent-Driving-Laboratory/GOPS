@@ -1,26 +1,23 @@
-#   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+#  Creator: Yang GUAN
+#  Description: Evaluation of trained policy
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Author: Yang GUAN
+#  Update Date: 2021-05-10, Shengbo LI: renew env para
 
 import datetime
 import os
-import logging
+
 import time
 
 import numpy as np
 import torch
 from modules.create_pkg.create_env import create_env
-from torch.utils.tensorboard import SummaryWriter
+
 from modules.utils.action_distributions import GaussDistribution, DiracDistribution, ValueDiracDistribution
-from modules.utils.tensorboard_tools import tb_tags
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+
 
 
 class Evaluator():
@@ -33,19 +30,17 @@ class Evaluator():
         ApproxContainer = getattr(file, 'ApproxContainer')
         self.networks = ApproxContainer(**kwargs)
         self.render = kwargs['is_render']
-        self.save_folder = kwargs['save_folder']  # TODO get parent dir
+
         self.num_eval_episode = kwargs['num_eval_episode']
-        self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
-        self.writer.add_scalar(tb_tags['time'], 0, 0)
+        self.action_type = kwargs['action_type']
+        self.policy_func_name = kwargs['policy_func_name']
 
-        self.writer.flush()
-
-        self.distribution_type = kwargs['distribution_type']
-        if self.distribution_type == 'Dirac':
-            self.action_distirbution_cls = DiracDistribution
-        elif self.distribution_type == 'Gauss':
-            self.action_distirbution_cls = GaussDistribution
-        elif self.distribution_type == 'ValueDirac':
+        if self.action_type == 'continu':
+            if self.policy_func_name == 'StochaPolicy':
+                self.action_distirbution_cls = GaussDistribution
+            elif self.policy_func_name == 'DetermPolicy':
+                self.action_distirbution_cls = DiracDistribution
+        elif self.action_type == 'discret':
             self.action_distirbution_cls = ValueDiracDistribution
 
     def run_an_episode(self, render=True):
@@ -60,7 +55,10 @@ class Evaluator():
             action = action.detach().numpy()[0]
             next_obs, reward, done, info = self.env.step(action)
             obs = next_obs
-            if render: self.env.render()
+            # Draw environment animation
+            if render:
+                self.env.render()
+                # draw action curves - TensorBoard
             reward_list.append(reward)
         episode_return = sum(reward_list)
         return episode_return
@@ -71,5 +69,7 @@ class Evaluator():
             episode_return_list.append(self.run_an_episode(self.render))
         return np.mean(episode_return_list)
 
-    def run_evaluation(self, iteration):
-        self.writer.add_scalar(tb_tags['total_average_return'], self.run_n_episodes(self.num_eval_episode), iteration)
+    def run_evaluation(self):
+        return self.run_n_episodes(self.num_eval_episode)
+
+        # add self.writer:

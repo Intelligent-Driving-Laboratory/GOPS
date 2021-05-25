@@ -1,3 +1,4 @@
+# -*- coding: cp936 -*-
 #   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,7 +35,8 @@ class ApproxContainer(nn.Module):
             'obs_dim': kwargs['obsv_dim'],
             'act_dim': kwargs['action_num'],
             'hidden_sizes': kwargs['value_hidden_sizes'],
-            'activation': kwargs['value_output_activation'],
+            'hidden_activation': kwargs['value_hidden_activation'],
+            'output_activation': kwargs['value_output_activation'],
         }
         Q_network: nn.Module = create_apprfunc(**Q_network_dict)
         target_network = deepcopy(Q_network)
@@ -74,7 +76,7 @@ class DQN():
         A DQN implementation with soft target update.
 
         Mnih, V., Kavukcuoglu, K., Silver, D. et al. Human-level control through deep reinforcement learning.
-        Nature 518, 529â€“533 (2015). https://doi.org/10.1038/nature14236
+        Nature 518, 529¨C533 (2015). https://doi.org/10.1038/nature14236
         
         Args:
             learning_rate (float, optional): Q network learning rate. Defaults to 0.001.

@@ -25,6 +25,17 @@ class GymCartpoleconti(gym.Env):
     }
 
     def __init__(self):
+        # dynamic model porameters
+        self.a = 1.463
+        self.b = 1.585
+        self.m = 1818.2
+        self.Iz = 3885
+        self.kf = -62618
+        self.kr = -110185
+        self.dynamic_T = 0.001
+        self.step_T = 0.1
+        
+
         self.gravity = 9.8
         self.masscart = 1.0
         self.masspole = 0.1
@@ -175,4 +186,22 @@ Any further steps are undefined behavior.
 
     def close(self):
         if self.viewer:
+            self.viewer.close()
+
+
+    def __dynamic(self,x0 ,u0 ,T):
+        x1 = np.zeros(len(x0))
+
+        x1[0] = x0[0] + T* (x0[2] * np.cos(x0[4]) - x0[3] * np.sin(x0[4]))
+        x1[1] = x0[1] + T * (x0[3] * np.cos(x0[4]) + x0[2] * np.sin(x0[4]))
+        x1[2] = x0[2] + T * u0[0]
+        x1[3] = (-(self.a * self.kf - self.b * self.kr) * x0[5] + self.kf * u0[1] * x0[2] +
+                 self.m * x0[5] * x0[2] * x0[2] - self.m * x0[2] * x0[3] / T) / (
+                    self.kf + self.kr - self.m * x0[2] / T)
+        x1[4] = x0[4] + T * x0[5]
+        x1[5] = (-self.Iz * x0[5] * x0[2] / T - (self.a * self.kf - self.b * self.kr) * x0[3] +
+                 self.a * self.kf * u0[1] * x0[2]) / (
+                    (self.a * self.a * self.kf + self.b * self.b * self.kr) - self.Iz * x0[2] / T)
+
+        return x1
             self.viewer.close()

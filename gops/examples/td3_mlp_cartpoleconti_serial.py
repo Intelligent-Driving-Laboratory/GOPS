@@ -1,16 +1,7 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
-#
+#  Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
 #  Creator: Hao SUN
 #  Description: gym environment, continuous action, cart pole
-#  Update Date: 2020-11-10, Hao SUN: renew env para
-#  Update Date: 2020-11-13, Hao SUN：add new ddpg demo
-#  Update Date: 2020-12-11, Hao SUN：move buffer to trainer
-#  Update Date: 2020-12-12, Hao SUN：move create_* files to create_pkg
-#  Update Date: 2021-01-01, Hao SUN：chang name
-
-
-#  General Optimal control Problem Solver (GOPS)
-
 
 import argparse
 import copy
@@ -27,7 +18,8 @@ from modules.create_pkg.create_evaluator import create_evaluator
 from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
 from modules.utils.utils import change_type
-from modules.utils.plot import self_plot, start_tensorboard, read_tensorboard
+from modules.utils.plot import plot_all
+from modules.utils.tensorboard_tools import start_tensorboard
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -36,7 +28,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_cartpoleconti', help='')
     parser.add_argument('--apprfunc', type=str, default='MLP', help='')
-    parser.add_argument('--algorithm', type=str, default='DDPG', help='')
+    parser.add_argument('--algorithm', type=str, default='TD3', help='')
     parser.add_argument('--trainer', type=str, default='serial_trainer', help='')
 
     # 1. Parameters for environment
@@ -50,13 +42,13 @@ if __name__ == "__main__":
     # 2. Parameters for approximate function
     parser.add_argument('--value_func_name', type=str, default='ActionValue', help='')
     parser.add_argument('--value_func_type', type=str, default=parser.parse_args().apprfunc, help='')
-    parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256])
+    parser.add_argument('--value_hidden_sizes', type=list, default=[128, 128])
     parser.add_argument('--value_hidden_activation', type=str, default='relu', help='')
     parser.add_argument('--value_output_activation', type=str, default='linear', help='')
 
     parser.add_argument('--policy_func_name', type=str, default='DetermPolicy', help='')
     parser.add_argument('--policy_func_type', type=str, default=parser.parse_args().apprfunc, help='')
-    parser.add_argument('--policy_hidden_sizes', type=list, default=[256, 256])
+    parser.add_argument('--policy_hidden_sizes', type=list, default=[128, 128])
     parser.add_argument('--policy_hidden_activation', type=str, default='relu', help='')
     parser.add_argument('--policy_output_activation', type=str, default='tanh', help='')
 
@@ -65,17 +57,20 @@ if __name__ == "__main__":
     parser.add_argument('--tau', type=float, default=0.005, help='')
     parser.add_argument('--value_learning_rate', type=float, default=1e-3, help='')
     parser.add_argument('--policy_learning_rate', type=float, default=1e-3, help='')
-    parser.add_argument('--delay_update', type=int, default=1, help='')
+    parser.add_argument('--delay_update', type=int, default=2, help='')
     parser.add_argument('--distribution_type', type=str, default='Dirac')
 
     # 4. Parameters for trainer
+    parser.add_argument('--max_iteration', type=int, default=4000, help='')
     # Parameters for sampler
-    parser.add_argument('--sample_batch_size', type=int, default=256, help='')
+    parser.add_argument('--sample_batch_size', type=int, default=64, help='')
     parser.add_argument('--sampler_name', type=str, default='mc_sampler')
-    parser.add_argument('--noise_params', type=dict, default={'mean': np.array([0],dtype=np.float32), 'std': np.array([1],dtype=np.float32)}, help='')
+    parser.add_argument('--noise_params', type=dict,
+                        default={'mean': np.array([0], dtype=np.float32), 'std': np.array([0.1], dtype=np.float32)},
+                        help='')
     parser.add_argument('--reward_scale', type=float, default=0.1, help='')
-    parser.add_argument('--batch_size', type=int, default=32, help='')
-    parser.add_argument('--sample_sync_interval', type=int, default=300, help='')
+    parser.add_argument('--batch_size', type=int, default=64, help='')
+    parser.add_argument('--sample_sync_interval', type=int, default=1, help='')
     # Parameters for buffer
     parser.add_argument('--buffer_name', type=str, default='replay_buffer')
     parser.add_argument('--buffer_warm_size', type=int, default=1000)
@@ -98,7 +93,8 @@ if __name__ == "__main__":
 
     # create save arguments
     if args['save_folder'] is None:
-        args['save_folder'] = os.path.join('../results/' + parser.parse_args().algorithm, datetime.datetime.now().strftime("%m-%d-%H-%M"))
+        args['save_folder'] = os.path.join('../results/' +
+                                           parser.parse_args().algorithm, datetime.datetime.now().strftime("%m%d-%H%M%S"))
     os.makedirs(args['save_folder'], exist_ok=True)
     os.makedirs(args['save_folder'] + '/apprfunc', exist_ok=True)
 
@@ -121,9 +117,4 @@ if __name__ == "__main__":
     trainer.train()
 
     # plot and save training curve
-    data = read_tensorboard(args['save_folder'], 'episode_return')
-    self_plot(data['episode_return'],
-              os.path.join(args['save_folder'], "episode_return.tiff"),
-              xlabel='Iteration Steps',
-              ylabel="Episode_Return")
-
+    plot_all(args['save_folder'])

@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='gym_cartpoleconti')
+    parser.add_argument('--env_id', type=str, default='gym_pendulum')
     parser.add_argument('--algorithm', type=str, default='DDPG')
 
     ################################################
@@ -63,8 +63,6 @@ if __name__ == "__main__":
     elif value_func_type == 'GAUSS':
         parser.add_argument('--value_num_kernel', type=int, default=30)
 
-
-
     # 2.2 Parameters of policy approximate function
     parser.add_argument('--policy_func_name', type=str, default='DetermPolicy',
                         help='Options: None/DetermPolicy/StochaPolicy')
@@ -87,10 +85,9 @@ if __name__ == "__main__":
     # 3. Parameters for RL algorithm
     parser.add_argument('--gamma', type=float, default=0.98)
     parser.add_argument('--tau', type=float, default=0.005, help='')
-    parser.add_argument('--value_learning_rate', type=float, default=1e-3, help='')
-    parser.add_argument('--policy_learning_rate', type=float, default=1e-4, help='')
+    parser.add_argument('--value_learning_rate', type=float, default=1e-2, help='')
+    parser.add_argument('--policy_learning_rate', type=float, default=1e-3, help='')
     parser.add_argument('--delay_update', type=int, default=1, help='')
-    parser.add_argument('--distribution_type', type=str, default='Dirac')
     parser.add_argument('--reward_scale', type=float, default=1, help='Reward = reward_scale * environment.Reward')
 
     ################################################
@@ -100,7 +97,7 @@ if __name__ == "__main__":
                              'on_sync_trainer'
                              'off_serial_trainer'
                              'off_async_trainer')
-    parser.add_argument('--max_iteration', type=int, default=5000,
+    parser.add_argument('--max_iteration', type=int, default=3000,
                         help='Maximum iteration number')
     trainer_type = parser.parse_args().trainer
     # 4.1. Parameters for on_serial_trainer
@@ -133,7 +130,7 @@ if __name__ == "__main__":
                         help='Batch size of sampler for buffer store')
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0.2], dtype=np.float32)},
+                                 'std': np.array([0.5], dtype=np.float32)},
                         help='Add noise to actions for exploration')
 
     ################################################

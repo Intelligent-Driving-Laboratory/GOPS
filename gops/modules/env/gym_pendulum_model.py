@@ -1,3 +1,12 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: Yuhang Zhang
+#  Description: Pendulum Environment (differential version)
+#
+#  Update Date: 2021-05-55, Yuhang Zhang: create environment
+
 import torch
 
 PI = 3.1415926
@@ -83,32 +92,3 @@ def arccs(sinth, costh):
     if sinth <= 0:
         th = 2 * 3.1415926 - th
     return th
-
-
-
-
-
-if __name__ == "__main__":
-    f = PendulumDifferential()
-    import gym
-    import matplotlib.pyplot as plt
-    import numpy as np
-    env = gym.make('Pendulum-v0')
-    s = env.reset()
-    s_real = []
-    s_fake = []
-    for i in range(200):
-        a = env.action_space.sample()
-        sp, r, d, _ = env.step(a)
-        # print(s, a, sp)
-        s_real.append(sp)
-        tsp, _ = f(torch.tensor(s), torch.tensor(a))
-        s_fake.append(tsp.numpy())
-        s = sp
-    # print(tsp)
-    s_real = np.array(s_real)
-    s_fake = np.array(s_fake)
-    plt.plot(s_real)
-    plt.plot(s_fake)
-    plt.show()
-    print("All states match, The model is right")

@@ -1,13 +1,12 @@
-#   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+#  Creator: Yuhang Zhang
+#  Description: Cartpole Environment
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Author: Sun Hao
-#  Description: Discrete version of Cartpole
+#  Update Date: 2021-05-55, Yuhang Zhang: create environment
+
 
 import gym
 
