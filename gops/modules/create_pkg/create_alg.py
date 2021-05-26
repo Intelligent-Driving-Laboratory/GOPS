@@ -26,7 +26,7 @@ def create_alg(**kwargs):
     # serial
     if hasattr(file, alg_name):
         alg_cls = getattr(file, alg_name)
-        if trainer == 'off_serial_trainer':
+        if trainer == 'off_serial_trainer' or trainer == 'on_serial_trainer':
             alg = alg_cls(**kwargs)
         elif trainer == 'off_async_trainer':
             alg = [ray.remote(num_cpus=1)(DDPG).remote(**kwargs)

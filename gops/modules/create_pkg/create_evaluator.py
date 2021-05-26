@@ -19,7 +19,7 @@ def create_evaluator(**kwargs):
     #
     if hasattr(file, evaluator_name):  #
         evaluator_cls = getattr(file, evaluator_name)
-        if trainer == 'off_serial_trainer':
+        if trainer == 'off_serial_trainer' or trainer == 'on_serial_trainer':
             evaluator = evaluator_cls(**kwargs)
         elif trainer == 'off_async_trainer':
             evaluator = ray.remote(num_cpus=1)(Evaluator).remote(**kwargs)

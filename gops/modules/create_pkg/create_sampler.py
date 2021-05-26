@@ -19,12 +19,12 @@ def create_sampler(**kwargs):
 
     if hasattr(file, sampler_name):  #
         sampler_cls = getattr(file, sampler_name)
-        if trainer == 'off_serial_trainer':
+        if trainer == 'off_serial_trainer' or trainer == 'on_serial_trainer':
             sampler = sampler_cls(**kwargs)
         elif trainer == 'off_async_trainer':
             sampler = [ray.remote(num_cpus=1)(McSampler).remote(**kwargs) for _ in range(kwargs['num_samplers'])]
         else:
-            raise NotImplementedError("This algorithm is not properly defined")
+            raise NotImplementedError("This trainer is not properly defined")
     else:
         raise NotImplementedError("This sampler is not properly defined")
 

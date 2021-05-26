@@ -23,7 +23,10 @@ def create_trainer(alg, sampler, buffer, evaluator, **kwargs):
     # get
     if hasattr(file, trainer_name_camel):
         trainer_cls = getattr(file, trainer_name_camel)
-        trainer = trainer_cls(alg, sampler, buffer, evaluator, **kwargs)
+        if trainer_name == 'off_serial_trainer' or trainer_name == 'off_async_trainer':
+            trainer = trainer_cls(alg, sampler, buffer, evaluator, **kwargs)
+        elif trainer_name == 'on_serial_trainer' or trainer_name == 'on_sync_trainer':
+            trainer = trainer_cls(alg, sampler, evaluator, **kwargs)
     else:
         raise NotImplementedError("This trainer is not properly defined")
     print("Create trainer successfully!")

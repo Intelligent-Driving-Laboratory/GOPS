@@ -1,45 +1,45 @@
-#   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+#  Creator: Yang GUAN
+#  Description: Serial trainer for RL algorithms
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Author: Sun Hao
-#  Update Date: 2021-01-03, Yuxuan JIANG & Guojian ZHAN : modified to allow discrete action space
+#  Update Date: 2021-03-10, Wenhan CAO: Revise Codes
+#  Update Date: 2021-05-21, Shengbo LI: Format Revise
 
 
-__all__ = ['SerialTrainer']
+__all__ = ['OnSerialTrainer']
 
-import time
-import os
-import numpy as np
+import logging
+
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from modules.utils.utils import Timer
+
 from modules.utils.tensorboard_tools import add_scalars
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+from modules.utils.tensorboard_tools import tb_tags
 
-class SerialTrainer():
-    def __init__(self, alg, sampler, buffer, evaluator, **kwargs):
+
+class OnSerialTrainer():
+    def __init__(self, alg, sampler, evaluator, **kwargs):
         self.alg = alg
+
         self.sampler = sampler
-        self.buffer = buffer
         self.evaluator = evaluator
 
-        ####import ddpg
+        # Import algorithm, appr func, sampler & buffer
         alg_name = kwargs['algorithm']
         alg_file_name = alg_name.lower()
         file = __import__(alg_file_name)
         ApproxContainer = getattr(file, 'ApproxContainer')
         self.networks = ApproxContainer(**kwargs)
         self.iteration = 0
-        self.max_iteration = kwargs.get('max_iteration', 300)
-        self.warm_size = kwargs['buffer_warm_size']
-        self.batch_size = kwargs['batch_size']
+        self.max_iteration = kwargs.get('max_iteration')
+        self.batch_size = kwargs['sample_batch_size']
         self.ini_network_dir = kwargs['ini_network_dir']
-
         self.obsv_dim = kwargs['obsv_dim']
         self.act_dim = kwargs['action_dim']
 
@@ -47,33 +47,39 @@ class SerialTrainer():
         if self.ini_network_dir is not None:
             self.networks.load_state_dict(torch.load(self.ini_network_dir))
 
-        while self.buffer.size < self.warm_size:
-            samples = self.sampler.sample()
-            self.buffer.add_batch(samples)
-
         self.save_folder = kwargs['save_folder']
         self.log_save_interval = kwargs['log_save_interval']
-        self.sample_sync_interval = kwargs['sample_sync_interval']
         self.apprfunc_save_interval = kwargs['apprfunc_save_interval']
+        self.eval_interval = kwargs['eval_interval']
+        self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
+        self.writer.add_scalar(tb_tags['time'], 0, 0)
+
+        self.writer.flush()
         # setattr(self.alg, "writer", self.evaluator.writer)
 
-    def step(self, iteration):
-        with Timer(self.evaluator.writer, step=iteration):
-            # sampling
-            self.sampler.networks.load_state_dict(self.networks.state_dict())
+    def step(self):
+        # sampling
+        self.sampler.networks.load_state_dict(self.networks.state_dict())
 
-            samples_with_replay_format = self.samples_conversion(self.sampler.sample())
-            # learning
-            self.alg.networks.load_state_dict(self.networks.state_dict())
-            grads = self.alg.compute_gradient(samples_with_replay_format)
+        samples_with_replay_format = self.samples_conversion(self.sampler.sample())
 
-            # apply grad
-            self.networks.update(grads, self.iteration)
+        # learning
+        self.alg.networks.load_state_dict(self.networks.state_dict())
+        grads, alg_tb_dict = self.alg.compute_gradient(samples_with_replay_format)
+
+        # apply grad
+        self.networks.update(grads, self.iteration)
+
+        # log
+        if self.iteration % self.log_save_interval == 0:
+            print('Iter = ', self.iteration)
+            add_scalars(alg_tb_dict, self.writer, step=self.iteration)
 
         # evaluate
-        if self.iteration % self.log_save_interval == 0:
+        if self.iteration % self.eval_interval == 0:
             self.evaluator.networks.load_state_dict(self.networks.state_dict())
-            self.evaluator.run_evaluation(self.iteration)
+            self.writer.add_scalar(tb_tags['total_average_return'], self.evaluator.run_evaluation(self.iteration),
+                                   self.iteration)
 
         # save
         if self.iteration % self.apprfunc_save_interval == 0:
@@ -82,18 +88,10 @@ class SerialTrainer():
 
     def train(self):
         while self.iteration < self.max_iteration:
-            # setattr(self.alg, "iteration", self.iteration)
-
-            self.step(self.iteration)
-
-            if hasattr(self.alg, 'tb_info'):
-                add_scalars(self.alg.tb_info, self.evaluator.writer, step=self.iteration)
-
+            self.step()
             self.iteration += 1
-            if self.iteration % 10 == 0:
-                print('Itertaion = ', self.iteration)
 
-        self.evaluator.writer.flush()
+        self.writer.flush()
 
     def samples_conversion(self, samples):
         obs_tensor = torch.zeros(self.batch_size, self.obsv_dim)
@@ -106,8 +104,9 @@ class SerialTrainer():
             obs, act, rew, next_obs, done = sample
             obs_tensor[idx] = torch.from_numpy(obs)
             act_tensor[idx] = torch.from_numpy(act)
-            rew_tensor[idx] = torch.from_numpy(rew)
+            rew_tensor[idx] = torch.tensor(rew)
             obs2_tensor[idx] = torch.from_numpy(next_obs)
-            done_tensor[idx] = torch.from_numpy(done)
+            done_tensor[idx] = torch.tensor(done)
+            idx += 1
         return dict(obs=obs_tensor, act=act_tensor, obs2=obs2_tensor, rew=rew_tensor,
                                           done=done_tensor)
