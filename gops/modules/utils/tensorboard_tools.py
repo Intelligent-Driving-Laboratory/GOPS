@@ -3,6 +3,7 @@ tensorboard related functions
 
 """
 import numpy as np
+import pandas as pd
 import os
 import time
 import webbrowser
@@ -108,6 +109,58 @@ def kill_port(port=6006):
         kill_pid_windows(pids)
     else:
         print("Unsupported os")
+
+
+def save_csv(path, step, value):
+    """
+    save 2-column-data to csv
+
+    Parameters
+    ----------
+    path: str
+        The target csv file
+
+    step: numpy.array
+        The first dim of the data
+
+    value: numpy.array
+        The second dim of the data
+
+    Returns
+    -------
+
+    """
+    df = pd.DataFrame({'Step': step, 'Value': value})
+    df.to_csv(path, index=False, sep=',')
+
+
+def save_tb_to_csv(path):
+    """
+    Parse all tensorboard log file in the give dir (e.g. ./results),
+    and save all data as csv
+
+    Parameters
+    ----------
+    path: str
+        Target dir, such as: './results', './runs'
+    depth: int, optional
+        Layers of the tensorboard log dir
+
+    Returns
+    -------
+    Non
+    """
+
+
+    data_dict = read_tensorboard(path)
+    for data_name in data_dict.keys():
+        data_name_format = data_name.replace('\\', '/').replace('/', '_')
+        csv_dir = os.path.join(path, 'csv')
+        os.makedirs(csv_dir, exist_ok=True)
+        save_csv(os.path.join(csv_dir, "{}.csv".format(data_name_format)),
+                 step=data_dict[data_name]['x'],
+                 value=data_dict[data_name]['y'])
+
 
 
 tb_tags = {'loss_actor': 'Loss/loss_actor',

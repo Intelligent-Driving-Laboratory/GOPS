@@ -24,7 +24,7 @@ from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
 from modules.utils.utils import change_type
 from modules.utils.plot import plot_all
-from modules.utils.tensorboard_tools import start_tensorboard
+from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -187,3 +187,4 @@ if __name__ == "__main__":
 
     # Plot and save training figures
     plot_all(args['save_folder'])
+    save_tb_to_csv(args['save_folder'])
