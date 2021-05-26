@@ -178,7 +178,10 @@ if __name__ == "__main__":
     # Step 4: create evaluator in trainer
     evaluator = create_evaluator(**args)
     # Step 5: create trainer
-    trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
+    if trainer_type == 'off_serial_trainer' or trainer_type == 'off_async_trainer':
+        trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
+    elif trainer_type == 'on_serial_trainer' or trainer_type == 'on_sync_trainer':
+        trainer = create_trainer(alg, sampler, None, evaluator, **args)
 
     # Start training ... ...
     trainer.train()

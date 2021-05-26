@@ -53,7 +53,7 @@ if __name__ == "__main__":
     value_func_type = parser.parse_args().value_func_type
     # 2.1.1 MLP, CNN, RNN
     if value_func_type == 'MLP':  # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh;  Output Layer: linear
-        parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256, 128])
+        parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256])
         parser.add_argument('--value_hidden_activation', type=str, default='relu')
         parser.add_argument('--value_output_activation', type=str, default='linear')
     # 2.1.2 Polynominal
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     policy_func_type = parser.parse_args().policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == 'MLP':  # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh: Output Layer: tanh
-        parser.add_argument('--policy_hidden_sizes', type=list, default=[256, 256])
+        parser.add_argument('--policy_hidden_sizes', type=list, default=[256, 256, 128])
         parser.add_argument('--policy_hidden_activation', type=str, default='relu', help='')
         parser.add_argument('--policy_output_activation', type=str, default='tanh', help='')
     # 2.2.2 Polynominal
@@ -83,7 +83,7 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument('--gamma', type=float, default=0.98)
+    parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--tau', type=float, default=0.005, help='')
     parser.add_argument('--value_learning_rate', type=float, default=1e-3, help='')
     parser.add_argument('--policy_learning_rate', type=float, default=1e-4, help='')
@@ -97,7 +97,7 @@ if __name__ == "__main__":
                              'on_sync_trainer'
                              'off_serial_trainer'
                              'off_async_trainer')
-    parser.add_argument('--max_iteration', type=int, default=5000,
+    parser.add_argument('--max_iteration', type=int, default=10000,
                         help='Maximum iteration number')
     trainer_type = parser.parse_args().trainer
     parser.add_argument('--ini_network_dir', type=str, default=None)

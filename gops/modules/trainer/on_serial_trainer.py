@@ -109,4 +109,4 @@ class OnSerialTrainer():
             done_tensor[idx] = torch.tensor(done)
             idx += 1
         return dict(obs=obs_tensor, act=act_tensor, obs2=obs2_tensor, rew=rew_tensor,
-                                          done=done_tensor)
+                    done=done_tensor)

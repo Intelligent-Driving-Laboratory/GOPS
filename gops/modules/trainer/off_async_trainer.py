@@ -51,6 +51,12 @@ class OffAsyncTrainer():
         ApproxContainer = getattr(file, 'ApproxContainer')
         self.networks = ApproxContainer(**kwargs)
 
+        self.ini_network_dir = kwargs['ini_network_dir']
+
+        # initialize the networks
+        if self.ini_network_dir is not None:
+            self.networks.load_state_dict(torch.load(self.ini_network_dir))
+
         # start the update thread
         self.update_thread = UpdateThread(self.networks, self.evaluator, **kwargs)
         self.update_thread.start()
@@ -164,7 +170,8 @@ class UpdateThread(threading.Thread):
         # evaluate
         if self.iteration % self.eval_interval == 0:
             self.evaluator.load_state_dict.remote(self.networks.state_dict())
-            self.writer.add_scalar(tb_tags['total_average_return'], ray.get(self.evaluator.run_evaluation.remote(self.iteration)),
+            self.writer.add_scalar(tb_tags['total_average_return'],
+                                   ray.get(self.evaluator.run_evaluation.remote(self.iteration)),
                                    self.iteration)
 
         # save
