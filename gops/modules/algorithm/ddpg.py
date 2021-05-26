@@ -116,6 +116,9 @@ class DDPG():
         q_policy = self.networks.q(o, self.networks.policy(o))
         return -q_policy.mean()
 
+    def load_state_dict(self, state_dict):
+        self.networks.load_state_dict(state_dict)
+
 
 if __name__ == '__main__':
     print('11111')

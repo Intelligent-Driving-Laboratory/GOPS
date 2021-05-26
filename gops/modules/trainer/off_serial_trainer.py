@@ -11,11 +11,12 @@
 
 __all__ = ['OffSerialTrainer']
 
-import torch
 import logging
-from modules.utils.utils import Timer
-from modules.utils.tensorboard_tools import add_scalars
+
+import torch
 from torch.utils.tensorboard import SummaryWriter
+
+from modules.utils.tensorboard_tools import add_scalars
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -40,6 +41,11 @@ class OffSerialTrainer():
         self.max_iteration = kwargs.get('max_iteration')
         self.warm_size = kwargs['buffer_warm_size']
         self.replay_batch_size = kwargs['replay_batch_size']
+        self.ini_network_dir = kwargs['ini_network_dir']
+
+        # initialize the networks
+        if self.ini_network_dir is not None:
+            self.networks.load_state_dict(torch.load(self.ini_network_dir))
 
         # Collect enough warm samples
         while self.buffer.size < self.warm_size:
@@ -62,15 +68,15 @@ class OffSerialTrainer():
         if self.iteration % self.sampler_sync_interval == 0:
             self.sampler.networks.load_state_dict(self.networks.state_dict())
 
-        samples = self.sampler.sample()
-        self.buffer.add_batch(samples)
+        sampler_samples = self.sampler.sample()
+        self.buffer.add_batch(sampler_samples)
 
         # replay
-        samples = self.buffer.sample_batch(self.replay_batch_size)
+        replay_samples = self.buffer.sample_batch(self.replay_batch_size)
 
         # learning
         self.alg.networks.load_state_dict(self.networks.state_dict())
-        grads, alg_tb_dict = self.alg.compute_gradient(samples)
+        grads, alg_tb_dict = self.alg.compute_gradient(replay_samples)
 
         # apply grad
         self.networks.update(grads, self.iteration)
@@ -83,7 +89,7 @@ class OffSerialTrainer():
         # evaluate
         if self.iteration % self.eval_interval == 0:
             self.evaluator.networks.load_state_dict(self.networks.state_dict())
-            self.writer.add_scalar(tb_tags['total_average_return'], self.evaluator.run_evaluation(),
+            self.writer.add_scalar(tb_tags['total_average_return'], self.evaluator.run_evaluation(self.iteration),
                                    self.iteration)
 
         # save

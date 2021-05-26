@@ -36,6 +36,9 @@ class ReplayBuffer():
         self.done_buf = np.zeros(size, dtype=np.float32)
         self.ptr, self.size, self.max_size = 0, 0, size
 
+    def __len__(self):
+        return self.size
+
     def store(self, obs, act, rew, next_obs, done):
         self.obs_buf[self.ptr] = obs
         self.obs2_buf[self.ptr] = next_obs

@@ -9,6 +9,8 @@ import torch.nn as nn
 import numpy as np
 
 from modules.utils.tensorboard_tools import tb_tags
+import random
+
 
 def get_activation_func(key: str):
     assert isinstance(key, str)
@@ -77,7 +79,11 @@ def change_type(obj):
     else:
         return obj
 
-
+def random_choice_with_index(obj_list):
+    obj_len = len(obj_list)
+    random_index = random.choice(list(range(obj_len)))
+    random_value = obj_list[random_index]
+    return random_value, random_index
 class Timer(object):
     def __init__(self, writer, tag=tb_tags['time'], step=None):
         self.writer = writer
