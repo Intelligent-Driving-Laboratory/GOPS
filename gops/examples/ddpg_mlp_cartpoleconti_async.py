@@ -2,11 +2,9 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Sun Hao
+#  Creator: Yang GUAN and Wenhan CAO
 #  Description: Discrete version of Cartpole Enviroment
-#
-#  Update Date: 2020-11-10, Hao SUN: renew env para
-#  Update Date: 2021-05-21, Shengbo Li: Reformualte code formats
+
 
 import argparse
 import copy
@@ -15,6 +13,8 @@ import json
 import os
 
 import numpy as np
+import ray
+from modules.algorithm.ddpg import DDPG
 
 from modules.create_pkg.create_alg import create_alg
 from modules.create_pkg.create_buffer import create_buffer
@@ -24,7 +24,7 @@ from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
 from modules.utils.utils import change_type
 from modules.utils.plot import plot_all
-from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
+from modules.utils.tensorboard_tools import start_tensorboard
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     value_func_type = parser.parse_args().value_func_type
     # 2.1.1 MLP, CNN, RNN
     if value_func_type == 'MLP':  # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh;  Output Layer: linear
-        parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256, 128])
+        parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256])
         parser.add_argument('--value_hidden_activation', type=str, default='relu')
         parser.add_argument('--value_output_activation', type=str, default='linear')
     # 2.1.2 Polynominal
@@ -83,24 +83,24 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument('--gamma', type=float, default=0.98)
+    parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--tau', type=float, default=0.005, help='')
-    parser.add_argument('--value_learning_rate', type=float, default=1e-3, help='')
-    parser.add_argument('--policy_learning_rate', type=float, default=1e-4, help='')
+    parser.add_argument('--value_learning_rate', type=float, default=8e-5, help='')
+    parser.add_argument('--policy_learning_rate', type=float, default=5e-4, help='')
     parser.add_argument('--delay_update', type=int, default=1, help='')
     parser.add_argument('--reward_scale', type=float, default=1, help='Reward = reward_scale * environment.Reward')
 
     ################################################
     # 4. Parameters for trainer
-    parser.add_argument('--trainer', type=str, default='off_serial_trainer',
+    parser.add_argument('--trainer', type=str, default='off_async_trainer',
                         help='on_serial_trainer'
                              'on_sync_trainer'
                              'off_serial_trainer'
                              'off_async_trainer')
-    parser.add_argument('--max_iteration', type=int, default=5000,
+    parser.add_argument('--max_iteration', type=int, default=50000,
                         help='Maximum iteration number')
-    trainer_type = parser.parse_args().trainer
     parser.add_argument('--ini_network_dir', type=str, default=None)
+    trainer_type = parser.parse_args().trainer
     # 4.1. Parameters for on_serial_trainer
     if trainer_type == 'on_serial_trainer':
         pass
@@ -120,7 +120,18 @@ if __name__ == "__main__":
                             help='Period of sync central policy of each sampler')
     # 4.4. Parameters for off_async_trainer
     elif trainer_type == 'off_async_trainer':
-        pass
+        ray.init()
+        parser.add_argument('--num_algs', type=int, default=1, help='number of algs')
+        parser.add_argument('--num_samplers', type=int, default=1, help='number of samplers')
+        parser.add_argument('--num_buffers', type=int, default=1, help='number of buffers')
+        parser.add_argument('--alg_queue_max_size', type=int, default=128, help='queue size of alg')
+        parser.add_argument('--buffer_name', type=str, default='replay_buffer')
+        parser.add_argument('--buffer_warm_size', type=int, default=1000,
+                            help='Size of collected samples before training')
+        parser.add_argument('--buffer_max_size', type=int, default=100000,
+                            help='Max size of buffer')
+        parser.add_argument('--replay_batch_size', type=int, default=256,
+                            help='Batch size of replay samples from buffer')
     else:
         raise ValueError
 
@@ -143,7 +154,7 @@ if __name__ == "__main__":
     ################################################
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
-    parser.add_argument('--apprfunc_save_interval', type=int, default=500,
+    parser.add_argument('--apprfunc_save_interval', type=int, default=5000,
                         help='Save value/policy every N updates')
     parser.add_argument('--log_save_interval', type=int, default=100,
                         help='Save gradient time/critic loss/actor loss/average value every N updates')
@@ -169,6 +180,7 @@ if __name__ == "__main__":
         json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
 
     start_tensorboard(args['save_folder'])
+
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     # Step 2: create sampler in trainer
@@ -189,4 +201,3 @@ if __name__ == "__main__":
 
     # Plot and save training figures
     plot_all(args['save_folder'])
-    save_tb_to_csv(args['save_folder'])

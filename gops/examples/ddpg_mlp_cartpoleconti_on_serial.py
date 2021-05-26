@@ -24,7 +24,7 @@ from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
 from modules.utils.utils import change_type
 from modules.utils.plot import plot_all
-from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
+from modules.utils.tensorboard_tools import start_tensorboard
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     value_func_type = parser.parse_args().value_func_type
     # 2.1.1 MLP, CNN, RNN
     if value_func_type == 'MLP':  # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh;  Output Layer: linear
-        parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256, 128])
+        parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256])
         parser.add_argument('--value_hidden_activation', type=str, default='relu')
         parser.add_argument('--value_output_activation', type=str, default='linear')
     # 2.1.2 Polynominal
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     policy_func_type = parser.parse_args().policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == 'MLP':  # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh: Output Layer: tanh
-        parser.add_argument('--policy_hidden_sizes', type=list, default=[256, 256])
+        parser.add_argument('--policy_hidden_sizes', type=list, default=[256, 256, 128])
         parser.add_argument('--policy_hidden_activation', type=str, default='relu', help='')
         parser.add_argument('--policy_output_activation', type=str, default='tanh', help='')
     # 2.2.2 Polynominal
@@ -83,7 +83,7 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument('--gamma', type=float, default=0.98)
+    parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--tau', type=float, default=0.005, help='')
     parser.add_argument('--value_learning_rate', type=float, default=1e-3, help='')
     parser.add_argument('--policy_learning_rate', type=float, default=1e-4, help='')
@@ -92,12 +92,12 @@ if __name__ == "__main__":
 
     ################################################
     # 4. Parameters for trainer
-    parser.add_argument('--trainer', type=str, default='off_serial_trainer',
+    parser.add_argument('--trainer', type=str, default='on_serial_trainer',
                         help='on_serial_trainer'
                              'on_sync_trainer'
                              'off_serial_trainer'
                              'off_async_trainer')
-    parser.add_argument('--max_iteration', type=int, default=5000,
+    parser.add_argument('--max_iteration', type=int, default=10000,
                         help='Maximum iteration number')
     trainer_type = parser.parse_args().trainer
     parser.add_argument('--ini_network_dir', type=str, default=None)
@@ -174,7 +174,8 @@ if __name__ == "__main__":
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
-    buffer = create_buffer(**args)
+    if trainer_type == 'off_serial_trainer' or trainer_type == 'off_async_trainer':
+        buffer = create_buffer(**args)
     # Step 4: create evaluator in trainer
     evaluator = create_evaluator(**args)
     # Step 5: create trainer
@@ -182,11 +183,9 @@ if __name__ == "__main__":
         trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
     elif trainer_type == 'on_serial_trainer' or trainer_type == 'on_sync_trainer':
         trainer = create_trainer(alg, sampler, None, evaluator, **args)
-
     # Start training ... ...
     trainer.train()
     print('Training is finished!')
 
     # Plot and save training figures
     plot_all(args['save_folder'])
-    save_tb_to_csv(args['save_folder'])

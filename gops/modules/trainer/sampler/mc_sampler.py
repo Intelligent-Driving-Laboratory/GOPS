@@ -31,8 +31,6 @@ class McSampler():
         self.policy_func_name = kwargs['policy_func_name']
         self.action_type = kwargs['action_type']
 
-
-
         if self.action_type == 'continu':
             self.noise_processor = GaussNoise(**self.noise_params)
             if self.policy_func_name == 'StochaPolicy':
@@ -43,7 +41,8 @@ class McSampler():
             self.noise_processor = EpsilonGreedy(**self.noise_params)
             self.action_distirbution_cls = ValueDiracDistribution
 
-
+    def load_state_dict(self, state_dict):
+        self.networks.load_state_dict(state_dict)
 
     def sample(self):
         batch_data = []
@@ -71,3 +70,4 @@ class McSampler():
             if self.done:
                 self.obs = self.env.reset()
         return batch_data
+

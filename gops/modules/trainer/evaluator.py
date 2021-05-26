@@ -19,7 +19,6 @@ from modules.create_pkg.create_env import create_env
 from modules.utils.action_distributions import GaussDistribution, DiracDistribution, ValueDiracDistribution
 
 
-
 class Evaluator():
 
     def __init__(self, **kwargs):
@@ -34,6 +33,7 @@ class Evaluator():
         self.num_eval_episode = kwargs['num_eval_episode']
         self.action_type = kwargs['action_type']
         self.policy_func_name = kwargs['policy_func_name']
+        self.save_folder = kwargs['save_folder']
 
         if self.action_type == 'continu':
             if self.policy_func_name == 'StochaPolicy':
@@ -42,8 +42,20 @@ class Evaluator():
                 self.action_distirbution_cls = DiracDistribution
         elif self.action_type == 'discret':
             self.action_distirbution_cls = ValueDiracDistribution
+        self.print_time = 0
+        self.print_iteration = -1
 
-    def run_an_episode(self, render=True):
+    def load_state_dict(self, state_dict):
+        self.networks.load_state_dict(state_dict)
+
+    def run_an_episode(self, iteration, render=True):
+        if self.print_iteration != iteration:
+            self.print_iteration = iteration
+            self.print_time = 0
+        else:
+            self.print_time += 1
+        obs_list = []
+        action_list = []
         reward_list = []
         obs = self.env.reset()
         done = 0
@@ -54,22 +66,26 @@ class Evaluator():
             action = action_distribution.mode()
             action = action.detach().numpy()[0]
             next_obs, reward, done, info = self.env.step(action)
+            obs_list.append(obs)
+            action_list.append(action)
             obs = next_obs
             # Draw environment animation
             if render:
                 self.env.render()
-                # draw action curves - TensorBoard
             reward_list.append(reward)
+        eval_dict = {'reward_list': reward_list, 'action_list': action_list, 'obs_list': obs_list}
+        if True:
+            np.save(self.save_folder + '/evaluator/iteration{}_episode{}'.format(iteration, self.print_time), eval_dict)
         episode_return = sum(reward_list)
         return episode_return
 
-    def run_n_episodes(self, n):
+    def run_n_episodes(self, n, iteration):
         episode_return_list = []
         for _ in range(n):
-            episode_return_list.append(self.run_an_episode(self.render))
+            episode_return_list.append(self.run_an_episode(iteration, self.render))
         return np.mean(episode_return_list)
 
-    def run_evaluation(self):
-        return self.run_n_episodes(self.num_eval_episode)
+    def run_evaluation(self, iteration):
+        return self.run_n_episodes(self.num_eval_episode, iteration)
 
         # add self.writer:
