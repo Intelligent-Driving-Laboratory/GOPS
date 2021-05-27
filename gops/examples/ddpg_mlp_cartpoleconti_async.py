@@ -43,7 +43,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_high_limit', type=list, default=None)
     parser.add_argument('--action_low_limit', type=list, default=None)
     parser.add_argument('--action_type', type=str, default='continu', help='Options: continu/discret')
-    parser.add_argument('--is_render', type=bool, default=False, help='Draw environment animation')
+    parser.add_argument('--is_render', type=bool, default=True, help='Draw environment animation')
 
     ################################################
     # 2.1 Parameters of value approximate function
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     value_func_type = parser.parse_args().value_func_type
     # 2.1.1 MLP, CNN, RNN
     if value_func_type == 'MLP':  # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh;  Output Layer: linear
-        parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256])
+        parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256, 128])
         parser.add_argument('--value_hidden_activation', type=str, default='relu')
         parser.add_argument('--value_output_activation', type=str, default='linear')
     # 2.1.2 Polynominal
@@ -84,10 +84,10 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument('--gamma', type=float, default=0.99)
+    parser.add_argument('--gamma', type=float, default=0.98)
     parser.add_argument('--tau', type=float, default=0.005, help='')
-    parser.add_argument('--value_learning_rate', type=float, default=8e-4, help='')
-    parser.add_argument('--policy_learning_rate', type=float, default=5e-4, help='')
+    parser.add_argument('--value_learning_rate', type=float, default=1e-3, help='')
+    parser.add_argument('--policy_learning_rate', type=float, default=1e-4, help='')
     parser.add_argument('--delay_update', type=int, default=1, help='')
     parser.add_argument('--reward_scale', type=float, default=1, help='Reward = reward_scale * environment.Reward')
 
@@ -115,23 +115,23 @@ if __name__ == "__main__":
                             help='Size of collected samples before training')
         parser.add_argument('--buffer_max_size', type=int, default=100000,
                             help='Max size of buffer')
-        parser.add_argument('--replay_batch_size', type=int, default=256,
+        parser.add_argument('--replay_batch_size', type=int, default=1024,
                             help='Batch size of replay samples from buffer')
         parser.add_argument('--sampler_sync_interval', type=int, default=1,
                             help='Period of sync central policy of each sampler')
     # 4.4. Parameters for off_async_trainer
     elif trainer_type == 'off_async_trainer':
         ray.init()
-        parser.add_argument('--num_algs', type=int, default=2, help='number of algs')
-        parser.add_argument('--num_samplers', type=int, default=6, help='number of samplers')
-        parser.add_argument('--num_buffers', type=int, default=2, help='number of buffers')
-        parser.add_argument('--alg_queue_max_size', type=int, default=128, help='queue size of alg')
+        parser.add_argument('--num_algs', type=int, default=1, help='number of algs')
+        parser.add_argument('--num_samplers', type=int, default=3, help='number of samplers')
+        parser.add_argument('--num_buffers', type=int, default=1, help='number of buffers')
+        parser.add_argument('--alg_queue_max_size', type=int, default=1, help='queue size of alg')
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
         parser.add_argument('--buffer_warm_size', type=int, default=1000,
                             help='Size of collected samples before training')
         parser.add_argument('--buffer_max_size', type=int, default=100000,
                             help='Max size of buffer')
-        parser.add_argument('--replay_batch_size', type=int, default=256,
+        parser.add_argument('--replay_batch_size', type=int, default=1024,
                             help='Batch size of replay samples from buffer')
     else:
         raise ValueError
@@ -143,7 +143,7 @@ if __name__ == "__main__":
                         help='Batch size of sampler for buffer store')
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0.3], dtype=np.float32)},
+                                 'std': np.array([0.1], dtype=np.float32)},
                         help='Add noise to actions for exploration')
 
     ################################################
