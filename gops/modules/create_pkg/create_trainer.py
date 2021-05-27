@@ -1,4 +1,6 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: Hao SUN
 #  Description: Create trainers
@@ -7,9 +9,8 @@ resources:
 
 """
 
-#  Update Date: 2020-12-01, Hao SUN:
 
-#import modules.trainer.serial_trainer
+#  Update Date: 2020-12-01, Hao SUN:
 
 def create_trainer(alg, sampler, buffer, evaluator, **kwargs):
     trainer_name = kwargs['trainer']
@@ -18,11 +19,14 @@ def create_trainer(alg, sampler, buffer, evaluator, **kwargs):
     except NotImplementedError:
         raise NotImplementedError('This trainer does not exist')
 
-    trainer_name_camel = formatter(trainer_name) #
+    trainer_name_camel = formatter(trainer_name)  #
     # get
     if hasattr(file, trainer_name_camel):
         trainer_cls = getattr(file, trainer_name_camel)
-        trainer = trainer_cls(alg=alg,sampler=sampler,buffer=buffer,evaluator=evaluator,**kwargs)
+        if trainer_name == 'off_serial_trainer' or trainer_name == 'off_async_trainer':
+            trainer = trainer_cls(alg, sampler, buffer, evaluator, **kwargs)
+        elif trainer_name == 'on_serial_trainer' or trainer_name == 'on_sync_trainer':
+            trainer = trainer_cls(alg, sampler, evaluator, **kwargs)
     else:
         raise NotImplementedError("This trainer is not properly defined")
     print("Create trainer successfully!")

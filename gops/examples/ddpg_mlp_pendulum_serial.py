@@ -24,7 +24,7 @@ from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
 from modules.utils.utils import change_type
 from modules.utils.plot import plot_all
-from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
+from modules.utils.tensorboard_tools import start_tensorboard
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='gym_cartpoleconti')
+    parser.add_argument('--env_id', type=str, default='gym_pendulum')
     parser.add_argument('--algorithm', type=str, default='DDPG')
 
     ################################################
@@ -52,7 +52,7 @@ if __name__ == "__main__":
                         help='Options: MLP/CNN/RNN/POLY/GAUSS')
     value_func_type = parser.parse_args().value_func_type
     # 2.1.1 MLP, CNN, RNN
-    if value_func_type == 'MLP':  # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh;  Output Layer: linear
+    if value_func_type == 'MLP': # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh;  Output Layer: linear
         parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256, 128])
         parser.add_argument('--value_hidden_activation', type=str, default='relu')
         parser.add_argument('--value_output_activation', type=str, default='linear')
@@ -85,8 +85,8 @@ if __name__ == "__main__":
     # 3. Parameters for RL algorithm
     parser.add_argument('--gamma', type=float, default=0.98)
     parser.add_argument('--tau', type=float, default=0.005, help='')
-    parser.add_argument('--value_learning_rate', type=float, default=1e-3, help='')
-    parser.add_argument('--policy_learning_rate', type=float, default=1e-4, help='')
+    parser.add_argument('--value_learning_rate', type=float, default=1e-2, help='')
+    parser.add_argument('--policy_learning_rate', type=float, default=1e-3, help='')
     parser.add_argument('--delay_update', type=int, default=1, help='')
     parser.add_argument('--reward_scale', type=float, default=1, help='Reward = reward_scale * environment.Reward')
 
@@ -97,10 +97,9 @@ if __name__ == "__main__":
                              'on_sync_trainer'
                              'off_serial_trainer'
                              'off_async_trainer')
-    parser.add_argument('--max_iteration', type=int, default=5000,
+    parser.add_argument('--max_iteration', type=int, default=3000,
                         help='Maximum iteration number')
     trainer_type = parser.parse_args().trainer
-    parser.add_argument('--ini_network_dir', type=str, default=None)
     # 4.1. Parameters for on_serial_trainer
     if trainer_type == 'on_serial_trainer':
         pass
@@ -131,7 +130,7 @@ if __name__ == "__main__":
                         help='Batch size of sampler for buffer store')
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0.2], dtype=np.float32)},
+                                 'std': np.array([0.5], dtype=np.float32)},
                         help='Add noise to actions for exploration')
 
     ################################################
@@ -143,7 +142,7 @@ if __name__ == "__main__":
     ################################################
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
-    parser.add_argument('--apprfunc_save_interval', type=int, default=500,
+    parser.add_argument('--apprfunc_save_interval', type=int, default=5000,
                         help='Save value/policy every N updates')
     parser.add_argument('--log_save_interval', type=int, default=100,
                         help='Save gradient time/critic loss/actor loss/average value every N updates')
@@ -163,7 +162,6 @@ if __name__ == "__main__":
                                            datetime.datetime.now().strftime("%m%d-%H%M%S"))
     os.makedirs(args['save_folder'], exist_ok=True)
     os.makedirs(args['save_folder'] + '/apprfunc', exist_ok=True)
-    os.makedirs(args['save_folder'] + '/evaluator', exist_ok=True)
 
     with open(args['save_folder'] + '/config.json', 'w', encoding='utf-8') as f:
         json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
@@ -178,10 +176,7 @@ if __name__ == "__main__":
     # Step 4: create evaluator in trainer
     evaluator = create_evaluator(**args)
     # Step 5: create trainer
-    if trainer_type == 'off_serial_trainer' or trainer_type == 'off_async_trainer':
-        trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
-    elif trainer_type == 'on_serial_trainer' or trainer_type == 'on_sync_trainer':
-        trainer = create_trainer(alg, sampler, None, evaluator, **args)
+    trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
 
     # Start training ... ...
     trainer.train()
@@ -189,4 +184,3 @@ if __name__ == "__main__":
 
     # Plot and save training figures
     plot_all(args['save_folder'])
-    save_tb_to_csv(args['save_folder'])
