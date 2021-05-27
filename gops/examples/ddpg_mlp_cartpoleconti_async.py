@@ -11,6 +11,7 @@ import copy
 import datetime
 import json
 import os
+os.environ["OMP_NUM_THREADS"] = "1"
 
 import numpy as np
 import ray
@@ -85,7 +86,7 @@ if __name__ == "__main__":
     # 3. Parameters for RL algorithm
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--tau', type=float, default=0.005, help='')
-    parser.add_argument('--value_learning_rate', type=float, default=8e-5, help='')
+    parser.add_argument('--value_learning_rate', type=float, default=8e-4, help='')
     parser.add_argument('--policy_learning_rate', type=float, default=5e-4, help='')
     parser.add_argument('--delay_update', type=int, default=1, help='')
     parser.add_argument('--reward_scale', type=float, default=1, help='Reward = reward_scale * environment.Reward')
@@ -121,9 +122,9 @@ if __name__ == "__main__":
     # 4.4. Parameters for off_async_trainer
     elif trainer_type == 'off_async_trainer':
         ray.init()
-        parser.add_argument('--num_algs', type=int, default=1, help='number of algs')
-        parser.add_argument('--num_samplers', type=int, default=1, help='number of samplers')
-        parser.add_argument('--num_buffers', type=int, default=1, help='number of buffers')
+        parser.add_argument('--num_algs', type=int, default=2, help='number of algs')
+        parser.add_argument('--num_samplers', type=int, default=6, help='number of samplers')
+        parser.add_argument('--num_buffers', type=int, default=2, help='number of buffers')
         parser.add_argument('--alg_queue_max_size', type=int, default=128, help='queue size of alg')
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
         parser.add_argument('--buffer_warm_size', type=int, default=1000,
@@ -142,7 +143,7 @@ if __name__ == "__main__":
                         help='Batch size of sampler for buffer store')
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0.2], dtype=np.float32)},
+                                 'std': np.array([0.3], dtype=np.float32)},
                         help='Add noise to actions for exploration')
 
     ################################################

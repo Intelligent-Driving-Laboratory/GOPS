@@ -121,7 +121,7 @@ class OffAsyncTrainer():
             grads, alg_tb_dict = ray.get(objID)
             if not self.update_thread.inqueue.full():
                 self.update_thread.inqueue.put((grads, alg_tb_dict))  # 把梯度放到线程的queue里面来更新中心网络的参数
-            data = self.alg_queue.get(block=False)  # 拿到队列里面拿到从buffer采样出来的数据
+            data = self.alg_queue.get(block=True)  # 拿到队列里面拿到从buffer采样出来的数据
             weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
             alg.load_state_dict.remote(weights)  # 更新learner参数
             self.learn_tasks.add(alg, alg.compute_gradient.remote(data))  # 将完成了的learner重新算梯度
@@ -159,7 +159,7 @@ class UpdateThread(threading.Thread):
             self.step()
 
     def step(self):
-        grads, alg_tb_dict = self.inqueue.get(timeout=30)
+        grads, alg_tb_dict = self.inqueue.get(block=True, timeout=30)
         self.networks.update(grads, self.iteration)
 
         # log
