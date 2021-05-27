@@ -42,7 +42,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_high_limit', type=list, default=None)
     parser.add_argument('--action_low_limit', type=list, default=None)
     parser.add_argument('--action_type', type=str, default='continu', help='Options: continu/discret')
-    parser.add_argument('--is_render', type=bool, default=False, help='Draw environment animation')
+    parser.add_argument('--is_render', type=bool, default=True, help='Draw environment animation')
 
     ################################################
     # 2.1 Parameters of value approximate function
@@ -88,7 +88,8 @@ if __name__ == "__main__":
     parser.add_argument('--value_learning_rate', type=float, default=1e-3, help='')
     parser.add_argument('--policy_learning_rate', type=float, default=1e-4, help='')
     parser.add_argument('--delay_update', type=int, default=1, help='')
-    parser.add_argument('--reward_scale', type=float, default=1, help='Reward = reward_scale * environment.Reward')
+    parser.add_argument('--reward_scale', type=float, default=1,
+                        help='Reward = reward_scale * environment.Reward')
 
     ################################################
     # 4. Parameters for trainer
@@ -114,7 +115,7 @@ if __name__ == "__main__":
                             help='Size of collected samples before training')
         parser.add_argument('--buffer_max_size', type=int, default=100000,
                             help='Max size of buffer')
-        parser.add_argument('--replay_batch_size', type=int, default=256,
+        parser.add_argument('--replay_batch_size', type=int, default=1024,
                             help='Batch size of replay samples from buffer')
         parser.add_argument('--sampler_sync_interval', type=int, default=1,
                             help='Period of sync central policy of each sampler')
@@ -131,7 +132,7 @@ if __name__ == "__main__":
                         help='Batch size of sampler for buffer store')
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0.2], dtype=np.float32)},
+                                 'std': np.array([0.1], dtype=np.float32)},
                         help='Add noise to actions for exploration')
 
     ################################################
