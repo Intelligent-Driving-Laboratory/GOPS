@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='simu_cartpoleconti')
+    parser.add_argument('--env_id', type=str, default='simu_vehicle3dofconti')
     parser.add_argument('--algorithm', type=str, default='DDPG')
 
     ################################################
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     value_func_type = parser.parse_args().value_func_type
     # 2.1.1 MLP, CNN, RNN
     if value_func_type == 'MLP':  # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh;  Output Layer: linear
-        parser.add_argument('--value_hidden_sizes', type=list, default=[32, 32, 128])
+        parser.add_argument('--value_hidden_sizes', type=list, default=[32, 32, 32])
         parser.add_argument('--value_hidden_activation', type=str, default='relu')
         parser.add_argument('--value_output_activation', type=str, default='linear')
     # 2.1.2 Polynominal
@@ -135,8 +135,8 @@ if __name__ == "__main__":
     parser.add_argument('--sample_batch_size', type=int, default=256,
                         help='Batch size of sampler for buffer store')
     parser.add_argument('--noise_params', type=dict,
-                        default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0.1*30], dtype=np.float32)},
+                        default={'mean': np.array([0, 0, 0, 0, 0], dtype=np.float32),
+                                 'std': 0.1*np.array([1.5,9000,9000,9000,9000], dtype=np.float32)},
                         help='Add noise to actions for exploration')
 
     ################################################

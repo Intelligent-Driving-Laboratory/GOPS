@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='simu_cartpoleconti')
+    parser.add_argument('--env_id', type=str, default='simu_doublemassconti')
     parser.add_argument('--algorithm', type=str, default='DDPG')
 
     ################################################
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     value_func_type = parser.parse_args().value_func_type
     # 2.1.1 MLP, CNN, RNN
     if value_func_type == 'MLP':  # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh;  Output Layer: linear
-        parser.add_argument('--value_hidden_sizes', type=list, default=[32, 32, 128])
+        parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256, 128])
         parser.add_argument('--value_hidden_activation', type=str, default='relu')
         parser.add_argument('--value_output_activation', type=str, default='linear')
     # 2.1.2 Polynominal
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     policy_func_type = parser.parse_args().policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == 'MLP':  # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh: Output Layer: tanh
-        parser.add_argument('--policy_hidden_sizes', type=list, default=[32, 32])
+        parser.add_argument('--policy_hidden_sizes', type=list, default=[256, 256])
         parser.add_argument('--policy_hidden_activation', type=str, default='relu', help='')
         parser.add_argument('--policy_output_activation', type=str, default='tanh', help='')
     # 2.2.2 Polynominal
@@ -103,7 +103,7 @@ if __name__ == "__main__":
                              'on_sync_trainer'
                              'off_serial_trainer'
                              'off_async_trainer')
-    parser.add_argument('--max_iteration', type=int, default=3001,
+    parser.add_argument('--max_iteration', type=int, default=5000,
                         help='Maximum iteration number')
     trainer_type = parser.parse_args().trainer
     # 4.1. Parameters for on_serial_trainer
@@ -148,7 +148,7 @@ if __name__ == "__main__":
     ################################################
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
-    parser.add_argument('--apprfunc_save_interval', type=int, default=1000,
+    parser.add_argument('--apprfunc_save_interval', type=int, default=5000,
                         help='Save value/policy every N updates')
     parser.add_argument('--log_save_interval', type=int, default=100,
                         help='Save gradient time/critic loss/actor loss/average value every N updates')
