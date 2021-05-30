@@ -49,7 +49,7 @@ class OffSerialTrainer():
 
         # Collect enough warm samples
         while self.buffer.size < self.warm_size:
-            samples = self.sampler.sample()
+            samples, sampler_tb_dict = self.sampler.sample()
             self.buffer.add_batch(samples)
 
         self.save_folder = kwargs['save_folder']
@@ -58,7 +58,8 @@ class OffSerialTrainer():
         self.apprfunc_save_interval = kwargs['apprfunc_save_interval']
         self.eval_interval = kwargs['eval_interval']
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
-        self.writer.add_scalar(tb_tags['time'], 0, 0)
+        self.writer.add_scalar(tb_tags['alg_time'], 0, 0)
+        self.writer.add_scalar(tb_tags['sampler_time'], 0, 0)
 
         self.writer.flush()
         # setattr(self.alg, "writer", self.evaluator.writer)
@@ -68,7 +69,7 @@ class OffSerialTrainer():
         if self.iteration % self.sampler_sync_interval == 0:
             self.sampler.networks.load_state_dict(self.networks.state_dict())
 
-        sampler_samples = self.sampler.sample()
+        sampler_samples, sampler_tb_dict = self.sampler.sample()
         self.buffer.add_batch(sampler_samples)
 
         # replay
@@ -85,7 +86,7 @@ class OffSerialTrainer():
         if self.iteration % self.log_save_interval == 0:
             print('Iter = ', self.iteration)
             add_scalars(alg_tb_dict, self.writer, step=self.iteration)
-
+            add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
         # evaluate
         if self.iteration % self.eval_interval == 0:
             self.evaluator.networks.load_state_dict(self.networks.state_dict())

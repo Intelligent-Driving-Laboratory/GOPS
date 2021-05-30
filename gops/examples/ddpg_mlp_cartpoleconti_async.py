@@ -7,15 +7,9 @@
 
 
 import argparse
-import copy
-import datetime
-import json
 import os
-os.environ["OMP_NUM_THREADS"] = "1"
 
 import numpy as np
-import ray
-from modules.algorithm.ddpg import DDPG
 
 from modules.create_pkg.create_alg import create_alg
 from modules.create_pkg.create_buffer import create_buffer
@@ -23,9 +17,11 @@ from modules.create_pkg.create_env import create_env
 from modules.create_pkg.create_evaluator import create_evaluator
 from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
-from modules.utils.utils import change_type
+from modules.utils.init_args import init_args
 from modules.utils.plot import plot_all
 from modules.utils.tensorboard_tools import start_tensorboard
+
+os.environ["OMP_NUM_THREADS"] = "1"
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -121,6 +117,7 @@ if __name__ == "__main__":
                             help='Period of sync central policy of each sampler')
     # 4.4. Parameters for off_async_trainer
     elif trainer_type == 'off_async_trainer':
+        import ray
         ray.init()
         parser.add_argument('--num_algs', type=int, default=1, help='number of algs')
         parser.add_argument('--num_samplers', type=int, default=3, help='number of samplers')
@@ -163,22 +160,7 @@ if __name__ == "__main__":
     # Get parameter dictionary
     args = vars(parser.parse_args())
     env = create_env(**args)
-    args['obsv_dim'] = env.observation_space.shape[0]
-    args['action_dim'] = env.action_space.shape[0]
-    args['action_high_limit'] = env.action_space.high
-    args['action_low_limit'] = env.action_space.low
-
-    # Create save arguments
-    if args['save_folder'] is None:
-        args['save_folder'] = os.path.join('../results/' +
-                                           parser.parse_args().algorithm,
-                                           datetime.datetime.now().strftime("%m%d-%H%M%S"))
-    os.makedirs(args['save_folder'], exist_ok=True)
-    os.makedirs(args['save_folder'] + '/apprfunc', exist_ok=True)
-    os.makedirs(args['save_folder'] + '/evaluator', exist_ok=True)
-
-    with open(args['save_folder'] + '/config.json', 'w', encoding='utf-8') as f:
-        json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
+    args = init_args(env, **args)
 
     start_tensorboard(args['save_folder'])
 
@@ -191,10 +173,7 @@ if __name__ == "__main__":
     # Step 4: create evaluator in trainer
     evaluator = create_evaluator(**args)
     # Step 5: create trainer
-    if trainer_type == 'off_serial_trainer' or trainer_type == 'off_async_trainer':
-        trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
-    elif trainer_type == 'on_serial_trainer' or trainer_type == 'on_sync_trainer':
-        trainer = create_trainer(alg, sampler, None, evaluator, **args)
+    trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
 
     # Start training ... ...
     trainer.train()

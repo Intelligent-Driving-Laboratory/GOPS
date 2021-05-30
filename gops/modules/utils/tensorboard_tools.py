@@ -151,7 +151,6 @@ def save_tb_to_csv(path):
     Non
     """
 
-
     data_dict = read_tensorboard(path)
     for data_name in data_dict.keys():
         data_name_format = data_name.replace('\\', '/').replace('/', '_')
@@ -162,13 +161,13 @@ def save_tb_to_csv(path):
                  value=data_dict[data_name]['y'])
 
 
-
 tb_tags = {'loss_actor': 'Loss/loss_actor',
            'loss_critic': 'Loss/loss_critic',
-           'time': 'Train/time',
+           'alg_time': 'Time/alg_time',
+           'sampler_time': 'Time/sampler_time',
            'total_average_return': 'Evaluation/total_average_return',
-           "critic_avg_value": 'Train/critic_average_value',}
-
+           "critic_avg_value": 'Train/critic_average_value',
+           }
 
 if __name__ == '__main__':
     kill_port()
