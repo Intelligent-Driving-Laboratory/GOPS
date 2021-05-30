@@ -71,20 +71,18 @@ class DDPG():
         self.networks = ApproxContainer(**kwargs)
         self.gamma = kwargs['gamma']
         self.polyak = 1 - kwargs['tau']
-        self.policy_optimizer = Adam(self.networks.policy.parameters(), lr=kwargs['policy_learning_rate'])  #
-        self.q_optimizer = Adam(self.networks.q.parameters(), lr=kwargs['value_learning_rate'])
 
     def compute_gradient(self, data):
         tb_info = dict()
         start_time = time.time()
-        self.q_optimizer.zero_grad()
+        self.networks.q_optimizer.zero_grad()
         loss_q, q = self.compute_loss_q(data)
         loss_q.backward()
 
         for p in self.networks.q.parameters():
             p.requires_grad = False
 
-        self.policy_optimizer.zero_grad()
+        self.networks.policy_optimizer.zero_grad()
         loss_policy = self.compute_loss_policy(data)
         loss_policy.backward()
 

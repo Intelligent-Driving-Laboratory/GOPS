@@ -43,6 +43,19 @@ class OffAsyncTrainer():
         self.replay_batch_size = kwargs['replay_batch_size']
         self.max_iteration = kwargs['max_iteration']
         self.ini_network_dir = kwargs['ini_network_dir']
+        self.save_folder = kwargs['save_folder']
+        self.log_save_interval = kwargs['log_save_interval']
+        self.apprfunc_save_interval = kwargs['apprfunc_save_interval']
+        self.iteration = 0
+
+        self.save_folder = kwargs['save_folder']
+        self.log_save_interval = kwargs['log_save_interval']
+        self.apprfunc_save_interval = kwargs['apprfunc_save_interval']
+        self.eval_interval = kwargs['eval_interval']
+        self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
+        self.writer.add_scalar(tb_tags['time'], 0, 0)
+
+        self.writer.flush()
 
         # create center network
         alg_name = kwargs['algorithm']
@@ -58,8 +71,8 @@ class OffAsyncTrainer():
             self.networks.load_state_dict(torch.load(self.ini_network_dir))
 
         # start the update thread
-        self.update_thread = UpdateThread(self.networks, self.evaluator, **kwargs)
-        self.update_thread.start()
+        # self.update_thread = UpdateThread(self.networks, self.evaluator, **kwargs)
+        # self.update_thread.start()
 
         # create sample tasks and pre sampling
         self.sample_tasks = TaskPool()
@@ -110,23 +123,42 @@ class OffAsyncTrainer():
             self.sample_tasks.add(sampler, sampler.sample.remote())
 
         # replay
-        for buffer, objID in self.replay_tasks.completed():
-            data = ray.get(objID)
-            if not self.alg_queue.full():
-                self.alg_queue.put(data)  # 储存从buffer里面sample数据的队列
-            self.replay_tasks.add(buffer, buffer.sample_batch.remote(self.replay_batch_size))
+        # for buffer, objID in self.replay_tasks.completed():
+        #     data = ray.get(objID)
+        #     if not self.alg_queue.full():
+        #         self.alg_queue.put(data)  # 储存从buffer里面sample数据的队列
+        #     self.replay_tasks.add(buffer, buffer.sample_batch.remote(self.replay_batch_size))
 
         # learning
         for alg, objID in self.learn_tasks.completed():
             grads, alg_tb_dict = ray.get(objID)
-            if not self.update_thread.inqueue.full():
-                self.update_thread.inqueue.put((grads, alg_tb_dict))  # 把梯度放到线程的queue里面来更新中心网络的参数
-            data = self.alg_queue.get(block=False)  # 拿到队列里面拿到从buffer采样出来的数据
+            # if not self.update_thread.inqueue.full():
+            #     self.update_thread.inqueue.put((grads, alg_tb_dict))  # 把梯度放到线程的queue里面来更新中心网络的参数
+            # data = self.alg_queue.get(block=True)  # 拿到队列里面拿到从buffer采样出来的数据
+            data = random.choice(self.buffers).sample_batch.remote()
             weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
             alg.load_state_dict.remote(weights)  # 更新learner参数
             self.learn_tasks.add(alg, alg.compute_gradient.remote(data))  # 将完成了的learner重新算梯度
+            self.networks.update(grads, self.iteration)
+            self.iteration += 1
+            # log
+            if self.iteration % self.log_save_interval == 0:
+                print('Iter = ', self.iteration)
+                add_scalars(alg_tb_dict, self.writer, step=self.iteration)
 
-        self.iteration = self.update_thread.iteration
+            # evaluate
+            if self.iteration % self.eval_interval == 0:
+                self.evaluator.load_state_dict.remote(self.networks.state_dict())
+                self.writer.add_scalar(tb_tags['total_average_return'],
+                                       ray.get(self.evaluator.run_evaluation.remote(self.iteration)),
+                                       self.iteration)
+
+            # save
+            if self.iteration % self.apprfunc_save_interval == 0:
+                torch.save(self.networks.state_dict(),
+                           self.save_folder + '/apprfunc/apprfunc_{}.pkl'.format(self.iteration))
+
+        # self.iteration = self.update_thread.iteration
 
     def train(self):
         while self.iteration < self.max_iteration:
@@ -138,7 +170,7 @@ class UpdateThread(threading.Thread):
         threading.Thread.__init__(self)
         self.networks = networks
         self.evaluator = evaluator
-        self.inqueue = queue.Queue(maxsize=20)
+        self.inqueue = queue.Queue(maxsize=1)
         self.stopped = False
         self.save_folder = kwargs['save_folder']
         self.log_save_interval = kwargs['log_save_interval']
@@ -159,7 +191,7 @@ class UpdateThread(threading.Thread):
             self.step()
 
     def step(self):
-        grads, alg_tb_dict = self.inqueue.get(timeout=30)
+        grads, alg_tb_dict = self.inqueue.get(block=True, timeout=30)
         self.networks.update(grads, self.iteration)
 
         # log
