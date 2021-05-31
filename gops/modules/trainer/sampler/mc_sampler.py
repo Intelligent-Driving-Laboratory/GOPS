@@ -32,6 +32,7 @@ class McSampler():
         self.has_render = hasattr(self.env, 'render')
         self.policy_func_name = kwargs['policy_func_name']
         self.action_type = kwargs['action_type']
+        self.total_sample_number = 0
 
         if self.action_type == 'continu':
             self.noise_processor = GaussNoise(**self.noise_params)
@@ -47,6 +48,7 @@ class McSampler():
         self.networks.load_state_dict(state_dict)
 
     def sample(self):
+        self.total_sample_number += self.sample_batch_size
         tb_info = dict()
         start_time = time.time()
         batch_data = []
@@ -77,3 +79,6 @@ class McSampler():
         tb_info[tb_tags["sampler_time"]] = (end_time - start_time) * 1000
 
         return batch_data, tb_info
+
+    def get_total_sample_number(self):
+        return self.total_sample_number
