@@ -161,12 +161,15 @@ def save_tb_to_csv(path):
                  value=data_dict[data_name]['y'])
 
 
-tb_tags = {'loss_actor': 'Loss/loss_actor',
+tb_tags = {'TAR of RL iteration': 'Evaluation/1. TAR-RL iteration',
+           'TAR of total time': 'Evaluation/2. TAR-Total time [s]',
+           'TAR of collected samples': 'Evaluation/3. TAR-Collected samples',
+           'TAR of replay samples': 'Evaluation/4. TAR-Replay samples',
+           'loss_actor': 'Loss/loss_actor',
            'loss_critic': 'Loss/loss_critic',
            'alg_time': 'Time/alg_time',
            'sampler_time': 'Time/sampler_time',
-           'total_average_return': 'Evaluation/total_average_return',
-           "critic_avg_value": 'Train/critic_average_value',
+           'critic_avg_value': 'Train/critic_average_value',
            }
 
 if __name__ == '__main__':
