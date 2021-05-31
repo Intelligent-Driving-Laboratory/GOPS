@@ -39,7 +39,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_high_limit', type=list, default=None)
     parser.add_argument('--action_low_limit', type=list, default=None)
     parser.add_argument('--action_type', type=str, default='continu', help='Options: continu/discret')
-    parser.add_argument('--is_render', type=bool, default=True, help='Draw environment animation')
+    parser.add_argument('--is_render', type=bool, default=False, help='Draw environment animation')
 
     ################################################
     # 2.1 Parameters of value approximate function
@@ -107,11 +107,11 @@ if __name__ == "__main__":
     # 4.3. Parameters for off_serial_trainer
     elif trainer_type == 'off_serial_trainer':
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
-        parser.add_argument('--buffer_warm_size', type=int, default=1000,
+        parser.add_argument('--buffer_warm_size', type=int, default=3000,
                             help='Size of collected samples before training')
         parser.add_argument('--buffer_max_size', type=int, default=100000,
                             help='Max size of buffer')
-        parser.add_argument('--replay_batch_size', type=int, default=1024,
+        parser.add_argument('--replay_batch_size', type=int, default=64,
                             help='Batch size of replay samples from buffer')
         parser.add_argument('--sampler_sync_interval', type=int, default=1,
                             help='Period of sync central policy of each sampler')
@@ -120,15 +120,15 @@ if __name__ == "__main__":
         import ray
         ray.init()
         parser.add_argument('--num_algs', type=int, default=1, help='number of algs')
-        parser.add_argument('--num_samplers', type=int, default=3, help='number of samplers')
-        parser.add_argument('--num_buffers', type=int, default=1, help='number of buffers')
+        parser.add_argument('--num_samplers', type=int, default=1, help='number of samplers')
+        parser.add_argument('--num_buffers', type=int, default=3, help='number of buffers')
         parser.add_argument('--alg_queue_max_size', type=int, default=1, help='queue size of alg')
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
         parser.add_argument('--buffer_warm_size', type=int, default=1000,
                             help='Size of collected samples before training')
         parser.add_argument('--buffer_max_size', type=int, default=100000,
                             help='Max size of buffer')
-        parser.add_argument('--replay_batch_size', type=int, default=1024,
+        parser.add_argument('--replay_batch_size', type=int, default=64,
                             help='Batch size of replay samples from buffer')
     else:
         raise ValueError
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     ################################################
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='mc_sampler')
-    parser.add_argument('--sample_batch_size', type=int, default=256,
+    parser.add_argument('--sample_batch_size', type=int, default=64,
                         help='Batch size of sampler for buffer store')
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
