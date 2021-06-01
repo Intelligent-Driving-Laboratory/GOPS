@@ -21,6 +21,7 @@ from modules.utils.tensorboard_tools import add_scalars
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 from modules.utils.tensorboard_tools import tb_tags
+import time
 
 
 class OnSerialTrainer():
@@ -56,6 +57,7 @@ class OnSerialTrainer():
         self.writer.add_scalar(tb_tags['sampler_time'], 0, 0)
 
         self.writer.flush()
+        self.start_time = time.time()
         # setattr(self.alg, "writer", self.evaluator.writer)
 
     def step(self):
@@ -79,8 +81,16 @@ class OnSerialTrainer():
         # evaluate
         if self.iteration % self.eval_interval == 0:
             self.evaluator.networks.load_state_dict(self.networks.state_dict())
-            self.writer.add_scalar(tb_tags['total_average_return'], self.evaluator.run_evaluation(self.iteration),
+            total_avg_return = self.evaluator.run_evaluation(self.iteration)
+            self.writer.add_scalar(tb_tags['TAR of RL iteration'],
+                                   total_avg_return,
                                    self.iteration)
+            self.writer.add_scalar(tb_tags['TAR of total time'],
+                                   total_avg_return,
+                                   int(time.time() - self.start_time))
+            self.writer.add_scalar(tb_tags['TAR of collected samples'],
+                                   total_avg_return,
+                                   self.sampler.get_total_sample_number())
 
         # save
         if self.iteration % self.apprfunc_save_interval == 0:
