@@ -109,6 +109,7 @@ class INFADP():
             for step in range(self.forward_step):
                 if step == 0:
                     a = self.networks.new_policy(o)
+                    reward = self.envmodel.forward_n_step(self.networks.new_policy(), o, self.forward_step)
                     o2, r, d = self.envmodel.forward(o, a)
                     backup = self.reward_scale * r
                 else:

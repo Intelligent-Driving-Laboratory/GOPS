@@ -98,24 +98,20 @@ class GymDemocontiModel:
         #  define your forward function here: the format is just like: state_next = f(state,action)
 
         ############################################################################################
-        reward = self.reward(state=state_next, action=action)
-        done = self.isdone(state_next)
-        state_next = (~done) * state_next + done * state
-        return state_next, reward, done
-
-    def reward(self, state: torch.Tensor, action: torch.Tensor):
-        """
-        you need to define your own reward function here
-        notice that all the variables contains the batch dim you need to remember this point
-        the shape of parameters and return must be the same as required otherwise will cause error
-        :param state:  datatype:torch.Tensor, shape:[batch_size, state_dim]
-        :param action:  datatype:torch.Tensor, shape:[batch_size, action_dim]
-        :return: reward:  datatype:torch.Tensor, shape:[batch_size, 1]
-        """
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
 
-        #############################################################################################
-        return reward
+        ############################################################################################
+
+        # define the ending condation here the format is just like done = l(next_state)
+
+        ############################################################################################
+        if self.iter >= self.max_iter:
+            isdone = torch.full(isdone.size(), True)
+            self.iter = 0
+        state_next = (~isdone) * state_next
+        return state_next, reward, done
+
+
 
     def isdone(self, next_state):
         """
@@ -130,9 +126,7 @@ class GymDemocontiModel:
         # define the ending condation here the format is just like done = l(next_state)
 
         ##############################################################################################
-        if self.iter >= self.max_iter:
-            done = torch.full(done.size(), True)
-            self.iter = 0
+
        return done
 
 if __name__ == "__main__":
