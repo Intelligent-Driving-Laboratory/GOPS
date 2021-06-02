@@ -21,6 +21,7 @@ from modules.utils.tensorboard_tools import add_scalars
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 from modules.utils.tensorboard_tools import tb_tags
+import time
 
 
 class OnSerialTrainer():
@@ -52,16 +53,18 @@ class OnSerialTrainer():
         self.apprfunc_save_interval = kwargs['apprfunc_save_interval']
         self.eval_interval = kwargs['eval_interval']
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
-        self.writer.add_scalar(tb_tags['time'], 0, 0)
+        self.writer.add_scalar(tb_tags['alg_time'], 0, 0)
+        self.writer.add_scalar(tb_tags['sampler_time'], 0, 0)
 
         self.writer.flush()
+        self.start_time = time.time()
         # setattr(self.alg, "writer", self.evaluator.writer)
 
     def step(self):
         # sampling
         self.sampler.networks.load_state_dict(self.networks.state_dict())
-
-        samples_with_replay_format = self.samples_conversion(self.sampler.sample())
+        samples, sampler_tb_dict = self.sampler.sample()
+        samples_with_replay_format = self.samples_conversion(samples)
 
         # learning
         self.alg.networks.load_state_dict(self.networks.state_dict())
@@ -74,12 +77,20 @@ class OnSerialTrainer():
         if self.iteration % self.log_save_interval == 0:
             print('Iter = ', self.iteration)
             add_scalars(alg_tb_dict, self.writer, step=self.iteration)
-
+            add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
         # evaluate
         if self.iteration % self.eval_interval == 0:
             self.evaluator.networks.load_state_dict(self.networks.state_dict())
-            self.writer.add_scalar(tb_tags['total_average_return'], self.evaluator.run_evaluation(self.iteration),
+            total_avg_return = self.evaluator.run_evaluation(self.iteration)
+            self.writer.add_scalar(tb_tags['TAR of RL iteration'],
+                                   total_avg_return,
                                    self.iteration)
+            self.writer.add_scalar(tb_tags['TAR of total time'],
+                                   total_avg_return,
+                                   int(time.time() - self.start_time))
+            self.writer.add_scalar(tb_tags['TAR of collected samples'],
+                                   total_avg_return,
+                                   self.sampler.get_total_sample_number())
 
         # save
         if self.iteration % self.apprfunc_save_interval == 0:
