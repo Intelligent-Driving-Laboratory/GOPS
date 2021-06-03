@@ -43,8 +43,8 @@ class GymCartpolecontiModel:
         # define common parameters here
         self.state_dim = 4
         self.action_dim = 1
-        self.lb_state = [self.min_x, self.min_theta, self.min_x_dot, self.min_theta_dot]
-        self.hb_state = [self.max_x, self.max_theta, self.max_x_dot, self.max_theta_dot]
+        self.lb_state = [self.min_x, self.min_x_dot, self.min_theta,  self.min_theta_dot]
+        self.hb_state = [self.max_x, self.max_x_dot, self.max_theta,  self.max_theta_dot]
         self.lb_action = [self.min_action]
         self.hb_action = [self.max_action]
 
