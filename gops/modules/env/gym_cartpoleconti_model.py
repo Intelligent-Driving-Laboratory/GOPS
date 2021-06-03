@@ -8,174 +8,137 @@
 #  Update Date: 2021-05-55, Yuhang Zhang: create environment
 
 import math
-import gym
+import warnings
 import numpy as np
-from gym import spaces
-from gym.utils import seeding
 import torch
 
 
 class GymCartpolecontiModel:
+
     def __init__(self):
+        """
+        you need to define parameters here
+        """
+        # define your custom parameters here
         self.gravity = 9.8
-        self.masscart = 1
+        self.masscart = 1.0
         self.masspole = 0.1
         self.total_mass = (self.masspole + self.masscart)
         self.length = 0.5  # actually half the pole's length
         self.polemass_length = (self.masspole * self.length)
-        self.force_mag = 30.0
-        self.tau = 0.02  # seconds between state updates
-        self.min_action = -1.0
-        self.max_action = 1.0
-        self.Q_mat = torch.from_numpy(np.diagflat([0.1,0.1,100,0.1])).to(dtype=torch.float32)
-        self.R_mat = torch.from_numpy(np.diagflat([0.0001])).to(dtype=torch.float32)
-        self.overpenalty = 500
-
-        # Angle at which to fail the episode
-        self.theta_threshold_radians = 12 * 2 * math.pi / 360  #12deg
+        self.force_mag = 10.0
+        self.theta_threshold_radians = 12 * 2 * math.pi / 360  # 12deg
         self.x_threshold = 2.4
-
-        # Angle limit set to 2 * theta_threshold_radians so failing observation
-        # is still within bounds
-
         self.max_x = self.x_threshold * 2
         self.min_x = -self.max_x
-
-        self.max_x_dot = torch.finfo(torch.float32).max
-        self.min_x_dot = -self.max_x_dot
-
+        self.max_x_dot = np.finfo(np.float32).max
+        self.min_x_dot = -np.finfo(np.float32).max
         self.max_theta = self.theta_threshold_radians * 2  # 24deg
         self.min_theta = -self.max_theta
+        self.max_theta_dot = np.finfo(np.float32).max
+        self.min_theta_dot = -np.finfo(np.float32).max
+        self.min_action = -1.0
+        self.max_action = 1.0
 
-        self.max_theta_dot = torch.finfo(torch.float32).max
-        self.min_theta_dot = -self.max_theta_dot
-        self.action_space = spaces.Box(
-            low=self.min_action,
-            high=self.max_action,
-            shape=(1,)
-        )
-        high = np.array([
-            self.x_threshold * 2,
-            np.finfo(np.float32).max,
-            self.theta_threshold_radians * 2,
-            np.finfo(np.float32).max])
-        self.observation_space = spaces.Box(-high, high)
+        # define common parameters here
+        self.state_dim = 4
+        self.action_dim = 1
+        self.lb_state = [self.min_x, self.min_x_dot, self.min_theta,  self.min_theta_dot]
+        self.hb_state = [self.max_x, self.max_x_dot, self.max_theta,  self.max_theta_dot]
+        self.lb_action = [self.min_action]
+        self.hb_action = [self.max_action]
 
-        self.viewer = None
-        self.state = None
+        # do not change the following section
+        self.lb_state = torch.tensor(self.lb_state, dtype=torch.float32)
+        self.hb_state = torch.tensor(self.hb_state, dtype=torch.float32)
+        self.lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
+        self.hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
+        self.dt = 0.02  # seconds between state updates
 
-        self.steps_beyond_done = None
+    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)):
+        """
+        rollout the model one step, notice this method will not change the value of self.state
+        you need to define your own state transition  function here
+        notice that all the variables contains the batch dim you need to remember this point
+        when constructing your function
+        :param action: datatype:torch.Tensor, shape:[batch_size, action_dim]
+               state:  datatype:torch.Tensor, shape:[batch_size, state_dim]
+        :return: next_state:  datatype:torch.Tensor, shape:[batch_size, state_dim]
+                              the state will not change anymore when the corresponding flag done is set to True
+                 reward:  datatype:torch.Tensor, shape:[batch_size, 1]
+                 isdone:   datatype:torch.Tensor, shape:[batch_size, 1]
+                         flag done will be set to true when the model reaches the max_iteration or the next state
+                         satisfies ending condition
+                 beyond_done:
+                            flag indicate the state is already done which means it will not be calculated by the model
 
-    def _physics(self, state, force):
+        """
+        warning_msg = "action out of action space!"
+        if not ((action <= self.hb_action).all() and (action >= self.lb_action).all()):
+            warnings.warn(warning_msg)
+            action = clip_by_tensor(action, self.lb_action, self.hb_action)
+
+        warning_msg = "state out of state space!"
+        if not ((state <= self.hb_state).all() and (state >= self.lb_state).all()):
+            warnings.warn(warning_msg)
+            state = clip_by_tensor(state, self.lb_state, self.hb_state)
+        ################################################################################################################
+        #  define your forward function here: the format is just like: state_next = f(state,action)
         x, x_dot, theta, theta_dot = state[:, 0], state[:, 1], state[:, 2], state[:, 3]
         costheta = torch.cos(theta)
         sintheta = torch.sin(theta)
-
+        force = self.force_mag * action
         temp = (torch.squeeze(force) + self.polemass_length * theta_dot * theta_dot * sintheta) / self.total_mass
         thetaacc = (self.gravity * sintheta - costheta * temp) / \
                    (self.length * (4.0 / 3.0 - self.masspole * costheta * costheta / self.total_mass))
-
         xacc = temp - self.polemass_length * thetaacc * costheta / self.total_mass
-        x = x + self.tau * x_dot
-        x_dot = x_dot + self.tau * xacc
-        theta = theta + self.tau * theta_dot
-        theta_dot = theta_dot + self.tau * thetaacc
-        #print(theta)
-        new_state = torch.stack([x, x_dot, theta, theta_dot]).transpose(1, 0)
-        return new_state
+        x = x + self.dt * x_dot
+        x_dot = x_dot + self.dt * xacc
+        theta = theta + self.dt * theta_dot
+        theta_dot = theta_dot + self.dt * thetaacc
+        state_next = torch.stack([x, x_dot, theta, theta_dot]).transpose(1, 0)
+        ################################################################################################################
+        # define the ending condation here the format is just like isdone = l(next_state)
+        isdone = (x < -self.x_threshold) + \
+                 (x > self.x_threshold) + \
+                 (theta < -self.theta_threshold_radians) + \
+                 (theta > self.theta_threshold_radians)
+        ############################################################################################
+        # define the reward function here the format is just like: reward = l(state,state_next,reward)
+        reward = 1 - isdone.float()
+        ############################################################################################
+        beyond_done = beyond_done.bool()
+        mask = isdone * beyond_done
+        mask = torch.unsqueeze(mask, -1)
+        state_next = ~mask * state_next + mask * state
+        reward = ~(isdone * beyond_done) * reward
+        return state_next, reward, isdone
+
+    def forward_n_step(self, func, n, state: torch.Tensor):
+        reward = torch.zeros(size=[state.size()[0], n])
+        isdone = state.numpy() <= self.hb_state | state.numpy() >= self.lb_state
+        if np.sum(isdone) > 0:
+            warning_msg = "state out of state space!"
+            warnings.warn(warning_msg)
+        isdone = torch.from_numpy(isdone)
+        for step in range(n):
+            action = func(state)
+            state_next, reward[:, step], isdone = self.forward(state, action, isdone)
+            state = state_next
 
 
+def clip_by_tensor(t, t_min, t_max):
+    """
+    clip_by_tensor
+    :param t: tensor
+    :param t_min: min
+    :param t_max: max
+    :return: cliped tensor
+    """
+    result = (t >= t_min) * t + (t < t_min) * t_min
+    result = (result <= t_max) * result + (result > t_max) * t_max
+    return result
 
-    def step(self, state, action):
-        """the state transformation function
-        Parameters
-        ----------
-        state :
-            shape:(batch, 4)
-        u : [action]
-            shape(batch, 1)
-
-        Returns
-        -------
-        newstate : shape:(batch, 4)
-        reward: shape : (batch, 1)
-        """
-        #action = torch.unsqueeze(action, 0)
-        force = self.force_mag * action
-        #force.requires_grad_()
-        new_state = self._physics(state, force)
-
-        '''derivative_fu = torch.autograd.grad(new_state,force)'''
-        x, x_dot, theta, theta_dot = new_state[:, 0], new_state[:, 1], new_state[:, 2], new_state[:, 3]
-
-        done = (x < -self.x_threshold) + \
-               (x > self.x_threshold) + \
-               (theta < -self.theta_threshold_radians) + \
-               (theta > self.theta_threshold_radians)
-        done = torch.unsqueeze(done, 1)
-        new_state = (~done)*new_state+done*state
-
-        ''' reward = torch.mul(torch.mm(state,self.Q_mat),state).sum(dim=1,keepdim=False) \
-                 + torch.mul(torch.mm(force,self.R_mat),force).sum(dim=1,keepdim=False)+\
-                 self.overpenalty*done.float()
-             reward = torch.unsqueeze(reward,1)
-        '''
-
-
-        reward = 1 - done.float()
-        return new_state, reward, done, {}
-
-    def __call__(self, state, action):
-        return self.step(state, action)
 
 if __name__ == "__main__":
-    f = GymCartpoleContiModel()
-    from modules.env.gym_cartpoleconti_data import GymCartpoleConti
-    import matplotlib.pyplot as plt
-    import numpy as np
-    env = GymCartpoleConti()
-    s = env.reset()
-    s=s.astype(np.float32)
-    s_real = []
-    s_fake = []
-    a = env.action_space.sample()
-    a = torch.from_numpy(a)
-    a.requires_grad_()
-    a.retain_grad()
-    tsp, _, done, _=f(torch.tensor(s).view([1, 4]), torch.unsqueeze(a,0))
-    tsp[0][1].backward(retain_graph= True)
-    print(a.grad)
-
-'''
-    for i in range(200):
-        #print(i)
-        a = env.action_space.sample()
-        sp, r, d, _ = env.step(a)
-        # print(s, a, sp)
-        sp = sp.astype(np.float32)
-        s_real.append(sp)
-        # print(tts.shape)
-        tsp, _, done, _ = f(torch.tensor(s).view([1, 4]), torch.tensor(a).view([1, 1]))
-       # print(tsp.shape)
-        s_fake.append(tsp.detach().numpy().astype(np.float32))
-        if done:
-            print(i)
-            print(s)
-            break
-        s = sp
-
-    # print(tsp)
-    s_real = np.array(s_real)
-    s_fake = np.hstack(s_fake)
-    s_fake = s_fake.reshape(-1,4)
-    plt.plot(s_real)
-    plt.show()
-    plt.plot(s_fake)
-    plt.show()
-    print("All states match, The model is right")
-    s = torch.zeros([10, 4])
-    a = torch.zeros([10, 1])
-    sp = f(s, a)
-    print(sp)
-    print("batch_support") 
-'''
+    pass
