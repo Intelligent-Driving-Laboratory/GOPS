@@ -75,7 +75,7 @@ class INFADP():
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
         self.gamma = kwargs['gamma']
-        self.forward_step = 5
+        self.forward_step = 1
         self.reward_scale = kwargs['reward_scale']
         self.polyak = 1 - kwargs['tau']
         self.policy_optimizer = Adam(self.networks.new_policy.parameters(), lr=kwargs['policy_learning_rate'])  #
@@ -97,7 +97,7 @@ class INFADP():
         end_time = time.time()
         tb_info[tb_tags["loss_critic"]] = loss_v.item()
         tb_info[tb_tags["critic_avg_value"]] = v.item()
-        tb_info[tb_tags["time"]] = (end_time - start_time) * 1000  # ms
+        tb_info[tb_tags["alg_time"]]= (end_time - start_time) * 1000  # ms
         tb_info[tb_tags["loss_actor"]] = loss_policy.item()
         return v_grad + policy_grad, tb_info
 
@@ -109,13 +109,12 @@ class INFADP():
             for step in range(self.forward_step):
                 if step == 0:
                     a = self.networks.new_policy(o)
-                    reward = self.envmodel.forward_n_step(self.networks.new_policy(), o, self.forward_step)
-                    o2, r, d = self.envmodel.forward(o, a)
+                    o2, r, d = self.envmodel.forward(o, a, d)
                     backup = self.reward_scale * r
                 else:
                     o = o2
                     a = self.networks.new_policy(o)
-                    o2, r, d = self.envmodel.forward(o, a)
+                    o2, r, d = self.envmodel.forward(o, a, d)
                     backup += self.reward_scale * self.gamma ** step * r
 
             backup += (~d) * self.gamma ** (self.forward_step) * self.networks.v_target(o2)
@@ -130,14 +129,14 @@ class INFADP():
         for step in range(self.forward_step):
             if step == 0:
                 a = self.networks.new_policy(o)
-                o2, r, d = self.envmodel.forward(o, a)
+                o2, r, d = self.envmodel.forward(o, a, d)
                 v_pi = self.reward_scale * r
             else:
                 o = o2
                 a = self.networks.new_policy(o)
-                o2, r, d = self.envmodel.forward(o, a)
+                o2, r, d = self.envmodel.forward(o, a, d)
                 v_pi += self.reward_scale * self.gamma ** step * r
-        v_pi += self.gamma ** (self.forward_step) * self.networks.v_target(o2)
+        v_pi += (~d) *self.gamma ** (self.forward_step) * self.networks.v_target(o2)
         for p in self.networks.v.parameters():
             p.requires_grad = True
         return -v_pi.mean()

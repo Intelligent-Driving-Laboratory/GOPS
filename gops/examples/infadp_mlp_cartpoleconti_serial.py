@@ -21,6 +21,7 @@ from modules.create_pkg.create_env import create_env
 from modules.create_pkg.create_evaluator import create_evaluator
 from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
+from modules.utils.init_args import init_args
 from modules.utils.utils import change_type
 from modules.utils.plot import plot_all
 from modules.utils.tensorboard_tools import start_tensorboard
@@ -40,7 +41,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_high_limit', type=list, default=None)
     parser.add_argument('--action_low_limit', type=list, default=None)
     parser.add_argument('--action_type', type=str, default='continu', help='Options: continu/discret')
-    parser.add_argument('--is_render', type=bool, default=True, help='Draw environment animation')
+    parser.add_argument('--is_render', type=bool, default=False, help='Draw environment animation')
 
     ################################################
     # 2.1 Parameters of value approximate function
@@ -99,8 +100,9 @@ if __name__ == "__main__":
                              'on_sync_trainer'
                              'off_serial_trainer'
                              'off_async_trainer')
-    parser.add_argument('--max_iteration', type=int, default=2000,
+    parser.add_argument('--max_iteration', type=int, default=5000,
                         help='Maximum iteration number')
+    parser.add_argument('--ini_network_dir', type=str, default=None)
     trainer_type = parser.parse_args().trainer
     # 4.1. Parameters for on_serial_trainer
     if trainer_type == 'on_serial_trainer':
@@ -151,21 +153,7 @@ if __name__ == "__main__":
     # Get parameter dictionary
     args = vars(parser.parse_args())
     env = create_env(**args)
-    args['obsv_dim'] = env.observation_space.shape[0]
-    args['action_dim'] = env.action_space.shape[0]
-    args['action_high_limit'] = env.action_space.high
-    args['action_low_limit'] = env.action_space.low
-
-    # create save arguments
-    if args['save_folder'] is None:
-        args['save_folder'] = os.path.join('../results/' + parser.parse_args().algorithm,
-                                           datetime.datetime.now().strftime("%m%d-%H%M%S"))
-    os.makedirs(args['save_folder'], exist_ok=True)
-    os.makedirs(args['save_folder'] + '/apprfunc', exist_ok=True)
-
-    with open(args['save_folder'] + '/config.json', 'w', encoding='utf-8') as f:
-        json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
-
+    args = init_args(env, **args)
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)

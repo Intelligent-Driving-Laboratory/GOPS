@@ -30,13 +30,13 @@ class GymDemocontiModel:
         self.hb_action = None
         self.lb_init_state = None
         self.hb_init_state = None
-        self.tau = None    # seconds between state updates
+        self.dt = None    # seconds between state updates
 
         # do not change the following section
         self.action_space = spaces.Box(self.lb_action, self.hb_action)
         self.observation_space = spaces.Box(self.lb_state, self.hb_state)
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor, by_done):
+    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done):
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
@@ -67,7 +67,7 @@ class GymDemocontiModel:
         # isdone = torch.full(state.size()[0], True)
 
         ############################################################################################
-        state_next = (~isdone*by_done) * state_next
+        state_next = (~isdone*beyond_done) * state_next
         return state_next, reward, isdone
 
     def forward_n_step(self,func, n, state: torch.Tensor):
