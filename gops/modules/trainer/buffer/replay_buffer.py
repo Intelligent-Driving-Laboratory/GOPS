@@ -6,9 +6,8 @@
 #  Description: Reply buffer
 
 
-import random
-import collections
 import numpy as np
+import sys
 import torch
 
 __all__ = ['ReplayBuffer']
@@ -26,18 +25,24 @@ class ReplayBuffer():
     """
 
     def __init__(self, **kwargs):
-        obs_dim = kwargs['obsv_dim']
-        act_dim = kwargs['action_dim']
-        size = kwargs['buffer_max_size']
-        self.obs_buf = np.zeros(combined_shape(size, obs_dim), dtype=np.float32)
-        self.obs2_buf = np.zeros(combined_shape(size, obs_dim), dtype=np.float32)
-        self.act_buf = np.zeros(combined_shape(size, act_dim), dtype=np.float32)
-        self.rew_buf = np.zeros(size, dtype=np.float32)
-        self.done_buf = np.zeros(size, dtype=np.float32)
-        self.ptr, self.size, self.max_size = 0, 0, size
+        self.obs_dim = kwargs['obsv_dim']
+        self.act_dim = kwargs['action_dim']
+        self.max_size = kwargs['buffer_max_size']
+        self.obs_buf = np.zeros(combined_shape(self.max_size, self.obs_dim), dtype=np.float32)
+        self.obs2_buf = np.zeros(combined_shape(self.max_size, self.obs_dim), dtype=np.float32)
+        self.act_buf = np.zeros(combined_shape(self.max_size, self.act_dim), dtype=np.float32)
+        self.rew_buf = np.zeros(self.max_size, dtype=np.float32)
+        self.done_buf = np.zeros(self.max_size, dtype=np.float32)
+        self.ptr, self.size, = 0, 0
 
     def __len__(self):
         return self.size
+
+    def __get_RAM__(self):
+        # return self.size * (self.obs_dim * 2 + self.act_dim + self.act + 2)
+        return (sys.getsizeof(self.obs_buf) + sys.getsizeof(self.obs2_buf) + sys.getsizeof(
+            self.act_buf) + sys.getsizeof(
+            self.rew_buf) + sys.getsizeof(self.done_buf)) * self.size / self.max_size
 
     def store(self, obs, act, rew, next_obs, done):
         self.obs_buf[self.ptr] = obs
