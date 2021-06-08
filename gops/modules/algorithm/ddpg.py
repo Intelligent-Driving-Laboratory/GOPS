@@ -71,20 +71,18 @@ class DDPG():
         self.networks = ApproxContainer(**kwargs)
         self.gamma = kwargs['gamma']
         self.polyak = 1 - kwargs['tau']
-        self.policy_optimizer = Adam(self.networks.policy.parameters(), lr=kwargs['policy_learning_rate'])  #
-        self.q_optimizer = Adam(self.networks.q.parameters(), lr=kwargs['value_learning_rate'])
 
     def compute_gradient(self, data):
         tb_info = dict()
         start_time = time.time()
-        self.q_optimizer.zero_grad()
+        self.networks.q_optimizer.zero_grad()
         loss_q, q = self.compute_loss_q(data)
         loss_q.backward()
 
         for p in self.networks.q.parameters():
             p.requires_grad = False
 
-        self.policy_optimizer.zero_grad()
+        self.networks.policy_optimizer.zero_grad()
         loss_policy = self.compute_loss_policy(data)
         loss_policy.backward()
 
@@ -96,7 +94,7 @@ class DDPG():
         end_time = time.time()
         tb_info[tb_tags["loss_critic"]] = loss_q.item()
         tb_info[tb_tags["critic_avg_value"]] = q.item()
-        tb_info[tb_tags["time"]] = (end_time - start_time) * 1000  # ms
+        tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
         tb_info[tb_tags["loss_actor"]] = loss_policy.item()
         return q_grad + policy_grad, tb_info
 
@@ -115,6 +113,9 @@ class DDPG():
         o = data['obs']
         q_policy = self.networks.q(o, self.networks.policy(o))
         return -q_policy.mean()
+
+    def load_state_dict(self, state_dict):
+        self.networks.load_state_dict(state_dict)
 
 
 if __name__ == '__main__':

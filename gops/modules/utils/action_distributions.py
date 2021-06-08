@@ -4,14 +4,18 @@
 """
 import torch
 
+
 class GaussDistribution():
     def __init__(self, logits):
         self.logits = logits
-        self.mean, self.std = torch.split(logits, dim=1)
+        self.mean, self.std = torch.split(logits, split_size_or_sections=2, dim=1)
         self.gauss_distribution = torch.distributions.Normal(self.mean, self.std)
 
     def sample(self):
         return self.gauss_distribution.sample()
+
+    def rsample(self):
+        return self.gauss_distribution.rsample()
 
     def log_prob(self, action):
         return self.gauss_distribution.log_prob(action)

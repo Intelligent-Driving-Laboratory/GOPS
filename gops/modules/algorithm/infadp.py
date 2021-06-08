@@ -17,7 +17,8 @@ __all__ = ['INFADP']
 from copy import deepcopy
 import torch
 import torch.nn as nn
-from torch.optim import Adam
+from torch.optim import Adam, SGD
+import time
 
 from modules.create_pkg.create_apprfunc import create_apprfunc
 from modules.create_pkg.create_env_model import create_env_model
@@ -28,12 +29,14 @@ class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         self.polyak = 1 - kwargs['tau']
-        v_args = get_apprfunc_dict('value', **kwargs)
+        value_func_type = kwargs['value_func_type']
+        policy_func_type = kwargs['policy_func_type']
+        v_args = get_apprfunc_dict('value',value_func_type, **kwargs)
         self.v = create_apprfunc(**v_args)
+        policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
+        self.new_policy = create_apprfunc(**policy_args)
         self.pev_step = kwargs['pev_step']
         self.pim_step = kwargs['pim_step']
-        policy_args = get_apprfunc_dict('policy', **kwargs)
-        self.new_policy = create_apprfunc(**policy_args)
 
         self.v_target = deepcopy(self.v)
         self.policy = deepcopy(self.new_policy)
@@ -72,32 +75,31 @@ class INFADP():
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
         self.gamma = kwargs['gamma']
-        self.forward_step = 5
+        self.forward_step = 1
         self.reward_scale = kwargs['reward_scale']
         self.polyak = 1 - kwargs['tau']
         self.policy_optimizer = Adam(self.networks.new_policy.parameters(), lr=kwargs['policy_learning_rate'])  #
         self.v_optimizer = Adam(self.networks.v.parameters(), lr=kwargs['value_learning_rate'])
-        # torch.autograd.set_detect_anomaly(True)
-        self.tb_info = dict()
 
     def compute_gradient(self, data):
-        self.tb_info = dict()
+        tb_info = dict()
+        start_time = time.time()
         self.v_optimizer.zero_grad()
-        loss_v = self.compute_loss_v(deepcopy(data))
+        loss_v, v = self.compute_loss_v(deepcopy(data))
         loss_v.backward()
-
-        # for p in self.networks.q.parameters():
-        #     p.requires_grad = False
 
         self.policy_optimizer.zero_grad()
         loss_policy = self.compute_loss_policy(deepcopy(data))
         loss_policy.backward()
 
-        # for p in self.networks.q.parameters():
-        #     p.requires_grad = True
         v_grad = [p._grad.numpy() for p in self.networks.v.parameters()]
         policy_grad = [p._grad.numpy() for p in self.networks.new_policy.parameters()]
-        return v_grad + policy_grad
+        end_time = time.time()
+        tb_info[tb_tags["loss_critic"]] = loss_v.item()
+        tb_info[tb_tags["critic_avg_value"]] = v.item()
+        tb_info[tb_tags["alg_time"]]= (end_time - start_time) * 1000  # ms
+        tb_info[tb_tags["loss_actor"]] = loss_policy.item()
+        return v_grad + policy_grad, tb_info
 
     def compute_loss_v(self, data):
         o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']  # TODO  解耦字典
@@ -107,23 +109,17 @@ class INFADP():
             for step in range(self.forward_step):
                 if step == 0:
                     a = self.networks.new_policy(o)
-                    o2, r, d, _ = self.envmodel.step(o, a)
+                    o2, r, d = self.envmodel.forward(o, a, d)
                     backup = self.reward_scale * r
                 else:
                     o = o2
                     a = self.networks.new_policy(o)
-                    o2, r, d, _ = self.envmodel.step(o, a)
+                    o2, r, d = self.envmodel.forward(o, a, d)
                     backup += self.reward_scale * self.gamma ** step * r
 
             backup += (~d) * self.gamma ** (self.forward_step) * self.networks.v_target(o2)
         loss_v = ((v - backup) ** 2).mean()
-
-        self.tb_info[tb_tags["loss_critic"]] = loss_v.item()
-        # self.tb_info["Performance/mean_reward"] = r.mean().item()
-        # self.writer.add_scalar("Loss/loss_value", loss_v.item(), self.iteration)
-        # self.writer.add_scalar("Performance/mean_reward", r.mean().item(), self.iteration)
-        # print('Loss = ',loss_v.item())
-        return loss_v
+        return loss_v, torch.mean(v)
 
     def compute_loss_policy(self, data):
         o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']  # TODO  解耦字典
@@ -133,20 +129,16 @@ class INFADP():
         for step in range(self.forward_step):
             if step == 0:
                 a = self.networks.new_policy(o)
-                o2, r, d, _ = self.envmodel.step(o, a)
+                o2, r, d = self.envmodel.forward(o, a, d)
                 v_pi = self.reward_scale * r
             else:
                 o = o2
                 a = self.networks.new_policy(o)
-                o2, r, d, _ = self.envmodel.step(o, a)
+                o2, r, d = self.envmodel.forward(o, a, d)
                 v_pi += self.reward_scale * self.gamma ** step * r
-        v_pi += self.gamma ** (self.forward_step) * self.networks.v_target(o2)
+        v_pi += (~d) *self.gamma ** (self.forward_step) * self.networks.v_target(o2)
         for p in self.networks.v.parameters():
             p.requires_grad = True
-
-        self.tb_info[tb_tags["loss_actor"]] = -v_pi.mean().item()
-        # self.writer.add_scalar("Loss/loss_policy", -v_pi.mean().item(), self.iteration)
-        # print('V =',v_pi.mean().item())
         return -v_pi.mean()
 
 if __name__ == '__main__':

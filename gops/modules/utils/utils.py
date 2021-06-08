@@ -9,6 +9,8 @@ import torch.nn as nn
 import numpy as np
 
 from modules.utils.tensorboard_tools import tb_tags
+import random
+
 
 def get_activation_func(key: str):
     assert isinstance(key, str)
@@ -30,7 +32,7 @@ def get_activation_func(key: str):
     return activation_func
 
 
-def get_apprfunc_dict(key: str,type:str, **kwargs):
+def get_apprfunc_dict(key: str, type: str, **kwargs):
     if type == 'MLP':
         var = {'apprfunc': kwargs[key + '_func_type'],
                'name': kwargs[key + '_func_name'],
@@ -45,7 +47,7 @@ def get_apprfunc_dict(key: str,type:str, **kwargs):
     elif type == 'GAUSS':
         var = {'apprfunc': kwargs[key + '_func_type'],
                'name': kwargs[key + '_func_name'],
-               'num_kernel':kwargs[key + '_num_kernel'],
+               'num_kernel': kwargs[key + '_num_kernel'],
                'obs_dim': kwargs['obsv_dim'],
                'act_dim': kwargs['action_dim'],
                'action_high_limit': kwargs['action_high_limit'],
@@ -78,16 +80,22 @@ def change_type(obj):
         return obj
 
 
-class Timer(object):
-    def __init__(self, writer, tag=tb_tags['time'], step=None):
-        self.writer = writer
-        self.tag = tag
-        self.step = step
+def random_choice_with_index(obj_list):
+    obj_len = len(obj_list)
+    random_index = random.choice(list(range(obj_len)))
+    random_value = obj_list[random_index]
+    return random_value, random_index
 
-    def __enter__(self):
-        self.start = time.time()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        # print(time.time() - self.start)
-        self.writer.add_scalar(self.tag, time.time() - self.start, self.step)
-
+# class Timer(object):
+#     def __init__(self, writer, tag=tb_tags['time'], step=None):
+#         self.writer = writer
+#         self.tag = tag
+#         self.step = step
+#
+#     def __enter__(self):
+#         self.start = time.time()
+#
+#     def __exit__(self, exc_type, exc_val, exc_tb):
+#         # print(time.time() - self.start)
+#         self.writer.add_scalar(self.tag, time.time() - self.start, self.step)

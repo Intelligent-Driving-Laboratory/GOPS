@@ -14,6 +14,8 @@ import torch
 from modules.create_pkg.create_env import create_env
 from modules.utils.action_distributions import GaussDistribution, DiracDistribution, ValueDiracDistribution
 from modules.utils.noise import GaussNoise, EpsilonGreedy
+import time
+from modules.utils.tensorboard_tools import tb_tags
 
 
 class McSampler():
@@ -30,8 +32,7 @@ class McSampler():
         self.has_render = hasattr(self.env, 'render')
         self.policy_func_name = kwargs['policy_func_name']
         self.action_type = kwargs['action_type']
-
-
+        self.total_sample_number = 0
 
         if self.action_type == 'continu':
             self.noise_processor = GaussNoise(**self.noise_params)
@@ -43,9 +44,13 @@ class McSampler():
             self.noise_processor = EpsilonGreedy(**self.noise_params)
             self.action_distirbution_cls = ValueDiracDistribution
 
-
+    def load_state_dict(self, state_dict):
+        self.networks.load_state_dict(state_dict)
 
     def sample(self):
+        self.total_sample_number += self.sample_batch_size
+        tb_info = dict()
+        start_time = time.time()
         batch_data = []
         for _ in range(self.sample_batch_size):
             batch_obs = torch.from_numpy(np.expand_dims(self.obs, axis=0).astype('float32'))
@@ -56,10 +61,10 @@ class McSampler():
 
             action_distribution = self.action_distirbution_cls(logits)
             action = action_distribution.sample().detach().numpy()[0]
-            if hasattr(action_distribution, 'log_prob'):
-                logp = action_distribution.log_prob(action).detach().numpy()[0]
-            else:
-                logp = 0.
+            # if hasattr(action_distribution, 'log_prob'):
+            #     logp = action_distribution.log_prob(action).detach().numpy()[0]
+            # else:
+            #     logp = 0.
 
             if self.noise_params is not None:
                 action = self.noise_processor.sample(action)
@@ -70,4 +75,10 @@ class McSampler():
             self.obs = next_obs
             if self.done:
                 self.obs = self.env.reset()
-        return batch_data
+        end_time = time.time()
+        tb_info[tb_tags["sampler_time"]] = (end_time - start_time) * 1000
+
+        return batch_data, tb_info
+
+    def get_total_sample_number(self):
+        return self.total_sample_number

@@ -9,10 +9,9 @@
 #  Update Date: 2021-05-21, Shengbo LI: Format Revise
 
 
-__all__ = ['OffSerialTrainer']
+__all__ = ['OnSerialTrainer']
 
 import logging
-import time
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -22,14 +21,14 @@ from modules.utils.tensorboard_tools import add_scalars
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 from modules.utils.tensorboard_tools import tb_tags
+import time
 
 
-class OffSerialTrainer():
-    def __init__(self, alg, sampler, buffer, evaluator, **kwargs):
+class OnSerialTrainer():
+    def __init__(self, alg, sampler, evaluator, **kwargs):
         self.alg = alg
 
         self.sampler = sampler
-        self.buffer = buffer
         self.evaluator = evaluator
 
         # Import algorithm, appr func, sampler & buffer
@@ -40,45 +39,36 @@ class OffSerialTrainer():
         self.networks = ApproxContainer(**kwargs)
         self.iteration = 0
         self.max_iteration = kwargs.get('max_iteration')
-        self.warm_size = kwargs['buffer_warm_size']
-        self.replay_batch_size = kwargs['replay_batch_size']
+        self.batch_size = kwargs['sample_batch_size']
         self.ini_network_dir = kwargs['ini_network_dir']
+        self.obsv_dim = kwargs['obsv_dim']
+        self.act_dim = kwargs['action_dim']
 
         # initialize the networks
         if self.ini_network_dir is not None:
             self.networks.load_state_dict(torch.load(self.ini_network_dir))
 
-        # Collect enough warm samples
-        while self.buffer.size < self.warm_size:
-            samples, sampler_tb_dict = self.sampler.sample()
-            self.buffer.add_batch(samples)
-
         self.save_folder = kwargs['save_folder']
         self.log_save_interval = kwargs['log_save_interval']
-        self.sampler_sync_interval = kwargs['sampler_sync_interval']
         self.apprfunc_save_interval = kwargs['apprfunc_save_interval']
         self.eval_interval = kwargs['eval_interval']
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
         self.writer.add_scalar(tb_tags['alg_time'], 0, 0)
         self.writer.add_scalar(tb_tags['sampler_time'], 0, 0)
-        self.start_time = time.time()
+
         self.writer.flush()
+        self.start_time = time.time()
         # setattr(self.alg, "writer", self.evaluator.writer)
 
     def step(self):
         # sampling
-        if self.iteration % self.sampler_sync_interval == 0:
-            self.sampler.networks.load_state_dict(self.networks.state_dict())
-
-        sampler_samples, sampler_tb_dict = self.sampler.sample()
-        self.buffer.add_batch(sampler_samples)
-
-        # replay
-        replay_samples = self.buffer.sample_batch(self.replay_batch_size)
+        self.sampler.networks.load_state_dict(self.networks.state_dict())
+        samples, sampler_tb_dict = self.sampler.sample()
+        samples_with_replay_format = self.samples_conversion(samples)
 
         # learning
         self.alg.networks.load_state_dict(self.networks.state_dict())
-        grads, alg_tb_dict = self.alg.compute_gradient(replay_samples)
+        grads, alg_tb_dict = self.alg.compute_gradient(samples_with_replay_format)
 
         # apply grad
         self.networks.update(grads, self.iteration)
@@ -95,9 +85,6 @@ class OffSerialTrainer():
             self.writer.add_scalar(tb_tags['TAR of RL iteration'],
                                    total_avg_return,
                                    self.iteration)
-            self.writer.add_scalar(tb_tags['TAR of replay samples'],
-                                   total_avg_return,
-                                   self.iteration * self.replay_batch_size)
             self.writer.add_scalar(tb_tags['TAR of total time'],
                                    total_avg_return,
                                    int(time.time() - self.start_time))
@@ -116,3 +103,21 @@ class OffSerialTrainer():
             self.iteration += 1
 
         self.writer.flush()
+
+    def samples_conversion(self, samples):
+        obs_tensor = torch.zeros(self.batch_size, self.obsv_dim)
+        act_tensor = torch.zeros(self.batch_size, self.act_dim)
+        obs2_tensor = torch.zeros(self.batch_size, self.obsv_dim)
+        rew_tensor = torch.zeros(self.batch_size, )
+        done_tensor = torch.zeros(self.batch_size, )
+        idx = 0
+        for sample in samples:
+            obs, act, rew, next_obs, done = sample
+            obs_tensor[idx] = torch.from_numpy(obs)
+            act_tensor[idx] = torch.from_numpy(act)
+            rew_tensor[idx] = torch.tensor(rew)
+            obs2_tensor[idx] = torch.from_numpy(next_obs)
+            done_tensor[idx] = torch.tensor(done)
+            idx += 1
+        return dict(obs=obs_tensor, act=act_tensor, obs2=obs2_tensor, rew=rew_tensor,
+                    done=done_tensor)
