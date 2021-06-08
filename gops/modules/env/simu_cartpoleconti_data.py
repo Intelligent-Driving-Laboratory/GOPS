@@ -5,7 +5,7 @@ import numpy as np
 
 class SimuCartpoleconti(gym.Env):
 
-    def __init__(self, kwargs):
+    def __init__(self, **kwargs):
         self._physics = cartpole.model_wrapper()
         self.is_adversary = kwargs['is_adversary']
 

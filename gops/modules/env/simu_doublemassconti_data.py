@@ -5,7 +5,7 @@ import numpy as np
 
 class SimuDoublemassconti(gym.Env):
 
-    def __init__(self, kwargs):
+    def __init__(self, **kwargs):
         self._physics = doublemass.model_wrapper()
         self.is_adversary = kwargs['is_adversary']
 
