@@ -34,11 +34,11 @@ def create_env(**kwargs):
     env_name_camel = formatter(env_name)
 
     if hasattr(file, "env_creator"):
-        y = getattr(file, "env_creator")
-        env = y()
+        env_class = getattr(file, "env_creator")
+        env = env_class(kwargs)
     elif hasattr(file, env_name_camel):
-        y = getattr(file, env_name_camel)
-        env = y()
+        env_class = getattr(file, env_name_camel)
+        env = env_class(kwargs)
     else:
         print("Env name: ",env_name_camel)
         raise NotImplementedError("This environment is not properly defined")

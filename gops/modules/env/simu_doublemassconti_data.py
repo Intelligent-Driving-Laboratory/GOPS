@@ -5,17 +5,29 @@ import numpy as np
 
 class SimuDoublemassconti(gym.Env):
 
-    def __init__(self):
+    def __init__(self, kwargs):
         self._physics = doublemass.model_wrapper()
-        self.action_space = spaces.Box(low=np.array(self._physics.get_param()['a_min']).reshape(-1), high=np.array(self._physics.get_param()['a_max']).reshape(-1))
-        self.observation_space = spaces.Box(np.array(self._physics.get_param()['x_min'].reshape(-1)), np.array(self._physics.get_param()['x_max']).reshape(-1))
+        self.is_adversary = kwargs['is_adversary']
+
+        self.action_space = spaces.Box(np.array(self._physics.get_param()['a_min']).reshape(-1), np.array(self._physics.get_param()['a_max']).reshape(-1))
+        self.observation_space = spaces.Box(np.array(self._physics.get_param()['x_min']).reshape(-1), np.array(self._physics.get_param()['x_max']).reshape(-1))
+        self.adv_action_space = spaces.Box(np.array(self._physics.get_param()['adva_min']).reshape(-1), np.array(self._physics.get_param()['adva_max']).reshape(-1))
+        self.adv_action_dim = self.adv_action_space.shape[0]
         self.reset()
 
-    def step(self, action):
-        state, is_done, reward = self._step_physics({'Action': action})
+    def step(self, action, adv_action=None):
+        if self.is_adversary==False:
+            if adv_action is not None:
+                raise ValueError('Adversary training setting is wrong')
+            else:
+                adv_action = np.array([0.]) * self.adv_action_dim
+        else:
+            if adv_action is None:
+                raise ValueError('Adversary training setting is wrong')
+        state, isdone, reward = self._step_physics({'Action': action, 'AdverAction': adv_action})
         self.cstep += 1
-        is_done += self.cstep>2000
-        return state, reward, is_done, {}
+        isdone += self.cstep>1000
+        return state, reward, isdone, {}
 
     def reset(self):
         self._physics.terminate()
