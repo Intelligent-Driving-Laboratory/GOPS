@@ -17,7 +17,7 @@ __all__ = ['INFADP']
 from copy import deepcopy
 import torch
 import torch.nn as nn
-from torch.optim import Adam, SGD
+from torch.optim import Adam
 import time
 
 from modules.create_pkg.create_apprfunc import create_apprfunc
@@ -25,13 +25,14 @@ from modules.create_pkg.create_env_model import create_env_model
 from modules.utils.utils import get_apprfunc_dict
 from modules.utils.tensorboard_tools import tb_tags
 
+
 class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         self.polyak = 1 - kwargs['tau']
         value_func_type = kwargs['value_func_type']
         policy_func_type = kwargs['policy_func_type']
-        v_args = get_apprfunc_dict('value',value_func_type, **kwargs)
+        v_args = get_apprfunc_dict('value', value_func_type, **kwargs)
         self.v = create_apprfunc(**v_args)
         policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
         self.new_policy = create_apprfunc(**policy_args)
@@ -70,34 +71,31 @@ class ApproxContainer(nn.Module):
                 p_targ.data.add_((1 - self.polyak) * p.data)
 
 
-class INFADP():
+class INFADP:
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
         self.gamma = kwargs['gamma']
-        self.forward_step = 1
+        self.forward_step = 10
         self.reward_scale = kwargs['reward_scale']
-        self.polyak = 1 - kwargs['tau']
-        self.policy_optimizer = Adam(self.networks.new_policy.parameters(), lr=kwargs['policy_learning_rate'])  #
-        self.v_optimizer = Adam(self.networks.v.parameters(), lr=kwargs['value_learning_rate'])
 
     def compute_gradient(self, data):
         tb_info = dict()
         start_time = time.time()
-        self.v_optimizer.zero_grad()
+        self.networks.v_optimizer.zero_grad()
         loss_v, v = self.compute_loss_v(deepcopy(data))
         loss_v.backward()
 
-        self.policy_optimizer.zero_grad()
+        self.networks.policy_optimizer.zero_grad()
         loss_policy = self.compute_loss_policy(deepcopy(data))
         loss_policy.backward()
 
-        v_grad = [p._grad.numpy() for p in self.networks.v.parameters()]
-        policy_grad = [p._grad.numpy() for p in self.networks.new_policy.parameters()]
+        v_grad = [p.grad.numpy() for p in self.networks.v.parameters()]
+        policy_grad = [p.grad.numpy() for p in self.networks.new_policy.parameters()]
         end_time = time.time()
         tb_info[tb_tags["loss_critic"]] = loss_v.item()
         tb_info[tb_tags["critic_avg_value"]] = v.item()
-        tb_info[tb_tags["alg_time"]]= (end_time - start_time) * 1000  # ms
+        tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
         tb_info[tb_tags["loss_actor"]] = loss_policy.item()
         return v_grad + policy_grad, tb_info
 
@@ -117,7 +115,7 @@ class INFADP():
                     o2, r, d = self.envmodel.forward(o, a, d)
                     backup += self.reward_scale * self.gamma ** step * r
 
-            backup += (~d) * self.gamma ** (self.forward_step) * self.networks.v_target(o2)
+            backup += (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
         loss_v = ((v - backup) ** 2).mean()
         return loss_v, torch.mean(v)
 
@@ -136,29 +134,14 @@ class INFADP():
                 a = self.networks.new_policy(o)
                 o2, r, d = self.envmodel.forward(o, a, d)
                 v_pi += self.reward_scale * self.gamma ** step * r
-        v_pi += (~d) *self.gamma ** (self.forward_step) * self.networks.v_target(o2)
+        v_pi += (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
         for p in self.networks.v.parameters():
             p.requires_grad = True
         return -v_pi.mean()
 
+    def load_state_dict(self, state_dict):
+        self.networks.load_state_dict(state_dict)
+
+
 if __name__ == '__main__':
     print('11111')
-    import mujoco_py
-
-    print('11111')
-    import os
-
-    print('11111')
-    mj_path, _ = mujoco_py.utils.discover_mujoco()
-    print('11111')
-    xml_path = os.path.join(mj_path, 'model', 'humanoid.xml')
-    print('11111')
-    model = mujoco_py.load_model_from_path(xml_path)
-    print('11111')
-    sim = mujoco_py.MjSim(model)
-
-    print(sim.data.qpos)
-    # [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
-
-    sim.step()
-    print(sim.data.qpos)

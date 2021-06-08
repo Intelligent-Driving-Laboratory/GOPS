@@ -41,6 +41,7 @@ class GymCartpolecontiModel:
         self.max_action = 1.0
 
         # define common parameters here
+        self.dt = 0.02  # seconds between state updates
         self.state_dim = 4
         self.action_dim = 1
         self.lb_state = [self.min_x, self.min_x_dot, self.min_theta,  self.min_theta_dot]
@@ -53,7 +54,7 @@ class GymCartpolecontiModel:
         self.hb_state = torch.tensor(self.hb_state, dtype=torch.float32)
         self.lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
         self.hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
-        self.dt = 0.02  # seconds between state updates
+
 
     def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)):
         """
@@ -61,17 +62,16 @@ class GymCartpolecontiModel:
         you need to define your own state transition  function here
         notice that all the variables contains the batch dim you need to remember this point
         when constructing your function
+        :param state: datatype:torch.Tensor, shape:[batch_size, state_dim]
         :param action: datatype:torch.Tensor, shape:[batch_size, action_dim]
-               state:  datatype:torch.Tensor, shape:[batch_size, state_dim]
-        :return: next_state:  datatype:torch.Tensor, shape:[batch_size, state_dim]
+        :param beyond_done: flag indicate the state is already done which means it will not be calculated by the model
+        :return:
+                next_state:  datatype:torch.Tensor, shape:[batch_size, state_dim]
                               the state will not change anymore when the corresponding flag done is set to True
-                 reward:  datatype:torch.Tensor, shape:[batch_size, 1]
-                 isdone:   datatype:torch.Tensor, shape:[batch_size, 1]
+                reward:  datatype:torch.Tensor, shape:[batch_size, 1]
+                isdone:   datatype:torch.Tensor, shape:[batch_size, 1]
                          flag done will be set to true when the model reaches the max_iteration or the next state
                          satisfies ending condition
-                 beyond_done:
-                            flag indicate the state is already done which means it will not be calculated by the model
-
         """
         warning_msg = "action out of action space!"
         if not ((action <= self.hb_action).all() and (action >= self.lb_action).all()):
@@ -107,6 +107,7 @@ class GymCartpolecontiModel:
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
         reward = 1 - isdone.float()
         ############################################################################################
+
         beyond_done = beyond_done.bool()
         mask = isdone * beyond_done
         mask = torch.unsqueeze(mask, -1)
