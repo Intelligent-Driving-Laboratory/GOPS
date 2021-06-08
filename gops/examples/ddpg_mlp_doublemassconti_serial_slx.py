@@ -34,8 +34,9 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='simu_cartpoleconti')
+    parser.add_argument('--env_id', type=str, default='simu_doublemassconti')
     parser.add_argument('--algorithm', type=str, default='DDPG')
+
 
     ################################################
     # 1. Parameters for environment
@@ -131,7 +132,7 @@ if __name__ == "__main__":
     # Add noise to actions for better exploration
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0.1*30], dtype=np.float32)})
+                                 'std': np.array([0.1*10], dtype=np.float32)})
 
     ################################################
     # 7. Parameters for evaluator
