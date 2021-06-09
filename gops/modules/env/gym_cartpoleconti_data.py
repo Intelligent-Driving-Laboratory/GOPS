@@ -12,6 +12,7 @@ from gym import spaces
 from gym.utils import seeding
 import numpy as np
 
+gym.logger.setLevel(gym.logger.ERROR)
 
 class GymCartpoleconti(gym.Env):
     metadata = {
@@ -19,7 +20,7 @@ class GymCartpoleconti(gym.Env):
         'video.frames_per_second': 50
     }
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.gravity = 9.8
         self.masscart = 1.0
         self.masspole = 0.1
@@ -30,6 +31,11 @@ class GymCartpoleconti(gym.Env):
         self.tau = 0.02  # seconds between state updates
         self.min_action = -1.0
         self.max_action = 1.0
+
+        self.is_adversary = kwargs['is_adversary']
+
+        self.min_adv_action = -0.5
+        self.max_adv_action = 0.5
 
         # Angle at which to fail the episode
         self.theta_threshold_radians = 12 * 2 * math.pi / 360
@@ -43,12 +49,17 @@ class GymCartpoleconti(gym.Env):
             self.theta_threshold_radians * 2,
             np.finfo(np.float32).max])
 
-        self.action_space = spaces.Box(
-            low=self.min_action,
-            high=self.max_action,
-            shape=(1,)
-        )
+        self.action_space = spaces.Box(low=self.min_action,
+                                       high=self.max_action,
+                                       shape=(1,)
+                                       )
+
         self.observation_space = spaces.Box(-high, high)
+
+        self.adv_action_space = spaces.Box(low=self.min_adv_action,
+                                           high=self.max_adv_action,
+                                           shape=(1,)
+                                           )
 
         self.seed()
         self.viewer = None
@@ -63,26 +74,29 @@ class GymCartpoleconti(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def stepPhysics(self, force):
+    def stepPhysics(self, force, advu):
+
         x, x_dot, theta, theta_dot = self.state
         costheta = math.cos(theta)
         sintheta = math.sin(theta)
         temp = (force + self.polemass_length * theta_dot * theta_dot * sintheta) / self.total_mass
         thetaacc = (self.gravity * sintheta - costheta * temp) / \
             (self.length * (4.0/3.0 - self.masspole * costheta * costheta / self.total_mass))
+
         xacc = temp - self.polemass_length * thetaacc * costheta / self.total_mass
         x = x + self.tau * x_dot
         x_dot = x_dot + self.tau * xacc
         theta = theta + self.tau * theta_dot
-        theta_dot = theta_dot + self.tau * thetaacc
+        theta_dot = theta_dot + self.tau * thetaacc + advu
         return (x, x_dot, theta, theta_dot)
 
-    def step(self, action):
+    def step(self, action, adv_action=None):
         action = np.expand_dims(action, 0)
-        #assert self.action_space.contains(action),  "%r (%s) invalid" % (action, type(action))
-        # Cast action to float to strip np trappings
+        if adv_action is None:
+            adv_action = 0
+
         force = self.force_mag * float(action)
-        self.state = self.stepPhysics(force)
+        self.state = self.stepPhysics(force, float(adv_action))
         x, x_dot, theta, theta_dot = self.state
         done = x < -self.x_threshold \
             or x > self.x_threshold \
@@ -171,3 +185,12 @@ Any further steps are undefined behavior.
     def close(self):
         if self.viewer:
             self.viewer.close()
+
+
+if __name__ == '__main__':
+    e = GymCartpoleconti()
+    e.reset()
+
+    for _ in range(100):
+        e.step(e.action_space.sample())
+        e.render()
