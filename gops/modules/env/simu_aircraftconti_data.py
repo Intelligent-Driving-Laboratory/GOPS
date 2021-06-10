@@ -1,12 +1,12 @@
 from gym import spaces
 import gym
-from modules.env.resources import cartpole
+from modules.env.resources import aircraft
 import numpy as np
 
-class SimuCartpoleconti(gym.Env):
+class SimuAircraftconti(gym.Env):
 
     def __init__(self, **kwargs):
-        self._physics = cartpole.model_wrapper()
+        self._physics = aircraft.model_wrapper()
         self.is_adversary = kwargs['is_adversary']
 
         self.action_space = spaces.Box(np.array(self._physics.get_param()['a_min']).reshape(-1), np.array(self._physics.get_param()['a_max']).reshape(-1))
@@ -14,6 +14,7 @@ class SimuCartpoleconti(gym.Env):
         self.adv_action_space = spaces.Box(np.array(self._physics.get_param()['adva_min']).reshape(-1), np.array(self._physics.get_param()['adva_max']).reshape(-1))
         self.adv_action_dim = self.adv_action_space.shape[0]
         self.reset()
+
 
     def step(self, action, adv_action=None):
         if self.is_adversary==False:
@@ -25,16 +26,15 @@ class SimuCartpoleconti(gym.Env):
             if adv_action is None:
                 raise ValueError('Adversary training setting is wrong')
         state, isdone, reward = self._step_physics({'Action': action, 'AdverAction': adv_action})
-        self.cstep += 1
-        isdone += self.cstep > 200
+        isdone += self.cstep>200
         return state, reward, isdone, {}
 
     def reset(self):
         self._physics.terminate()
-        self._physics = cartpole.model_wrapper()
+        self._physics = aircraft.model_wrapper()
 
         # randomized initiate
-        state = np.random.uniform(low=[-0.05], high=[0.05], size=(4,))
+        state = np.random.uniform(low=-0.05, high=0.05, size=(2,))
         param = self._physics.get_param()
         param.update(list(zip(('x_ini'), state.tolist())))
         self._physics.set_param(param)
@@ -56,10 +56,10 @@ if __name__ == "__main__":
     import gym
     import numpy as np
 
-    env = SimuCartpoleconti()
+    env = SimuAircraftconti()
     s = env.reset()
     for i in range(50):
-        a = np.ones([1])*2
-        sp, r, d, _ = env.step(a, 1)
+        a = np.ones([1])*20
+        sp, r, d, _ = env.step(a)
         print(s, a, r, d)
         s = sp

@@ -10,29 +10,23 @@ import warnings
 import torch
 import numpy as np
 
-pi = torch.tensor(np.pi, dtype=torch.float32)
 
 
-class GymPendulumModel:
+class GymDemocontiModel:
     def __init__(self):
         """
         you need to define parameters here
         """
         # define your custom parameters here
-        self.max_speed = 8
-        self.max_torque = 2.
-        self.g = 10.0
-        self.m = 1.
-        self.length = 1.
 
         # define common parameters here
-        self.state_dim = 3
-        self.action_dim = 1
-        self.lb_state = [-1., -1., -self.max_speed]
-        self.hb_state = [1., 1., self.max_speed]
-        self.lb_action = [-self.max_torque]
-        self.hb_action = [self.max_torque]
-        self.dt = 0.05
+        self.state_dim = None
+        self.action_dim = None
+        self.lb_state = None
+        self.hb_state = None
+        self.lb_action = None
+        self.hb_action = None
+        self.dt = None    # seconds between state updates
 
         # do not change the following section
         self.lb_state = torch.tensor(self.lb_state, dtype=torch.float32)
@@ -40,7 +34,7 @@ class GymPendulumModel:
         self.lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
         self.hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)):
+    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done):
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
@@ -67,41 +61,38 @@ class GymPendulumModel:
             warnings.warn(warning_msg)
             state = clip_by_tensor(state, self.lb_state, self.hb_state)
 
-        costh, sinth, thdot = state[:, 0], state[:, 1], state[:, 2]
-        th = arccs(sinth, costh)
-        g = self.g
-        m = self.m
-        length = self.length
-        dt = self.dt
-        newthdot = thdot + (-3 * g / (2 * length) * torch.sin(th + pi) + 3. / (m * length ** 2) * action.squeeze()) * dt
-        newth = th + newthdot * dt
-        newthdot = torch.clamp(newthdot, -self.max_speed, self.max_speed)
-        newcosth = torch.cos(newth)
-        newsinth = torch.sin(newth)
-        state_next = torch.stack([newcosth, newsinth, newthdot], dim=-1)
-        reward = angle_normalize(th) ** 2 + .1 * thdot ** 2 + .001 * (action ** 2).squeeze(-1)
+        #  define your forward function here: the format is just like: state_next = f(state,action)
+        state_next = (1+action.sum(-1))*state
+
         ############################################################################################
 
         # define the ending condation here the format is just like isdone = l(next_state)
-        isdone = torch.full([state.size()[0]], False, dtype=torch.bool)
+        isdone = torch.full([state.size()[0]], False)
 
         ############################################################################################
+
+        # define the reward function here the format is just like: reward = l(state,state_next,reward)
+        reward = (state_next - state).sum(dim=-1)
+
+        ############################################################################################
+
         beyond_done = beyond_done.bool()
         mask = isdone * beyond_done
         mask = torch.unsqueeze(mask, -1)
         state_next = ~mask * state_next + mask * state
         return state_next, reward, isdone
 
-
-def angle_normalize(x):
-    return ((x + pi) % (2 * pi)) - pi
-
-
-def arccs(sinth, costh):
-    eps = 0.9999
-    th = torch.acos(eps * costh)
-    th = th * (sinth > 0) + (2 * pi - th) * (sinth <= 0)
-    return th
+    def forward_n_step(self, func, n, state: torch.Tensor):
+        reward = torch.zeros(size=[state.size()[0], n])
+        isdone = state.numpy() <= self.hb_state | state.numpy() >= self.lb_state
+        if np.sum(isdone) > 0:
+            warning_msg = "state out of state space!"
+            warnings.warn(warning_msg)
+        isdone = torch.from_numpy(isdone)
+        for step in range(n):
+            action = func(state)
+            state_next, reward[:, step], isdone = self.forward(state, action, isdone)
+            state = state_next
 
 
 def clip_by_tensor(t, t_min, t_max):
@@ -115,3 +106,7 @@ def clip_by_tensor(t, t_min, t_max):
     result = (t >= t_min) * t + (t < t_min) * t_min
     result = (result <= t_max) * result + (result > t_max) * t_max
     return result
+
+
+if __name__ == "__main__":
+    env = GymDemocontiModel()

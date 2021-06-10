@@ -132,27 +132,30 @@ class OffAsyncTrainer():
             # evaluate
             if self.iteration % self.eval_interval == 0:
                 # calculate total sample number
-
                 self.evaluator.load_state_dict.remote(self.networks.state_dict())
                 total_avg_return = ray.get(self.evaluator.run_evaluation.remote(self.iteration))
+                # get ram for buffer
+                self.writer.add_scalar(tb_tags['Buffer RAM of RL iteration'],
+                                       sum(ray.get([buffer.__get_RAM__.remote() for buffer in self.buffers])),
+                                       self.iteration)
                 self.writer.add_scalar(tb_tags['TAR of RL iteration'],
                                        total_avg_return,
                                        self.iteration)
                 self.writer.add_scalar(tb_tags['TAR of replay samples'],
                                        total_avg_return,
-                                       self.iteration*self.replay_batch_size)
+                                       self.iteration * self.replay_batch_size)
                 self.writer.add_scalar(tb_tags['TAR of total time'],
                                        total_avg_return,
-                                       int(time.time()-self.start_time))
+                                       int(time.time() - self.start_time))
                 self.writer.add_scalar(tb_tags['TAR of collected samples'],
                                        total_avg_return,
-                                       sum(ray.get([sampler.get_total_sample_number.remote() for sampler in self.samplers])))
+                                       sum(ray.get(
+                                           [sampler.get_total_sample_number.remote() for sampler in self.samplers])))
 
             # save
             if self.iteration % self.apprfunc_save_interval == 0:
                 torch.save(self.networks.state_dict(),
                            self.save_folder + '/apprfunc/apprfunc_{}.pkl'.format(self.iteration))
-
 
     def train(self):
         while self.iteration < self.max_iteration:

@@ -61,10 +61,10 @@ class McSampler():
 
             action_distribution = self.action_distirbution_cls(logits)
             action = action_distribution.sample().detach().numpy()[0]
-            if hasattr(action_distribution, 'log_prob'):
-                logp = action_distribution.log_prob(action).detach().numpy()[0]
-            else:
-                logp = 0.
+            # if hasattr(action_distribution, 'log_prob'):
+            #     logp = action_distribution.log_prob(action).detach().numpy()[0]
+            # else:
+            #     logp = 0.
 
             if self.noise_params is not None:
                 action = self.noise_processor.sample(action)

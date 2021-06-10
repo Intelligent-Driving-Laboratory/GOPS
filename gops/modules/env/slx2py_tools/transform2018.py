@@ -20,25 +20,29 @@ MODEL_SOURCE_INJECTIONS = "#define {0} {0}__actual\n"
 MODEL_HEADER_INJECTIONS = "{0} {1}__actual = {2}::{1};\n"
 TYPE_MAPPING = {
     "uint8": "stdint.uint8_t",
+    "uint32":"stdint.uint32_t",
     "logical": "stdint.uint8_t",
-    "": "void*",  # TODO: better pointer support
+    "": "void*",  # TODO: better pointer suppor4t
     # TODO: more types
 }
 
 NP_TYPE_MAPPING = {
     "stdint.uint8_t": "uint8_t",
+    "stdint.uint32_t":"uint32_t",
     "double": "double_t"
     # TODO: more types
 }
 
 PY_TYPE_MAPPING = {
     "stdint.uint8_t": "int",
+    "stdint.uint32_t":"int",
     "double": "float"
     # TODO: more types, logical support?
 }
 
 PY_NP_TYPE_MAPPING = {
     "stdint.uint8_t": "np.uint",
+    "stdint.uint32_t":"np.uint",
     "double": "np.double"
     # TODO: more types
 }

@@ -119,6 +119,7 @@ class StateValue(nn.Module):
                      get_activation_func(kwargs['output_activation']))
 
     def forward(self, obs):
-        return self.v(obs)
+        v = self.v(obs)
+        return torch.squeeze(v, -1)
 
 #

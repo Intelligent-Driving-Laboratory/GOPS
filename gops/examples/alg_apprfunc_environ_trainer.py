@@ -10,11 +10,7 @@
 #  Update Date: 2021-06-01, Shengbo Li: General Setup for GOPS examples
 
 import argparse
-import copy
-import datetime
-import json
 import os
-
 import numpy as np
 
 from modules.create_pkg.create_alg import create_alg
@@ -26,6 +22,8 @@ from modules.create_pkg.create_trainer import create_trainer
 from modules.utils.init_args import init_args
 from modules.utils.plot import plot_all
 from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
+
+os.environ["OMP_NUM_THREADS"] = "1"
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -123,8 +121,18 @@ if __name__ == "__main__":
         parser.add_argument('--sampler_sync_interval', type=int, default=1)
     # 4.4. Parameters for off_async_trainer
     if trainer_type == 'off_async_trainer':
-        pass
-
+        import ray
+        ray.init()
+        parser.add_argument('--num_algs', type=int, default=2)
+        parser.add_argument('--num_samplers', type=int, default=2)
+        parser.add_argument('--num_buffers', type=int, default=1)
+        parser.add_argument('--alg_queue_max_size', type=int, default=1)
+        parser.add_argument('--buffer_name', type=str, default='replay_buffer')
+        parser.add_argument('--buffer_warm_size', type=int, default=1000)
+        parser.add_argument('--buffer_max_size', type=int, default=100000)
+        parser.add_argument('--replay_batch_size', type=int, default=1024)
+    else:
+        raise ValueError
     ################################################
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='mc_sampler')
