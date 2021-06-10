@@ -15,7 +15,6 @@ class SimuAircraftconti(gym.Env):
         self.adv_action_dim = self.adv_action_space.shape[0]
         self.reset()
 
-
     def step(self, action, adv_action=None):
         if self.is_adversary==False:
             if adv_action is not None:
@@ -25,7 +24,7 @@ class SimuAircraftconti(gym.Env):
         else:
             if adv_action is None:
                 raise ValueError('Adversary training setting is wrong')
-        state, isdone, reward = self._step_physics({'Action': action, 'AdverAction': adv_action})
+        state, isdone, reward = self._step_physics({'Action': action.astype(np.float64), 'AdverAction': adv_action.astype(np.float64)})
         isdone += self.cstep>200
         return state, reward, isdone, {}
 
@@ -36,7 +35,7 @@ class SimuAircraftconti(gym.Env):
         # randomized initiate
         state = np.random.uniform(low=-0.05, high=0.05, size=(2,))
         param = self._physics.get_param()
-        param.update(list(zip(('x_ini'), state.tolist())))
+        param.update(list(zip(('x_ini'), state)))
         self._physics.set_param(param)
         self._physics.initialize()
         self.cstep = 0
