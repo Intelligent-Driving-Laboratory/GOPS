@@ -204,4 +204,3 @@ Any further steps are undefined behavior.
                     (self.a * self.a * self.kf + self.b * self.b * self.kr) - self.Iz * x0[2] / T)
 
         return x1
-            self.viewer.close()
