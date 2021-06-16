@@ -24,7 +24,7 @@ class SimuCartpoleconti(gym.Env):
         else:
             if adv_action is None:
                 raise ValueError('Adversary training setting is wrong')
-        state, isdone, reward = self._step_physics({'Action': action, 'AdverAction': adv_action})
+        state, isdone, reward = self._step_physics({'Action': action.astype(np.float64), 'AdverAction': adv_action.astype(np.float64)})
         self.cstep += 1
         isdone += self.cstep > 200
         return state, reward, isdone, {}
@@ -36,7 +36,7 @@ class SimuCartpoleconti(gym.Env):
         # randomized initiate
         state = np.random.uniform(low=[-0.05], high=[0.05], size=(4,))
         param = self._physics.get_param()
-        param.update(list(zip(('x_ini'), state.tolist())))
+        param.update(list(zip(('x_ini'), state)))
         self._physics.set_param(param)
         self._physics.initialize()
         self.cstep = 0
