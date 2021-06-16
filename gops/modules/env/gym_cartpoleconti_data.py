@@ -11,10 +11,10 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 import numpy as np
-
+from gym.wrappers.time_limit import TimeLimit
 gym.logger.setLevel(gym.logger.ERROR)
 
-class GymCartpoleconti(gym.Env):
+class _GymCartpoleconti(gym.Env):
     metadata = {
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second': 50
@@ -67,7 +67,7 @@ class GymCartpoleconti(gym.Env):
 
         self.steps_beyond_done = None
 
-        self.max_episode_steps = 200
+        # self.max_episode_steps = 200
         self.steps = 0
 
     def seed(self, seed=None):
@@ -106,8 +106,8 @@ class GymCartpoleconti(gym.Env):
 
         #-----------------
         self.steps += 1
-        if self.steps >=self.max_episode_steps:
-            done = True
+        # if self.steps >=self.max_episode_steps:
+        #     done = True
         # ---------------
 
         if not done:
@@ -187,8 +187,12 @@ Any further steps are undefined behavior.
             self.viewer.close()
 
 
+def env_creator(**kwargs):
+    return TimeLimit(_GymCartpoleconti(**kwargs), 200)
+
+
 if __name__ == '__main__':
-    e = GymCartpoleconti()
+    e = env_creator()
     e.reset()
 
     for _ in range(100):
