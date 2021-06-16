@@ -92,6 +92,9 @@ class OffSerialTrainer():
         if self.iteration % self.eval_interval == 0:
             self.evaluator.networks.load_state_dict(self.networks.state_dict())
             total_avg_return = self.evaluator.run_evaluation(self.iteration)
+            self.writer.add_scalar(tb_tags['Buffer RAM of RL iteration'],
+                                   self.buffer.__get_RAM__(),
+                                   self.iteration)
             self.writer.add_scalar(tb_tags['TAR of RL iteration'],
                                    total_avg_return,
                                    self.iteration)

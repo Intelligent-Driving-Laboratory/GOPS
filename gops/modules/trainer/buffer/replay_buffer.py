@@ -33,6 +33,7 @@ class ReplayBuffer():
         self.act_buf = np.zeros(combined_shape(self.max_size, self.act_dim), dtype=np.float32)
         self.rew_buf = np.zeros(self.max_size, dtype=np.float32)
         self.done_buf = np.zeros(self.max_size, dtype=np.float32)
+        self.logp_buf = np.zeros(self.max_size, dtype=np.float32)
         self.ptr, self.size, = 0, 0
 
     def __len__(self):
@@ -40,16 +41,18 @@ class ReplayBuffer():
 
     def __get_RAM__(self):
         # return self.size * (self.obs_dim * 2 + self.act_dim + self.act + 2)
-        return (sys.getsizeof(self.obs_buf) + sys.getsizeof(self.obs2_buf) + sys.getsizeof(
+        return int((sys.getsizeof(self.obs_buf) + sys.getsizeof(self.obs2_buf) + sys.getsizeof(
             self.act_buf) + sys.getsizeof(
-            self.rew_buf) + sys.getsizeof(self.done_buf)) * self.size / self.max_size
+            self.rew_buf) + sys.getsizeof(self.done_buf) + sys.getsizeof(self.logp_buf)) * self.size / (
+                               self.max_size * 1000000))
 
-    def store(self, obs, act, rew, next_obs, done):
+    def store(self, obs, act, rew, next_obs, done, logp):
         self.obs_buf[self.ptr] = obs
         self.obs2_buf[self.ptr] = next_obs
         self.act_buf[self.ptr] = act
         self.rew_buf[self.ptr] = rew
         self.done_buf[self.ptr] = done
+        self.logp_buf[self.ptr] = logp
         self.ptr = (self.ptr + 1) % self.max_size  # 控制buffer的内存
         self.size = min(self.size + 1, self.max_size)
 
@@ -63,5 +66,6 @@ class ReplayBuffer():
                      obs2=self.obs2_buf[idxs],
                      act=self.act_buf[idxs],
                      rew=self.rew_buf[idxs],
-                     done=self.done_buf[idxs])
+                     done=self.done_buf[idxs],
+                     logp=self.logp_buf[idxs])
         return {k: torch.as_tensor(v, dtype=torch.float32) for k, v in batch.items()}

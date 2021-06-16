@@ -40,6 +40,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_low_limit', type=list, default=None)
     parser.add_argument('--action_type', type=str, default='continu', help='Options: continu/discret')
     parser.add_argument('--is_render', type=bool, default=False, help='Draw environment animation')
+    parser.add_argument('--is_adversary', type=bool, default=False, help='Adversary training')
 
     ################################################
     # 2.1 Parameters of value approximate function
@@ -98,7 +99,6 @@ if __name__ == "__main__":
         num_core_input = parser.parse_args().num_algs + parser.parse_args().num_samplers + parser.parse_args().num_buffers + 2
         if num_core_input > cpu_core_num:
             raise ValueError('The number of core is {}, but you want {}!'.format(cpu_core_num, num_core_input))
-        parser.add_argument('--alg_queue_max_size', type=int, default=1, help='queue size of alg')
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
         parser.add_argument('--buffer_warm_size', type=int, default=1000,
                             help='Size of collected samples before training')

@@ -41,8 +41,7 @@ class OnSerialTrainer():
         self.max_iteration = kwargs.get('max_iteration')
         self.batch_size = kwargs['sample_batch_size']
         self.ini_network_dir = kwargs['ini_network_dir']
-        self.obsv_dim = kwargs['obsv_dim']
-        self.act_dim = kwargs['action_dim']
+
 
         # initialize the networks
         if self.ini_network_dir is not None:
@@ -63,8 +62,7 @@ class OnSerialTrainer():
     def step(self):
         # sampling
         self.sampler.networks.load_state_dict(self.networks.state_dict())
-        samples, sampler_tb_dict = self.sampler.sample()
-        samples_with_replay_format = self.samples_conversion(samples)
+        samples_with_replay_format, sampler_tb_dict = self.sampler.sample_with_replay_format()
 
         # learning
         self.alg.networks.load_state_dict(self.networks.state_dict())
@@ -104,20 +102,4 @@ class OnSerialTrainer():
 
         self.writer.flush()
 
-    def samples_conversion(self, samples):
-        obs_tensor = torch.zeros(self.batch_size, self.obsv_dim)
-        act_tensor = torch.zeros(self.batch_size, self.act_dim)
-        obs2_tensor = torch.zeros(self.batch_size, self.obsv_dim)
-        rew_tensor = torch.zeros(self.batch_size, )
-        done_tensor = torch.zeros(self.batch_size, )
-        idx = 0
-        for sample in samples:
-            obs, act, rew, next_obs, done = sample
-            obs_tensor[idx] = torch.from_numpy(obs)
-            act_tensor[idx] = torch.from_numpy(act)
-            rew_tensor[idx] = torch.tensor(rew)
-            obs2_tensor[idx] = torch.from_numpy(next_obs)
-            done_tensor[idx] = torch.tensor(done)
-            idx += 1
-        return dict(obs=obs_tensor, act=act_tensor, obs2=obs2_tensor, rew=rew_tensor,
-                    done=done_tensor)
+

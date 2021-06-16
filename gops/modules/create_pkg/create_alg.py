@@ -30,6 +30,9 @@ def create_alg(**kwargs):
         elif trainer == 'off_async_trainer':
             alg = [ray.remote(num_cpus=1)(alg_cls).remote(**kwargs)
                    for _ in range(kwargs['num_algs'])]
+        elif trainer == 'on_sync_trainer':
+            alg = [ray.remote(num_cpus=1)(alg_cls).remote(**kwargs)
+                   for _ in range(1)]
         else:
             raise NotImplementedError("This trainer is not properly defined")
     else:

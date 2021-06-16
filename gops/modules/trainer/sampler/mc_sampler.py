@@ -33,6 +33,8 @@ class McSampler():
         self.policy_func_name = kwargs['policy_func_name']
         self.action_type = kwargs['action_type']
         self.total_sample_number = 0
+        self.obsv_dim = kwargs['obsv_dim']
+        self.act_dim = kwargs['action_dim']
 
         if self.action_type == 'continu':
             self.noise_processor = GaussNoise(**self.noise_params)
@@ -60,21 +62,25 @@ class McSampler():
                 logits = self.networks.policy.q(batch_obs)
 
             action_distribution = self.action_distirbution_cls(logits)
-            action = action_distribution.sample().detach().numpy()[0]
-            # if hasattr(action_distribution, 'log_prob'):
-            #     logp = action_distribution.log_prob(action).detach().numpy()[0]
-            # else:
-            #     logp = 0.
-
+            action = action_distribution.sample().detach()[0]
+            if hasattr(action_distribution, 'log_prob'):
+                logp = action_distribution.log_prob(action).detach().numpy()[0]
+            else:
+                logp = 0.
+            action = action.numpy()
             if self.noise_params is not None:
                 action = self.noise_processor.sample(action)
 
             next_obs, reward, self.done, info = self.env.step(action)
+            # if info['TimeLimit.truncated']:
+            #     self.done = False
             batch_data.append(
-                (self.obs.copy(), action, reward, next_obs.copy(), self.done))
+                (self.obs.copy(), action, reward, next_obs.copy(), self.done, logp))
             self.obs = next_obs
+            # if self.done or info['TimeLimit.truncated']:
             if self.done:
                 self.obs = self.env.reset()
+
         end_time = time.time()
         tb_info[tb_tags["sampler_time"]] = (end_time - start_time) * 1000
 
@@ -82,3 +88,28 @@ class McSampler():
 
     def get_total_sample_number(self):
         return self.total_sample_number
+
+    def samples_conversion(self, samples):
+        obs_tensor = torch.zeros(self.sample_batch_size, self.obsv_dim)
+        act_tensor = torch.zeros(self.sample_batch_size, self.act_dim)
+        obs2_tensor = torch.zeros(self.sample_batch_size, self.obsv_dim)
+        rew_tensor = torch.zeros(self.sample_batch_size, )
+        done_tensor = torch.zeros(self.sample_batch_size, )
+        logp_tensor = torch.zeros(self.sample_batch_size, )
+        idx = 0
+        for sample in samples:
+            obs, act, rew, next_obs, done, logp = sample
+            obs_tensor[idx] = torch.from_numpy(obs)
+            act_tensor[idx] = torch.from_numpy(act)
+            rew_tensor[idx] = torch.tensor(rew)
+            obs2_tensor[idx] = torch.from_numpy(next_obs)
+            done_tensor[idx] = torch.tensor(done)
+            logp_tensor[idx] = torch.tensor(logp)
+            idx += 1
+        done_tensor[-1] = True
+        return dict(obs=obs_tensor, act=act_tensor, obs2=obs2_tensor, rew=rew_tensor,
+                    done=done_tensor, logp=logp_tensor)
+
+    def sample_with_replay_format(self):
+        samples, sampler_tb_dict = self.sample()
+        return self.samples_conversion(samples), sampler_tb_dict
