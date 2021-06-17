@@ -26,8 +26,8 @@ class SimuCartpoleconti(gym.Env):
                 raise ValueError('Adversary training setting is wrong')
         state, isdone, reward = self._step_physics({'Action': action.astype(np.float64), 'AdverAction': adv_action.astype(np.float64)})
         self.cstep += 1
-        isdone += self.cstep > 200
-        return state, reward, isdone, {}
+        info = {'TimeLimit.truncated': self.cstep > 200}
+        return state, reward, isdone, info
 
     def reset(self):
         self._physics.terminate()
