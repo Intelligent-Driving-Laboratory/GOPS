@@ -42,12 +42,25 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
                'obs_dim': kwargs['obsv_dim'],
                'act_dim': kwargs['action_dim'],
                'action_high_limit': kwargs['action_high_limit'],
-               'action_low_limit': kwargs['action_low_limit']
+               'action_low_limit': kwargs['action_low_limit'],
+               'min_log_std': kwargs.get(key + '_min_log_std', float('-inf')),
+               'max_log_std': kwargs.get(key + '_max_log_std', float('inf'))
                }
     elif type == 'GAUSS':
         var = {'apprfunc': kwargs[key + '_func_type'],
                'name': kwargs[key + '_func_name'],
                'num_kernel': kwargs[key + '_num_kernel'],
+               'obs_dim': kwargs['obsv_dim'],
+               'act_dim': kwargs['action_dim'],
+               'action_high_limit': kwargs['action_high_limit'],
+               'action_low_limit': kwargs['action_low_limit']
+               }
+    elif type == 'CNN':
+        var = {'apprfunc': kwargs[key + '_func_type'],
+               'name': kwargs[key + '_func_name'],
+               'hidden_activation': kwargs[key + '_hidden_activation'],
+               'output_activation': kwargs[key + '_output_activation'],
+               'conv_type' : kwargs[key + '_conv_type'],
                'obs_dim': kwargs['obsv_dim'],
                'act_dim': kwargs['action_dim'],
                'action_high_limit': kwargs['action_high_limit'],
