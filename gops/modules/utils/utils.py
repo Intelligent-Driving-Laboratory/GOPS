@@ -55,6 +55,17 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
                'action_high_limit': kwargs['action_high_limit'],
                'action_low_limit': kwargs['action_low_limit']
                }
+    elif type == 'CNN':
+        var = {'apprfunc': kwargs[key + '_func_type'],
+               'name': kwargs[key + '_func_name'],
+               'hidden_activation': kwargs[key + '_hidden_activation'],
+               'output_activation': kwargs[key + '_output_activation'],
+               'conv_type' : kwargs[key + '_conv_type'],
+               'obs_dim': kwargs['obsv_dim'],
+               'act_dim': kwargs['action_dim'],
+               'action_high_limit': kwargs['action_high_limit'],
+               'action_low_limit': kwargs['action_low_limit']
+               }
     else:
         raise NotImplementedError
 
