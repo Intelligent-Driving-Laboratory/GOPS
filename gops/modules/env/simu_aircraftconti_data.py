@@ -25,8 +25,8 @@ class SimuAircraftconti(gym.Env):
             if adv_action is None:
                 raise ValueError('Adversary training setting is wrong')
         state, isdone, reward = self._step_physics({'Action': action.astype(np.float64), 'AdverAction': adv_action.astype(np.float64)})
-        isdone += self.cstep>200
-        return state, reward, isdone, {}
+        info = {'TimeLimit.truncated':self.cstep>200}
+        return state, reward, isdone, info
 
     def reset(self):
         self._physics.terminate()
