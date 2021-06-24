@@ -72,13 +72,14 @@ class McSampler():
                 action = self.noise_processor.sample(action)
 
             next_obs, reward, self.done, info = self.env.step(action)
-            # if info['TimeLimit.truncated']:
-            #     self.done = False
+            if 'TimeLimit.truncated' not in info.keys():
+                info['TimeLimit.truncated'] = False
+            if info['TimeLimit.truncated']:
+                self.done = False
             batch_data.append(
-                (self.obs.copy(), action, reward, next_obs.copy(), self.done, logp))
+                (self.obs.copy(), action, reward, next_obs.copy(), self.done, logp, info['TimeLimit.truncated']))
             self.obs = next_obs
-            # if self.done or info['TimeLimit.truncated']:
-            if self.done:
+            if self.done or info['TimeLimit.truncated']:
                 self.obs = self.env.reset()
 
         end_time = time.time()
@@ -96,19 +97,21 @@ class McSampler():
         rew_tensor = torch.zeros(self.sample_batch_size, )
         done_tensor = torch.zeros(self.sample_batch_size, )
         logp_tensor = torch.zeros(self.sample_batch_size, )
+        time_limited_tensor = torch.zeros(self.sample_batch_size, )
         idx = 0
         for sample in samples:
-            obs, act, rew, next_obs, done, logp = sample
+            obs, act, rew, next_obs, done, logp, time_limited = sample
             obs_tensor[idx] = torch.from_numpy(obs)
             act_tensor[idx] = torch.from_numpy(act)
             rew_tensor[idx] = torch.tensor(rew)
             obs2_tensor[idx] = torch.from_numpy(next_obs)
             done_tensor[idx] = torch.tensor(done)
             logp_tensor[idx] = torch.tensor(logp)
+            time_limited_tensor[idx] = torch.tensor(time_limited)
             idx += 1
-        done_tensor[-1] = True
+        time_limited_tensor[-1] = True
         return dict(obs=obs_tensor, act=act_tensor, obs2=obs2_tensor, rew=rew_tensor,
-                    done=done_tensor, logp=logp_tensor)
+                    done=done_tensor, logp=logp_tensor, time_limited=time_limited_tensor)
 
     def sample_with_replay_format(self):
         samples, sampler_tb_dict = self.sample()

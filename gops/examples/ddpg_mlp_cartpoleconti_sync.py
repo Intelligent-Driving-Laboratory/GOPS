@@ -89,9 +89,10 @@ if __name__ == "__main__":
     trainer_type = parser.parse_args().trainer
     # 4.4. Parameters for off_async_trainer
     if trainer_type == 'on_sync_trainer':
+        parser.add_argument('--num_epoch', type=int, default=1)
         import ray
         ray.init()
-        parser.add_argument('--num_samplers', type=int, default=4, help='number of samplers')
+        parser.add_argument('--num_samplers', type=int, default=3, help='number of samplers')
         cpu_core_num = multiprocessing.cpu_count()
         num_core_input = parser.parse_args().num_samplers + 3
         if num_core_input > cpu_core_num:

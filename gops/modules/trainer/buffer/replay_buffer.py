@@ -46,7 +46,7 @@ class ReplayBuffer():
             self.rew_buf) + sys.getsizeof(self.done_buf) + sys.getsizeof(self.logp_buf)) * self.size / (
                                self.max_size * 1000000))
 
-    def store(self, obs, act, rew, next_obs, done, logp):
+    def store(self, obs, act, rew, next_obs, done, logp, time_limited):
         self.obs_buf[self.ptr] = obs
         self.obs2_buf[self.ptr] = next_obs
         self.act_buf[self.ptr] = act
