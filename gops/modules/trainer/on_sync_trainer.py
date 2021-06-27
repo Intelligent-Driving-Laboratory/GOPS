@@ -48,6 +48,7 @@ class OnSyncTrainer():
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
         self.writer.add_scalar(tb_tags['alg_time'], 0, 0)
         self.writer.add_scalar(tb_tags['sampler_time'], 0, 0)
+        self.num_epoch = kwargs['num_epoch']
 
         self.writer.flush()
 
@@ -68,21 +69,20 @@ class OnSyncTrainer():
 
     def step(self):
         # sampling
+        weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
+        for sampler in self.samplers:  # 对每个完成的sampler，
+            sampler.load_state_dict.remote(weights)  # 同步sampler的参数
         sampler_tb_dict = {}
         samples, sampler_tb_dict = zip(
             *ray.get([sampler.sample_with_replay_format.remote() for sampler in self.samplers]))
         sampler_tb_dict = sampler_tb_dict[0]
         all_samples = concate(samples)
-        # 更新
-
-        grads, alg_tb_dict = ray.get(self.alg.compute_gradient.remote(all_samples))
-        self.networks.update(grads, self.iteration)
-
-        weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
-        for sampler in self.samplers:  # 对每个完成的sampler，
-            sampler.load_state_dict.remote(weights)  # 同步sampler的参数
-        self.alg.load_state_dict.remote(weights)  # 更新learner参数
-        self.iteration += 1
+        for _ in range(self.num_epoch):
+            weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
+            self.alg.load_state_dict.remote(weights)  # 更新learner参数
+            grads, alg_tb_dict = ray.get(self.alg.compute_gradient.remote(all_samples))
+            self.networks.update(grads, self.iteration)
+            self.iteration += 1
 
         # log
         if self.iteration % self.log_save_interval == 0:

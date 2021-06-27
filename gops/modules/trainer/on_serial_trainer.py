@@ -41,7 +41,7 @@ class OnSerialTrainer():
         self.max_iteration = kwargs.get('max_iteration')
         self.batch_size = kwargs['sample_batch_size']
         self.ini_network_dir = kwargs['ini_network_dir']
-
+        self.num_epoch = kwargs['num_epoch']
 
         # initialize the networks
         if self.ini_network_dir is not None:
@@ -63,13 +63,15 @@ class OnSerialTrainer():
         # sampling
         self.sampler.networks.load_state_dict(self.networks.state_dict())
         samples_with_replay_format, sampler_tb_dict = self.sampler.sample_with_replay_format()
+        alg_tb_dict = {}
+        for _ in range(self.num_epoch):
+            # learning
+            self.alg.networks.load_state_dict(self.networks.state_dict())
+            grads, alg_tb_dict = self.alg.compute_gradient(samples_with_replay_format)
 
-        # learning
-        self.alg.networks.load_state_dict(self.networks.state_dict())
-        grads, alg_tb_dict = self.alg.compute_gradient(samples_with_replay_format)
-
-        # apply grad
-        self.networks.update(grads, self.iteration)
+            # apply grad
+            self.networks.update(grads, self.iteration)
+            self.iteration += 1
 
         # log
         if self.iteration % self.log_save_interval == 0:
@@ -95,11 +97,9 @@ class OnSerialTrainer():
             torch.save(self.networks.state_dict(),
                        self.save_folder + '/apprfunc/apprfunc_{}.pkl'.format(self.iteration))
 
+
     def train(self):
         while self.iteration < self.max_iteration:
             self.step()
-            self.iteration += 1
 
         self.writer.flush()
-
-

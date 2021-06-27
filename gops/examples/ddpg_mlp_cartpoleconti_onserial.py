@@ -97,7 +97,7 @@ if __name__ == "__main__":
     parser.add_argument('--ini_network_dir', type=str, default=None)
     # 4.1. Parameters for on_serial_trainer
     if trainer_type == 'on_serial_trainer':
-        pass
+        parser.add_argument('--num_epoch', type=int, default=1)
     else:
         raise ValueError
 
