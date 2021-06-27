@@ -57,7 +57,7 @@ class McSampler():
         for _ in range(self.sample_batch_size):
             batch_obs = torch.from_numpy(np.expand_dims(self.obs, axis=0).astype('float32'))
             if self.action_type == 'continu':
-                logits = self.networks.policy(batch_obs)
+                logits = self.networks.policy(batch_obs)#what is this?
             else:
                 logits = self.networks.policy.q(batch_obs)
 
