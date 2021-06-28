@@ -28,11 +28,11 @@ def env_creator(**kwargs):
         raise ModuleNotFoundError("Warning: Box2d or Swig are not installed")
 
 
-e = env_creator()
-
-s = e.reset()
-print(type(s))
-for i in range(1):
-    s, r, d, _ = e.step(e.action_space.sample())
-    e.render()
-    print(type(s))
+# e = env_creator()
+#
+# s = e.reset()
+# print(type(s))
+# for i in range(1):
+#     s, r, d, _ = e.step(e.action_space.sample())
+#     e.render()
+#     print(type(s))
