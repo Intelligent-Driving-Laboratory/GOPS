@@ -22,17 +22,24 @@ def env_creator(**kwargs):
         env_obj = FrameStack(env_obj, 4)
         f = lambda x: np.transpose(x, [1, 2, 0])
         env_obj = TransformObservation(env_obj, f)
-        env_obj.observation_space = Box(low=0, high=255, shape=(96, 96, 4), dtype=np.uint8)
+        color_center = 255 / 2
+        f_norm = lambda x: (x - color_center) / color_center
+
+        env_obj = TransformObservation(env_obj, f_norm)
+
+        env_obj.observation_space = Box(low=-1, high=1, shape=(96, 96, 4), dtype=np.uint8)
+
         return env_obj
     except AttributeError:
         raise ModuleNotFoundError("Warning: Box2d or Swig are not installed")
 
 
-# e = env_creator()
-#
-# s = e.reset()
-# print(type(s))
-# for i in range(1):
-#     s, r, d, _ = e.step(e.action_space.sample())
-#     e.render()
-#     print(type(s))
+if __name__ == '__main__':
+    e = env_creator()
+
+    s = e.reset()
+    print(type(s))
+    for i in range(1):
+        s, r, d, _ = e.step(e.action_space.sample())
+        e.render()
+        print(np.max(s), np.min(s))
