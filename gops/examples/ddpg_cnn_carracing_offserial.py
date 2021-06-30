@@ -104,7 +104,7 @@ if __name__ == "__main__":
                              'on_sync_trainer'
                              'off_serial_trainer'
                              'off_async_trainer')
-    parser.add_argument('--max_iteration', type=int, default=5000,
+    parser.add_argument('--max_iteration', type=int, default=500000,
                         help='Maximum iteration number')
     trainer_type = parser.parse_args().trainer
     parser.add_argument('--ini_network_dir', type=str, default=None)
@@ -119,7 +119,7 @@ if __name__ == "__main__":
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
         parser.add_argument('--buffer_warm_size', type=int, default=512,
                             help='Size of collected samples before training')
-        parser.add_argument('--buffer_max_size', type=int, default=10000,
+        parser.add_argument('--buffer_max_size', type=int, default=50000,
                             help='Max size of buffer')
         parser.add_argument('--replay_batch_size', type=int, default=128,
                             help='Batch size of replay samples from buffer')

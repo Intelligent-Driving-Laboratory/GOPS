@@ -17,7 +17,7 @@ from modules.utils.utils import get_activation_func
 
 def CNN(kernel_sizes, channels, strides, activation, input_channel):
     layers = []
-    for j in range(len(kernel_sizes) - 1):
+    for j in range(len(kernel_sizes)):
         act = activation
         if j == 0:
             layers += [nn.Conv2d(input_channel, channels[j], kernel_sizes[j], strides[j]), act()]
@@ -64,7 +64,7 @@ class DetermPolicy(nn.Module):
             conv_strides = [2, 2, 2, 2, 1, 1]
             conv_activation = nn.ReLU
             conv_input_channel = obs_dim[-1]
-            mlp_hidden_layers = [256, 100]
+            mlp_hidden_layers = [128]
 
 
             # Construct CNN+MLP
@@ -101,6 +101,9 @@ class StochaPolicy(nn.Module):
         self.action_low_limit = torch.from_numpy(action_low_limit)
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
+        self.min_log_std = kwargs['min_log_std']
+        self.max_log_std = kwargs['max_log_std']
+
         if conv_type == "type_1":
             # CNN+MLP Parameters
             conv_kernel_sizes = [8, 4, 3]
@@ -129,7 +132,7 @@ class StochaPolicy(nn.Module):
             conv_strides = [2, 2, 2, 2, 1, 1]
             conv_activation = nn.ReLU
             conv_input_channel = obs_dim[-1]
-            mlp_hidden_layers = [256, 100]
+            mlp_hidden_layers = [128]
 
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
@@ -140,7 +143,7 @@ class StochaPolicy(nn.Module):
                 act = nn.ReLU if j < len(mlp_sizes) - 2 else nn.Identity
                 layers += [nn.Linear(mlp_sizes[j], mlp_sizes[j + 1]), act()]
             self.mean = nn.Sequential(*(layers))
-            self.std = nn.Sequential(*(layers))
+            self.log_std = nn.Sequential(*(layers))
         else:
             raise NotImplementedError
 
@@ -148,9 +151,10 @@ class StochaPolicy(nn.Module):
         img = obs.permute(0, 3, 1, 2)
         img = self.conv(img)
         feature = img.view(img.size(0), -1)
-        action_mean = (self.action_high_limit - self.action_low_limit) / 2 * torch.tanh(self.mean(obs)) \
+        action_mean = (self.action_high_limit - self.action_low_limit) / 2 * torch.tanh(self.mean(feature)) \
                       + (self.action_high_limit + self.action_low_limit) / 2
-        return torch.cat([action_mean, torch.exp(self.std(feature))], -1)
+        action_std = torch.clamp(self.log_std(feature), self.min_log_std, self.max_log_std).exp()
+        return torch.cat((action_mean, action_std), dim=-1)
 
 
 class ActionValue(nn.Module):
@@ -191,7 +195,7 @@ class ActionValue(nn.Module):
             conv_strides = [2, 2, 2, 2, 1, 1]
             conv_activation = nn.ReLU
             conv_input_channel = obs_dim[-1]
-            mlp_hidden_layers = [256, 100]
+            mlp_hidden_layers = [128]
 
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
@@ -250,7 +254,7 @@ class ActionValueDis(nn.Module):
             conv_strides = [2, 2, 2, 2, 1, 1]
             conv_activation = nn.ReLU
             conv_input_channel = obs_dim[-1]
-            mlp_hidden_layers = [256, 100]
+            mlp_hidden_layers = [128]
 
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
@@ -276,7 +280,6 @@ class ActionValueDis(nn.Module):
 class StateValue(nn.Module):
     def __init__(self, **kwargs):
         super(StateValue, self).__init__()
-        act_dim = kwargs['act_dim']
         obs_dim = kwargs['obs_dim']
         conv_type = kwargs['conv_type']
         action_high_limit = kwargs['action_high_limit']
@@ -311,7 +314,7 @@ class StateValue(nn.Module):
             conv_strides = [2, 2, 2, 2, 1, 1]
             conv_activation = nn.ReLU
             conv_input_channel = obs_dim[-1]
-            mlp_hidden_layers = [256, 100]
+            mlp_hidden_layers = [128]
 
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
@@ -325,7 +328,7 @@ class StateValue(nn.Module):
         else:
             raise NotImplementedError
 
-    def forward(self, obs, act):
+    def forward(self, obs):
         img = obs.permute(0, 3, 1, 2)
         img = self.conv(img)
         feature = img.view(img.size(0), -1)

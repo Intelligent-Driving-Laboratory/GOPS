@@ -64,7 +64,7 @@ class McSampler():
             action_distribution = self.action_distirbution_cls(logits)
             action = action_distribution.sample().detach()[0]
             if hasattr(action_distribution, 'log_prob'):
-                logp = action_distribution.log_prob(action).detach().numpy()[0]
+                logp = action_distribution.log_prob(action).detach().numpy()[0].sum()
             else:
                 logp = 0.
             action = action.numpy()
