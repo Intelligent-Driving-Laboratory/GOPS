@@ -33,43 +33,33 @@ def get_activation_func(key: str):
 
 
 def get_apprfunc_dict(key: str, type: str, **kwargs):
+    var = dict()
+    var['apprfunc'] = kwargs[key + '_func_type']
+    var['name'] = kwargs[key + '_func_name']
+    var['obs_dim'] = kwargs['obsv_dim']
+    var['min_log_std'] = kwargs.get(key + '_min_log_std', float('-inf'))
+    var['max_log_std'] = kwargs.get(key + '_max_log_std', float('inf'))
+
+
     if type == 'MLP':
-        var = {'apprfunc': kwargs[key + '_func_type'],
-               'name': kwargs[key + '_func_name'],
-               'hidden_sizes': kwargs[key + '_hidden_sizes'],
-               'hidden_activation': kwargs[key + '_hidden_activation'],
-               'output_activation': kwargs[key + '_output_activation'],
-               'obs_dim': kwargs['obsv_dim'],
-               'act_dim': kwargs['action_dim'],
-               'action_high_limit': kwargs['action_high_limit'],
-               'action_low_limit': kwargs['action_low_limit'],
-               'min_log_std': kwargs.get(key + '_min_log_std', float('-inf')),
-               'max_log_std': kwargs.get(key + '_max_log_std', float('inf'))
-               }
+        var['hidden_sizes'] = kwargs[key + '_hidden_sizes']
+        var['hidden_activation'] = kwargs[key + '_hidden_activation']
+        var['output_activation'] = kwargs[key + '_output_activation']
     elif type == 'GAUSS':
-        var = {'apprfunc': kwargs[key + '_func_type'],
-               'name': kwargs[key + '_func_name'],
-               'num_kernel': kwargs[key + '_num_kernel'],
-               'obs_dim': kwargs['obsv_dim'],
-               'act_dim': kwargs['action_dim'],
-               'action_high_limit': kwargs['action_high_limit'],
-               'action_low_limit': kwargs['action_low_limit']
-               }
+        var['num_kernel'] = kwargs[key + '_num_kernel']
     elif type == 'CNN':
-        var = {'apprfunc': kwargs[key + '_func_type'],
-               'name': kwargs[key + '_func_name'],
-               'hidden_activation': kwargs[key + '_hidden_activation'],
-               'output_activation': kwargs[key + '_output_activation'],
-               'conv_type' : kwargs[key + '_conv_type'],
-               'obs_dim': kwargs['obsv_dim'],
-               'act_dim': kwargs['action_dim'],
-               'action_high_limit': kwargs['action_high_limit'],
-               'action_low_limit': kwargs['action_low_limit'],
-               'min_log_std': kwargs.get(key + '_min_log_std', float('-inf')),
-               'max_log_std': kwargs.get(key + '_max_log_std', float('inf'))
-               }
+        var['hidden_activation'] = kwargs[key + '_hidden_activation']
+        var['output_activation'] = kwargs[key + '_output_activation']
+        var['conv_type'] = kwargs[key + '_conv_type']
     else:
         raise NotImplementedError
+
+    if kwargs['action_type'] == 'continu':
+        var['action_high_limit'] = kwargs['action_high_limit']
+        var['action_low_limit'] = kwargs['action_low_limit']
+        var['act_dim'] = kwargs['action_dim']
+    else:
+        var['action_num'] = kwargs['action_num']
 
     return var
 

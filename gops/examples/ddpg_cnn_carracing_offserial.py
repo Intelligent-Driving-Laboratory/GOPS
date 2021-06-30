@@ -44,7 +44,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_high_limit', type=list, default=None)
     parser.add_argument('--action_low_limit', type=list, default=None)
     parser.add_argument('--action_type', type=str, default='continu', help='Options: continu/discret')
-    parser.add_argument('--is_render', type=bool, default=False, help='Draw environment animation')
+    parser.add_argument('--is_render', type=bool, default=True, help='Draw environment animation')
 
     ################################################
     # 2.1 Parameters of value approximate function
@@ -119,7 +119,7 @@ if __name__ == "__main__":
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
         parser.add_argument('--buffer_warm_size', type=int, default=512,
                             help='Size of collected samples before training')
-        parser.add_argument('--buffer_max_size', type=int, default=50000,
+        parser.add_argument('--buffer_max_size', type=int, default=30000,
                             help='Max size of buffer')
         parser.add_argument('--replay_batch_size', type=int, default=128,
                             help='Batch size of replay samples from buffer')

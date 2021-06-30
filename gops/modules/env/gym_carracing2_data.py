@@ -30,6 +30,7 @@ def env_creator(**kwargs):
         env_obj.observation_space = Box(low=-1, high=1, shape=(96, 96, 4), dtype=np.uint8)
 
         return env_obj
+
     except AttributeError:
         raise ModuleNotFoundError("Warning: Box2d or Swig are not installed")
 
