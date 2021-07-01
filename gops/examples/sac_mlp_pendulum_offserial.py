@@ -1,15 +1,8 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
-#
-#  Creator: Hao SUN
-#  Description: gym environment, continuous action, cart pole
-#  Update Date: 2020-11-10, Hao SUN: renew env para
-#  Update Date: 2020-11-13, Hao SUN：add new ddpg demo
-#  Update Date: 2020-12-11, Hao SUN：move buffer to trainer
-#  Update Date: 2020-12-12, Hao SUN：move create_* files to create_pkg
-#  Update Date: 2021-01-01, Hao SUN：chang name
-
-
+#  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: Yang Yujie
 
 import argparse
 import os
@@ -27,73 +20,77 @@ from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
 
 os.environ["OMP_NUM_THREADS"] = "1"
 
-
 if __name__ == "__main__":
     # Parameters Setup
     parser = argparse.ArgumentParser()
 
     ################################################
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='simu_vehicle3dofconti')
-    parser.add_argument('--algorithm', type=str, default='DDPG')
-
+    parser.add_argument('--env_id', type=str, default='gym_pendulum')
+    parser.add_argument('--algorithm', type=str, default='SAC')
 
     ################################################
     # 1. Parameters for environment
-    parser.add_argument('--obsv_dim', type=int, default=None, help='dim(State)')
-    parser.add_argument('--action_dim', type=int, default=None, help='dim(Action)')
+    parser.add_argument('--obsv_dim', type=int, default=None) # dim(State)
+    parser.add_argument('--action_dim', type=int, default=None) # dim(Action)
     parser.add_argument('--action_high_limit', type=list, default=None)
     parser.add_argument('--action_low_limit', type=list, default=None)
-    parser.add_argument('--action_type', type=str, default='continu', help='Options: continu/discret')
-    parser.add_argument('--is_render', type=bool, default=False, help='Draw environment animation')
+    parser.add_argument('--action_type', type=str, default='continu') # Options: continu/discret
+    parser.add_argument('--is_render', type=bool, default=False) # Draw environment animation
     parser.add_argument('--is_adversary', type=bool, default=False, help='Adversary training')
+
     ################################################
     # 2.1 Parameters of value approximate function
     # Options: StateValue/ActionValue/ActionValueDis
-    parser.add_argument('--value_func_name', type=str, default='ActionValue')
+    parser.add_argument('--value_func_name', type=str, default='StateValue')
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--value_func_type', type=str, default='MLP')
     value_func_type = parser.parse_args().value_func_type
     ### 2.1.1 MLP, CNN, RNN
     if value_func_type == 'MLP':
-        parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256, 128])
+        parser.add_argument('--value_hidden_sizes', type=list, default=[128, 128])
         # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
         parser.add_argument('--value_hidden_activation', type=str, default='relu')
         # Output Layer: linear
         parser.add_argument('--value_output_activation', type=str, default='linear')
-    ### 2.1.2 Polynominal
-    if value_func_type == 'POLY':
-        pass
-    ### 2.1.3 Gauss Radical Func
-    if value_func_type == 'GAUSS':
-        parser.add_argument('--value_num_kernel', type=int, default=30)
+
+    parser.add_argument('--q_func_name', type=str, default='ActionValue')
+    # Options: MLP/CNN/RNN/POLY/GAUSS
+    parser.add_argument('--q_func_type', type=str, default='MLP')
+    value_func_type = parser.parse_args().value_func_type
+    ### 2.1.1 MLP, CNN, RNN
+    if value_func_type == 'MLP':
+        parser.add_argument('--q_hidden_sizes', type=list, default=[128, 128])
+        # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
+        parser.add_argument('--q_hidden_activation', type=str, default='relu')
+        # Output Layer: linear
+        parser.add_argument('--q_output_activation', type=str, default='linear')
 
     # 2.2 Parameters of policy approximate function
     # Options: None/DetermPolicy/StochaPolicy
-    parser.add_argument('--policy_func_name', type=str, default='DetermPolicy')
+    parser.add_argument('--policy_func_name', type=str, default='StochaPolicy')
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--policy_func_type', type=str, default='MLP')
     policy_func_type = parser.parse_args().policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == 'MLP':
-        parser.add_argument('--policy_hidden_sizes', type=list, default=[256, 256])
+        parser.add_argument('--policy_hidden_sizes', type=list, default=[128, 128])
         # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
         parser.add_argument('--policy_hidden_activation', type=str, default='relu')
         # Output Layer: tanh
-        parser.add_argument('--policy_output_activation', type=str, default='tanh')
-    ### 2.2.2 Polynominal
-    if policy_func_type == 'POLY':
-        pass
-    ### 2.2.3 Gauss Radical Func
-    if policy_func_type == 'GAUSS':
-        parser.add_argument('--policy_num_kernel', type=int, default=35)
+        parser.add_argument('--policy_output_activation', type=str, default='linear')
+    parser.add_argument('--policy_min_log_std', type=int, default=-20)
+    parser.add_argument('--policy_max_log_std', type=int, default=2)
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument('--gamma', type=float, default=0.98)
+    parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--tau', type=float, default=0.005)
-    parser.add_argument('--value_learning_rate', type=float, default=1e-4)
-    parser.add_argument('--policy_learning_rate', type=float, default=1e-5)
+    parser.add_argument('--alpha', type=float, default=1)
+    parser.add_argument('--value_learning_rate', type=float, default=3e-4)
+    parser.add_argument('--q_learning_rate', type=float, default=3e-4)
+    parser.add_argument('--policy_learning_rate', type=float, default=3e-4)
+    parser.add_argument('--alpha_learning_rate', type=float, default=3e-4)
     parser.add_argument('--delay_update', type=int, default=1, help='')
     # Reward = reward_scale * environment.Reward
     parser.add_argument('--reward_scale', type=float, default=1)
@@ -103,36 +100,29 @@ if __name__ == "__main__":
     # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
     parser.add_argument('--trainer', type=str, default='off_serial_trainer')
     # Maximum iteration number
-    parser.add_argument('--max_iteration', type=int, default=5000)
+    parser.add_argument('--max_iteration', type=int, default=10000)
     trainer_type = parser.parse_args().trainer
     parser.add_argument('--ini_network_dir', type=str, default=None)
-    # 4.1. Parameters for on_serial_trainer
-    if trainer_type == 'on_serial_trainer':
-        pass
-    # 4.2. Parameters for on_sync_trainer
-    if trainer_type == 'on_sync_trainer':
-        pass
     # 4.3. Parameters for off_serial_trainer
     if trainer_type == 'off_serial_trainer':
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
         # Size of collected samples before training
         parser.add_argument('--buffer_warm_size', type=int, default=1000)
         # Max size of reply buffer
-        parser.add_argument('--buffer_max_size', type=int, default=100000)
+        parser.add_argument('--buffer_max_size', type=int, default=int(1e5))
         # Batch size of replay samples from buffer
-        parser.add_argument('--replay_batch_size', type=int, default=1024)
+        parser.add_argument('--replay_batch_size', type=int, default=256)
         # Period of sync central policy of each sampler
         parser.add_argument('--sampler_sync_interval', type=int, default=1)
-
     ################################################
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='mc_sampler')
     # Batch size of sampler for buffer store
-    parser.add_argument('--sample_batch_size', type=int, default=256)
+    parser.add_argument('--sample_batch_size', type=int, default=5)
     # Add noise to actions for better exploration
     parser.add_argument('--noise_params', type=dict,
-                        default={'mean': np.array([0, 0, 0], dtype=np.float32),
-                                 'std': 0.1*np.array([1.5, 3000, 3000], dtype=np.float32)})
+                        default={'mean': np.array([0], dtype=np.float32),
+                                 'std': np.array([0], dtype=np.float32)})
 
     ################################################
     # 7. Parameters for evaluator

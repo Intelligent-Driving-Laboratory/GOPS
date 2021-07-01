@@ -10,7 +10,7 @@
 import gym
 
 
-def env_creator():
+def env_creator(**kwargs):
     try:
         return gym.make('BipedalWalkerHardcore-v3')
     except AttributeError:

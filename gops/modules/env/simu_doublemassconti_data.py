@@ -24,19 +24,19 @@ class SimuDoublemassconti(gym.Env):
         else:
             if adv_action is None:
                 raise ValueError('Adversary training setting is wrong')
-        state, isdone, reward = self._step_physics({'Action': action, 'AdverAction': adv_action})
+        state, isdone, reward = self._step_physics({'Action': action.astype(np.float64), 'AdverAction': adv_action.astype(np.float64)})
         self.cstep += 1
-        isdone += self.cstep>1000
-        return state, reward, isdone, {}
+        info = {'TimeLimit.truncated': self.cstep > 1000}
+        return state, reward, isdone, info
 
     def reset(self):
         self._physics.terminate()
         self._physics = doublemass.model_wrapper()
 
         # randomized initiate
-        state = np.random.uniform(low=[-1,-0.5,1,-0.5], high=[1, 0.5, 2, 0.5], size=(4,))
+        state = np.random.uniform(low=[-1,-0.5,1,-0.5], high=[1, 0.5, 2, 0.5])
         param = self._physics.get_param()
-        param.update(list(zip(('x_ini'), state.tolist())))
+        param.update(list(zip(('x_ini'), state)))
         self._physics.set_param(param)
         self._physics.initialize()
         self.cstep = 0

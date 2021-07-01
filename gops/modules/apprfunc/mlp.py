@@ -62,21 +62,24 @@ class StochaPolicy(nn.Module):
         hidden_sizes = kwargs['hidden_sizes']
         action_high_limit = kwargs['action_high_limit']
         action_low_limit = kwargs['action_low_limit']
+        self.min_log_std = kwargs['min_log_std']
+        self.max_log_std = kwargs['max_log_std']
 
         pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim]
         self.mean = mlp(pi_sizes,
                         get_activation_func(kwargs['hidden_activation']),
                         get_activation_func(kwargs['output_activation']))
-        self.std = mlp(pi_sizes,
-                       get_activation_func(kwargs['hidden_activation']),
-                       get_activation_func(kwargs['output_activation']))
+        self.log_std = mlp(pi_sizes,
+                           get_activation_func(kwargs['hidden_activation']),
+                           get_activation_func(kwargs['output_activation']))
         self.action_high_limit = torch.from_numpy(action_high_limit)
         self.action_low_limit = torch.from_numpy(action_low_limit)
 
     def forward(self, obs):
         action_mean = (self.action_high_limit - self.action_low_limit) / 2 * torch.tanh(self.mean(obs)) \
-                 + (self.action_high_limit + self.action_low_limit) / 2
-        return action_mean, torch.exp(self.std(obs))
+                      + (self.action_high_limit + self.action_low_limit) / 2
+        action_std = torch.clamp(self.log_std(obs), self.min_log_std, self.max_log_std).exp()
+        return torch.cat((action_mean, action_std), dim=-1)
 
 
 class ActionValue(nn.Module):

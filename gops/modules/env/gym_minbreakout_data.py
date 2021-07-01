@@ -31,6 +31,6 @@ class _Minbreakout(Env):
         self.env.display_state(20)
 
 
-def env_creator():
+def env_creator(**kwargs):
     e = _Minbreakout()
     return TimeLimit(e, 100)
