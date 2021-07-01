@@ -59,7 +59,7 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
         var['action_low_limit'] = kwargs['action_low_limit']
         var['act_dim'] = kwargs['action_dim']
     else:
-        var['action_num'] = kwargs['action_num']
+        var['act_num'] = kwargs['action_num']
 
     return var
 
