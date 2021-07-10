@@ -34,6 +34,7 @@ class Evaluator():
         self.action_type = kwargs['action_type']
         self.policy_func_name = kwargs['policy_func_name']
         self.save_folder = kwargs['save_folder']
+        self.eval_save = kwargs.get('eval_save', True)
 
         if self.action_type == 'continu':
             if self.policy_func_name == 'StochaPolicy':
@@ -74,7 +75,7 @@ class Evaluator():
                 self.env.render()
             reward_list.append(reward)
         eval_dict = {'reward_list': reward_list, 'action_list': action_list, 'obs_list': obs_list}
-        if True:
+        if self.eval_save:
             np.save(self.save_folder + '/evaluator/iteration{}_episode{}'.format(iteration, self.print_time), eval_dict)
         episode_return = sum(reward_list)
         return episode_return
