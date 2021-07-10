@@ -219,7 +219,7 @@ class ActionValue(nn.Module):
 class ActionValueDis(nn.Module):
     def __init__(self, **kwargs):
         super(ActionValueDis, self).__init__()
-        act_dim = kwargs['act_dim']
+        act_num = kwargs['act_dim']
         obs_dim = kwargs['obs_dim']
         conv_type = kwargs['conv_type']
         action_high_limit = kwargs['action_high_limit']
@@ -240,7 +240,7 @@ class ActionValueDis(nn.Module):
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
             conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
-            mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
+            mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_num]
             layers = []
             for j in range(len(mlp_sizes) - 1):
                 act = nn.ReLU if j < len(mlp_sizes) - 2 else nn.Identity
@@ -259,7 +259,7 @@ class ActionValueDis(nn.Module):
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
             conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
-            mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
+            mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_num]
             layers = []
             for j in range(len(mlp_sizes) - 1):
                 act = nn.ReLU if j < len(mlp_sizes) - 2 else nn.Identity
@@ -275,8 +275,10 @@ class ActionValueDis(nn.Module):
         return self.mlp(feature)
 
 
-#
-#
+class StochaPolicyDis(ActionValueDis):
+    pass
+
+
 class StateValue(nn.Module):
     def __init__(self, **kwargs):
         super(StateValue, self).__init__()
