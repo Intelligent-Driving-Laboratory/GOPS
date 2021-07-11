@@ -16,7 +16,7 @@ import numpy as np
 import torch
 from modules.create_pkg.create_env import create_env
 
-from modules.utils.action_distributions import GaussDistribution, DiracDistribution, ValueDiracDistribution
+from modules.utils.action_distributions import GaussDistribution, DiracDistribution, ValueDiracDistribution, CategoricalDistribution
 
 
 class Evaluator():
@@ -42,7 +42,10 @@ class Evaluator():
             elif self.policy_func_name == 'DetermPolicy':
                 self.action_distirbution_cls = DiracDistribution
         elif self.action_type == 'discret':
-            self.action_distirbution_cls = ValueDiracDistribution
+            if self.policy_func_name == 'StochaPolicyDis':
+                self.action_distirbution_cls = CategoricalDistribution
+            elif self.policy_func_name == 'DetermPolicyDis':
+                self.action_distirbution_cls = ValueDiracDistribution
         self.print_time = 0
         self.print_iteration = -1
 

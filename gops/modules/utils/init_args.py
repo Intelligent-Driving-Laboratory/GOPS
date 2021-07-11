@@ -15,6 +15,7 @@ def init_args(env, **args):
         args['action_low_limit'] = env.action_space.low
     else:
         args['action_num'] = env.action_space.n
+        args['noise_params']['action_num'] = args['action_num']
 
     # Create save arguments
     if args['save_folder'] is None:
