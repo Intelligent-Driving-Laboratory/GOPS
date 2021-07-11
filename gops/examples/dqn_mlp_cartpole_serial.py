@@ -1,23 +1,14 @@
-#   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+#  Creator: Yuxuan JIANG
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Author: Sun Hao
 #  Description: gym environment, discrete action, cart pole, dqn
 #  Update Date: 2021-01-03, Yuxuan JIANG & Guojian ZHAN : implement DQN
-
+#  Update Date: 2021-07-11, Yuxuan JIANG : adapt to new trainer interface
 
 import argparse
-import copy
-import datetime
-import json
-import os
-
-import numpy as np
 
 from modules.create_pkg.create_alg import create_alg
 from modules.create_pkg.create_buffer import create_buffer
@@ -25,81 +16,105 @@ from modules.create_pkg.create_env import create_env
 from modules.create_pkg.create_evaluator import create_evaluator
 from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
-from modules.utils.utils import change_type
-from modules.utils.plot import self_plot
-from modules.utils.tensorboard_tools import start_tensorboard, read_tensorboard
+from modules.utils.init_args import init_args
+from modules.utils.plot import plot_all
+from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
 
 
 if __name__ == "__main__":
     # Parameters Setup
     parser = argparse.ArgumentParser()
 
+    ################################################
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='gym_cartpole', help='')
-    parser.add_argument('--apprfunc', type=str, default='MLP', help='')
-    parser.add_argument('--algorithm', type=str, default='DQN', help='')
-    parser.add_argument('--trainer', type=str, default='serial_trainer', help='')
+    parser.add_argument('--env_id', type=str, default='gym_cartpole')
+    parser.add_argument('--algorithm', type=str, default='DQN')
 
+    ################################################
     # 1. Parameters for environment
-    parser.add_argument('--obsv_dim', type=int, default=None, help='')
-    parser.add_argument('--action_dim', type=int, default=1, help='')
+    parser.add_argument('--obsv_dim', type=int, default=None) # dim(State)
+    parser.add_argument('--action_dim', type=int, default=1) # dim(Action)
     parser.add_argument('--action_num', type=int, default=None, help='Num of discrete actions (similar to gym.spaces.Discrete)')
-    parser.add_argument('--action_type', type=str, default='disc', choices=['disc', 'conti'], help='')
-    parser.add_argument('--is_render', type=bool, default=False)
+    parser.add_argument('--action_type', type=str, default='discret') # Options: continu/discret
+    parser.add_argument('--is_render', type=bool, default=False) # Draw environment animation
 
-    # 2. Parameters for approximate function
-    parser.add_argument('--value_func_name', type=str, default='ActionValueDis', help='')
-    parser.add_argument('--value_func_type', type=str, default=parser.parse_args().apprfunc, help='')
-    parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256])
-    parser.add_argument('--value_hidden_activation', type=str, default='relu', help='')
-    parser.add_argument('--value_output_activation', type=str, default='linear', help='')
+    ################################################
+    # 2.1 Parameters of value approximate function
+    # Options: StateValue/ActionValue/ActionValueDis
+    parser.add_argument('--value_func_name', type=str, default='ActionValueDis')
+    # Options: MLP/CNN/RNN/POLY/GAUSS
+    parser.add_argument('--value_func_type', type=str, default='MLP')
+    value_func_type = parser.parse_args().value_func_type
+    ### 2.1.1 MLP, CNN, RNN
+    if value_func_type == 'MLP':
+        parser.add_argument('--value_hidden_sizes', type=list, default=[32, 32])
+        # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
+        parser.add_argument('--value_hidden_activation', type=str, default='relu')
+        # Output Layer: linear
+        parser.add_argument('--value_output_activation', type=str, default='linear')
+    ### 2.1.2 Polynominal
+    if value_func_type == 'POLY':
+        pass
+    ### 2.1.3 Gauss Radical Func
+    if value_func_type == 'GAUSS':
+        parser.add_argument('--value_num_kernel', type=int, default=30)
+    
+    parser.add_argument('--policy_func_name', type=str, default='DetermPolicyDis')  # Implicit policy
 
-    # 3. Parameters for algorithm
+    ################################################
+    # 3. Parameters for RL algorithm
     parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--tau', type=float, default=0.01, help='')
-    parser.add_argument('--learning_rate', type=float, default=1e-4, help='')
-    parser.add_argument('--distribution_type', type=str, default='ValueDirac')
+    parser.add_argument('--tau', type=float, default=0.01)
+    parser.add_argument('--learning_rate', type=float, default=1e-4)
 
+    ################################################
     # 4. Parameters for trainer
-    parser.add_argument('--max_iteration', type=int, default=1000, help='')
-    # Parameters for sampler
-    parser.add_argument('--sample_batch_size', type=int, default=256, help='')
+    # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
+    parser.add_argument('--trainer', type=str, default='off_serial_trainer')
+    # Maximum iteration number
+    parser.add_argument('--max_iteration', type=int, default=5000*10)
+    parser.add_argument('--num_epoch', type=int, default=1)
+    trainer_type = parser.parse_args().trainer
+    parser.add_argument('--ini_network_dir', type=str, default=None)
+    # 4.3. Parameters for off_serial_trainer
+    if trainer_type == 'off_serial_trainer':
+        parser.add_argument('--buffer_name', type=str, default='replay_buffer')
+        # Size of collected samples before training
+        parser.add_argument('--buffer_warm_size', type=int, default=1000)
+        # Max size of reply buffer
+        parser.add_argument('--buffer_max_size', type=int, default=100000)
+        # Batch size of replay samples from buffer
+        parser.add_argument('--replay_batch_size', type=int, default=1024)
+        # Period of sync central policy of each sampler
+        parser.add_argument('--sampler_sync_interval', type=int, default=1)
+    
+    ################################################
+    # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='mc_sampler')
-    parser.add_argument('--noise_params', type=dict, default=None, help='')
-    parser.add_argument('--reward_scale', type=float, default=0.1, help='')
-    parser.add_argument('--batch_size', type=int, default=256, help='')
-    parser.add_argument('--sample_sync_interval', type=int, default=1, help='')
-    # Parameters for buffer
-    parser.add_argument('--buffer_name', type=str, default='replay_buffer')
-    parser.add_argument('--buffer_warm_size', type=int, default=1000)
-    parser.add_argument('--buffer_max_size', type=int, default=100000)
-    # Parameters for evaluator
-    parser.add_argument('--evaluator_name', type=str, default='evaluator')
-    parser.add_argument('--num_eval_episode', type=int, default=10)
-    # Data savings
-    parser.add_argument('--save_folder', type=str, default=None)
-    parser.add_argument('--apprfunc_save_interval', type=int, default=1000)
-    parser.add_argument('--log_save_interval', type=int, default=50)  # reward?
+    # Batch size of sampler for buffer store
+    parser.add_argument('--sample_batch_size', type=int, default=16)
+    # Add noise to actions for better exploration
+    parser.add_argument('--noise_params', type=dict,
+                        default={'epsilon': 0.1})
 
-    # get parameter dict
+    ################################################
+    # 7. Parameters for evaluator
+    parser.add_argument('--evaluator_name', type=str, default='evaluator')
+    parser.add_argument('--num_eval_episode', type=int, default=5)
+    parser.add_argument('--eval_interval', type=int, default=100)
+
+    ################################################
+    # 8. Data savings
+    parser.add_argument('--save_folder', type=str, default=None)
+    # Save value/policy every N updates
+    parser.add_argument('--apprfunc_save_interval', type=int, default=500)
+    # Save key info every N updates
+    parser.add_argument('--log_save_interval', type=int, default=100)
+
+    # Get parameter dictionary
     args = vars(parser.parse_args())
     env = create_env(**args)
-    args['obsv_dim'] = env.observation_space.shape[0]
-    args['action_num'] = env.action_space.n
-    if args['noise_params'] is None:
-        args['noise_params'] = {
-            'action_num': args['action_num'],
-            'epsilon': 0.1  # TODO: make configurable
-        }
-
-    # create save arguments
-    if args['save_folder'] is None:
-        args['save_folder'] = os.path.join('../results/' +
-                                           parser.parse_args().algorithm, datetime.datetime.now().strftime("%m%d-%H%M%S"))
-    os.makedirs(args['save_folder'], exist_ok=True)
-    os.makedirs(args['save_folder'] + '/apprfunc', exist_ok=True)
-    with open(args['save_folder'] + '/config.json', 'w', encoding='utf-8') as f:
-        json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
+    args = init_args(env, **args)
 
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
@@ -113,12 +128,10 @@ if __name__ == "__main__":
     # Step 5: create trainer
     trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
 
-    # start training
+    # Start training ... ...
     trainer.train()
+    print('Training is finished!')
 
-    # plot and save training curve
-    data = read_tensorboard(args['save_folder'])
-    self_plot(data['Performance/total_average_return'],
-              os.path.join(args['save_folder'], "total_average_return.tiff"),
-              xlabel='Iteration Steps',
-              ylabel="Total Average Return")
+    # Plot and save training figures
+    plot_all(args['save_folder'])
+    save_tb_to_csv(args['save_folder'])
