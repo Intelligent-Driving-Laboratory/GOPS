@@ -101,7 +101,7 @@ class OffAsyncTrainer():
         for alg in self.algs:
             alg.load_state_dict.remote(weights)  # 每个learner同步参数
             buffer, _ = random_choice_with_index(self.buffers)  # 随机选择一个buffer从中采样
-            data = ray.get(buffer.sample_batch.remote())  # 得到buffer的采样结果
+            data = ray.get(buffer.sample_batch.remote(self.replay_batch_size))  # 得到buffer的采样结果
             self.learn_tasks.add(alg, alg.compute_gradient.remote(data))  # 用采样结果给learner添加计算梯度的任务
 
     def step(self):
@@ -117,7 +117,7 @@ class OffAsyncTrainer():
         # learning
         for alg, objID in self.learn_tasks.completed():
             grads, alg_tb_dict = ray.get(objID)
-            data = random.choice(self.buffers).sample_batch.remote()
+            data = random.choice(self.buffers).sample_batch.remote(self.replay_batch_size)
             weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
             alg.load_state_dict.remote(weights)  # 更新learner参数
             self.learn_tasks.add(alg, alg.compute_gradient.remote(data))  # 将完成了的learner重新算梯度
