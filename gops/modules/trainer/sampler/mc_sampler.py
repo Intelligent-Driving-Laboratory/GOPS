@@ -12,10 +12,11 @@ import numpy as np
 import torch
 
 from modules.create_pkg.create_env import create_env
-from modules.utils.action_distributions import GaussDistribution, DiracDistribution, ValueDiracDistribution
+from modules.utils.action_distributions import GaussDistribution, DiracDistribution, ValueDiracDistribution, CategoricalDistribution
 from modules.utils.noise import GaussNoise, EpsilonGreedy
 import time
 from modules.utils.tensorboard_tools import tb_tags
+from modules.utils.utils import array_to_scalar
 
 
 class McSampler():
@@ -44,7 +45,10 @@ class McSampler():
                 self.action_distirbution_cls = DiracDistribution
         elif self.action_type == 'discret':
             self.noise_processor = EpsilonGreedy(**self.noise_params)
-            self.action_distirbution_cls = ValueDiracDistribution
+            if self.policy_func_name == 'StochaPolicyDis':
+                self.action_distirbution_cls = CategoricalDistribution
+            elif self.policy_func_name == 'DetermPolicyDis':
+                self.action_distirbution_cls = ValueDiracDistribution
 
     def load_state_dict(self, state_dict):
         self.networks.load_state_dict(state_dict)
@@ -64,13 +68,13 @@ class McSampler():
             action_distribution = self.action_distirbution_cls(logits)
             action = action_distribution.sample().detach()[0]
             if hasattr(action_distribution, 'log_prob'):
-                logp = action_distribution.log_prob(action).detach().numpy()[0].sum()
+                logp = action_distribution.log_prob(action).item()
             else:
                 logp = 0.
             action = action.numpy()
             if self.noise_params is not None:
                 action = self.noise_processor.sample(action)
-
+            action = np.array(action)  # ensure action is an array
             next_obs, reward, self.done, info = self.env.step(action)
             if 'TimeLimit.truncated' not in info.keys():
                 info['TimeLimit.truncated'] = False
@@ -103,9 +107,9 @@ class McSampler():
             obs, act, rew, next_obs, done, logp, time_limited = sample
             obs_tensor[idx] = torch.from_numpy(obs)
             act_tensor[idx] = torch.from_numpy(act)
-            rew_tensor[idx] = torch.tensor(rew)
+            rew_tensor[idx] = torch.tensor(array_to_scalar(rew))
             obs2_tensor[idx] = torch.from_numpy(next_obs)
-            done_tensor[idx] = torch.tensor(done)
+            done_tensor[idx] = torch.tensor(array_to_scalar(done))
             logp_tensor[idx] = torch.tensor(logp)
             time_limited_tensor[idx] = torch.tensor(time_limited)
             idx += 1

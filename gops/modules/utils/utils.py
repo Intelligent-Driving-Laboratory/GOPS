@@ -92,6 +92,11 @@ def random_choice_with_index(obj_list):
     return random_value, random_index
 
 
+def array_to_scalar(arrayLike):
+    """Convert size-1 array to scalar"""
+    return arrayLike if isinstance(arrayLike, (int, float)) else arrayLike.item()
+
+
 # class Timer(object):
 #     def __init__(self, writer, tag=tb_tags['time'], step=None):
 #         self.writer = writer

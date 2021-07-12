@@ -2,11 +2,10 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yuxuan JIANG
+#  Creator: Yuxuan Jiang & Guojian Zhan
 #
-#  Description: gym environment, discrete action, cart pole, dqn
-#  Update Date: 2021-01-03, Yuxuan JIANG & Guojian ZHAN : implement DQN
-#  Update Date: 2021-07-11, Yuxuan JIANG : adapt to new trainer interface
+#  Description: discrete version of Cartpole Enviroment
+#  Update Date: 2021-07-11, Yuxuan Jiang & Guojian Zhan : TRPO with cartpole
 
 import argparse
 
@@ -20,7 +19,6 @@ from modules.utils.init_args import init_args
 from modules.utils.plot import plot_all
 from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
 
-
 if __name__ == "__main__":
     # Parameters Setup
     parser = argparse.ArgumentParser()
@@ -28,20 +26,21 @@ if __name__ == "__main__":
     ################################################
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_cartpole')
-    parser.add_argument('--algorithm', type=str, default='DQN')
+    parser.add_argument('--algorithm', type=str, default='TRPO')
 
     ################################################
     # 1. Parameters for environment
     parser.add_argument('--obsv_dim', type=int, default=None) # dim(State)
     parser.add_argument('--action_dim', type=int, default=1) # dim(Action)
-    parser.add_argument('--action_num', type=int, default=None, help='Num of discrete actions (similar to gym.spaces.Discrete)')
+    parser.add_argument('--action_num', type=int, default=None) # dim(Action)
+    parser.add_argument('--action_high_limit', type=list, default=None)
+    parser.add_argument('--action_low_limit', type=list, default=None)
     parser.add_argument('--action_type', type=str, default='discret') # Options: continu/discret
     parser.add_argument('--is_render', type=bool, default=False) # Draw environment animation
-
     ################################################
     # 2.1 Parameters of value approximate function
     # Options: StateValue/ActionValue/ActionValueDis
-    parser.add_argument('--value_func_name', type=str, default='ActionValueDis')
+    parser.add_argument('--value_func_name', type=str, default='StateValue')
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--value_func_type', type=str, default='MLP')
     value_func_type = parser.parse_args().value_func_type
@@ -52,56 +51,65 @@ if __name__ == "__main__":
         parser.add_argument('--value_hidden_activation', type=str, default='relu')
         # Output Layer: linear
         parser.add_argument('--value_output_activation', type=str, default='linear')
-    ### 2.1.2 Polynominal
-    if value_func_type == 'POLY':
-        pass
-    ### 2.1.3 Gauss Radical Func
-    if value_func_type == 'GAUSS':
-        parser.add_argument('--value_num_kernel', type=int, default=30)
     
-    parser.add_argument('--policy_func_name', type=str, default='DetermPolicyDis')  # Implicit policy
-
+    # 2.2 Parameters of policy approximate function
+    # Options: None/DetermPolicy/StochaPolicy
+    parser.add_argument('--policy_func_name', type=str, default='StochaPolicyDis')
+    # Options: MLP/CNN/RNN/POLY/GAUSS
+    parser.add_argument('--policy_func_type', type=str, default='MLP')
+    policy_func_type = parser.parse_args().policy_func_type
+    ### 2.2.1 MLP, CNN, RNN
+    if policy_func_type == 'MLP':
+        parser.add_argument('--policy_hidden_sizes', type=list, default=[32, 32])
+        # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
+        parser.add_argument('--policy_hidden_activation', type=str, default='relu')
+        # Output Layer: tanh
+        parser.add_argument('--policy_output_activation', type=str, default='linear')
+    
     ################################################
     # 3. Parameters for RL algorithm
+    parser.add_argument('--value_learning_rate', type=float, default=1e-4)
+
+    parser.add_argument('--delta', type=float, default=0.001)
     parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--tau', type=float, default=0.01)
-    parser.add_argument('--learning_rate', type=float, default=1e-4)
+    parser.add_argument('--lamda', type=float, default=0.97)
+    parser.add_argument('--rtol', type=float, default=1e-5)
+    parser.add_argument('--atol', type=float, default=1e-8)
+    parser.add_argument('--damping_factor', type=float, default=0.01)
+    parser.add_argument('--max_cg', type=int, default=10)
+    parser.add_argument('--alpha', type=float, default=0.8)
+    parser.add_argument('--max_search', type=int, default=10)
+    parser.add_argument('--train_v_iters', type=int, default=40)
 
     ################################################
     # 4. Parameters for trainer
     # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
-    parser.add_argument('--trainer', type=str, default='off_serial_trainer')
+    parser.add_argument('--trainer', type=str, default='on_serial_trainer')
     # Maximum iteration number
-    parser.add_argument('--max_iteration', type=int, default=5000*10)
+    parser.add_argument('--max_iteration', type=int, default=5000)
     parser.add_argument('--num_epoch', type=int, default=1)
     trainer_type = parser.parse_args().trainer
     parser.add_argument('--ini_network_dir', type=str, default=None)
-    # 4.3. Parameters for off_serial_trainer
-    if trainer_type == 'off_serial_trainer':
-        parser.add_argument('--buffer_name', type=str, default='replay_buffer')
-        # Size of collected samples before training
-        parser.add_argument('--buffer_warm_size', type=int, default=1000)
-        # Max size of reply buffer
-        parser.add_argument('--buffer_max_size', type=int, default=100000)
-        # Batch size of replay samples from buffer
-        parser.add_argument('--replay_batch_size', type=int, default=1024)
-        # Period of sync central policy of each sampler
-        parser.add_argument('--sampler_sync_interval', type=int, default=1)
-    
+    # 4.1. Parameters for on_serial_trainer
+    if trainer_type == 'on_serial_trainer':
+        pass
+    # 4.2. Parameters for on_sync_trainer
+    if trainer_type == 'on_sync_trainer':
+        pass
+
     ################################################
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='mc_sampler')
     # Batch size of sampler for buffer store
-    parser.add_argument('--sample_batch_size', type=int, default=16)
+    parser.add_argument('--sample_batch_size', type=int, default=1024)
     # Add noise to actions for better exploration
-    parser.add_argument('--noise_params', type=dict,
-                        default={'epsilon': 0.1})
+    parser.add_argument('--noise_params', type=dict, default={'epsilon': 0.0})
 
     ################################################
-    # 7. Parameters for evaluator
+    # 6. Parameters for evaluator
     parser.add_argument('--evaluator_name', type=str, default='evaluator')
-    parser.add_argument('--num_eval_episode', type=int, default=5)
-    parser.add_argument('--eval_interval', type=int, default=100)
+    parser.add_argument('--num_eval_episode', type=int, default=20)
+    parser.add_argument('--eval_interval', type=int, default=1)
 
     ################################################
     # 8. Data savings
@@ -109,7 +117,7 @@ if __name__ == "__main__":
     # Save value/policy every N updates
     parser.add_argument('--apprfunc_save_interval', type=int, default=500)
     # Save key info every N updates
-    parser.add_argument('--log_save_interval', type=int, default=100)
+    parser.add_argument('--log_save_interval', type=int, default=10)
 
     # Get parameter dictionary
     args = vars(parser.parse_args())
