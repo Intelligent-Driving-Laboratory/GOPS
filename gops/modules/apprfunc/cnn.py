@@ -26,6 +26,14 @@ def CNN(kernel_sizes, channels, strides, activation, input_channel):
     return nn.Sequential(*layers)
 
 
+def MLP(sizes, activation, output_activation=nn.Identity):
+    layers = []
+    for j in range(len(sizes) - 1):
+        act = activation if j < len(sizes) - 2 else output_activation
+        layers += [nn.Linear(sizes[j], sizes[j + 1]), act()]
+    return nn.Sequential(*layers)
+
+
 class DetermPolicy(nn.Module):
     def __init__(self, **kwargs):
         super(DetermPolicy, self).__init__()
@@ -51,11 +59,8 @@ class DetermPolicy(nn.Module):
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
             conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
-            layers = []
-            for j in range(len(mlp_sizes) - 1):
-                act = nn.ReLU if j < len(mlp_sizes) - 2 else nn.Identity
-                layers += [nn.Linear(mlp_sizes[j], mlp_sizes[j + 1]), act()]
-            self.mlp = nn.Sequential(*(layers))
+
+            self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
 
         elif conv_type == "type_2":
             # CNN+MLP Parameters
@@ -66,16 +71,12 @@ class DetermPolicy(nn.Module):
             conv_input_channel = obs_dim[-1]
             mlp_hidden_layers = [128]
 
-
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
             conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
-            layers = []
-            for j in range(len(mlp_sizes) - 1):
-                act = nn.ReLU if j < len(mlp_sizes) - 2 else nn.Identity
-                layers += [nn.Linear(mlp_sizes[j], mlp_sizes[j + 1]), act()]
-            self.mlp = nn.Sequential(*(layers))
+
+            self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
         else:
             raise NotImplementedError
 
@@ -118,12 +119,8 @@ class StochaPolicy(nn.Module):
             conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
 
-            layers = []
-            for j in range(len(mlp_sizes) - 1):
-                act = nn.ReLU if j < len(mlp_sizes) - 2 else nn.Identity
-                layers += [nn.Linear(mlp_sizes[j], mlp_sizes[j + 1]), act()]
-            self.mean = nn.Sequential(*(layers))
-            self.std = nn.Sequential(*(layers))
+            self.mean = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
+            self.log_std = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
 
         elif conv_type == "type_2":
             # CNN+MLP Parameters
@@ -138,12 +135,9 @@ class StochaPolicy(nn.Module):
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
             conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
-            layers = []
-            for j in range(len(mlp_sizes) - 1):
-                act = nn.ReLU if j < len(mlp_sizes) - 2 else nn.Identity
-                layers += [nn.Linear(mlp_sizes[j], mlp_sizes[j + 1]), act()]
-            self.mean = nn.Sequential(*(layers))
-            self.log_std = nn.Sequential(*(layers))
+
+            self.mean = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
+            self.log_std = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
         else:
             raise NotImplementedError
 
@@ -182,11 +176,8 @@ class ActionValue(nn.Module):
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
             conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims+act_dim] + mlp_hidden_layers + [1]
-            layers = []
-            for j in range(len(mlp_sizes) - 1):
-                act = nn.ReLU if j < len(mlp_sizes) - 2 else nn.Identity
-                layers += [nn.Linear(mlp_sizes[j], mlp_sizes[j + 1]), act()]
-            self.mlp = nn.Sequential(*(layers))
+
+            self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
 
         elif conv_type == "type_2":
             # CNN+MLP Parameters
@@ -201,11 +192,8 @@ class ActionValue(nn.Module):
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
             conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims+act_dim] + mlp_hidden_layers + [1]
-            layers = []
-            for j in range(len(mlp_sizes) - 1):
-                act = nn.ReLU if j < len(mlp_sizes) - 2 else nn.Identity
-                layers += [nn.Linear(mlp_sizes[j], mlp_sizes[j + 1]), act()]
-            self.mlp = nn.Sequential(*(layers))
+
+            self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
         else:
             raise NotImplementedError
 
@@ -241,11 +229,7 @@ class ActionValueDis(nn.Module):
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
             conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_num]
-            layers = []
-            for j in range(len(mlp_sizes) - 1):
-                act = nn.ReLU if j < len(mlp_sizes) - 2 else nn.Identity
-                layers += [nn.Linear(mlp_sizes[j], mlp_sizes[j + 1]), act()]
-            self.mlp = nn.Sequential(*(layers))
+            self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
 
         elif conv_type == "type_2":
             # CNN+MLP Parameters
@@ -260,11 +244,7 @@ class ActionValueDis(nn.Module):
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
             conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_num]
-            layers = []
-            for j in range(len(mlp_sizes) - 1):
-                act = nn.ReLU if j < len(mlp_sizes) - 2 else nn.Identity
-                layers += [nn.Linear(mlp_sizes[j], mlp_sizes[j + 1]), act()]
-            self.mlp = nn.Sequential(*(layers))
+            self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
         else:
             raise NotImplementedError
 
@@ -303,11 +283,7 @@ class StateValue(nn.Module):
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
             conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [1]
-            layers = []
-            for j in range(len(mlp_sizes) - 1):
-                act = nn.ReLU if j < len(mlp_sizes) - 2 else nn.Identity
-                layers += [nn.Linear(mlp_sizes[j], mlp_sizes[j + 1]), act()]
-            self.mlp = nn.Sequential(*(layers))
+            self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
 
         elif conv_type == "type_2":
             # CNN+MLP Parameters
@@ -322,11 +298,7 @@ class StateValue(nn.Module):
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
             conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [1]
-            layers = []
-            for j in range(len(mlp_sizes) - 1):
-                act = nn.ReLU if j < len(mlp_sizes) - 2 else nn.Identity
-                layers += [nn.Linear(mlp_sizes[j], mlp_sizes[j + 1]), act()]
-            self.mlp = nn.Sequential(*(layers))
+            self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
         else:
             raise NotImplementedError
 
