@@ -40,8 +40,7 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
     var['min_log_std'] = kwargs.get(key + '_min_log_std', float('-inf'))
     var['max_log_std'] = kwargs.get(key + '_max_log_std', float('inf'))
 
-
-    if type == 'MLP':
+    if type == 'MLP' or type == 'RNN':
         var['hidden_sizes'] = kwargs[key + '_hidden_sizes']
         var['hidden_activation'] = kwargs[key + '_hidden_activation']
         var['output_activation'] = kwargs[key + '_output_activation']

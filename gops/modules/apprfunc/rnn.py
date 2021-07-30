@@ -31,69 +31,83 @@ def count_vars(module):
 class DetermPolicy(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        obs_dim = kwargs['obs_dim']
+        obs_dim = kwargs['obs_dim'][1]
         act_dim = kwargs['act_dim']
+        action_high_limit = kwargs['action_high_limit']
+        action_low_limit = kwargs['action_low_limit']
         hidden_sizes = kwargs['hidden_sizes']
-        act_limit = kwargs['action_high_limit']
-        hidden_sizes = kwargs['hidden_sizes']
-        pi_sizes = list(hidden_sizes[1:]) + [act_dim]
-        self.rnn = nn.RNN(obs_dim, hidden_sizes[0], 1)
+        pi_sizes = list(hidden_sizes) + [act_dim]
+        self.rnn = nn.RNN(obs_dim, hidden_sizes[0], 1, batch_first=True)
         self.pi = mlp(pi_sizes, get_activation_func(kwargs['hidden_activation']), get_activation_func(kwargs['output_activation']))
-        self.act_limit =   torch.from_numpy(act_limit)
+        self.action_high_limit = torch.from_numpy(action_high_limit)
+        self.action_low_limit = torch.from_numpy(action_low_limit)
 
     def forward(self, obs):
-        obs = obs.unsqueeze(0)
         _, h = self.rnn(obs)
-        return self.act_limit * self.pi(h.squeeze(0))
+        action = (self.action_high_limit-self.action_low_limit)/2 * torch.tanh(self.pi(h.squeeze(0)))\
+                 + (self.action_high_limit + self.action_low_limit)/2
+        return action
+
 
 class StochaPolicy(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        obs_dim = kwargs['obs_dim']
+        obs_dim = kwargs['obs_dim'][1]
         act_dim = kwargs['act_dim']
         hidden_sizes = kwargs['hidden_sizes']
-        act_limit = kwargs['action_high_limit']
-        hidden_sizes = kwargs['hidden_sizes']
-        pi_sizes = list(hidden_sizes[1:]) + [act_dim]
-        self.rnn = nn.RNN(obs_dim, hidden_sizes[0], 1)
-        self.mean = mlp(pi_sizes, get_activation_func(kwargs['hidden_activation']), get_activation_func(kwargs['output_activation']))
-        self.std = mlp(pi_sizes, get_activation_func(kwargs['hidden_activation']),
+        action_high_limit = kwargs['action_high_limit']
+        action_low_limit = kwargs['action_low_limit']
+        self.min_log_std = kwargs['min_log_std']
+        self.max_log_std = kwargs['max_log_std']
+
+        pi_sizes = list(hidden_sizes) + [act_dim]
+        self.rnn = nn.RNN(obs_dim, hidden_sizes[0], 1, batch_first=True)
+        self.mean = mlp(pi_sizes,
+                        get_activation_func(kwargs['hidden_activation']),
                         get_activation_func(kwargs['output_activation']))
-        self.act_limit =   torch.from_numpy(act_limit)
+        self.log_std = mlp(pi_sizes,
+                       get_activation_func(kwargs['hidden_activation']),
+                       get_activation_func(kwargs['output_activation']))
+        self.action_high_limit = torch.from_numpy(action_high_limit)
+        self.action_low_limit = torch.from_numpy(action_low_limit)
 
     def forward(self, obs):
-        obs = obs.unsqueeze(0)
         _, h = self.rnn(obs)
-        return self.act_limit * self.pi(h.squeeze(0)), torch.exp(self.std(h.squeeze(0)))
+        h = h.squeeze(0)
+        action_mean = (self.action_high_limit - self.action_low_limit) / 2 * torch.tanh(self.mean(h)) \
+                      + (self.action_high_limit + self.action_low_limit) / 2
+        action_std = torch.clamp(self.log_std(h), self.min_log_std, self.max_log_std).exp()
+        return torch.cat((action_mean, action_std), dim=-1)
+
 
 class ActionValue(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        obs_dim = kwargs['obs_dim']
+        obs_dim = kwargs['obs_dim'][1]
         act_dim = kwargs['act_dim']
         hidden_sizes = kwargs['hidden_sizes']
-        self.rnn = nn.RNN(obs_dim+act_dim, hidden_sizes[0],1)
-        self.q = mlp(list(hidden_sizes[1:]) + [1], get_activation_func(kwargs['hidden_activation']))
+        self.rnn = nn.RNN(obs_dim, hidden_sizes[0], 1, batch_first=True)
+        self.q = mlp(list([hidden_sizes[0]+act_dim]) + list(hidden_sizes[1:]) + [1], get_activation_func(kwargs['hidden_activation']))
 
     def forward(self, obs, act):
-        input = torch.cat([obs, act], dim=-1)
-        input = input.unsqueeze(0)
-        _, h = self.rnn(input)
-        q = self.q(h.squeeze(0))
+        _, h = self.rnn(obs)
+        input = torch.cat([h.squeeze(0), act], dim=-1)
+        q = self.q(input)
         return torch.squeeze(q, -1)
 
 
 class ActionValueDis(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        obs_dim  = kwargs['obs_dim']
-        act_dim = kwargs['act_dim']
+        obs_dim = kwargs['obs_dim'][1]
+        act_num = kwargs['act_dim']
         hidden_sizes = kwargs['hidden_sizes']
-        self.rnn = nn.RNN(obs_dim, hidden_sizes[0],1)
-        self.q = mlp(list(hidden_sizes[1:]) + [act_dim], nn.ReLU)
+        self.rnn = nn.RNN(obs_dim, hidden_sizes[0], 1, batch_first=True)
+        self.q = mlp(list(hidden_sizes) + [act_num],
+                     get_activation_func(kwargs['hidden_activation']),
+                     get_activation_func(kwargs['output_activation']))
 
     def forward(self, obs):
-        obs = obs.unsqueeze(0)
         _, h = self.rnn(obs)
         return self.q(h.squeeze(0))
 
@@ -101,13 +115,14 @@ class ActionValueDis(nn.Module):
 class StateValue(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        obs_dim = kwargs['obs_dim']
+        obs_dim = kwargs['obs_dim'][1]
         hidden_sizes = kwargs['hidden_sizes']
-        self.rnn = nn.RNN(obs_dim, hidden_sizes[0],1)
-        self.v = mlp(list(hidden_sizes[1:]) + [1], get_activation_func(kwargs['hidden_activation']))
+        self.rnn = nn.RNN(obs_dim, hidden_sizes[0], 1, batch_first=True)
+        self.v = mlp(list(hidden_sizes) + [1],
+                     get_activation_func(kwargs['hidden_activation']),
+                     get_activation_func(kwargs['output_activation']))
 
     def forward(self, obs):
-        obs = obs.unsqueeze(0)
         _, h = self.rnn(obs)
         v = self.v(h.squeeze(0))
         return torch.squeeze(v, -1)

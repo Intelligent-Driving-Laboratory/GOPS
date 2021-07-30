@@ -7,7 +7,11 @@ from modules.utils.utils import change_type
 
 
 def init_args(env, **args):
-    args['obsv_dim'] = env.observation_space.shape[0]
+
+    if args['policy_func_type'] == 'RNN' or args['policy_func_type'] == 'CNN':
+        args['obsv_dim'] = env.observation_space.shape
+    else:
+        args['obsv_dim'] = env.observation_space.shape[0]
 
     if args['action_type'] == 'continu':
         args['action_dim'] = env.action_space.shape[0]
