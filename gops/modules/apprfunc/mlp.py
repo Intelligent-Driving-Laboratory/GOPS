@@ -44,12 +44,13 @@ class DetermPolicy(nn.Module):
         self.pi = mlp(pi_sizes,
                       get_activation_func(kwargs['hidden_activation']),
                       get_activation_func(kwargs['output_activation']))
-        self.action_high_limit = torch.from_numpy(action_high_limit)
-        self.action_low_limit = torch.from_numpy(action_low_limit)
+        # self.action_high_limit = torch.from_numpy(action_high_limit)
+        # self.action_low_limit = torch.from_numpy(action_low_limit) # TODO: set in examples or use wrappers
 
     def forward(self, obs):
-        action = (self.action_high_limit-self.action_low_limit)/2 * torch.tanh(self.pi(obs))\
-                 + (self.action_high_limit + self.action_low_limit)/2
+        action = torch.tanh(self.pi(obs))
+        # action = (self.action_high_limit-self.action_low_limit)/2 * action\
+        #          + (self.action_high_limit + self.action_low_limit)/2
         return action
 
 

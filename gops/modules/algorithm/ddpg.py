@@ -7,12 +7,9 @@
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 #  Author: Sun Hao
-#  Update Date: 2020-11-13
-#  Update Date: 2021-01-03
-#  Comments: ?
 
 
-__all__ = ['DDPG']
+__all__ = ['ApproxContainer','DDPG']
 
 from copy import deepcopy
 import torch
@@ -67,28 +64,61 @@ class ApproxContainer(nn.Module):
 
 
 class DDPG():
+    __use_gpu = True # TODO: set parameter
+    __has_gpu = torch.cuda.is_available()
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs)
-        self.gamma = kwargs['gamma']
-        self.polyak = 1 - kwargs['tau']
+        self.gamma = kwargs['gamma'] # TODO
+        self.polyak = 1 - kwargs['tau']  # TODO
+        self.__is_gpu = self.__has_gpu and self.__use_gpu
+
+    def set_gamma(self,data):
+        self.__gamma = data
+        print("Set parameter gamma :" ,self.__gamma )
+
+    def set_polyak(self,data):
+        self.__polyak = data
+        print("Set parameter polyak :" ,self.__polyak)
+
+    def get_all_parameters(self):
+        return {'gamma':self.__gamma,'polyak':self.__polyak,'use_gpu':self.__use_gpu}
 
     def compute_gradient(self, data):
+        o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
+        # ------------------------------------
+        if self.__is_gpu:
+            self.networks.policy = self.networks.policy.cuda()
+            self.networks.q = self.networks.q.cuda()
+            self.networks.policy_target= self.networks.policy_target.cuda()
+            self.networks.q_target = self.networks.q_target.cuda()
+            o = o.cuda()
+            a = a.cuda()
+            r = r.cuda()
+            o2 = o2.cuda()
+            d = d.cuda()
+        # ------------------------------------
         tb_info = dict()
         start_time = time.time()
         self.networks.q_optimizer.zero_grad()
-        loss_q, q = self.compute_loss_q(data)
+        loss_q, q = self.__compute_loss_q( o, a, r, o2, d)
         loss_q.backward()
 
         for p in self.networks.q.parameters():
             p.requires_grad = False
 
         self.networks.policy_optimizer.zero_grad()
-        loss_policy = self.compute_loss_policy(data)
+        loss_policy = self.__compute_loss_policy(o)
         loss_policy.backward()
 
         for p in self.networks.q.parameters():
             p.requires_grad = True
-
+        #------------------------------------
+        if self.__is_gpu:
+            self.networks.policy = self.networks.policy.cpu()
+            self.networks.q = self.networks.q.cpu()
+            self.networks.policy_target= self.networks.policy_target.cpu()
+            self.networks.q_target = self.networks.q_target.cpu()
+        # ------------------------------------
         q_grad = [p._grad.numpy() for p in self.networks.q.parameters()]
         policy_grad = [p._grad.numpy() for p in self.networks.policy.parameters()]
         end_time = time.time()
@@ -98,8 +128,10 @@ class DDPG():
         tb_info[tb_tags["loss_actor"]] = loss_policy.item()
         return q_grad + policy_grad, tb_info
 
-    def compute_loss_q(self, data):
-        o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
+    def load_state_dict(self, state_dict):
+        self.networks.load_state_dict(state_dict)
+
+    def __compute_loss_q(self,  o, a, r, o2, d):
         q = self.networks.q(o, a)
 
         with torch.no_grad():
@@ -109,33 +141,12 @@ class DDPG():
         loss_q = ((q - backup) ** 2).mean()
         return loss_q, torch.mean(q)
 
-    def compute_loss_policy(self, data):
-        o = data['obs']
+    def __compute_loss_policy(self, o):
         q_policy = self.networks.q(o, self.networks.policy(o))
         return -q_policy.mean()
 
-    def load_state_dict(self, state_dict):
-        self.networks.load_state_dict(state_dict)
-
 
 if __name__ == '__main__':
-    print('11111')
-    import mujoco_py
-
-    print('11111')
-    import os
-
-    print('11111')
-    mj_path, _ = mujoco_py.utils.discover_mujoco()
-    print('11111')
-    xml_path = os.path.join(mj_path, 'model', 'humanoid.xml')
-    print('11111')
-    model = mujoco_py.load_model_from_path(xml_path)
-    print('11111')
-    sim = mujoco_py.MjSim(model)
-
-    print(sim.data.qpos)
-    # [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
-
-    sim.step()
-    print(sim.data.qpos)
+    print('this is ddpg algorithm!')
+    print(torch.cuda.is_available())
+    print(torch.cuda.device_count())
