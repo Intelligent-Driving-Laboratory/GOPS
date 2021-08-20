@@ -13,9 +13,9 @@ import numpy as np
 import torch
 
 
-class GymCartpolecontiModel:
-
+class GymCartpolecontiModel(torch.nn.Module):
     def __init__(self):
+        super().__init__()
         """
         you need to define parameters here
         """
@@ -44,16 +44,17 @@ class GymCartpolecontiModel:
         self.dt = 0.02  # seconds between state updates
         self.state_dim = 4
         self.action_dim = 1
-        self.lb_state = [self.min_x, self.min_x_dot, self.min_theta,  self.min_theta_dot]
-        self.hb_state = [self.max_x, self.max_x_dot, self.max_theta,  self.max_theta_dot]
-        self.lb_action = [self.min_action]
-        self.hb_action = [self.max_action]
+        lb_state = [self.min_x, self.min_x_dot, self.min_theta,  self.min_theta_dot]
+        hb_state = [self.max_x, self.max_x_dot, self.max_theta,  self.max_theta_dot]
+        lb_action = [self.min_action]
+        hb_action = [self.max_action]
 
         # do not change the following section
-        self.lb_state = torch.tensor(self.lb_state, dtype=torch.float32)
-        self.hb_state = torch.tensor(self.hb_state, dtype=torch.float32)
-        self.lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
-        self.hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
+
+        self.register_buffer('lb_state', torch.tensor(lb_state, dtype=torch.float32))
+        self.register_buffer('hb_state', torch.tensor(hb_state, dtype=torch.float32))
+        self.register_buffer('lb_action', torch.tensor(lb_action, dtype=torch.float32))
+        self.register_buffer('hb_action', torch.tensor(hb_action, dtype=torch.float32))
 
 
     def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)):

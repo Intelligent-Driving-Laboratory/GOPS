@@ -98,12 +98,13 @@ class StochaPolicy(nn.Module):
         conv_type = kwargs['conv_type']
         action_high_limit = kwargs['action_high_limit']
         action_low_limit = kwargs['action_low_limit']
-        self.action_high_limit = torch.from_numpy(action_high_limit)
-        self.action_low_limit = torch.from_numpy(action_low_limit)
+        self.register_buffer('action_high_limit', torch.from_numpy(action_high_limit))
+        self.register_buffer('action_low_limit', torch.from_numpy(action_low_limit))
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
         self.min_log_std = kwargs['min_log_std']
         self.max_log_std = kwargs['max_log_std']
+
 
         if conv_type == "type_1":
             # CNN+MLP Parameters

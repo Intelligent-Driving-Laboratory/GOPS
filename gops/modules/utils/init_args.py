@@ -2,11 +2,22 @@ import copy
 import datetime
 import json
 import os
+import torch
+import warnings
 
 from modules.utils.utils import change_type
 
 
 def init_args(env, **args):
+    if args['enable_cuda']:
+        if torch.cuda.is_available():
+            args['use_gpu'] = True
+        else:
+            warning_msg = 'cuda is not available, use CPU instead'
+            warnings.warn(warning_msg)
+            args['use_gpu'] = False
+    else:
+        args['use_gpu'] = False
 
     if args['policy_func_type'] == 'RNN' or args['policy_func_type'] == 'CNN':
         args['obsv_dim'] = env.observation_space.shape

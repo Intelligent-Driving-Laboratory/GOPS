@@ -31,6 +31,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_cartpoleconti')
     parser.add_argument('--algorithm', type=str, default='INFADP')
+    parser.add_argument('--enable_cuda', default=True, help='Disable CUDA')
 
     # 1. Parameters for environment
     parser.add_argument('--obsv_dim', type=int, default=None)
@@ -39,6 +40,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_low_limit', type=list, default=None)
     parser.add_argument('--action_type', type=str, default='continu')
     parser.add_argument('--is_render', type=bool, default=False)
+    parser.add_argument('--is_adversary', type=bool, default=False, help='Adversary training')
 
     ################################################
     # 2.1 Parameters of value approximate function
@@ -60,14 +62,8 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument('--gamma', type=float, default=1,)
-    parser.add_argument('--tau', type=float, default=1)
     parser.add_argument('--value_learning_rate', type=float, default=1e-4)
     parser.add_argument('--policy_learning_rate', type=float, default=1e-4)
-    parser.add_argument('--delay_update', type=int, default=1)
-    parser.add_argument('--pev_step', type=int, default=10)
-    parser.add_argument('--pim_step', type=int, default=10)
-    parser.add_argument('--reward_scale', type=float, default=0.1)
 
     # 4. Parameters for trainer
     parser.add_argument('--trainer', type=str, default='off_serial_trainer')

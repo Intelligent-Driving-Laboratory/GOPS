@@ -51,9 +51,9 @@ class ApproxContainer(nn.Module):
         self.delay_update = grads_info['delay_update']
 
         for p, grad in zip(self.q.parameters(), q_grad):
-            p._grad = torch.from_numpy(grad)
+            p._grad = grad
         for p, grad in zip(self.policy.parameters(), policy_grad):
-            p._grad = torch.from_numpy(grad)
+            p._grad = grad
         self.q_optimizer.step()
         if iteration % self.delay_update == 0:
             self.policy_optimizer.step()
@@ -66,14 +66,12 @@ class ApproxContainer(nn.Module):
                 p_targ.data.add_((1 - self.polyak) * p.data)
 
 
-class DDPG():
-    __has_gpu = torch.cuda.is_available()
+class DDPG:
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs)
+        self.use_gpu = kwargs['use_gpu']
         self.gamma = 0.99
         self.tau = 0.005
-        self.enable_cuda = False
-        self.is_gpu = self.__has_gpu and self.enable_cuda
         self.delay_update = 1
         self.reward_scale = 1
 
@@ -84,14 +82,12 @@ class DDPG():
             else:
                 warning_msg = "param '" + key + "'is not defined in algorithm!"
                 warnings.warn(warning_msg)
-        self.is_gpu = self.__has_gpu and self.enable_cuda
 
     def get_parameters(self):
         params = dict()
         params['gamma'] = self.gamma
         params['tau'] = self.tau
-        params['enable_cuda'] = self.enable_cuda
-        params['is_gpu'] = self.is_gpu
+        params['use_gpu'] = self.use_gpu
         params['delay_update'] = self.delay_update
         params['reward_scale'] = self.reward_scale
         return params
@@ -99,7 +95,7 @@ class DDPG():
     def compute_gradient(self, data:dict, iteration):
         o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
         # ------------------------------------
-        if self.is_gpu:
+        if self.use_gpu:
             self.networks.policy = self.networks.policy.cuda()
             self.networks.q = self.networks.q.cuda()
             self.networks.policy_target= self.networks.policy_target.cuda()
@@ -126,14 +122,14 @@ class DDPG():
         for p in self.networks.q.parameters():
             p.requires_grad = True
         #------------------------------------
-        if self.is_gpu:
+        if self.use_gpu:
             self.networks.policy = self.networks.policy.cpu()
             self.networks.q = self.networks.q.cpu()
             self.networks.policy_target= self.networks.policy_target.cpu()
             self.networks.q_target = self.networks.q_target.cpu()
         # ------------------------------------
-        q_grad = [p._grad.numpy() for p in self.networks.q.parameters()]
-        policy_grad = [p._grad.numpy() for p in self.networks.policy.parameters()]
+        q_grad = [p._grad for p in self.networks.q.parameters()]
+        policy_grad = [p._grad for p in self.networks.policy.parameters()]
         end_time = time.time()
         tb_info[tb_tags["loss_critic"]] = loss_q.item()
         tb_info[tb_tags["critic_avg_value"]] = q.item()

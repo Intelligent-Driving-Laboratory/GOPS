@@ -44,8 +44,8 @@ class DetermPolicy(nn.Module):
         self.pi = mlp(pi_sizes,
                       get_activation_func(kwargs['hidden_activation']),
                       get_activation_func(kwargs['output_activation']))
-        # self.action_high_limit = torch.from_numpy(action_high_limit)
-        # self.action_low_limit = torch.from_numpy(action_low_limit) # TODO: set in examples or use wrappers
+        self.register_buffer('action_high_limit', torch.from_numpy(action_high_limit))
+        self.register_buffer('action_low_limit', torch.from_numpy(action_low_limit))
 
     def forward(self, obs):
         action = torch.tanh(self.pi(obs))
@@ -73,8 +73,8 @@ class StochaPolicy(nn.Module):
         self.log_std = mlp(pi_sizes,
                            get_activation_func(kwargs['hidden_activation']),
                            get_activation_func(kwargs['output_activation']))
-        self.action_high_limit = torch.from_numpy(action_high_limit)
-        self.action_low_limit = torch.from_numpy(action_low_limit)
+        self.register_buffer('action_high_limit', torch.from_numpy(action_high_limit))
+        self.register_buffer('action_low_limit', torch.from_numpy(action_low_limit))
 
     def forward(self, obs):
         action_mean = (self.action_high_limit - self.action_low_limit) / 2 * torch.tanh(self.mean(obs)) \
