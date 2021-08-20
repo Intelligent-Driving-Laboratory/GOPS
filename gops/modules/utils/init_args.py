@@ -23,7 +23,10 @@ def init_args(env, **args):
 
     # Create save arguments
     if args['save_folder'] is None:
-        args['save_folder'] = os.path.join('../results/' +
+        dir_path = os.path.dirname(__file__)
+        dir_path = os.path.dirname(dir_path)
+        dir_path = os.path.dirname(dir_path)
+        args['save_folder'] = os.path.join(dir_path+'/results/',
                                            args['algorithm'],
                                            datetime.datetime.now().strftime("%m%d-%H%M%S"))
     os.makedirs(args['save_folder'], exist_ok=True)

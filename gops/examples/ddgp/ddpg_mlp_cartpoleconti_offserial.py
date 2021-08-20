@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_cartpoleconti')
     parser.add_argument('--algorithm', type=str, default='DDPG')
-
+    parser.add_argument('--enable_cuda', default=True, help='Disable CUDA')
     ################################################
     # 1. Parameters for environment
     parser.add_argument('--obsv_dim', type=int, default=None)
@@ -63,12 +63,8 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument('--gamma', type=float, default=0.98)
-    parser.add_argument('--tau', type=float, default=0.005)
     parser.add_argument('--value_learning_rate', type=float, default=1e-4)
     parser.add_argument('--policy_learning_rate', type=float, default=1e-5)
-    parser.add_argument('--delay_update', type=int, default=1)
-    parser.add_argument('--reward_scale', type=float, default=1)
 
     ################################################
     # 4. Parameters for trainer
@@ -100,7 +96,7 @@ if __name__ == "__main__":
     ################################################
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
-    parser.add_argument('--apprfunc_save_interval', type=int, default=500)
+    parser.add_argument('--apprfunc_save_interval', type=int, default=100)
     parser.add_argument('--log_save_interval', type=int, default=100)
 
     # Get parameter dictionary

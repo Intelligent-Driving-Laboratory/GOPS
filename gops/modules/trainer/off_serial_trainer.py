@@ -78,10 +78,10 @@ class OffSerialTrainer():
 
         # learning
         self.alg.networks.load_state_dict(self.networks.state_dict())
-        grads, alg_tb_dict = self.alg.compute_gradient(replay_samples)
+        grads, alg_tb_dict = self.alg.compute_gradient(replay_samples,self.iteration )
 
         # apply grad
-        self.networks.update(grads, self.iteration)
+        self.networks.update(grads)
 
         # log
         if self.iteration % self.log_save_interval == 0:

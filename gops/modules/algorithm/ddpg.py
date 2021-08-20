@@ -15,8 +15,8 @@ from copy import deepcopy
 import torch
 import torch.nn as nn
 from torch.optim import Adam
+import warnings
 import time
-
 from modules.create_pkg.create_apprfunc import create_apprfunc
 from modules.utils.utils import get_apprfunc_dict
 from modules.utils.tensorboard_tools import tb_tags
@@ -25,8 +25,6 @@ from modules.utils.tensorboard_tools import tb_tags
 class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        self.polyak = 1 - kwargs['tau']
-        self.delay_update = kwargs['delay_update']
         value_func_type = kwargs['value_func_type']
         policy_func_type = kwargs['policy_func_type']
         q_args = get_apprfunc_dict('value', value_func_type, **kwargs)
@@ -41,12 +39,17 @@ class ApproxContainer(nn.Module):
             p.requires_grad = False
         for p in self.policy_target.parameters():
             p.requires_grad = False
-        self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs['policy_learning_rate'])  #
+
+        self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs['policy_learning_rate'])  # TODO:
         self.q_optimizer = Adam(self.q.parameters(), lr=kwargs['value_learning_rate'])
 
-    def update(self, grads, iteration):
-        q_grad_len = len(list(self.q.parameters()))
-        q_grad, policy_grad = grads[:q_grad_len], grads[q_grad_len:]
+    def update(self, grads_info:dict):
+        iteration = grads_info['iteration']
+        q_grad = grads_info['q_grad']
+        policy_grad = grads_info['policy_grad']
+        self.polyak = 1 - grads_info['tau']
+        self.delay_update = grads_info['delay_update']
+
         for p, grad in zip(self.q.parameters(), q_grad):
             p._grad = torch.from_numpy(grad)
         for p, grad in zip(self.policy.parameters(), policy_grad):
@@ -64,29 +67,39 @@ class ApproxContainer(nn.Module):
 
 
 class DDPG():
-    __use_gpu = True # TODO: set parameter
     __has_gpu = torch.cuda.is_available()
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs)
-        self.gamma = kwargs['gamma'] # TODO
-        self.polyak = 1 - kwargs['tau']  # TODO
-        self.__is_gpu = self.__has_gpu and self.__use_gpu
+        self.gamma = 0.99
+        self.tau = 0.005
+        self.enable_cuda = False
+        self.is_gpu = self.__has_gpu and self.enable_cuda
+        self.delay_update = 1
+        self.reward_scale = 1
 
-    def set_gamma(self,data):
-        self.__gamma = data
-        print("Set parameter gamma :" ,self.__gamma )
+    def set_parameters(self, param_dict):
+        for key in param_dict:
+            if hasattr(self, key):
+                setattr(self, key, param_dict[key])
+            else:
+                warning_msg = "param '" + key + "'is not defined in algorithm!"
+                warnings.warn(warning_msg)
+        self.is_gpu = self.__has_gpu and self.enable_cuda
 
-    def set_polyak(self,data):
-        self.__polyak = data
-        print("Set parameter polyak :" ,self.__polyak)
+    def get_parameters(self):
+        params = dict()
+        params['gamma'] = self.gamma
+        params['tau'] = self.tau
+        params['enable_cuda'] = self.enable_cuda
+        params['is_gpu'] = self.is_gpu
+        params['delay_update'] = self.delay_update
+        params['reward_scale'] = self.reward_scale
+        return params
 
-    def get_all_parameters(self):
-        return {'gamma':self.__gamma,'polyak':self.__polyak,'use_gpu':self.__use_gpu}
-
-    def compute_gradient(self, data):
+    def compute_gradient(self, data:dict, iteration):
         o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
         # ------------------------------------
-        if self.__is_gpu:
+        if self.is_gpu:
             self.networks.policy = self.networks.policy.cuda()
             self.networks.q = self.networks.q.cuda()
             self.networks.policy_target= self.networks.policy_target.cuda()
@@ -113,7 +126,7 @@ class DDPG():
         for p in self.networks.q.parameters():
             p.requires_grad = True
         #------------------------------------
-        if self.__is_gpu:
+        if self.is_gpu:
             self.networks.policy = self.networks.policy.cpu()
             self.networks.q = self.networks.q.cpu()
             self.networks.policy_target= self.networks.policy_target.cpu()
@@ -126,7 +139,15 @@ class DDPG():
         tb_info[tb_tags["critic_avg_value"]] = q.item()
         tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
         tb_info[tb_tags["loss_actor"]] = loss_policy.item()
-        return q_grad + policy_grad, tb_info
+
+        grad_info = dict()
+        grad_info['q_grad'] = q_grad
+        grad_info['policy_grad'] = policy_grad
+        grad_info['iteration'] = iteration
+        grad_info['tau'] = self.tau
+        grad_info['delay_update'] = self.delay_update
+
+        return grad_info, tb_info
 
     def load_state_dict(self, state_dict):
         self.networks.load_state_dict(state_dict)
