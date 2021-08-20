@@ -7,19 +7,16 @@
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 #  Author: Sun Hao
-#  Update Date: 2020-11-13
-#  Update Date: 2021-01-03
-#  Comments: ?
 
 
-__all__ = ['DDPG']
+__all__ = ['ApproxContainer','DDPG']
 
 from copy import deepcopy
 import torch
 import torch.nn as nn
 from torch.optim import Adam
+import warnings
 import time
-
 from modules.create_pkg.create_apprfunc import create_apprfunc
 from modules.utils.utils import get_apprfunc_dict
 from modules.utils.tensorboard_tools import tb_tags
@@ -28,8 +25,6 @@ from modules.utils.tensorboard_tools import tb_tags
 class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        self.polyak = 1 - kwargs['tau']
-        self.delay_update = kwargs['delay_update']
         value_func_type = kwargs['value_func_type']
         policy_func_type = kwargs['policy_func_type']
         q_args = get_apprfunc_dict('value', value_func_type, **kwargs)
@@ -44,12 +39,17 @@ class ApproxContainer(nn.Module):
             p.requires_grad = False
         for p in self.policy_target.parameters():
             p.requires_grad = False
-        self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs['policy_learning_rate'])  #
+
+        self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs['policy_learning_rate'])  # TODO:
         self.q_optimizer = Adam(self.q.parameters(), lr=kwargs['value_learning_rate'])
 
-    def update(self, grads, iteration):
-        q_grad_len = len(list(self.q.parameters()))
-        q_grad, policy_grad = grads[:q_grad_len], grads[q_grad_len:]
+    def update(self, grads_info:dict):
+        iteration = grads_info['iteration']
+        q_grad = grads_info['q_grad']
+        policy_grad = grads_info['policy_grad']
+        self.polyak = 1 - grads_info['tau']
+        self.delay_update = grads_info['delay_update']
+
         for p, grad in zip(self.q.parameters(), q_grad):
             p._grad = torch.from_numpy(grad)
         for p, grad in zip(self.policy.parameters(), policy_grad):
@@ -67,28 +67,71 @@ class ApproxContainer(nn.Module):
 
 
 class DDPG():
+    __has_gpu = torch.cuda.is_available()
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs)
-        self.gamma = kwargs['gamma']
-        self.polyak = 1 - kwargs['tau']
+        self.gamma = 0.99
+        self.tau = 0.005
+        self.enable_cuda = False
+        self.is_gpu = self.__has_gpu and self.enable_cuda
+        self.delay_update = 1
+        self.reward_scale = 1
 
-    def compute_gradient(self, data):
+    def set_parameters(self, param_dict):
+        for key in param_dict:
+            if hasattr(self, key):
+                setattr(self, key, param_dict[key])
+            else:
+                warning_msg = "param '" + key + "'is not defined in algorithm!"
+                warnings.warn(warning_msg)
+        self.is_gpu = self.__has_gpu and self.enable_cuda
+
+    def get_parameters(self):
+        params = dict()
+        params['gamma'] = self.gamma
+        params['tau'] = self.tau
+        params['enable_cuda'] = self.enable_cuda
+        params['is_gpu'] = self.is_gpu
+        params['delay_update'] = self.delay_update
+        params['reward_scale'] = self.reward_scale
+        return params
+
+    def compute_gradient(self, data:dict, iteration):
+        o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
+        # ------------------------------------
+        if self.is_gpu:
+            self.networks.policy = self.networks.policy.cuda()
+            self.networks.q = self.networks.q.cuda()
+            self.networks.policy_target= self.networks.policy_target.cuda()
+            self.networks.q_target = self.networks.q_target.cuda()
+            o = o.cuda()
+            a = a.cuda()
+            r = r.cuda()
+            o2 = o2.cuda()
+            d = d.cuda()
+        # ------------------------------------
         tb_info = dict()
         start_time = time.time()
         self.networks.q_optimizer.zero_grad()
-        loss_q, q = self.compute_loss_q(data)
+        loss_q, q = self.__compute_loss_q( o, a, r, o2, d)
         loss_q.backward()
 
         for p in self.networks.q.parameters():
             p.requires_grad = False
 
         self.networks.policy_optimizer.zero_grad()
-        loss_policy = self.compute_loss_policy(data)
+        loss_policy = self.__compute_loss_policy(o)
         loss_policy.backward()
 
         for p in self.networks.q.parameters():
             p.requires_grad = True
-
+        #------------------------------------
+        if self.is_gpu:
+            self.networks.policy = self.networks.policy.cpu()
+            self.networks.q = self.networks.q.cpu()
+            self.networks.policy_target= self.networks.policy_target.cpu()
+            self.networks.q_target = self.networks.q_target.cpu()
+        # ------------------------------------
         q_grad = [p._grad.numpy() for p in self.networks.q.parameters()]
         policy_grad = [p._grad.numpy() for p in self.networks.policy.parameters()]
         end_time = time.time()
@@ -96,10 +139,20 @@ class DDPG():
         tb_info[tb_tags["critic_avg_value"]] = q.item()
         tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
         tb_info[tb_tags["loss_actor"]] = loss_policy.item()
-        return q_grad + policy_grad, tb_info
 
-    def compute_loss_q(self, data):
-        o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
+        grad_info = dict()
+        grad_info['q_grad'] = q_grad
+        grad_info['policy_grad'] = policy_grad
+        grad_info['iteration'] = iteration
+        grad_info['tau'] = self.tau
+        grad_info['delay_update'] = self.delay_update
+
+        return grad_info, tb_info
+
+    def load_state_dict(self, state_dict):
+        self.networks.load_state_dict(state_dict)
+
+    def __compute_loss_q(self,  o, a, r, o2, d):
         q = self.networks.q(o, a)
 
         with torch.no_grad():
@@ -109,33 +162,12 @@ class DDPG():
         loss_q = ((q - backup) ** 2).mean()
         return loss_q, torch.mean(q)
 
-    def compute_loss_policy(self, data):
-        o = data['obs']
+    def __compute_loss_policy(self, o):
         q_policy = self.networks.q(o, self.networks.policy(o))
         return -q_policy.mean()
 
-    def load_state_dict(self, state_dict):
-        self.networks.load_state_dict(state_dict)
-
 
 if __name__ == '__main__':
-    print('11111')
-    import mujoco_py
-
-    print('11111')
-    import os
-
-    print('11111')
-    mj_path, _ = mujoco_py.utils.discover_mujoco()
-    print('11111')
-    xml_path = os.path.join(mj_path, 'model', 'humanoid.xml')
-    print('11111')
-    model = mujoco_py.load_model_from_path(xml_path)
-    print('11111')
-    sim = mujoco_py.MjSim(model)
-
-    print(sim.data.qpos)
-    # [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
-
-    sim.step()
-    print(sim.data.qpos)
+    print('this is ddpg algorithm!')
+    print(torch.cuda.is_available())
+    print(torch.cuda.device_count())
