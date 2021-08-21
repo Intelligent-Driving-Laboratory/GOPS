@@ -18,7 +18,9 @@ sys.path.append(apprunc_path)
 # add env file to sys path
 env_file = 'env'
 env_path = os.path.join(modules_path, env_file)
+env_archive_path = os.path.join(env_path, 'env_archive')
 sys.path.append(env_path)
+sys.path.append(env_archive_path)
 
 # add algorithm file to sys path
 alg_file = 'algorithm'
