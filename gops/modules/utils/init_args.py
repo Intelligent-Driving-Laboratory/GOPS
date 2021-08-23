@@ -25,7 +25,7 @@ def init_args(env, **args):
         args['obsv_dim'] = env.observation_space.shape[0]
 
     if args['action_type'] == 'continu':
-        args['action_dim'] = env.action_space.shape[0]
+        args['action_dim'] = env.action_space.shape[0] if len(env.action_space.shape) == 1 else env.action_space.shape
         args['action_high_limit'] = env.action_space.high
         args['action_low_limit'] = env.action_space.low
     else:

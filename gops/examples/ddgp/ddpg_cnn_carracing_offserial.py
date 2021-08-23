@@ -22,8 +22,9 @@ from modules.create_pkg.create_env import create_env
 from modules.create_pkg.create_evaluator import create_evaluator
 from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
+from modules.utils.init_args import init_args
+from modules.utils.plot import plot_all
 from modules.utils.utils import change_type
-#from modules.utils.plot import plot_all
 from modules.utils.tensorboard_tools import start_tensorboard
 
 
@@ -36,7 +37,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_carracing2')
     parser.add_argument('--algorithm', type=str, default='DDPG')
-
+    parser.add_argument('--enable_cuda', default=True, help='Disable CUDA')
     ################################################
     # 1. Parameters for environment
     parser.add_argument('--obsv_dim', type=int, default=None, help='dim(State)')
@@ -158,24 +159,7 @@ if __name__ == "__main__":
     # Get parameter dictionary
     args = vars(parser.parse_args())
     env = create_env(**args)
-    # print(env.observation_space.shape)
-    # input()
-    args['obsv_dim'] = env.observation_space.shape
-    args['action_dim'] = env.action_space.shape[0]
-    args['action_high_limit'] = env.action_space.high
-    args['action_low_limit'] = env.action_space.low
-
-    # Create save arguments
-    if args['save_folder'] is None:
-        args['save_folder'] = os.path.join('../results/' +
-                                           parser.parse_args().algorithm,
-                                           datetime.datetime.now().strftime("%m%d-%H%M%S"))
-    os.makedirs(args['save_folder'], exist_ok=True)
-    os.makedirs(args['save_folder'] + '/apprfunc', exist_ok=True)
-    os.makedirs(args['save_folder'] + '/evaluator', exist_ok=True)
-
-    with open(args['save_folder'] + '/config.json', 'w', encoding='utf-8') as f:
-        json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
+    args = init_args(env, **args)
 
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function

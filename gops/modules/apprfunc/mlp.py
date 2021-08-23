@@ -44,13 +44,12 @@ class DetermPolicy(nn.Module):
         self.pi = mlp(pi_sizes,
                       get_activation_func(kwargs['hidden_activation']),
                       get_activation_func(kwargs['output_activation']))
-        self.register_buffer('action_high_limit', torch.from_numpy(action_high_limit))
-        self.register_buffer('action_low_limit', torch.from_numpy(action_low_limit))
+        self.register_buffer('act_high_lim', torch.from_numpy(action_high_limit))
+        self.register_buffer('act_low_lim', torch.from_numpy(action_low_limit))
 
     def forward(self, obs):
-        action = torch.tanh(self.pi(obs))
-        # action = (self.action_high_limit-self.action_low_limit)/2 * action\
-        #          + (self.action_high_limit + self.action_low_limit)/2
+        action = (self.act_high_lim-self.act_low_lim)/2 * torch.tanh(self.pi(obs))\
+                 + (self.act_high_lim + self.act_low_lim)/2
         return action
 
 
@@ -73,12 +72,12 @@ class StochaPolicy(nn.Module):
         self.log_std = mlp(pi_sizes,
                            get_activation_func(kwargs['hidden_activation']),
                            get_activation_func(kwargs['output_activation']))
-        self.register_buffer('action_high_limit', torch.from_numpy(action_high_limit))
-        self.register_buffer('action_low_limit', torch.from_numpy(action_low_limit))
+        self.register_buffer('act_high_lim', torch.from_numpy(action_high_limit))
+        self.register_buffer('act_low_lim', torch.from_numpy(action_low_limit))
 
     def forward(self, obs):
-        action_mean = (self.action_high_limit - self.action_low_limit) / 2 * torch.tanh(self.mean(obs)) \
-                      + (self.action_high_limit + self.action_low_limit) / 2
+        action_mean = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(self.mean(obs)) \
+                      + (self.act_high_lim + self.act_low_lim) / 2
         action_std = torch.clamp(self.log_std(obs), self.min_log_std, self.max_log_std).exp()
         return torch.cat((action_mean, action_std), dim=-1)
 

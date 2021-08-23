@@ -42,8 +42,8 @@ class DetermPolicy(nn.Module):
         conv_type = kwargs['conv_type']
         action_high_limit = kwargs['action_high_limit']
         action_low_limit = kwargs['action_low_limit']
-        self.action_high_limit = torch.from_numpy(action_high_limit)
-        self.action_low_limit = torch.from_numpy(action_low_limit)
+        self.register_buffer('act_high_lim', torch.from_numpy(action_high_limit))
+        self.register_buffer('act_low_lim', torch.from_numpy(action_low_limit))
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
         if conv_type == "type_1":
@@ -85,8 +85,8 @@ class DetermPolicy(nn.Module):
         img = self.conv(img)
         feature = img.view(img.size(0), -1)
         feature = self.mlp(feature)
-        action = (self.action_high_limit - self.action_low_limit) / 2 * torch.tanh(feature) \
-                 + (self.action_high_limit + self.action_low_limit) / 2
+        action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(feature) \
+                 + (self.act_high_lim + self.act_low_lim) / 2
         return action
 
 
@@ -98,13 +98,12 @@ class StochaPolicy(nn.Module):
         conv_type = kwargs['conv_type']
         action_high_limit = kwargs['action_high_limit']
         action_low_limit = kwargs['action_low_limit']
-        self.register_buffer('action_high_limit', torch.from_numpy(action_high_limit))
-        self.register_buffer('action_low_limit', torch.from_numpy(action_low_limit))
+        self.register_buffer('act_high_lim', torch.from_numpy(action_high_limit))
+        self.register_buffer('act_low_lim', torch.from_numpy(action_low_limit))
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
         self.min_log_std = kwargs['min_log_std']
         self.max_log_std = kwargs['max_log_std']
-
 
         if conv_type == "type_1":
             # CNN+MLP Parameters
@@ -146,8 +145,8 @@ class StochaPolicy(nn.Module):
         img = obs.permute(0, 3, 1, 2)
         img = self.conv(img)
         feature = img.view(img.size(0), -1)
-        action_mean = (self.action_high_limit - self.action_low_limit) / 2 * torch.tanh(self.mean(feature)) \
-                      + (self.action_high_limit + self.action_low_limit) / 2
+        action_mean = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(self.mean(feature)) \
+                      + (self.act_high_lim + self.act_low_lim) / 2
         action_std = torch.clamp(self.log_std(feature), self.min_log_std, self.max_log_std).exp()
         return torch.cat((action_mean, action_std), dim=-1)
 
@@ -158,10 +157,6 @@ class ActionValue(nn.Module):
         act_dim = kwargs['act_dim']
         obs_dim = kwargs['obs_dim']
         conv_type = kwargs['conv_type']
-        action_high_limit = kwargs['action_high_limit']
-        action_low_limit = kwargs['action_low_limit']
-        self.action_high_limit = torch.from_numpy(action_high_limit)
-        self.action_low_limit = torch.from_numpy(action_low_limit)
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
         if conv_type == "type_1":
@@ -193,7 +188,6 @@ class ActionValue(nn.Module):
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
             conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims+act_dim] + mlp_hidden_layers + [1]
-
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
         else:
             raise NotImplementedError
@@ -211,10 +205,6 @@ class ActionValueDis(nn.Module):
         act_num = kwargs['act_dim']
         obs_dim = kwargs['obs_dim']
         conv_type = kwargs['conv_type']
-        action_high_limit = kwargs['action_high_limit']
-        action_low_limit = kwargs['action_low_limit']
-        self.action_high_limit = torch.from_numpy(action_high_limit)
-        self.action_low_limit = torch.from_numpy(action_low_limit)
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
         if conv_type == "type_1":
@@ -265,10 +255,6 @@ class StateValue(nn.Module):
         super(StateValue, self).__init__()
         obs_dim = kwargs['obs_dim']
         conv_type = kwargs['conv_type']
-        action_high_limit = kwargs['action_high_limit']
-        action_low_limit = kwargs['action_low_limit']
-        self.action_high_limit = torch.from_numpy(action_high_limit)
-        self.action_low_limit = torch.from_numpy(action_low_limit)
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
         if conv_type == "type_1":
