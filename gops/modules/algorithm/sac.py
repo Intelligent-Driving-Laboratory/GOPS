@@ -7,9 +7,10 @@
 #
 #  Update Date: 2021-6-17, Yang Yujie: implement SAC
 
-__all__ = ['SAC']
+__all__ = ['ApproxContainer', 'SAC']
 
 import time
+import warnings
 from copy import deepcopy
 
 import torch
@@ -25,11 +26,6 @@ from modules.utils.utils import get_apprfunc_dict
 class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        self.polyak = 1 - kwargs['tau']
-
-        self.log_alpha = nn.Parameter(torch.tensor(kwargs['alpha'], dtype=torch.float32).log())
-        self.target_entropy = -kwargs['action_dim']
-
         # create value network
         value_func_type = kwargs['value_func_type']
         value_args = get_apprfunc_dict('value', value_func_type, **kwargs)
@@ -58,63 +54,92 @@ class ApproxContainer(nn.Module):
         self.q1_optimizer = Adam(self.q1.parameters(), lr=kwargs['q_learning_rate'])
         self.q2_optimizer = Adam(self.q2.parameters(), lr=kwargs['q_learning_rate'])
         self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs['policy_learning_rate'])
-        self.alpha_optimizer = Adam([self.log_alpha], lr=kwargs['alpha_learning_rate'])
 
-    def update(self, grads, iteration):
-        value_grad_len = len(list(self.value.parameters()))
-        q_grad_len = len(list(self.q1.parameters()))
-        value_grad = grads[:value_grad_len]
-        q1_grad = grads[value_grad_len:value_grad_len + q_grad_len]
-        q2_grad = grads[value_grad_len + q_grad_len:value_grad_len + 2 * q_grad_len]
-        policy_grad = grads[value_grad_len + 2 * q_grad_len:-1]
-        alpha_grad = grads[-1]
+    def update(self, grads_info):
+        value_grad = grads_info['value_grad']
+        q1_grad = grads_info['q1_grad']
+        q2_grad = grads_info['q2_grad']
+        policy_grad = grads_info['policy_grad']
+        polyak = 1 - grads_info['tau']
 
         # update value network
         for p, grad in zip(self.value.parameters(), value_grad):
-            p._grad = torch.from_numpy(grad)
+            p._grad = grad
         self.value_optimizer.step()
 
         # update q networks
         for p, grad in zip(self.q1.parameters(), q1_grad):
-            p._grad = torch.from_numpy(grad)
+            p._grad = grad
         for p, grad in zip(self.q2.parameters(), q2_grad):
-            p._grad = torch.from_numpy(grad)
+            p._grad = grad
         self.q1_optimizer.step()
         self.q2_optimizer.step()
 
         # update policy network
         for p, grad in zip(self.policy.parameters(), policy_grad):
-            p._grad = torch.from_numpy(grad)
+            p._grad = grad
         self.policy_optimizer.step()
 
         # update target network
         with torch.no_grad():
             for p, p_targ in zip(self.value.parameters(), self.value_target.parameters()):
-                p_targ.data.mul_(self.polyak)
-                p_targ.data.add_((1 - self.polyak) * p.data)
-
-        # update alpha
-        self.log_alpha._grad = torch.from_numpy(alpha_grad)
-        self.alpha_optimizer.step()
+                p_targ.data.mul_(polyak)
+                p_targ.data.add_((1 - polyak) * p.data)
 
 
 class SAC:
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs)
-        self.gamma = kwargs['gamma']
         self.act_dist_cls = GaussDistribution
+        self.use_gpu = kwargs['use_gpu']
+        self.gamma = 0.99
+        self.tau = 0.005
+        self.auto_alpha = True
+        self.target_entropy = -kwargs['action_dim']
 
-    def compute_gradient(self, data):
+        if self.auto_alpha:
+            self.log_alpha = torch.tensor(0, dtype=torch.float32, requires_grad=True)
+            if self.use_gpu:
+                self.log_alpha = self.log_alpha.cuda()
+            self.alpha_optimizer = Adam([self.log_alpha], lr=kwargs['alpha_learning_rate'])
+            self.alpha = self.log_alpha.exp().item()
+        else:
+            self.alpha = 0.2
+
+    def set_parameters(self, param_dict):
+        for key in param_dict:
+            if hasattr(self, key):
+                setattr(self, key, param_dict[key])
+            else:
+                warning_msg = "param '" + key + "'is not defined in algorithm!"
+                warnings.warn(warning_msg)
+
+    def get_parameters(self):
+        params = dict()
+        params['gamma'] = self.gamma
+        params['tau'] = self.tau
+        params['use_gpu'] = self.use_gpu
+        params['auto_alpha'] = self.auto_alpha
+        params['alpha'] = self.alpha
+        params['target_entropy'] = self.target_entropy
+        return params
+
+    def compute_gradient(self, data, iteration):
         start_time = time.time()
+
+        if self.use_gpu:
+            self.networks = self.networks.cuda()
+            for k, v in data.items():
+                data[k] = v.cuda()
 
         obs = data['obs']
         logits = self.networks.policy(obs)
         act_dist = self.act_dist_cls(logits)
         new_act = act_dist.rsample()
-        log_prob = act_dist.log_prob(new_act)
+        new_logp = act_dist.log_prob(new_act)
         data.update({
             'new_act': new_act,
-            'log_prob': log_prob
+            'new_logp': new_logp
         })
 
         self.networks.value_optimizer.zero_grad()
@@ -140,15 +165,23 @@ class SAC:
         for p in self.networks.q2.parameters():
             p.requires_grad = True
 
-        self.networks.alpha_optimizer.zero_grad()
-        loss_alpha = self._compute_loss_alpha(data)
-        loss_alpha.backward()
+        if self.auto_alpha:
+            self.alpha_optimizer.zero_grad()
+            loss_alpha = self._compute_loss_alpha(data)
+            loss_alpha.backward()
+            self.alpha_optimizer.step()
+            self.alpha = self.log_alpha.exp().item()
 
-        value_grad = [p.grad.numpy() for p in self.networks.value.parameters()]
-        q1_grad = [p.grad.numpy() for p in self.networks.q1.parameters()]
-        q2_grad = [p.grad.numpy() for p in self.networks.q2.parameters()]
-        policy_grad = [p.grad.numpy() for p in self.networks.policy.parameters()]
-        alpha_grad = self.networks.log_alpha.grad.numpy()
+        if self.use_gpu:
+            self.networks = self.networks.cpu()
+
+        grad_info = {
+            'value_grad': [p.grad for p in self.networks.value.parameters()],
+            'q1_grad': [p.grad for p in self.networks.q1.parameters()],
+            'q2_grad': [p.grad for p in self.networks.q2.parameters()],
+            'policy_grad': [p.grad for p in self.networks.policy.parameters()],
+            'tau': self.tau
+        }
 
         tb_info = {
             tb_tags['loss_critic']: loss_value.item(),
@@ -157,19 +190,19 @@ class SAC:
             'Train/critic_avg_q1': q1.item(),
             'Train/critic_avg_q2': q2.item(),
             'Train/entropy': entropy.item(),
-            'Train/alpha': self.networks.log_alpha.exp().item(),
+            'Train/alpha': self.alpha,
             tb_tags['alg_time']: (time.time() - start_time) * 1000
         }
 
-        return value_grad + q1_grad + q2_grad + policy_grad + [alpha_grad], tb_info
+        return grad_info, tb_info
 
     def _compute_loss_value(self, data):
-        obs, new_act, log_prob = data['obs'], data['new_act'], data['log_prob']
+        obs, new_act, new_logp = data['obs'], data['new_act'], data['new_logp']
         value = self.networks.value(obs).squeeze(-1)
         with torch.no_grad():
             q1 = self.networks.q1(obs, new_act)
             q2 = self.networks.q2(obs, new_act)
-            target_value = torch.min(q1, q2) - self.networks.log_alpha.exp() * log_prob
+            target_value = torch.min(q1, q2) - self.alpha * new_logp
         loss_value = ((value - target_value) ** 2).mean()
         return loss_value, value.detach().mean()
 
@@ -186,16 +219,14 @@ class SAC:
         return loss_q1 + loss_q2, q1.detach().mean(), q2.detach().mean()
 
     def _compute_loss_policy(self, data):
-        obs, new_act, log_prob = data['obs'], data['new_act'], data['log_prob']
+        obs, new_act, new_logp = data['obs'], data['new_act'], data['new_logp']
         q1 = self.networks.q1(obs, new_act)
         q2 = self.networks.q2(obs, new_act)
-        loss_policy = (self.networks.log_alpha.exp().detach() * log_prob -
-                       torch.min(q1, q2)).mean()
-        entropy = -log_prob.detach().mean()
+        loss_policy = (self.alpha * new_logp - torch.min(q1, q2)).mean()
+        entropy = -new_logp.detach().mean()
         return loss_policy, entropy
 
     def _compute_loss_alpha(self, data):
-        log_prob = data['log_prob']
-        loss_alpha = -self.networks.log_alpha.exp() * \
-                     (log_prob.detach() + self.networks.target_entropy).mean()
+        new_logp = data['new_logp']
+        loss_alpha = -self.log_alpha.exp() * (new_logp.detach() + self.target_entropy).mean()
         return loss_alpha
