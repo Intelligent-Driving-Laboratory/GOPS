@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_cartpoleconti')
     parser.add_argument('--algorithm', type=str, default='DDPG')
-    parser.add_argument('--enable_cuda', default=True, help='Disable CUDA')
+    parser.add_argument('--enable_cuda', default=False, help='Enable CUDA')
     ################################################
     # 1. Parameters for environment
     parser.add_argument('--obsv_dim', type=int, default=None)
