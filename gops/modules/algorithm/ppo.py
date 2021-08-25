@@ -8,7 +8,7 @@
 #  Proximal Policy Optimization Algorithm (PPO)
 
 
-__all__ = ['PPO']
+__all__ = ['ApproxContainer', 'PPO']
 
 from copy import deepcopy
 import math
@@ -30,7 +30,7 @@ class ApproxContainer(nn.Module):
         super().__init__()
         self.max_iteration = kwargs['max_iteration']
         self.learning_rate = kwargs['learning_rate']
-        self.schedule_adam = kwargs['schedule_adam']
+        self.schedule_adam = 'linear'
 
         value_func_type = kwargs['value_func_type']
         policy_func_type = kwargs['policy_func_type']
@@ -63,6 +63,8 @@ class ApproxContainer(nn.Module):
 
 
 class PPO():
+    __has_gpu = torch.cuda.is_available()
+
     def __init__(self, **kwargs):
         self.data_gae = dict()
         self.trainer_type = kwargs['trainer']
@@ -77,21 +79,22 @@ class PPO():
         self.sample_batch_size = kwargs['sample_batch_size']
         self.indices = np.arange(self.sample_batch_size)
 
-        # 3. Parameters for algorithm
+        # Parameters for algorithm
         self.gamma = kwargs['gamma']
-        self.lamb = kwargs['lambda']
-        self.clip = kwargs['clip']
-        self.clip_now = kwargs['clip']
-        self.EPS = kwargs['EPS']
+        self.lamb = 0.95  # applied in GAE, making a compromise between bias & var
+        self.clip = 0.2
+        self.clip_now = 0.2
+        self.EPS = 1e-8
         self.loss_coefficient_value = kwargs['loss_coefficient_value']
         self.loss_coefficient_entropy = kwargs['loss_coefficient_entropy']
         self.learning_rate = kwargs['learning_rate']
-        # tricks
-        self.schedule_adam = 'linear' if kwargs['schedule_adam'] is None else kwargs['schedule_adam']
-        self.schedule_clip = 'linear' if kwargs['schedule_clip'] is None else kwargs['schedule_clip']
-        self.advantage_norm = True if kwargs['advantage_norm'] is None else kwargs['advantage_norm']
-        self.loss_value_clip = False if kwargs['loss_value_clip'] is None else kwargs['loss_value_clip']
-        self.loss_value_norm = True if kwargs['loss_value_norm'] is None else kwargs['loss_value_norm']
+
+        self.schedule_adam = 'linear'
+        self.schedule_clip = 'linear'
+        self.advantage_norm = True
+        self.loss_value_clip = False
+        self.loss_value_norm = True
+
         print('--------------------------------')
         print('| Proximal Policy Optimization |')
         print('| {:<16}'.format('schedule_adam') + ' | ' + '{:<9} |'.format(self.schedule_adam))
@@ -104,6 +107,13 @@ class PPO():
         self.networks = ApproxContainer(**kwargs)
         self.approximate_optimizer = Adam(self.networks.parameters(), lr=kwargs['learning_rate'])
         self.act_dist_cls = GaussDistribution
+        self.enable_cuda = kwargs['enable_cuda']
+        self.is_gpu = self.__has_gpu and self.enable_cuda
+        # ------------------------------------
+        if self.is_gpu:
+            self.networks.value = self.networks.value.cuda()
+            self.networks.policy = self.networks.policy.cuda()
+        # ------------------------------------
 
     def compute_gradient(self, data):
         tb_info = dict()
@@ -112,7 +122,7 @@ class PPO():
 
         self.gradient_step = self.iteration % self.num_epoch
         if self.gradient_step == 0:
-            self.data_gae = self.generalization_advantage_estimate(data)  # 1/10 of total time
+            self.data_gae = self.__generalization_advantage_estimate(data)  # 1/10 of total time
             # create the indices array
             self.indices = np.arange(self.sample_batch_size)
             np.random.shuffle(self.indices)
@@ -121,8 +131,9 @@ class PPO():
         mb_indices = self.indices[mb_start: mb_start + self.mini_batch_size]
         mb_sample = {k: self.data_gae[k][mb_indices] for k in list(self.data_gae.keys())}
 
-        loss_total, loss_surrogate, loss_value, loss_entropy, approximate_kl, clip_fra = self.compute_loss(mb_sample)  # 1/50
+        loss_total, loss_surrogate, loss_value, loss_entropy, approximate_kl, clip_fra = self.__compute_loss(mb_sample)
         loss_total.backward()  # < 2ms
+        self.iteration += 1
 
         value_grad = [p._grad.numpy() for p in self.networks.value.parameters()]
         policy_grad = [p._grad.numpy() for p in self.networks.policy.parameters()]
@@ -136,7 +147,7 @@ class PPO():
         # tb_info[tb_tags["clip_fraction"]] = clip_fra.item()
         tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
 
-        if (self.iteration + 1) % self.print_interval == 0:
+        if self.iteration % self.print_interval == 0:
             print('iteration: {}  total_loss = {:.4f} = {:.10f} + {} * {:.4f} - {} * {:.4f}'
                   .format(self.iteration, loss_total.item(), loss_surrogate.item(),
                           self.loss_coefficient_value, loss_value.item(),
@@ -152,13 +163,11 @@ class PPO():
             # print('| {:<16}'.format('alg_time') + ' | ' + '{:.12f} |'.format(end_time - start_time))
             # print('------------------------------------')
 
-        self.iteration += 1
-
         return value_grad + policy_grad, tb_info
 
-    def compute_loss(self, data):
+    def __compute_loss(self, data):
         if data.get('ret') is None:  # GAE needs to be done
-            extended_data = self.generalization_advantage_estimate(data)
+            extended_data = self.__generalization_advantage_estimate(data)
             print('iteration = ', self.iteration, ': Finish GAE in compute_loss!!!')
             obs, act, rew, obs2 = extended_data['obs'], extended_data['act'], extended_data['rew'], extended_data['obs2']
             mask, pro = extended_data['mask'], extended_data['pro']
@@ -175,7 +184,7 @@ class PPO():
         mb_observation = obs
         mb_action = act
         mb_old_log_pro = pro
-        mb_new_log_pro = self._get_log_pro(mb_observation, mb_action)
+        mb_new_log_pro = self.__get_log_pro(mb_observation, mb_action)
 
         mb_return = returns.detach()
         mb_advantage = advantages
@@ -219,9 +228,13 @@ class PPO():
 
         return loss_total, loss_surrogate, loss_value, loss_entropy, approximate_kl, clip_fraction
 
-    def generalization_advantage_estimate(self, data):
-        obs, act, rew, obs2, done = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
-        logp, time_limited = data['logp'], data['time_limited']
+    def __generalization_advantage_estimate(self, data):
+        if self.is_gpu:
+            obs, act, rew, obs2, done = data['obs'].cuda(), data['act'].cuda(), data['rew'].cuda(), data['obs2'].cuda(), data['done'].cuda()
+            logp, time_limited = data['logp'].cuda(), data['time_limited'].cuda()
+        else:
+            obs, act, rew, obs2, done = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
+            logp, time_limited = data['logp'], data['time_limited']
         with torch.no_grad():
             # pro = self._get_log_pro(obs, act)
             pro = logp
@@ -245,7 +258,7 @@ class PPO():
         return dict(obs=obs, act=act, rew=rew, obs2=obs2,
                     mask=mask, pro=pro, ret=returns, adv=advantages, val=values)
 
-    def _get_log_pro(self, obs, act):  # torch.Size([1024, 4]) & torch.Size([1024, 1])
+    def __get_log_pro(self, obs, act):  # torch.Size([1024, 4]) & torch.Size([1024, 1])
         logits = self.networks.policy(obs)  # torch.Size([1024, 1]) & torch.Size([1024, 1])
         action_mean, action_std = torch.chunk(logits, chunks=2, dim=-1)
         action_log_std = torch.log(action_std)  # torch.Size([1024, 1])
@@ -267,3 +280,10 @@ class PPO():
 #         adv = delta[i] + scale[i] * adv
 #         advantages[i] = adv
 #     return advantages
+
+
+if __name__ == '__main__':
+    print('this is PPO algorithm!')
+    print(torch.cuda.is_available())
+    print(torch.cuda.device_count())
+
