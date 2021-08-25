@@ -69,7 +69,7 @@ class ApproxContainer(nn.Module):
 class DDPG:
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs)
-        self.use_gpu = kwargs['use_gpu']
+        self.use_gpu = kwargs['enable_cuda']
         self.gamma = 0.99
         self.tau = 0.005
         self.delay_update = 1
