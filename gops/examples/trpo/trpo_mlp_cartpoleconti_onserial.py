@@ -30,6 +30,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_cartpoleconti')
     parser.add_argument('--algorithm', type=str, default='TRPO')
+    parser.add_argument('--enable_cuda', default=False)
 
     ################################################
     # 1. Parameters for environment
@@ -103,7 +104,7 @@ if __name__ == "__main__":
 
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument('--sampler_name', type=str, default='mc_sampler')
+    parser.add_argument('--sampler_name', type=str, default='on_sampler')
     # Batch size of sampler for buffer store
     parser.add_argument('--sample_batch_size', type=int, default=1024)
     # Add noise to actions for better exploration
