@@ -1,0 +1,13 @@
+<configuration>
+
+    <input>
+        <net-file value="a.net.xml"/>
+        <route-files value="cross.rou.xml, a_del_person.rou.xml"/>
+        <additional-files value="cross.add.xml"/>
+    </input>
+    <time>
+        <step-length value="0.1" />
+    </time>
+        <lanechange.duration value="3"/>
+
+</configuration>

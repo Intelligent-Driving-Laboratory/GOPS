@@ -46,6 +46,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_type', type=str, default='continu', help='')
     parser.add_argument('--is_render', type=bool, default=False, help='')
     parser.add_argument('--is_adversary', type=bool, default=False, help='Adversary training')
+    parser.add_argument('--enable_cuda', default=False, help='Disable CUDA')
 
     ################################################
     # 2.1 Parameters of value approximate function
@@ -78,20 +79,10 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for algorithm
-    parser.add_argument('--gamma', type=float, default=0.995, help='')
-    parser.add_argument('--lambda', type=float, default=0.97,
-                        help='applied in generalized advantage estimator (GAE), making a compromise between bias & var')
-    parser.add_argument('--clip', type=float, default=0.2, help='')
-    parser.add_argument('--EPS', type=float, default=1e-8, help='')
-    parser.add_argument('--loss_coefficient_value', type=float, default=0.5, help='')
-    parser.add_argument('--loss_coefficient_entropy', type=float, default=0.01, help='')
-    parser.add_argument('--learning_rate', type=float, default=3e-4, help='')
-    # tricks
-    parser.add_argument('--schedule_adam', type=str, default='linear')
-    parser.add_argument('--schedule_clip', type=str, default='linear')
-    parser.add_argument('--advantage_norm', type=bool, default=True)
-    parser.add_argument('--loss_value_clip', type=bool, default=False)
-    parser.add_argument('--loss_value_norm', type=bool, default=True)
+    parser.add_argument('--gamma', type=float, default=0.995, help='0.99 in the paper')
+    parser.add_argument('--loss_coefficient_value', type=float, default=0.5, help='1 in the paper')
+    parser.add_argument('--loss_coefficient_entropy', type=float, default=0.01, help='0.01 in the paper')
+    parser.add_argument('--learning_rate', type=float, default=3e-4, help='3e-4 in the paper')
 
     ################################################
     # 4. Parameters for trainer

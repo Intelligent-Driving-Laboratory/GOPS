@@ -19,7 +19,7 @@ from modules.utils.tensorboard_tools import tb_tags
 from modules.utils.utils import array_to_scalar
 
 
-class McSampler():
+class OnSampler():
     def __init__(self, **kwargs):
         self.env = create_env(**kwargs)
         alg_name = kwargs['algorithm']
