@@ -98,9 +98,10 @@ class SAC:
         self.target_entropy = -kwargs['action_dim']
 
         if self.auto_alpha:
-            self.log_alpha = torch.tensor(0, dtype=torch.float32, requires_grad=True)
+            self.log_alpha = torch.tensor(0, dtype=torch.float32)
             if self.use_gpu:
                 self.log_alpha = self.log_alpha.cuda()
+            self.log_alpha.requires_grad = True
             self.alpha_optimizer = Adam([self.log_alpha], lr=kwargs['alpha_learning_rate'])
             self.alpha = self.log_alpha.exp().item()
         else:
@@ -111,7 +112,7 @@ class SAC:
             if hasattr(self, key):
                 setattr(self, key, param_dict[key])
             else:
-                warning_msg = "param '" + key + "'is not defined in algorithm!"
+                warning_msg = "param '" + key + "' is not defined in algorithm!"
                 warnings.warn(warning_msg)
 
     def get_parameters(self):
