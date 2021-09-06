@@ -28,6 +28,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_pendulum')
     parser.add_argument('--algorithm', type=str, default='SAC')
+    parser.add_argument('--enable_cuda', default=True, help='Disable CUDA')
 
     ################################################
     # 1. Parameters for environment
@@ -84,16 +85,10 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--tau', type=float, default=0.005)
-    parser.add_argument('--alpha', type=float, default=1)
     parser.add_argument('--value_learning_rate', type=float, default=3e-4)
     parser.add_argument('--q_learning_rate', type=float, default=3e-4)
     parser.add_argument('--policy_learning_rate', type=float, default=3e-4)
     parser.add_argument('--alpha_learning_rate', type=float, default=3e-4)
-    parser.add_argument('--delay_update', type=int, default=1, help='')
-    # Reward = reward_scale * environment.Reward
-    parser.add_argument('--reward_scale', type=float, default=1)
 
     ################################################
     # 4. Parameters for trainer
@@ -116,9 +111,9 @@ if __name__ == "__main__":
         parser.add_argument('--sampler_sync_interval', type=int, default=1)
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument('--sampler_name', type=str, default='mc_sampler')
+    parser.add_argument('--sampler_name', type=str, default='off_sampler')
     # Batch size of sampler for buffer store
-    parser.add_argument('--sample_batch_size', type=int, default=5)
+    parser.add_argument('--sample_batch_size', type=int, default=1)
     # Add noise to actions for better exploration
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
@@ -134,7 +129,7 @@ if __name__ == "__main__":
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument('--apprfunc_save_interval', type=int, default=500)
+    parser.add_argument('--apprfunc_save_interval', type=int, default=100)
     # Save key info every N updates
     parser.add_argument('--log_save_interval', type=int, default=100)
 
