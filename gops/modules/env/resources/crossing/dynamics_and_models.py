@@ -250,6 +250,13 @@ class EnvironmentModel(object):  # all tensors
 
         ego_infos, tracking_infos = obses_ego[:, :self.ego_info_dim], obses_ego[:, self.ego_info_dim:]
 
+
+        constraints_road = []
+        constraints_person = []
+        constraints_bike = []
+        constraints_vehicle = []
+
+
         bike_infos = obses_bike.detach()
         person_infos = obses_person.detach()
         veh_infos = obses_veh.detach()
@@ -289,6 +296,8 @@ class EnvironmentModel(object):  # all tensors
                     veh2veh4training += torch.where(veh2veh_dist-3.5 < 0, torch.square(veh2veh_dist-3.5), torch.zeros_like(veh_infos[:, 0]))
                     veh2veh4real += torch.where(veh2veh_dist-2.5 < 0, torch.square(veh2veh_dist-2.5), torch.zeros_like(veh_infos[:, 0]))
 
+                    constraints_vehicle.append(veh2veh_dist - 2.5)
+
         veh2bike4real = torch.zeros_like(veh_infos[:, 0])
         veh2bike4training = torch.zeros_like(veh_infos[:, 0])
         for bike_index in range(int(bike_infos.shape[1] / self.per_bike_info_dim)):
@@ -303,6 +312,8 @@ class EnvironmentModel(object):  # all tensors
                     veh2bike_dist = torch.sqrt(torch.square(ego_point[0] - bike_point[0]) + torch.square(ego_point[1] - bike_point[1]))
                     veh2bike4training += torch.where(veh2bike_dist-3.5 < 0, torch.square(veh2bike_dist-3.5), torch.zeros_like(veh_infos[:, 0]))
                     veh2bike4real += torch.where(veh2bike_dist-2.5 < 0, torch.square(veh2bike_dist-2.5), torch.zeros_like(veh_infos[:, 0]))
+                    constraints_bike.append(veh2bike_dist - 2.5)
+
 
         veh2person4real = torch.zeros_like(veh_infos[:, 0])
         veh2person4training = torch.zeros_like(veh_infos[:, 0])
@@ -313,9 +324,11 @@ class EnvironmentModel(object):  # all tensors
                 veh2person_dist = torch.sqrt(torch.square(ego_point[0] - person_point[0]) + torch.square(ego_point[1] - person_point[1]))
                 veh2person4training += torch.where(veh2person_dist-4.5 < 0, torch.square(veh2person_dist-4.5), torch.zeros_like(veh_infos[:, 0])) # todo
                 veh2person4real += torch.where(veh2person_dist-2.5 < 0, torch.square(veh2person_dist-2.5), torch.zeros_like(veh_infos[:, 0]))
+                constraints_person.append(veh2person_dist - 2.5)
 
         veh2road4real = torch.zeros_like(veh_infos[:, 0])
         veh2road4training = torch.zeros_like(veh_infos[:, 0])
+
         if self.task == 'left':
             for ego_point in [ego_front_points, ego_rear_points]:
                 veh2road4training += torch.where(logical_and(ego_point[1] < -CROSSROAD_SIZE/2, ego_point[0] < 1),
@@ -335,50 +348,17 @@ class EnvironmentModel(object):  # all tensors
                                      torch.square(LANE_WIDTH*LANE_NUMBER - ego_point[1] - 1), torch.zeros_like(veh_infos[:, 0]))
                 veh2road4real += torch.where(logical_and(ego_point[0] < -CROSSROAD_SIZE/2, ego_point[1] - 0 < 1),
                                      torch.square(ego_point[1] - 0 - 1), torch.zeros_like(veh_infos[:, 0]))
+                constraints_road.append(logical_and(ego_point[1] < -CROSSROAD_SIZE/2, ego_point[0] < 1))
+                constraints_road.append(logical_and(ego_point[1] < -CROSSROAD_SIZE/2, LANE_WIDTH - ego_point[0] < 1))
+                constraints_road.append(logical_and(ego_point[0] < 0, LANE_WIDTH*LANE_NUMBER - ego_point[1] < 1))
+                constraints_road.append(logical_and(ego_point[0] < -CROSSROAD_SIZE/2, ego_point[1] - 0 < 1))
+
+
         elif self.task == 'straight':
-            for ego_point in [ego_front_points, ego_rear_points]:
-                veh2road4training += torch.where(logical_and(ego_point[1] < -CROSSROAD_SIZE/2, ego_point[0] - LANE_WIDTH < 1),
-                                     torch.square(ego_point[0] - LANE_WIDTH -1), torch.zeros_like(veh_infos[:, 0]))
-                veh2road4training += torch.where(logical_and(ego_point[1] < -CROSSROAD_SIZE/2, 2*LANE_WIDTH-ego_point[0] < 1),
-                                     torch.square(2*LANE_WIDTH-ego_point[0] - 1), torch.zeros_like(veh_infos[:, 0]))
-                veh2road4training += torch.where(logical_and(ego_point[1] > CROSSROAD_SIZE/2, LANE_WIDTH*LANE_NUMBER - ego_point[0] < 1),
-                                     torch.square(LANE_WIDTH*LANE_NUMBER - ego_point[0] - 1), torch.zeros_like(veh_infos[:, 0]))
-                veh2road4training += torch.where(logical_and(ego_point[1] > CROSSROAD_SIZE/2, ego_point[0] - 0 < 1),
-                                     torch.square(ego_point[0] - 0 - 1), torch.zeros_like(veh_infos[:, 0]))
+            pass
 
-                veh2road4real += torch.where(logical_and(ego_point[1] < -CROSSROAD_SIZE / 2, ego_point[0]-LANE_WIDTH < 1),
-                                              torch.square(ego_point[0]-LANE_WIDTH - 1), torch.zeros_like(veh_infos[:, 0]))
-                veh2road4real += torch.where(
-                    logical_and(ego_point[1] < -CROSSROAD_SIZE / 2, 2 * LANE_WIDTH - ego_point[0] < 1),
-                    torch.square(2 * LANE_WIDTH - ego_point[0] - 1), torch.zeros_like(veh_infos[:, 0]))
-                veh2road4real += torch.where(
-                    logical_and(ego_point[1] > CROSSROAD_SIZE / 2, LANE_WIDTH * LANE_NUMBER - ego_point[0] < 1),
-                    torch.square(LANE_WIDTH * LANE_NUMBER - ego_point[0] - 1), torch.zeros_like(veh_infos[:, 0]))
-                veh2road4real += torch.where(logical_and(ego_point[1] > CROSSROAD_SIZE / 2, ego_point[0] - 0 < 1),
-                                              torch.square(ego_point[0] - 0 - 1), torch.zeros_like(veh_infos[:, 0]))
         else:
-            assert self.task == 'right'
-            for ego_point in [ego_front_points, ego_rear_points]:
-                veh2road4training += torch.where(logical_and(ego_point[1] < -CROSSROAD_SIZE/2, ego_point[0] - 2*LANE_WIDTH < 1),
-                                     torch.square(ego_point[0] - 2*LANE_WIDTH-1), torch.zeros_like(veh_infos[:, 0]))
-                veh2road4training += torch.where(logical_and(ego_point[1] < -CROSSROAD_SIZE/2, LANE_NUMBER*LANE_WIDTH-ego_point[0] < 1),
-                                     torch.square(LANE_NUMBER*LANE_WIDTH-ego_point[0] - 1), torch.zeros_like(veh_infos[:, 0]))
-                veh2road4training += torch.where(logical_and(ego_point[0] > CROSSROAD_SIZE/2, 0 - ego_point[1] < 1),
-                                     torch.square(0 - ego_point[1] - 1), torch.zeros_like(veh_infos[:, 0]))
-                veh2road4training += torch.where(logical_and(ego_point[0] > CROSSROAD_SIZE/2, ego_point[1] - (-LANE_WIDTH*LANE_NUMBER) < 1),
-                                     torch.square(ego_point[1] - (-LANE_WIDTH*LANE_NUMBER) - 1), torch.zeros_like(veh_infos[:, 0]))
-
-                veh2road4real += torch.where(
-                    logical_and(ego_point[1] < -CROSSROAD_SIZE / 2, ego_point[0] - 2 * LANE_WIDTH < 1),
-                    torch.square(ego_point[0] - 2 * LANE_WIDTH - 1), torch.zeros_like(veh_infos[:, 0]))
-                veh2road4real += torch.where(
-                    logical_and(ego_point[1] < -CROSSROAD_SIZE / 2, LANE_NUMBER * LANE_WIDTH - ego_point[0] < 1),
-                    torch.square(LANE_NUMBER * LANE_WIDTH - ego_point[0] - 1), torch.zeros_like(veh_infos[:, 0]))
-                veh2road4real += torch.where(logical_and(ego_point[0] > CROSSROAD_SIZE / 2, 0 - ego_point[1] < 1),
-                                              torch.square(0 - ego_point[1] - 1), torch.zeros_like(veh_infos[:, 0]))
-                veh2road4real += torch.where(
-                    logical_and(ego_point[0] > CROSSROAD_SIZE / 2, ego_point[1] - (-LANE_WIDTH * LANE_NUMBER) < 1),
-                    torch.square(ego_point[1] - (-LANE_WIDTH * LANE_NUMBER) - 1), torch.zeros_like(veh_infos[:, 0]))
+            pass
 
         rewards = 0.05 * devi_v + 0.8 * devi_y + 30 * devi_phi + 0.02 * punish_yaw_rate + \
                   5 * punish_steer + 0.05 * punish_a_x
@@ -404,7 +384,11 @@ class EnvironmentModel(object):  # all tensors
                            veh2veh4real=veh2veh4real,
                            veh2road4real=veh2road4real,
                            veh2bike2real=veh2bike4real,
-                           veh2person2real=veh2person4real
+                           veh2person2real=veh2person4real,
+                           constraints_person=torch.stack(constraints_person),
+                           constraints_road=torch.stack(constraints_road),
+                           constraints_bike=torch.stack(constraints_bike),
+                           constraints_vehicle=torch.stack(constraints_vehicle)
                            )
 
         return rewards, punish_term_for_training, real_punish_term, veh2veh4real, veh2road4real, veh2bike4real, \

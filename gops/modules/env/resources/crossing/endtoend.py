@@ -154,6 +154,14 @@ class CrossroadEnd2endMixPiFix(gym.Env):
                          'veh_num': self.veh_num, 'bike_num': self.bike_num, 'person_num':self.person_num})
         return self.obs, reward, done, all_info
 
+    def get_constraints(self):
+        constraints_person = self.reward_info['constraints_person']
+        constraints_road = self.reward_info['constraints_road']
+        constraints_bike = self.reward_info['constraints_bike']
+        constraints_vehicle = self.reward_info['constraints_vehicle']
+        print(constraints_person.shape, constraints_road.shape, constraints_bike.shape, constraints_vehicle.shape)
+        return np.concatenate([constraints_vehicle, constraints_bike, constraints_road, constraints_person])
+
     def _set_observation_space(self, observation):
         self.observation_space = convert_observation_to_space(observation)
         return self.observation_space
@@ -649,7 +657,11 @@ class CrossroadEnd2endMixPiFix(gym.Env):
 
         reward, _, _, _, _, _, _, reward_dict = self.env_model.compute_rewards(obses_ego, obses_bike, obses_person, obses_veh, actions)
         for k, v in reward_dict.items():
-            reward_dict[k] = v.numpy()[0]
+            if k[0:11] != 'constraints':
+                reward_dict[k] = v.numpy()[0]
+            else:
+                reward_dict[k] = v.numpy()
+
         return reward.numpy()[0], reward_dict
 
     def render(self, mode='human'):
@@ -1054,7 +1066,8 @@ class CrossroadEnd2endMixPiFix(gym.Env):
             # reward info
             if self.reward_info is not None:
                 for key, val in self.reward_info.items():
-                    plt.text(text_x, text_y_start - next(ge), '{}: {:.4f}'.format(key, val))
+                    if key[0:11] != 'constraints':
+                        plt.text(text_x, text_y_start - next(ge), '{}: {:.4f}'.format(key, val))
 
             # indicator for trajectory selection
             # text_x, text_y_start = -25, -65
