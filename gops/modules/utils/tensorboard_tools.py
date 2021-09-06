@@ -38,7 +38,7 @@ def read_tensorboard(path):
     return output_dict
 
 
-def start_tensorboard(logdir, port=6006):
+def start_tensorboard(logdir, port=6001):
     kill_port(port)
 
     sys_name = platform.system()
