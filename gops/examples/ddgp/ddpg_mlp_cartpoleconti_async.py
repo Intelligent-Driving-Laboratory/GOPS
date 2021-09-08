@@ -31,7 +31,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_cartpoleconti')
     parser.add_argument('--algorithm', type=str, default='DDPG')
-
+    parser.add_argument('--enable_cuda', default=False, help='Disable CUDA')
     ################################################
     # 1. Parameters for environment
     parser.add_argument('--obsv_dim', type=int, default=None, help='dim(State)')
@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument('--sampler_name', type=str, default='mc_sampler')
+    parser.add_argument('--sampler_name', type=str, default='off_sampler')
     parser.add_argument('--sample_batch_size', type=int, default=256,
                         help='Batch size of sampler for buffer store')
     parser.add_argument('--noise_params', type=dict,

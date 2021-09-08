@@ -80,8 +80,8 @@ class OnSyncTrainer():
         for _ in range(self.num_epoch):
             weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
             self.alg.load_state_dict.remote(weights)  # 更新learner参数
-            grads, alg_tb_dict = ray.get(self.alg.compute_gradient.remote(all_samples))
-            self.networks.update(grads, self.iteration)
+            grads, alg_tb_dict = ray.get(self.alg.compute_gradient.remote(all_samples, self.iteration))
+            self.networks.update(grads)
             self.iteration += 1
 
         # log
