@@ -75,7 +75,7 @@ def get_pids_linux(port):
 
 
 def get_pids_windows(port):
-    with os.popen('netstat -aon|findstr "6006"') as res:
+    with os.popen('netstat -aon|findstr "' + '{}"'.format(port)) as res:
         res = res.read().split('\n')
     results = []
     for line in res:
