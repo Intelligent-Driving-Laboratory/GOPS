@@ -12,6 +12,8 @@ import signal
 
 import tensorboard.backend.application
 
+DEFAULT_TB_PORT = 6001
+
 
 def read_tensorboard(path):
     """
@@ -38,7 +40,7 @@ def read_tensorboard(path):
     return output_dict
 
 
-def start_tensorboard(logdir, port=6001):
+def start_tensorboard(logdir, port=DEFAULT_TB_PORT):
     kill_port(port)
 
     sys_name = platform.system()
@@ -99,7 +101,7 @@ def kill_pid_windows(pids):
             pass
 
 
-def kill_port(port=6006):
+def kill_port(port=DEFAULT_TB_PORT):
     sys_name = platform.system()
     if sys_name == 'Linux':
         pids = get_pids_linux(port)
