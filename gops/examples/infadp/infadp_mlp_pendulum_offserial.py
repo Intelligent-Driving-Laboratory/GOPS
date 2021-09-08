@@ -31,6 +31,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_pendulum')
     parser.add_argument('--algorithm', type=str, default='INFADP')
+    parser.add_argument('--enable_cuda', default=False, help='Enable CUDA')
 
     # 1. Parameters for environment
     parser.add_argument('--obsv_dim', type=int, default=None)
@@ -60,14 +61,8 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument('--gamma', type=float, default=1,)
-    parser.add_argument('--tau', type=float, default=0.005)
     parser.add_argument('--value_learning_rate', type=float, default=1e-4)
     parser.add_argument('--policy_learning_rate', type=float, default=1e-4)
-    parser.add_argument('--delay_update', type=int, default=1)
-    parser.add_argument('--pev_step', type=int, default=1)
-    parser.add_argument('--pim_step', type=int, default=1)
-    parser.add_argument('--reward_scale', type=float, default=-0.01)
 
     # 4. Parameters for trainer
     parser.add_argument('--trainer', type=str, default='off_serial_trainer')
@@ -84,7 +79,7 @@ if __name__ == "__main__":
 
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument('--sampler_name', type=str, default='mc_sampler')
+    parser.add_argument('--sampler_name', type=str, default='off_sampler')
     parser.add_argument('--sample_batch_size', type=int, default=256)
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
@@ -109,6 +104,7 @@ if __name__ == "__main__":
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
+    alg.set_parameters({'reward_scale':-0.01, 'gamma': 1.0})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)  # 调用alg里面的函数，创建自己的网络
     # Step 3: create buffer in trainer
