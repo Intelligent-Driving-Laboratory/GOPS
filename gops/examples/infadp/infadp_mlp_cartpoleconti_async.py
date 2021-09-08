@@ -31,7 +31,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_cartpoleconti')
     parser.add_argument('--algorithm', type=str, default='INFADP')
-    parser.add_argument('--enable_cuda', default=False, help='Enable CUDA')
+    parser.add_argument('--enable_cuda', default=True, help='Enable CUDA')
 
     # 1. Parameters for environment
     parser.add_argument('--obsv_dim', type=int, default=None)
@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
     # 4. Parameters for trainer
     parser.add_argument('--trainer', type=str, default='off_async_trainer')
-    parser.add_argument('--max_iteration', type=int, default=5000,
+    parser.add_argument('--max_iteration', type=int, default=2000,
                         help='Maximum iteration number')
     parser.add_argument('--ini_network_dir', type=str, default=None)
     trainer_type = parser.parse_args().trainer
@@ -75,14 +75,14 @@ if __name__ == "__main__":
         import ray
 
         ray.init()
-        parser.add_argument('--num_algs', type=int, default=1)
-        parser.add_argument('--num_samplers', type=int, default=2)
+        parser.add_argument('--num_algs', type=int, default=2)
+        parser.add_argument('--num_samplers', type=int, default=1)
         parser.add_argument('--num_buffers', type=int, default=1)
         parser.add_argument('--alg_queue_max_size', type=int, default=1)
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
         parser.add_argument('--buffer_warm_size', type=int, default=1000)
         parser.add_argument('--buffer_max_size', type=int, default=100000)
-        parser.add_argument('--replay_batch_size', type=int, default=1024)
+        parser.add_argument('--replay_batch_size', type=int, default=256)
 
     ################################################
     # 5. Parameters for sampler
@@ -111,6 +111,8 @@ if __name__ == "__main__":
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
+    for alg_id in alg:
+        alg_id.set_parameters.remote({'reward_scale': 0.1, 'gamma': 0.99, 'tau': 0.005})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)  # 调用alg里面的函数，创建自己的网络
     # Step 3: create buffer in trainer

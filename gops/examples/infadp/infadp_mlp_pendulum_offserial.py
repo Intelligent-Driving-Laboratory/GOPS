@@ -31,7 +31,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_pendulum')
     parser.add_argument('--algorithm', type=str, default='INFADP')
-    parser.add_argument('--enable_cuda', default=False, help='Enable CUDA')
+    parser.add_argument('--enable_cuda', default=True, help='Enable CUDA')
 
     # 1. Parameters for environment
     parser.add_argument('--obsv_dim', type=int, default=None)
@@ -40,6 +40,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_low_limit', type=list, default=None)
     parser.add_argument('--action_type', type=str, default='continu')
     parser.add_argument('--is_render', type=bool, default=False)
+    parser.add_argument('--is_adversary', type=bool, default=False, help='Adversary training')
 
     ################################################
     # 2.1 Parameters of value approximate function
@@ -61,12 +62,12 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument('--value_learning_rate', type=float, default=1e-4)
-    parser.add_argument('--policy_learning_rate', type=float, default=1e-4)
+    parser.add_argument('--value_learning_rate', type=float, default=8e-5)
+    parser.add_argument('--policy_learning_rate', type=float, default=5e-5)
 
     # 4. Parameters for trainer
     parser.add_argument('--trainer', type=str, default='off_serial_trainer')
-    parser.add_argument('--max_iteration', type=int, default=8000,
+    parser.add_argument('--max_iteration', type=int, default=3000,
                         help='Maximum iteration number')
     parser.add_argument('--ini_network_dir', type=str, default=None)
     trainer_type = parser.parse_args().trainer
