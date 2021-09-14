@@ -79,9 +79,6 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for algorithm
-    parser.add_argument('--gamma', type=float, default=0.995, help='0.99 in the paper')
-    parser.add_argument('--loss_coefficient_value', type=float, default=0.5, help='1 in the paper')
-    parser.add_argument('--loss_coefficient_entropy', type=float, default=0.01, help='0.01 in the paper')
     parser.add_argument('--learning_rate', type=float, default=3e-4, help='3e-4 in the paper')
 
     ################################################
@@ -102,7 +99,7 @@ if __name__ == "__main__":
 
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument('--sampler_name', type=str, default='mc_sampler')
+    parser.add_argument('--sampler_name', type=str, default='on_sampler')
     # Batch size of sampler for buffer store
     parser.add_argument('--sample_batch_size', type=int, default=1024,
                         help='Batch size of sampler for buffer store = 1024')  # 8 env * 128 step
@@ -144,6 +141,7 @@ if __name__ == "__main__":
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
+    alg.set_parameters({'gamma': 0.995, 'loss_coefficient_value': 0.5, 'loss_coefficient_entropy': 0.01})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
