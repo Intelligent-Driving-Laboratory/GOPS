@@ -6,6 +6,10 @@
 #  Description: Soft Actor-Critic
 #
 #  Update Date: 2021-6-17, Yang Yujie: implement SAC
+#
+#  Supported environment: gym_cartpoleconti, gym_pendulum
+#  Supported trainer: off_serial, off_async, on_serial, on_sync
+#  (Note that on-policy trainers are not recommended since SAC is an off-policy algorithm)
 
 __all__ = ['ApproxContainer', 'SAC']
 
@@ -231,3 +235,6 @@ class SAC:
         new_logp = data['new_logp']
         loss_alpha = -self.log_alpha.exp() * (new_logp.detach() + self.target_entropy).mean()
         return loss_alpha
+
+    def load_state_dict(self, state_dict):
+        self.networks.load_state_dict(state_dict)
