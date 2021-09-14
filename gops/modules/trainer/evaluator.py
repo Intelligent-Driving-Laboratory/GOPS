@@ -63,7 +63,8 @@ class Evaluator():
         reward_list = []
         obs = self.env.reset()
         done = 0
-        while not done:
+        info = {'TimeLimit.truncated': False}
+        while not (done or info['TimeLimit.truncated']):
             batch_obs = torch.from_numpy(np.expand_dims(obs, axis=0).astype('float32'))
             logits = self.networks.policy(batch_obs)
             action_distribution = self.action_distirbution_cls(logits)
@@ -73,6 +74,8 @@ class Evaluator():
             obs_list.append(obs)
             action_list.append(action)
             obs = next_obs
+            if 'TimeLimit.truncated' not in info.keys():
+                info['TimeLimit.truncated'] = False
             # Draw environment animation
             if render:
                 self.env.render()

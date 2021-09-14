@@ -67,10 +67,10 @@ class OnSerialTrainer():
         for _ in range(self.num_epoch):
             # learning
             self.alg.networks.load_state_dict(self.networks.state_dict())
-            grads, alg_tb_dict = self.alg.compute_gradient(samples_with_replay_format, self.iteration)
+            grads, alg_tb_dict = self.alg.compute_gradient(samples_with_replay_format)
 
             # apply grad
-            self.networks.update(grads)
+            self.networks.update(grads, self.iteration)
             self.iteration += 1
 
         # log
