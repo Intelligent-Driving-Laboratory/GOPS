@@ -13,8 +13,9 @@ import numpy as np
 pi = torch.tensor(np.pi, dtype=torch.float32)
 
 
-class GymPendulumModel:
+class GymPendulumModel(torch.nn.Module):
     def __init__(self):
+        super().__init__()
         """
         you need to define parameters here
         """
@@ -28,17 +29,17 @@ class GymPendulumModel:
         # define common parameters here
         self.state_dim = 3
         self.action_dim = 1
-        self.lb_state = [-1., -1., -self.max_speed]
-        self.hb_state = [1., 1., self.max_speed]
-        self.lb_action = [-self.max_torque]
-        self.hb_action = [self.max_torque]
+        lb_state = [-1., -1., -self.max_speed]
+        hb_state = [1., 1., self.max_speed]
+        lb_action = [-self.max_torque]
+        hb_action = [self.max_torque]
         self.dt = 0.05
 
         # do not change the following section
-        self.lb_state = torch.tensor(self.lb_state, dtype=torch.float32)
-        self.hb_state = torch.tensor(self.hb_state, dtype=torch.float32)
-        self.lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
-        self.hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
+        self.register_buffer('lb_state', torch.tensor(lb_state, dtype=torch.float32))
+        self.register_buffer('hb_state', torch.tensor(hb_state, dtype=torch.float32))
+        self.register_buffer('lb_action', torch.tensor(lb_action, dtype=torch.float32))
+        self.register_buffer('hb_action', torch.tensor(hb_action, dtype=torch.float32))
 
     def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)):
         """
@@ -83,7 +84,7 @@ class GymPendulumModel:
         ############################################################################################
 
         # define the ending condation here the format is just like isdone = l(next_state)
-        isdone = torch.full([state.size()[0]], False, dtype=torch.bool)
+        isdone = state[:, 0].new_zeros(size=[state.size()[0]], dtype= torch.bool)
 
         ############################################################################################
         beyond_done = beyond_done.bool()

@@ -64,8 +64,8 @@ class ApproxContainer(nn.Module):
         with torch.no_grad():
             for net_name in grads_dict.keys():
                 for p, p_targ in zip(self.net_dict[net_name].parameters(), self.target_net_dict[net_name].parameters()):
-                    p_targ.data.mul_(tau)
-                    p_targ.data.add_((1 - tau) * p.data)
+                    p_targ.data.mul_(1-tau)
+                    p_targ.data.add_(tau * p.data)
 
 
 class INFADP:

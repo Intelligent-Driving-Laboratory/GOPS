@@ -16,6 +16,9 @@ class GymCrossingData():
     def step(self, action, adv_action=None):
         return self._env.step(action)
 
+    def get_constraints(self):
+        return self._env.get_constraints()
+
     def render(self, mode='human'):
         return self._env.render(mode)
 
@@ -31,5 +34,8 @@ if __name__ == '__main__':
     for _ in range(100):
         a = env.action_space.sample()
         env.step(a)
+
+        c = env.get_constraints()
+        print(c.shape)
         env.render()
     env.close()
