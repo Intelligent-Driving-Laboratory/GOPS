@@ -40,10 +40,10 @@ class ReplayBuffer():
                     'rew': np.zeros(self.max_size, dtype=np.float32),
                     'done': np.zeros(self.max_size, dtype=np.float32),
                     'logp': np.zeros(self.max_size, dtype=np.float32)}
-        if kwargs['is_constrained'] is True and 'constrained_dim' in kwargs.keys():
+        if 'constrained_dim' in kwargs.keys():
             self.con_dim = kwargs['constrained_dim']
             self.buf['con'] = np.zeros(combined_shape(self.max_size, self.con_dim), dtype=np.float32)
-        if kwargs['is_adversary'] is True and 'adversary_dim' in kwargs.keys():
+        if 'adversary_dim' in kwargs.keys():
             self.advers_dim = kwargs['adversary_dim']
             self.buf['advers'] = np.zeros(combined_shape(self.max_size, self.advers_dim), dtype=np.float32)
         self.ptr, self.size, = 0, 0
