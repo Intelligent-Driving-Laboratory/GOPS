@@ -46,7 +46,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_type', type=str, default='continu', help='')
     parser.add_argument('--is_render', type=bool, default=False, help='')
     parser.add_argument('--is_adversary', type=bool, default=False, help='Adversary training')
-    parser.add_argument('--enable_cuda', default=False, help='Disable CUDA')
+    parser.add_argument('--is_constrained', type=bool, default=False, help='Constrained training')
 
     ################################################
     # 2.1 Parameters of value approximate function

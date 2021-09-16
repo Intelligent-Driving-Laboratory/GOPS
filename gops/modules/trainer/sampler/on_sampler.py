@@ -36,7 +36,16 @@ class OnSampler():
         self.total_sample_number = 0
         self.obsv_dim = kwargs['obsv_dim']
         self.act_dim = kwargs['action_dim']
-
+        if kwargs['is_constrained'] is True and 'constrained_dim' in kwargs.keys():
+            self.is_constrained = True
+            self.con_dim = kwargs['constrained_dim']
+        else:
+            self.is_constrained = False
+        if kwargs['is_adversary'] is True and 'adversary_dim' in kwargs.keys():
+            self.is_adversary = True
+            self.advers_dim = kwargs['adversary_dim']
+        else:
+            self.is_adversary = False
         if self.action_type == 'continu':
             self.noise_processor = GaussNoise(**self.noise_params)
             if self.policy_func_name == 'StochaPolicy':
@@ -80,8 +89,18 @@ class OnSampler():
                 info['TimeLimit.truncated'] = False
             if info['TimeLimit.truncated']:
                 self.done = False
-            batch_data.append(
-                (self.obs.copy(), action, reward, next_obs.copy(), self.done, logp, info['TimeLimit.truncated']))
+            data = [self.obs.copy(), action, reward, next_obs.copy(), self.done, logp, info['TimeLimit.truncated']]
+            if self.is_constrained:
+                sth_about_constrained = np.zeros(self.con_dim)
+            else:
+                sth_about_constrained = None
+            if self.is_adversary:
+                sth_about_adversary = np.zeros(self.advers_dim)
+            else:
+                sth_about_adversary = None
+            data.append(sth_about_constrained)
+            data.append(sth_about_adversary)
+            batch_data.append(tuple(data))
             self.obs = next_obs
             if self.done or info['TimeLimit.truncated']:
                 self.obs = self.env.reset()
@@ -95,27 +114,43 @@ class OnSampler():
         return self.total_sample_number
 
     def samples_conversion(self, samples):
-        obs_tensor = torch.zeros(self.sample_batch_size, self.obsv_dim)
-        act_tensor = torch.zeros(self.sample_batch_size, self.act_dim)
-        obs2_tensor = torch.zeros(self.sample_batch_size, self.obsv_dim)
-        rew_tensor = torch.zeros(self.sample_batch_size, )
-        done_tensor = torch.zeros(self.sample_batch_size, )
-        logp_tensor = torch.zeros(self.sample_batch_size, )
-        time_limited_tensor = torch.zeros(self.sample_batch_size, )
+        obs_dim = self.obsv_dim
+        if isinstance(obs_dim, int):
+            obs_dim = (obs_dim,)
+        tensor_dict = {'obs': torch.zeros((self.sample_batch_size,) + obs_dim),
+                       'act': torch.zeros(self.sample_batch_size, self.act_dim),
+                       'obs2': torch.zeros((self.sample_batch_size,) + obs_dim),
+                       'rew': torch.zeros(self.sample_batch_size, ),
+                       'done': torch.zeros(self.sample_batch_size, ),
+                       'logp': torch.zeros(self.sample_batch_size, ),
+                       'time_limited': torch.zeros(self.sample_batch_size, )}
+        if self.is_constrained:
+            tensor_dict['con'] = torch.zeros(self.sample_batch_size, self.con_dim)
+        else:
+            tensor_dict['con'] = None
+        if self.is_adversary:
+            tensor_dict['advers'] = torch.zeros(self.sample_batch_size, self.advers_dim)
+        else:
+            tensor_dict['advers'] = None
         idx = 0
         for sample in samples:
-            obs, act, rew, next_obs, done, logp, time_limited = sample
-            obs_tensor[idx] = torch.from_numpy(obs)
-            act_tensor[idx] = torch.from_numpy(act)
-            rew_tensor[idx] = torch.tensor(array_to_scalar(rew))
-            obs2_tensor[idx] = torch.from_numpy(next_obs)
-            done_tensor[idx] = torch.tensor(array_to_scalar(done))
-            logp_tensor[idx] = torch.tensor(logp)
-            time_limited_tensor[idx] = torch.tensor(time_limited)
+            obs, act, rew, next_obs, done, logp, time_limited = sample[:7]
+            tensor_dict['obs'][idx] = torch.from_numpy(obs)
+            tensor_dict['act'][idx] = torch.from_numpy(act)
+            tensor_dict['rew'][idx] = torch.tensor(array_to_scalar(rew))
+            tensor_dict['obs2'][idx] = torch.from_numpy(next_obs)
+            tensor_dict['done'][idx] = torch.tensor(array_to_scalar(done))
+            tensor_dict['logp'][idx] = torch.tensor(logp)
+            tensor_dict['time_limited'][idx] = torch.tensor(time_limited)
+            if self.is_constrained:
+                con = sample[7]
+                tensor_dict['con'][idx] = torch.from_numpy(con)
+            if self.is_adversary:
+                advers = sample[-1]
+                tensor_dict['advers'][idx] = torch.from_numpy(advers)
             idx += 1
-        time_limited_tensor[-1] = True
-        return dict(obs=obs_tensor, act=act_tensor, obs2=obs2_tensor, rew=rew_tensor,
-                    done=done_tensor, logp=logp_tensor, time_limited=time_limited_tensor)
+        tensor_dict['time_limited'][-1] = True
+        return tensor_dict
 
     def sample_with_replay_format(self):
         samples, sampler_tb_dict = self.sample()
