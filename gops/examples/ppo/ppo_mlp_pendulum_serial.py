@@ -36,7 +36,6 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_pendulum', help='')
     parser.add_argument('--algorithm', type=str, default='PPO', help='')
-    parser.add_argument('--enable_cuda', default=False, help='Disable CUDA')
 
     ################################################
     # 1. Parameters for environment
@@ -80,9 +79,6 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for algorithm
-    parser.add_argument('--gamma', type=float, default=0.95, help='0.99 in the paper')
-    parser.add_argument('--loss_coefficient_value', type=float, default=0.25, help='1 in the paper')
-    parser.add_argument('--loss_coefficient_entropy', type=float, default=0.01, help='0.01 in the paper')
     parser.add_argument('--learning_rate', type=float, default=1e-3, help='3e-4 in the paper')
 
     ################################################
@@ -145,6 +141,7 @@ if __name__ == "__main__":
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
+    alg.set_parameters({'gamma': 0.95, 'loss_coefficient_value': 0.25, 'loss_coefficient_entropy': 0.01})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
