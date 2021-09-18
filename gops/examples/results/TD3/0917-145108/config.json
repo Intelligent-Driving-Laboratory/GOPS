@@ -1,0 +1,61 @@
+{
+    "env_id": "gym_cartpoleconti",
+    "apprfunc": "MLP",
+    "algorithm": "TD3",
+    "trainer": "serial_trainer",
+    "obsv_dim": 4,
+    "action_dim": 1,
+    "action_high_limit": [
+        1.0
+    ],
+    "action_low_limit": [
+        -1.0
+    ],
+    "action_type": "conti",
+    "is_render": false,
+    "is_adversary": false,
+    "value_func_name": "ActionValue",
+    "value_func_type": "MLP",
+    "value_hidden_sizes": [
+        128,
+        128
+    ],
+    "value_hidden_activation": "relu",
+    "value_output_activation": "linear",
+    "policy_func_name": "DetermPolicy",
+    "policy_func_type": "MLP",
+    "policy_hidden_sizes": [
+        128,
+        128
+    ],
+    "policy_hidden_activation": "relu",
+    "policy_output_activation": "tanh",
+    "gamma": 0.99,
+    "tau": 0.005,
+    "value_learning_rate": 0.001,
+    "policy_learning_rate": 0.001,
+    "delay_update": 2,
+    "distribution_type": "Dirac",
+    "max_iteration": 4000,
+    "sample_batch_size": 64,
+    "sampler_name": "mc_sampler",
+    "noise_params": {
+        "mean": [
+            0.0
+        ],
+        "std": [
+            0.10000000149011612
+        ]
+    },
+    "reward_scale": 0.1,
+    "batch_size": 64,
+    "sample_sync_interval": 1,
+    "buffer_name": "replay_buffer",
+    "buffer_warm_size": 1000,
+    "buffer_max_size": 100000,
+    "evaluator_name": "evaluator",
+    "num_eval_episode": 10,
+    "save_folder": "../results/TD3\\0917-145108",
+    "apprfunc_save_interval": 1000,
+    "log_save_interval": 50
+}

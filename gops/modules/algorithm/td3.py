@@ -16,27 +16,32 @@ class DDPG
 
 __all__ = ['TD3']
 
-import itertools
 from copy import deepcopy
 import torch
 import torch.nn as nn
 from torch.optim import Adam
-
+import warnings
+import time
 from modules.create_pkg.create_apprfunc import create_apprfunc
 from modules.utils.utils import get_apprfunc_dict
+from modules.utils.tensorboard_tools import tb_tags
 
 
 class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        self.polyak = 1 - kwargs['tau']
-        self.delay_update = kwargs['delay_update']
+        self.polyak = None
+        self.delay_update = 2
         # create value network
-        q_args = get_apprfunc_dict('value', **kwargs)
+
+        value_func_type = kwargs['value_func_type']
+        policy_func_type = kwargs['policy_func_type']
+        q_args = get_apprfunc_dict('value', value_func_type, **kwargs)
+
         self.q1 = create_apprfunc(**q_args)
         self.q2 = create_apprfunc(**q_args)
         # create policy network
-        policy_args = get_apprfunc_dict('policy', **kwargs)
+        policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
         self.policy = create_apprfunc(**policy_args)
         # set network gradients
         for p in self.q1.parameters():
@@ -63,10 +68,14 @@ class ApproxContainer(nn.Module):
         self.q1_optimizer = Adam(self.q1.parameters(), lr=kwargs['value_learning_rate'])
         self.q2_optimizer = Adam(self.q2.parameters(), lr=kwargs['value_learning_rate'])
 
-    def update(self, grads, iteration):
+    def update(self, grads_info:dict):
         # used by trainer to update networks
         q_grad_len = len(list(self.q1.parameters()))
-        q1_grad, q2_grad,policy_grad = grads[:q_grad_len], grads[q_grad_len:2*q_grad_len],grads[2*q_grad_len:]
+        q1_grad = grads_info['q1_grad']
+        q2_grad = grads_info['q2_grad']
+        policy_grad = grads_info['policy_grad']
+        iteration = grads_info['iteration']
+        self.polyak = 1 - grads_info['tau']
 
         # update q network
         for p, grad in zip(self.q1.parameters(), q1_grad):
@@ -96,20 +105,39 @@ class ApproxContainer(nn.Module):
                     p_targ.data.add_((1 - self.polyak) * p.data)
 
 
-class TD3():
+class TD3:
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs) # used in algorithm only for compute gradient of container
-        self.gamma = kwargs['gamma']
+        # self.gamma = kwargs['gamma']
         self.target_noise = kwargs.get('target_noise',0.2)
         self.noise_clip = kwargs.get('noise_clip',0.5)
         self.act_limit = kwargs['action_high_limit'][0]
 
-    def compute_gradient(self, data):
+
+
+        self.gamma = 0.99
+        self.tau = 0.005
+        self.delay_update = 1
+        self.reward_scale = 1
+
+    def set_parameters(self, param_dict):
+        for key in param_dict:
+            if hasattr(self, key):
+                setattr(self, key, param_dict[key])
+            else:
+                warning_msg = "param '" + key + "'is not defined in algorithm!"
+                warnings.warn(warning_msg)
+
+
+    def compute_gradient(self,  data:dict, iteration):
         self.networks.q1_optimizer.zero_grad()
         self.networks.q2_optimizer.zero_grad()
         self.networks.policy_optimizer.zero_grad()
 
-        loss_q = self._compute_loss_q(data)
+        # ------------------------------------
+        tb_info = dict()
+        start_time = time.time()
+        loss_q ,loss_q1,loss_q2 = self._compute_loss_q(data)
         loss_q.backward()
 
         #----------------------------------
@@ -128,7 +156,24 @@ class TD3():
         q1_grad = [p._grad.numpy() for p in self.networks.q1.parameters()]
         q2_grad = [p._grad.numpy() for p in self.networks.q2.parameters()]
         policy_grad = [p._grad.numpy() for p in self.networks.policy.parameters()]
-        return q1_grad +q2_grad + policy_grad
+
+
+        end_time = time.time()
+        tb_info[tb_tags["loss_critic"]] = loss_q.item()
+        tb_info[tb_tags["critic_avg_value"]] = torch.mean(loss_q).item()
+        tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
+        tb_info[tb_tags["loss_actor"]] = loss_policy.item()
+        # ------------------------------------
+        grad_info = dict()
+        grad_info['q1_grad'] = q1_grad
+        grad_info['q2_grad'] = q2_grad
+        grad_info['policy_grad'] = policy_grad
+        grad_info['iteration'] = iteration
+        grad_info['tau'] = self.tau
+        grad_info['delay_update'] = self.delay_update
+
+
+        return grad_info, tb_info
 
     def _compute_loss_q(self, data):
         o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
@@ -156,7 +201,7 @@ class TD3():
         loss_q2 = ((q2 - backup)**2).mean()
         loss_q = loss_q1 + loss_q2
 
-        return loss_q
+        return loss_q, loss_q1,loss_q2
 
     def _compute_loss_pi(self, data):
         o = data['obs']
