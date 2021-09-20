@@ -166,6 +166,7 @@ class TD3:
         # ----------------------------------
         if self.use_gpu:
             self.networks.q1 = self.networks.q1.cpu()
+            self.networks.q1_target = self.networks.q1_target.cpu()
             self.networks.q2 = self.networks.q2.cpu()
             self.networks.q2_target = self.networks.q2_target.cpu()
             self.networks.policy = self.networks.policy.cpu()
