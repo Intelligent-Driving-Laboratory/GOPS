@@ -70,7 +70,6 @@ class ApproxContainer(nn.Module):
 
     def update(self, grads_info:dict):
         # used by trainer to update networks
-        q_grad_len = len(list(self.q1.parameters()))
         q1_grad = grads_info['q1_grad']
         q2_grad = grads_info['q2_grad']
         policy_grad = grads_info['policy_grad']
@@ -112,8 +111,7 @@ class TD3:
         self.target_noise = kwargs.get('target_noise',0.2)
         self.noise_clip = kwargs.get('noise_clip',0.5)
         self.act_limit = kwargs['action_high_limit'][0]
-
-
+        self.use_gpu = kwargs['enable_cuda']
 
         self.gamma = 0.99
         self.tau = 0.005
@@ -130,14 +128,28 @@ class TD3:
 
 
     def compute_gradient(self,  data:dict, iteration):
+        o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
         self.networks.q1_optimizer.zero_grad()
         self.networks.q2_optimizer.zero_grad()
         self.networks.policy_optimizer.zero_grad()
 
         # ------------------------------------
+        if self.use_gpu:
+            self.networks.q1 = self.networks.q1.cuda()
+            self.networks.q1_target = self.networks.q1_target.cuda()
+            self.networks.q2 = self.networks.q2.cuda()
+            self.networks.q2_target = self.networks.q2_target.cuda()
+            self.networks.policy = self.networks.policy.cuda()
+            self.networks.policy_target= self.networks.policy_target.cuda()
+            o = o.cuda()
+            a = a.cuda()
+            r = r.cuda()
+            o2 = o2.cuda()
+            d = d.cuda()
+        # ------------------------------------
         tb_info = dict()
         start_time = time.time()
-        loss_q ,loss_q1,loss_q2 = self._compute_loss_q(data)
+        loss_q ,loss_q1,loss_q2 = self._compute_loss_q( o, a, r, o2, d)
         loss_q.backward()
 
         #----------------------------------
@@ -145,14 +157,21 @@ class TD3:
             p.requires_grad = False
         for p in self.networks.q2.parameters():
             p.requires_grad = False
-        loss_policy = self._compute_loss_pi(data)
+        loss_policy = self._compute_loss_pi(o)
         loss_policy.backward()
         for p in  self.networks.q1.parameters():
             p.requires_grad = True
         for p in self.networks.q2.parameters():
             p.requires_grad = True
         # ----------------------------------
+        if self.use_gpu:
+            self.networks.q1 = self.networks.q1.cpu()
+            self.networks.q2 = self.networks.q2.cpu()
+            self.networks.q2_target = self.networks.q2_target.cpu()
+            self.networks.policy = self.networks.policy.cpu()
+            self.networks.policy_target= self.networks.policy_target.cpu()
 
+        # ----------------------------------
         q1_grad = [p._grad.numpy() for p in self.networks.q1.parameters()]
         q2_grad = [p._grad.numpy() for p in self.networks.q2.parameters()]
         policy_grad = [p._grad.numpy() for p in self.networks.policy.parameters()]
@@ -175,8 +194,8 @@ class TD3:
 
         return grad_info, tb_info
 
-    def _compute_loss_q(self, data):
-        o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
+    def _compute_loss_q(self, o, a, r, o2, d):
+        # o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
         q1 = self.networks.q1(o,a)
         q2 = self.networks.q2(o,a)
 
@@ -203,8 +222,8 @@ class TD3:
 
         return loss_q, loss_q1,loss_q2
 
-    def _compute_loss_pi(self, data):
-        o = data['obs']
+    def _compute_loss_pi(self, o):
+        # o = data['obs']
         q1_pi = self.networks.q1(o, self.networks.policy(o))
         return -q1_pi.mean()
 

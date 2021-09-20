@@ -16,191 +16,192 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 import numpy as np
+from gym.wrappers.time_limit import TimeLimit
 
-
-class GymCartpoleconti(gym.Env):
-    metadata = {
-        'render.modes': ['human', 'rgb_array'],
-        'video.frames_per_second': 50
-    }
-
-    def __init__(self):
-        # dynamic model porameters
+class _GymTrackingCar(gym.Env):
+    def __init__(self,**kwargs):
         self.a = 1.463
         self.b = 1.585
         self.m = 1818.2
         self.Iz = 3885
         self.kf = -62618
         self.kr = -110185
-        self.dynamic_T = 0.001
-        self.step_T = 0.1
-        
 
+        self.speed = 10  # constant speed
         self.gravity = 9.8
-        self.masscart = 1.0
-        self.masspole = 0.1
-        self.total_mass = (self.masspole + self.masscart)
-        self.length = 0.5  # actually half the pole's length
-        self.polemass_length = (self.masspole * self.length)
-        self.force_mag = 30.0
-        self.tau = 0.02  # seconds between state updates
-        self.min_action = -1.0
-        self.max_action = 1.0
+
+        self.control_tau = 0.1  # seconds between control commands
+        self.dynamic_tau = 0.001  # seconds between state updates
+        self.step_count = int(self.control_tau / self.dynamic_tau)
+
+        self.max_action = 0.1  # max front wheel angle: 0.1 rad , ay = 2.7 m/s^2
+        self.min_action = -self.max_action
 
         # Angle at which to fail the episode
-        self.theta_threshold_radians = 12 * 2 * math.pi / 360
-        self.x_threshold = 2.4
+        self.theta_threshold = math.pi / 4
+        self.y_threshold = 1.75  # m
+        self.ay_threshold = 3  # m/s^2
+        self.fell_reward = -100
 
-        # Angle limit set to 2 * theta_threshold_radians so failing observation
-        # is still within bounds
-        high = np.array([
-            self.x_threshold * 2,
-            np.finfo(np.float32).max,
-            self.theta_threshold_radians * 2,
-            np.finfo(np.float32).max])
+        self.rw_delta = 10
+        self.rw_y = 1
 
+        # create action space and observation_space
         self.action_space = spaces.Box(
             low=self.min_action,
             high=self.max_action,
             shape=(1,)
         )
+
+        high = np.array([
+            self.y_threshold,
+            self.theta_threshold])
         self.observation_space = spaces.Box(-high, high)
 
         self.seed()
-        self.viewer = None
         self.state = None
+        self.vehicle_state = None
+        self.steps_beyond_done = None  # number of step after done flag
 
-        self.steps_beyond_done = None
-
-        self.max_episode_steps = 200
+        self._max_episode_steps = kwargs.get('max_episode_steps',50)
         self.steps = 0
+        self.fell = False
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def stepPhysics(self, force):
-        x, x_dot, theta, theta_dot = self.state
-        costheta = math.cos(theta)
-        sintheta = math.sin(theta)
-        temp = (force + self.polemass_length * theta_dot * theta_dot * sintheta) / self.total_mass
-        thetaacc = (self.gravity * sintheta - costheta * temp) / \
-            (self.length * (4.0/3.0 - self.masspole * costheta * costheta / self.total_mass))
-        xacc = temp - self.polemass_length * thetaacc * costheta / self.total_mass
-        x = x + self.tau * x_dot
-        x_dot = x_dot + self.tau * xacc
-        theta = theta + self.tau * theta_dot
-        theta_dot = theta_dot + self.tau * thetaacc
-        return (x, x_dot, theta, theta_dot)
+    def reset(self):
+        reset_y = 1.5
+        self.state = np.zeros((2,), dtype=np.float32)
+        self.state[0] = reset_y
+        self.steps_beyond_done = None
+        self.steps = 0
+        # -------------
+        self.vehicle_state = np.zeros((6,), dtype=np.float32)
+        self.vehicle_state[1] = self.state[0]  # y
+        self.vehicle_state[2] = self.speed  # speed
+        # -------------
+        return np.array(self.state)
+
+    # def reset_target(self, target_y=-1.5):
+    #     reset_y = target_y
+    #     self.state = np.zeros((2,), dtype=np.float32)
+    #     self.state[0] = reset_y
+    #     self.steps_beyond_done = None
+    #     self.steps = 0
+    #     # -------------
+    #     self.vehicle_state = np.zeros((6,), dtype=np.float32)
+    #     self.vehicle_state[1] = self.state[0]  # y
+    #     self.vehicle_state[2] = self.speed  # speed
+    #     # -------------
+    #     return np.array(self.state)
+
+    def stepPhysics(self, delta):
+        # step 0.1s
+        cmd = np.zeros((2,), dtype=np.float32)
+        cmd[1] = delta
+        for _ in range(self.step_count):
+            self.vehicle_state = self._update_data(x0=self.vehicle_state, u0=cmd, T=self.dynamic_tau)
+        return self.vehicle_state
+
+    def get_vehicle_state(self):
+        return self.vehicle_state
 
     def step(self, action):
         action = np.expand_dims(action, 0)
-        #assert self.action_space.contains(action),  "%r (%s) invalid" % (action, type(action))
-        # Cast action to float to strip np trappings
-        force = self.force_mag * float(action)
-        self.state = self.stepPhysics(force)
-        x, x_dot, theta, theta_dot = self.state
-        done = x < -self.x_threshold \
-            or x > self.x_threshold \
-            or theta < -self.theta_threshold_radians \
-            or theta > self.theta_threshold_radians
-        done = bool(done)
+        action = action.clip(self.min_action, self.max_action)
+        delta = float(action)
+        veh_state = self.stepPhysics(delta)
+        self.state[0] = veh_state[1]
+        self.state[1] = veh_state[4]
+        y = veh_state[1]
+        theta = veh_state[4]
 
-        #-----------------
         self.steps += 1
-        if self.steps >=self.max_episode_steps:
-            done = True
-        # ---------------
+        # if self.steps >= self._max_episode_steps:
+        #     done = True
 
+        done = False
+        fell = False
+        if y > self.y_threshold \
+                or y < -self.y_threshold \
+                or theta > self.theta_threshold \
+                or theta < -self.theta_threshold:
+            fell = True
+        self.fell = fell
+        if fell:
+            done = True
+
+        # ---------------
         if not done:
-            reward = 1.0
+            reward = self._get_reward(delta=delta, y=y)
         elif self.steps_beyond_done is None:
-            # Pole just fell!
+            # Car just fell! Normal
             self.steps_beyond_done = 0
-            reward = 1.0
+            reward = self._get_reward(delta=delta, y=y)
         else:
             if self.steps_beyond_done == 0:
                 gym.logger.warn("""
-You are calling 'step()' even though this environment has already returned
-done = True. You should always call 'reset()' once you receive 'done = True'
-Any further steps are undefined behavior.
-                """)
+    You are calling 'step()' even though this environment has already returned
+    done = True. You should always call 'reset()' once you receive 'done = True'
+    Any further steps are undefined behavior.
+                    """)
             self.steps_beyond_done += 1
-            reward = 0.0
 
+            reward = self._get_reward(delta=delta, y=y)
 
         return np.array(self.state), reward, done, {}
 
-    def reset(self):
-        self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
-        self.steps_beyond_done = None
-        self.steps = 0
-        return np.array(self.state)
-
     def render(self, mode='human'):
-        screen_width = 600
-        screen_height = 400
+        print("Tracking car do not have render function!")
 
-        world_width = self.x_threshold * 2
-        scale = screen_width /world_width
-        carty = 100  # TOP OF CART
-        polewidth = 10.0
-        polelen = scale * 1.0
-        cartwidth = 50.0
-        cartheight = 30.0
+    def _get_reward(self, delta, y):
 
-        if self.viewer is None:
-            from gym.envs.classic_control import rendering
-            self.viewer = rendering.Viewer(screen_width, screen_height)
-            l, r, t, b = -cartwidth / 2, cartwidth / 2, cartheight / 2, -cartheight / 2
-            axleoffset = cartheight / 4.0
-            cart = rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
-            self.carttrans = rendering.Transform()
-            cart.add_attr(self.carttrans)
-            self.viewer.add_geom(cart)
-            l, r, t, b = -polewidth / 2, polewidth / 2, polelen-polewidth / 2, -polewidth / 2
-            pole = rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
-            pole.set_color(.8, .6, .4)
-            self.poletrans = rendering.Transform(translation=(0, axleoffset))
-            pole.add_attr(self.poletrans)
-            pole.add_attr(self.carttrans)
-            self.viewer.add_geom(pole)
-            self.axle = rendering.make_circle(polewidth / 2)
-            self.axle.add_attr(self.poletrans)
-            self.axle.add_attr(self.carttrans)
-            self.axle.set_color(.5, .5, .8)
-            self.viewer.add_geom(self.axle)
-            self.track = rendering.Line((0, carty), (screen_width, carty))
-            self.track.set_color(0, 0, 0)
-            self.viewer.add_geom(self.track)
+        if np.fabs(y) > self.y_threshold:
+            y = self.y_threshold
 
-        if self.state is None:
-            return None
+        if np.fabs(delta) > self.max_action:
+            delta = self.max_action
 
-        x = self.state
-        cartx = x[0] * scale + screen_width / 2.0  # MIDDLE OF CART
-        self.carttrans.set_translation(cartx, carty)
-        self.poletrans.set_rotation(-x[2])
+        r_y = y / self.y_threshold
+        r_d = delta / self.max_action
 
-        return self.viewer.render(return_rgb_array=(mode == 'rgb_array'))
+        alpha_max = 20
+        alpha_min = 10
 
-    def close(self):
-        if self.viewer:
-            self.viewer.close()
+        kp = np.fabs(y) / self.y_threshold
+        alpha = alpha_max + kp * (alpha_min - alpha_max)
 
+        reward_y_err = - alpha * r_y * r_y
+        reward_delta = -  r_d * r_d
 
-    def __dynamic(self,x0 ,u0 ,T):
+        reward_fell = 0
+        if self.fell:
+            reward_fell = -100
+
+        return (reward_y_err + reward_delta + reward_fell)
+
+    def _update_data(self, x0, u0, T):
         x1 = np.zeros(len(x0))
-
-        x1[0] = x0[0] + T* (x0[2] * np.cos(x0[4]) - x0[3] * np.sin(x0[4]))
+        x1[0] = x0[0] + T * (x0[2] * np.cos(x0[4]) - x0[3] * np.sin(x0[4]))
         x1[1] = x0[1] + T * (x0[3] * np.cos(x0[4]) + x0[2] * np.sin(x0[4]))
-        x1[2] = x0[2] + T * u0[0]
-        x1[3] = (-(self.a * self.kf - self.b * self.kr) * x0[5] + self.kf * u0[1] * x0[2] +
-                 self.m * x0[5] * x0[2] * x0[2] - self.m * x0[2] * x0[3] / T) / (
-                    self.kf + self.kr - self.m * x0[2] / T)
+        x1[2] = x0[2] + T * u0[0]  # vel.x
+        x1[3] = (-(self.a * self.kf - self.b * self.kr) * x0[5] +
+                 self.kf * u0[1] * x0[2] + self.m * x0[5] * x0[2] * x0[2] -
+                 self.m * x0[2] * x0[3] / T) / (self.kf + self.kr - self.m * x0[2] / T)
         x1[4] = x0[4] + T * x0[5]
         x1[5] = (-self.Iz * x0[5] * x0[2] / T - (self.a * self.kf - self.b * self.kr) * x0[3] +
                  self.a * self.kf * u0[1] * x0[2]) / (
-                    (self.a * self.a * self.kf + self.b * self.b * self.kr) - self.Iz * x0[2] / T)
-
+                        (self.a * self.a * self.kf + self.b * self.b * self.kr) - self.Iz * x0[2] / T)
         return x1
+
+def env_creator(**kwargs):
+    _max_episode_steps = kwargs.get('max_episode_steps', 50)
+    return TimeLimit(_GymTrackingCar(**kwargs), _max_episode_steps)
+
+
+if __name__=="__main__":
+    env = env_creator()
+    print(env.action_space.high)
+    print(env.action_space.low)
