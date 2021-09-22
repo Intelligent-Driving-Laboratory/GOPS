@@ -19,10 +19,10 @@ def init_args(env, **args):
     else:
         args['use_gpu'] = False
 
-    if args['policy_func_type'] == 'RNN' or args['policy_func_type'] == 'CNN':
-        args['obsv_dim'] = env.observation_space.shape
-    else:
+    if len(env.observation_space.shape) == 1:
         args['obsv_dim'] = env.observation_space.shape[0]
+    else:
+        args['obsv_dim'] = env.observation_space.shape
 
     if args['action_type'] == 'continu':
         args['action_dim'] = env.action_space.shape[0] if len(env.action_space.shape) == 1 else env.action_space.shape
