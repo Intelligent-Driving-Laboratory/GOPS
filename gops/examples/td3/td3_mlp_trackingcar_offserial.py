@@ -1,7 +1,9 @@
-#  Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Creator: Hao SUN
-#  Description: gym environment, continuous action, cart pole
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: Sun Hao
+
 
 import argparse
 import os
@@ -25,7 +27,7 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='gym_cartpoleconti')
+    parser.add_argument('--env_id', type=str, default='gym_trackingcar')
     parser.add_argument('--algorithm', type=str, default='TD3')
     parser.add_argument('--enable_cuda', default=False, help='Enable CUDA')
     ################################################

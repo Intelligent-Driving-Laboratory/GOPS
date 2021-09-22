@@ -130,12 +130,14 @@ class DDPG:
         # ------------------------------------
         q_grad = [p._grad for p in self.networks.q.parameters()]
         policy_grad = [p._grad for p in self.networks.policy.parameters()]
+
+        # ------------------------------------
         end_time = time.time()
         tb_info[tb_tags["loss_critic"]] = loss_q.item()
         tb_info[tb_tags["critic_avg_value"]] = q.item()
         tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
         tb_info[tb_tags["loss_actor"]] = loss_policy.item()
-
+        # ------------------------------------
         grad_info = dict()
         grad_info['q_grad'] = q_grad
         grad_info['policy_grad'] = policy_grad

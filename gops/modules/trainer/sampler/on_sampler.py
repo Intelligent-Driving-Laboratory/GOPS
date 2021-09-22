@@ -36,12 +36,12 @@ class OnSampler():
         self.total_sample_number = 0
         self.obsv_dim = kwargs['obsv_dim']
         self.act_dim = kwargs['action_dim']
-        if kwargs['is_constrained'] is True and 'constrained_dim' in kwargs.keys():
+        if 'constrained_dim' in kwargs.keys():
             self.is_constrained = True
             self.con_dim = kwargs['constrained_dim']
         else:
             self.is_constrained = False
-        if kwargs['is_adversary'] is True and 'adversary_dim' in kwargs.keys():
+        if 'adversary_dim' in kwargs.keys():
             self.is_adversary = True
             self.advers_dim = kwargs['adversary_dim']
         else:

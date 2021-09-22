@@ -21,6 +21,7 @@ class _GymCartpoleconti(gym.Env):
     }
 
     def __init__(self, **kwargs):
+        self.is_adversary = kwargs['is_adversary']
         self.gravity = 9.8
         self.masscart = 1.0
         self.masspole = 0.1
@@ -31,8 +32,6 @@ class _GymCartpoleconti(gym.Env):
         self.tau = 0.02  # seconds between state updates
         self.min_action = -1.0
         self.max_action = 1.0
-
-        self.is_adversary = kwargs['is_adversary']
 
         self.min_adv_action = -0.5
         self.max_adv_action = 0.5
@@ -192,9 +191,4 @@ def env_creator(**kwargs):
 
 
 if __name__ == '__main__':
-    e = env_creator()
-    e.reset()
-
-    for _ in range(100):
-        e.step(e.action_space.sample())
-        e.render()
+    pass

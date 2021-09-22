@@ -1,7 +1,12 @@
-#  Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Creator: Hao SUN
-#  Description: gym environment, continuous action, cart pole
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: Sun Hao
+#  Description: Discrete version of Cartpole Enviroment
+#
+#  Update Date: 2020-11-10, Hao SUN: renew env para
+#  Update Date: 2021-05-21, Shengbo Li: Reformualte code formats
 
 import argparse
 import os
@@ -26,7 +31,7 @@ if __name__ == "__main__":
     ################################################
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_cartpoleconti')
-    parser.add_argument('--algorithm', type=str, default='TD3')
+    parser.add_argument('--algorithm', type=str, default='DDPG')
     parser.add_argument('--enable_cuda', default=False, help='Enable CUDA')
     ################################################
     # 1. Parameters for environment
@@ -40,21 +45,17 @@ if __name__ == "__main__":
     ################################################
     # 2.1 Parameters of value approximate function
     parser.add_argument('--value_func_name', type=str, default='ActionValue')
-    parser.add_argument('--value_func_type', type=str, default='MLP')
+    parser.add_argument('--value_func_type', type=str, default='POLY')
     value_func_type = parser.parse_args().value_func_type
-    if value_func_type == 'MLP':
-        parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256, 128])
-        parser.add_argument('--value_hidden_activation', type=str, default='relu')
-        parser.add_argument('--value_output_activation', type=str, default='linear')
+    if value_func_type == 'POLY':
+        pass
 
     # 2.2 Parameters of policy approximate function
     parser.add_argument('--policy_func_name', type=str, default='DetermPolicy')
-    parser.add_argument('--policy_func_type', type=str, default='MLP')
+    parser.add_argument('--policy_func_type', type=str, default='POLY')
     policy_func_type = parser.parse_args().policy_func_type
-    if policy_func_type == 'MLP':
-        parser.add_argument('--policy_hidden_sizes', type=list, default=[256, 256])
-        parser.add_argument('--policy_hidden_activation', type=str, default='relu')
-        parser.add_argument('--policy_output_activation', type=str, default='tanh')
+    if policy_func_type == 'POLY':
+        pass
 
     ################################################
     # 3. Parameters for RL algorithm
@@ -64,7 +65,7 @@ if __name__ == "__main__":
     ################################################
     # 4. Parameters for trainer
     parser.add_argument('--trainer', type=str, default='off_serial_trainer')
-    parser.add_argument('--max_iteration', type=int, default=5000)
+    parser.add_argument('--max_iteration', type=int, default=500000)
     trainer_type = parser.parse_args().trainer
     parser.add_argument('--ini_network_dir', type=str, default=None)
     if trainer_type == 'off_serial_trainer':
@@ -77,7 +78,7 @@ if __name__ == "__main__":
     ################################################
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='off_sampler')
-    parser.add_argument('--sample_batch_size', type=int, default=256)
+    parser.add_argument('--sample_batch_size', type=int, default=16)
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
                                  'std': np.array([0.1], dtype=np.float32)})
