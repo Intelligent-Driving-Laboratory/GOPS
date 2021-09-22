@@ -14,8 +14,9 @@ import numpy as np
 pi = torch.tensor(np.pi, dtype=torch.float32)
 
 
-class GymMountaincarcontiModel(object):
+class GymMountaincarcontiModel(torch.nn.Module):
     def __init__(self):
+        super().__init__()
         """
         you need to define parameters here
         """
@@ -39,10 +40,15 @@ class GymMountaincarcontiModel(object):
         self.dt = None  # seconds between state updates
 
         # do not change the following section
-        self.lb_state = torch.tensor(self.lb_state, dtype=torch.float32)
-        self.hb_state = torch.tensor(self.hb_state, dtype=torch.float32)
-        self.lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
-        self.hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
+        lb_state = torch.tensor(self.lb_state, dtype=torch.float32)
+        hb_state = torch.tensor(self.hb_state, dtype=torch.float32)
+        lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
+        hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
+        self.register_buffer('lb_state', torch.tensor(lb_state, dtype=torch.float32))
+        self.register_buffer('hb_state', torch.tensor(hb_state, dtype=torch.float32))
+        self.register_buffer('lb_action', torch.tensor(lb_action, dtype=torch.float32))
+        self.register_buffer('hb_action', torch.tensor(hb_action, dtype=torch.float32))
+
 
     def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done):
         """
