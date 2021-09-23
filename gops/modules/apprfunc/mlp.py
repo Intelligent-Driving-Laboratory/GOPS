@@ -37,15 +37,13 @@ class DetermPolicy(nn.Module):
         obs_dim = kwargs['obs_dim']
         act_dim = kwargs['act_dim']
         hidden_sizes = kwargs['hidden_sizes']
-        action_high_limit = kwargs['action_high_limit']
-        action_low_limit = kwargs['action_low_limit']
 
         pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim]
         self.pi = mlp(pi_sizes,
                       get_activation_func(kwargs['hidden_activation']),
                       get_activation_func(kwargs['output_activation']))
-        self.register_buffer('act_high_lim', torch.from_numpy(action_high_limit))
-        self.register_buffer('act_low_lim', torch.from_numpy(action_low_limit))
+        self.register_buffer('act_high_lim', torch.from_numpy(kwargs['action_high_limit']))
+        self.register_buffer('act_low_lim', torch.from_numpy(kwargs['action_low_limit']))
 
     def forward(self, obs):
         action = (self.act_high_lim-self.act_low_lim)/2 * torch.tanh(self.pi(obs))\
@@ -60,10 +58,6 @@ class StochaPolicy(nn.Module):
         obs_dim = kwargs['obs_dim']
         act_dim = kwargs['act_dim']
         hidden_sizes = kwargs['hidden_sizes']
-        action_high_limit = kwargs['action_high_limit']
-        action_low_limit = kwargs['action_low_limit']
-        self.min_log_std = kwargs['min_log_std']
-        self.max_log_std = kwargs['max_log_std']
 
         pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim]
         self.mean = mlp(pi_sizes,
@@ -72,8 +66,10 @@ class StochaPolicy(nn.Module):
         self.log_std = mlp(pi_sizes,
                            get_activation_func(kwargs['hidden_activation']),
                            get_activation_func(kwargs['output_activation']))
-        self.register_buffer('act_high_lim', torch.from_numpy(action_high_limit))
-        self.register_buffer('act_low_lim', torch.from_numpy(action_low_limit))
+        self.min_log_std = kwargs['min_log_std']
+        self.max_log_std = kwargs['max_log_std']
+        self.register_buffer('act_high_lim', torch.from_numpy(kwargs['action_high_limit']))
+        self.register_buffer('act_low_lim', torch.from_numpy(kwargs['action_low_limit']))
 
     def forward(self, obs):
         action_mean = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(self.mean(obs)) \
