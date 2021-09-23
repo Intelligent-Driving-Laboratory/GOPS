@@ -2,10 +2,11 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Wenxuan Wang
-#  Description: Infinite ADP algorithm in continute version of Cartpole Enviroment
+#  Creator: Sun Hao
+#  Description: Discrete version of Cartpole Enviroment
 #
-#  Update Date: 2020-11-10, Wenxuan Wang
+#  Update Date: 2020-11-10, Hao SUN: renew env para
+#  Update Date: 2021-05-21, Shengbo Li: Reformualte code formats
 
 import argparse
 import os
@@ -29,10 +30,10 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='gym_pendulum')
-    parser.add_argument('--algorithm', type=str, default='INFADP')
-    parser.add_argument('--enable_cuda', default=True, help='Enable CUDA')
-
+    parser.add_argument('--env_id', type=str, default='gym_cartpoleconti')
+    parser.add_argument('--algorithm', type=str, default='DDPG')
+    parser.add_argument('--enable_cuda', default=False, help='Enable CUDA')
+    ################################################
     # 1. Parameters for environment
     parser.add_argument('--obsv_dim', type=int, default=None)
     parser.add_argument('--action_dim', type=int, default=None)
@@ -41,50 +42,46 @@ if __name__ == "__main__":
     parser.add_argument('--action_type', type=str, default='continu')
     parser.add_argument('--is_render', type=bool, default=False)
     parser.add_argument('--is_adversary', type=bool, default=False, help='Adversary training')
-    parser.add_argument('--is_constrained', type=bool, default=False, help='Adversary training')
     ################################################
     # 2.1 Parameters of value approximate function
-    parser.add_argument('--value_func_name', type=str, default='StateValue')
-    parser.add_argument('--value_func_type', type=str, default='MLP')
+    parser.add_argument('--value_func_name', type=str, default='ActionValue')
+    parser.add_argument('--value_func_type', type=str, default='POLY')
     value_func_type = parser.parse_args().value_func_type
-    if value_func_type == 'MLP':
-        parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256, 128])
-        parser.add_argument('--value_hidden_activation', type=str, default='relu')
-        parser.add_argument('--value_output_activation', type=str, default='linear')
+    if value_func_type == 'POLY':
+        pass
+
     # 2.2 Parameters of policy approximate function
     parser.add_argument('--policy_func_name', type=str, default='DetermPolicy')
-    parser.add_argument('--policy_func_type', type=str, default='MLP')
+    parser.add_argument('--policy_func_type', type=str, default='POLY')
     policy_func_type = parser.parse_args().policy_func_type
-    if policy_func_type == 'MLP':
-        parser.add_argument('--policy_hidden_sizes', type=list, default=[256, 256])
-        parser.add_argument('--policy_hidden_activation', type=str, default='relu', help='')
-        parser.add_argument('--policy_output_activation', type=str, default='tanh', help='')
+    if policy_func_type == 'POLY':
+        pass
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument('--value_learning_rate', type=float, default=8e-5)
-    parser.add_argument('--policy_learning_rate', type=float, default=5e-5)
+    parser.add_argument('--value_learning_rate', type=float, default=1e-4)
+    parser.add_argument('--policy_learning_rate', type=float, default=1e-5)
 
+    ################################################
     # 4. Parameters for trainer
     parser.add_argument('--trainer', type=str, default='off_serial_trainer')
-    parser.add_argument('--max_iteration', type=int, default=3000,
-                        help='Maximum iteration number')
-    parser.add_argument('--ini_network_dir', type=str, default=None)
+    parser.add_argument('--max_iteration', type=int, default=500000)
     trainer_type = parser.parse_args().trainer
+    parser.add_argument('--ini_network_dir', type=str, default=None)
     if trainer_type == 'off_serial_trainer':
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
         parser.add_argument('--buffer_warm_size', type=int, default=1000)
         parser.add_argument('--buffer_max_size', type=int, default=100000)
-        parser.add_argument('--replay_batch_size', type=int, default=256)
+        parser.add_argument('--replay_batch_size', type=int, default=1024)
         parser.add_argument('--sampler_sync_interval', type=int, default=1)
 
     ################################################
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='off_sampler')
-    parser.add_argument('--sample_batch_size', type=int, default=256)
+    parser.add_argument('--sample_batch_size', type=int, default=16)
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0.6], dtype=np.float32)})
+                                 'std': np.array([0.1], dtype=np.float32)})
 
     ################################################
     # 7. Parameters for evaluator
@@ -95,19 +92,19 @@ if __name__ == "__main__":
     ################################################
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
-    parser.add_argument('--apprfunc_save_interval', type=int, default=5000)
+    parser.add_argument('--apprfunc_save_interval', type=int, default=100)
     parser.add_argument('--log_save_interval', type=int, default=100)
 
     # Get parameter dictionary
     args = vars(parser.parse_args())
     env = create_env(**args)
     args = init_args(env, **args)
+
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
-    alg = create_alg(**args)  # create appr_model in algo **vars(args)
-    alg.set_parameters({'reward_scale':-0.01, 'gamma': 1.0})
+    alg = create_alg(**args)
     # Step 2: create sampler in trainer
-    sampler = create_sampler(**args)  # 调用alg里面的函数，创建自己的网络
+    sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
     buffer = create_buffer(**args)
     # Step 4: create evaluator in trainer
@@ -119,6 +116,6 @@ if __name__ == "__main__":
     trainer.train()
     print('Training is finished!')
 
-    # plot and save training curve
+    # Plot and save training figures
     plot_all(args['save_folder'])
     save_tb_to_csv(args['save_folder'])

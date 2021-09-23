@@ -7,13 +7,14 @@
 #
 
 import warnings
-import torch
+
 import numpy as np
+import torch
 
 
-
-class GymDemocontiModel:
+class GymDemocontiModel(torch.nn.Module):
     def __init__(self):
+        super().__init__()
         """
         you need to define parameters here
         """
@@ -26,13 +27,18 @@ class GymDemocontiModel:
         self.hb_state = None
         self.lb_action = None
         self.hb_action = None
-        self.dt = None    # seconds between state updates
+        self.dt = None  # seconds between state updates
 
         # do not change the following section
-        self.lb_state = torch.tensor(self.lb_state, dtype=torch.float32)
-        self.hb_state = torch.tensor(self.hb_state, dtype=torch.float32)
-        self.lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
-        self.hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
+        lb_state = torch.tensor(self.lb_state, dtype=torch.float32)
+        hb_state = torch.tensor(self.hb_state, dtype=torch.float32)
+        lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
+        hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
+        self.register_buffer('lb_state', torch.tensor(lb_state, dtype=torch.float32))
+        self.register_buffer('hb_state', torch.tensor(hb_state, dtype=torch.float32))
+        self.register_buffer('lb_action', torch.tensor(lb_action, dtype=torch.float32))
+        self.register_buffer('hb_action', torch.tensor(hb_action, dtype=torch.float32))
+
 
     def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done):
         """
@@ -62,7 +68,7 @@ class GymDemocontiModel:
             state = clip_by_tensor(state, self.lb_state, self.hb_state)
 
         #  define your forward function here: the format is just like: state_next = f(state,action)
-        state_next = (1+action.sum(-1))*state
+        state_next = (1 + action.sum(-1)) * state
 
         ############################################################################################
 
