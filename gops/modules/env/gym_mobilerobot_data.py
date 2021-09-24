@@ -37,17 +37,15 @@ class GymMobilerobot:
         self.action_dim = 2
         self.constraint_dim = self.n_obstacle
 
-        lb_state = np.array([-30, -30, -np.pi,  -1, -np.pi/2] + [-30, -np.pi, -10] + [-30, -30, -np.pi,  -1, -np.pi/2] * self.n_obstacle)
-        hb_state = np.array([30, 30, np.pi,  1, np.pi/2] + [30, np.pi, 10] + [30, 30, -np.pi,  1, np.pi/2] * self.n_obstacle)
-        lb_action = np.array([-0.4, -np.pi/2])
-        hb_action = np.array([0.4, np.pi/2])
+        lb_state = np.array([-30, -30, -np.pi,  -1, -np.pi/2] + [-30, -np.pi, -2] + [-30, -30, -np.pi,  -1, -np.pi/2] * self.n_obstacle)
+        hb_state = np.array([30, 30, np.pi,  1, np.pi/2] + [30, np.pi, 2] + [30, 30, np.pi,  1, np.pi/2] * self.n_obstacle)
+        lb_action = np.array([-0.4, -np.pi/3])
+        hb_action = np.array([0.4, np.pi/3])
 
         self.action_space = spaces.Box(low=lb_action, high=hb_action)
         self.observation_space = spaces.Box(lb_state, hb_state)
 
         self.seed()
-        self.state = self.reset()
-        self.render_init()
         self.steps = 0
 
     def seed(self, seed=None):
@@ -65,7 +63,7 @@ class GymMobilerobot:
                 state_next = np.concatenate((robot_state, tracking_error), 1)
 
             else:
-                obs_state = self.robot.f_xu(self.state[:, 3+i*5:3+i*5+5], self.state[:, 3+i*5+3:3+i*5+5], self.dt, 'ego')
+                obs_state = self.robot.f_xu(self.state[:, 3+i*5:3+i*5+5], self.state[:, 3+i*5+3:3+i*5+5], self.dt, 'obs')
                 state_next = np.concatenate((state_next, obs_state), 1)
 
                 safe_dis = self.robot.robot_params['radius'] + self.obses[i-1].robot_params['radius'] + 0.15  # 0.35
@@ -87,7 +85,8 @@ class GymMobilerobot:
 
         isdone = dead.all(1) + (self.state[:,0]<-2) + (self.state[:,0]>13) + (self.state[:,1]>3) + (self.state[:,1]<-1)
         ############################################################################################
-        info = {'TimeLimit.truncated': self.steps > 200, 'constraint': constraint}
+        self.steps += 1
+        info = {'TimeLimit.truncated': self.steps > 170, 'constraint': constraint}
         return state_next, reward, isdone, info
 
     # def forward_n_step(self, func, n, state: torch.Tensor):
@@ -102,11 +101,11 @@ class GymMobilerobot:
     #         state_next, reward[:, step], isdone = self.forward(state, action, isdone)
     #         state = state_next
 
-    def reset(self):
+    def reset(self, n_agent=1):
         def uniform(low, high):
             return np.random.random([1])*(high-low) + low
 
-        state = np.zeros([1, self.state_dim])
+        state = np.zeros([n_agent, self.state_dim])
         for i in range(1+self.n_obstacle):
             if i == 0:
                 state[:, 0] = uniform(0, 2.7)
@@ -125,11 +124,15 @@ class GymMobilerobot:
 
         self.steps_beyond_done = None
         self.steps = 0
+        self.state = state
 
         return state
 
     def render(self,):
-        state =self.state
+        n_window = 1
+        if not hasattr(self, 'artists'):
+            self.render_init(n_window)
+        state = self.state
         r_rob = self.robot.robot_params['radius']
         r_obs = self.obses[0].robot_params['radius']
 
@@ -137,27 +140,30 @@ class GymMobilerobot:
             x, y, theta = state[0], state[1], state[2]
             return [x, x + np.cos(theta) * r_rob], [y, y + np.sin(theta) * r_rob]
 
-        for i in range(1):
-            for j in range(1):
-                idx = i*3+j
+        for i in range(n_window):
+            for j in range(n_window):
+                idx = i*n_window+j
                 circles, arrows = self.artists[idx]
                 circles[0].center = state[idx, :2]
                 arrows[0].set_data(arrow_pos(state[idx, :5]))
                 for k in range(self.n_obstacle):
                     circles[k+1].center = state[idx, 3+(k+1)*5:3+(k+1)*5+2]
                     arrows[k+1].set_data(arrow_pos(state[idx, 3+(k+1)*5:3+(k+1)*5+5]))
-            plt.pause(0.03)
+            plt.pause(0.08)
 
-    def render_init(self, ):
+    def render_init(self, n_window=1):
 
-        fig, axs = plt.subplots(3, 3, figsize=(6, 6))
+        fig, axs = plt.subplots(n_window, n_window, figsize=(9, 9))
         artists = []
 
         r_rob = self.robot.robot_params['radius']
         r_obs = self.obses[0].robot_params['radius']
         for i in range(1):
             for j in range(1):
-                ax = axs[i, j]
+                if n_window == 1:
+                    ax = axs
+                else:
+                    ax = axs[i, j]
                 ax.set_aspect(1)
                 ax.set_ylim(-3, 3)
                 # ax.cla()
@@ -208,7 +214,7 @@ class Robot():
             np.random.normal(0, stds[1], [states.shape[0]]) * 0.5
         next_state = [x + T * np.cos(theta) * v_cmd,
                       y + T * np.sin(theta) * v_cmd,
-                      theta + T * w_cmd,
+                      np.clip(theta + T * w_cmd, -np.pi/2, np.pi),
                       v_cmd,
                       w_cmd]
 
@@ -217,8 +223,8 @@ class Robot():
     def tracking_error(self, x):
         error_position = x[:, 1]
         error_head = x[:, 2]
-        error_head = np.where(error_head > np.pi, error_head - np.pi * 2, error_head)
-        error_head = np.where(error_head < -np.pi, error_head + np.pi * 2, error_head)
+        # error_head = np.where(error_head > np.pi, error_head - np.pi * 2, error_head)
+        # error_head = np.where(error_head < -np.pi, error_head + np.pi * 2, error_head)
 
         error_v = x[:, 3] - self.robot_params['v_desired']
         tracking = np.concatenate((error_position.reshape(-1, 1), error_head.reshape(-1, 1), error_v.reshape(-1, 1)), 1)

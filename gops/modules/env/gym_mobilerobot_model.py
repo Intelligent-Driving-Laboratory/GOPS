@@ -29,66 +29,16 @@ class GymMobilerobotModel:
 
         self.state_dim = (1+self.n_obstacle) * 5 + 3
         self.action_dim = 2
-        self.lb_state = [-30, -30, -np.pi,  -1, -np.pi/2] + [-30, -np.pi, -10] + [-30, -30, -np.pi,  -1, -np.pi/2] * self.n_obstacle
-        self.hb_state = [30, 30, np.pi,  1, np.pi/2] + [30, np.pi, 10] + [30, 30, -np.pi,  1, np.pi/2] * self.n_obstacle
-        self.lb_action = [-0.4, -np.pi/2]
-        self.hb_action = [0.4, np.pi/2]
+        self.lb_state = [-30, -30, -2*np.pi,  -1, -np.pi/2] + [-30, -np.pi, -2] + [-30, -30, -2 * np.pi,  -1, -np.pi/2] * self.n_obstacle
+        self.hb_state = [30, 30, 2*np.pi,  1, np.pi/2] + [30, np.pi, 2] + [30, 30, 2 * np.pi,  1, np.pi/2] * self.n_obstacle
+        self.lb_action = [-0.4, -np.pi/3]
+        self.hb_action = [0.4, np.pi/3]
 
         # do not change the following section
         self.lb_state = torch.tensor(self.lb_state, dtype=torch.float32)
         self.hb_state = torch.tensor(self.hb_state, dtype=torch.float32)
         self.lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
         self.hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
-
-
-    def render(self, state):
-        r_rob = self.robot.robot_params['radius']
-        r_obs = self.obses[0].robot_params['radius']
-
-        def arrow_pos(state):
-            x, y, theta = state[0], state[1], state[2]
-            return [x, x + torch.cos(theta) * r_rob], [y, y + torch.sin(theta) * r_rob]
-
-        for i in range(3):
-            for j in range(3):
-                idx = i*3+j
-                circles, arrows = self.artists[idx]
-                circles[0].center = state[idx, :2]
-                arrows[0].set_data(arrow_pos(state[idx, :5]))
-                for k in range(self.n_obstacle):
-                    circles[k+1].center = state[idx, 3+(k+1)*5:3+(k+1)*5+2]
-                    arrows[k+1].set_data(arrow_pos(state[idx, 3+(k+1)*5:3+(k+1)*5+5]))
-            plt.pause(0.03)
-
-    def render_init(self, ):
-
-        fig, axs = plt.subplots(3, 3, figsize=(6, 6))
-        artists = []
-
-        r_rob = self.robot.robot_params['radius']
-        r_obs = self.obses[0].robot_params['radius']
-        for i in range(3):
-            for j in range(3):
-                ax = axs[i, j]
-                ax.set_aspect(1)
-                ax.set_ylim(-3, 3)
-                # ax.cla()
-                ax.plot([0, 6], [0, 0], "k")
-                circles = []; arrows = []
-                circles.append(plt.Circle([0, 0], r_rob, color='red', fill=False))
-                arrows.append(ax.plot([], [], "red")[0])
-                ax.add_artist(circles[-1]); ax.add_artist(arrows[-1])
-                for k in range(self.n_obstacle):
-                    circles.append(plt.Circle([0, 0], r_obs, color='blue', fill=False))
-                    ax.add_artist(circles[-1])
-
-                    arrows.append(ax.plot([], [], "blue")[0])
-                artists.append([circles, arrows]);
-        self.artists = artists
-        plt.ion()
-
-    def close(self):
-        plt.close('all')
 
     def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done: torch.Tensor):
 
@@ -111,7 +61,7 @@ class GymMobilerobotModel:
                 state_next = torch.cat((robot_state, tracking_error), 1)
 
             else:
-                obs_state = self.robot.f_xu(state[:, 3+i*5:3+i*5+5], state[:, 3+i*5+3:3+i*5+5], self.dt, 'ego')
+                obs_state = self.robot.f_xu(state[:, 3+i*5:3+i*5+5], state[:, 3+i*5+3:3+i*5+5], self.dt, 'obs')
                 state_next = torch.cat((state_next, obs_state), 1)
 
                 safe_dis = self.robot.robot_params['radius'] + self.obses[i-1].robot_params['radius'] + 0.15  # 0.35
@@ -126,15 +76,16 @@ class GymMobilerobotModel:
         reward = (r_tracking + r_action)
         ############################################################################################
         # define the constraint funtion
-        con = veh2vehdist
+        constraint = veh2vehdist
         dead = veh2vehdist > 0
+        info = {'constraint': constraint}
         ################################################################################################################
         # define the ending condition here the format is just like isdone = l(next_state)
 
         isdone = dead
         ############################################################################################
 
-        return state_next, reward, con, isdone
+        return state_next, reward, isdone, info
 
     # def forward_n_step(self, func, n, state: torch.Tensor):
     #     reward = torch.zeros(size=[state.size()[0], n])
@@ -220,5 +171,5 @@ if __name__ == "__main__":
     for i in range(100):
 
         u = torch.Tensor([[0.1, 0.1]]*10)
-        x, r, c, die = env.forward(x, u, die)
+        x, r, die, info = env.forward(x, u, die)
         env.render(x)

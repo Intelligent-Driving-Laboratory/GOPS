@@ -48,11 +48,15 @@ class ApproxContainer(nn.Module):
 
         for p in self.v_target.parameters():
             p.requires_grad = False
-        for p in self.policy.parameters():
+        for p in self.policy_target.parameters():
             p.requires_grad = False
 
         self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs['policy_learning_rate'])  #
         self.v_optimizer = Adam(self.v.parameters(), lr=kwargs['value_learning_rate'])
+
+        self.net_dict = {'v': self.v, 'policy': self.policy}
+        self.target_net_dict = {'v': self.v_target, 'policy': self.policy_target}
+        self.optimizer_dict = {'v': self.v_optimizer, 'policy': self.policy_optimizer}
 
     def update(self, grad_info):
         tau = grad_info['tau']
@@ -85,8 +89,8 @@ class SPIL:
         self.n_constraint = kwargs['constraint_dim']
         self.delta_i = np.array([0.] * kwargs['constraint_dim'])
 
-        self.Kp = 60
-        self.Ki = 0.02
+        self.Kp = 30
+        self.Ki = 0.01
         self.Kd = 0
 
         self.tb_info = dict()
@@ -148,6 +152,13 @@ class SPIL:
 
 
         self.tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
+        self.tb_info[tb_tags["safe_probability1"]] = self.safe_prob[0].item()
+        self.tb_info[tb_tags["lambda1"]] = self.lam[0].item()
+        self.tb_info[tb_tags["safe_probability2"]] = self.safe_prob[1].item()
+        self.tb_info[tb_tags["lambda2"]] = self.lam[1].item()
+
+        # writer.add_scalar(tb_tags['Lambda'], self.lam, iter)
+        # writer.add_scalar(tb_tags['Safe_prob'], self.safe_prob, iter)
 
         grad_info['tau'] = self.tau
         grad_info['grads_dict'] = grads_dict
@@ -168,20 +179,21 @@ class SPIL:
             for step in range(self.forward_step):
                 if step == 0:
                     a = self.networks.policy(o)
-                    o2, r, c, d = self.envmodel.forward(o, a, d)  # Note that here d means the the safet of the whole trajectory instead of a single step
+                    o2, r, d, _ = self.envmodel.forward(o, a, d)
                     r_sum = self.reward_scale * r
                     traj_issafe *= (~d)
 
                 else:
                     o = o2
                     a = self.networks.policy(o)
-                    o2, r, c, d = self.envmodel.forward(o, a, d)
+                    o2, r, d, _ = self.envmodel.forward(o, a, d)
                     r_sum += self.reward_scale * self.gamma ** step * r
                     traj_issafe *= (~d)
 
             r_sum += self.gamma ** self.forward_step * self.networks.v_target(o2)
         loss_v = ((v - r_sum) ** 2).mean()
         self.safe_prob = (traj_issafe).mean(0).numpy()
+        print(r_sum.mean(), self.safe_prob)
         return loss_v, torch.mean(v)
 
     def compute_loss_policy(self, data):
@@ -189,7 +201,8 @@ class SPIL:
         for step in range(self.forward_step):
             if step == 0:
                 a = self.networks.policy(o)
-                o2, r, c, d = self.envmodel.forward(o, a, d)
+                o2, r, d, info = self.envmodel.forward(o, a, d)
+                c = info['constraint']
                 c = self.Phi(c)
                 r_sum = self.reward_scale * r
                 c_sum = c
@@ -197,7 +210,8 @@ class SPIL:
             else:
                 o = o2
                 a = self.networks.policy(o)
-                o2, r, c, d = self.envmodel.forward(o, a, d)
+                o2, r, d, info = self.envmodel.forward(o, a, d)
+                c = info['constraint']
                 c = self.Phi(c)
                 r_sum = r_sum + self.reward_scale * self.gamma ** step * r
                 c_sum = c_sum + c
@@ -212,7 +226,7 @@ class SPIL:
         m1 = 1
         m2 = m1 / (1 + m1) * 0.9
         tau = 0.07
-        sig = (1 + tau * m1) / (1 + m2 * tau * np.exp(np.clip(y / tau, a_min=-10, a_max=5)))
+        sig = (1 + tau * m1) / (1 + m2 * tau * torch.exp(torch.clamp(y / tau, min=-10, max=5)))
         # c = torch.relu(-y)
         return sig
 
@@ -233,7 +247,9 @@ class SPIL:
         delta_d = np.clip(self.safe_prob_pre - self.safe_prob, 0, 3333)
         lam = np.clip(self.Ki * self.delta_i + self.Kp * delta_p + self.Kd * delta_d, 0, 3333)
         self.safe_prob_pre = self.safe_prob
-        return 1 / (1+lam.sum()), lam / (1+lam.sum())
+        self.lam = lam
+        #return 1 / (1+lam.sum()), lam / (1+lam.sum())
+        return 1, lam / (1 + lam.sum())
 
 
     def load_state_dict(self, state_dict):

@@ -41,7 +41,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_high_limit', type=list, default=None)
     parser.add_argument('--action_low_limit', type=list, default=None)
     parser.add_argument('--action_type', type=str, default='continu')
-    parser.add_argument('--is_render', type=bool, default=False)
+    parser.add_argument('--is_render', type=bool, default=True)
     parser.add_argument('--is_adversary', type=bool, default=False)
 
 
@@ -69,27 +69,17 @@ if __name__ == "__main__":
     parser.add_argument('--policy_learning_rate', type=float, default=0.3e-3)
 
     # 4. Parameters for trainer
-    parser.add_argument('--trainer', type=str, default='off_async_trainer')
-    parser.add_argument('--max_iteration', type=int, default=4000,
+    parser.add_argument('--trainer', type=str, default='off_serial_trainer')
+    parser.add_argument('--max_iteration', type=int, default=1000,
                         help='Maximum iteration number')
     parser.add_argument('--ini_network_dir', type=str, default=None)
     trainer_type = parser.parse_args().trainer
-    if trainer_type == 'off_async_trainer':
-        import ray
-
-        ray.init()
-        parser.add_argument('--num_algs', type=int, default=1, help='number of algs') #22
-        parser.add_argument('--num_samplers', type=int, default=1, help='number of samplers') #7
-        parser.add_argument('--num_buffers', type=int, default=1, help='number of buffers') #1
-        cpu_core_num = multiprocessing.cpu_count()
-        num_core_input = parser.parse_args().num_algs + parser.parse_args().num_samplers + parser.parse_args().num_buffers + 2
-        if num_core_input > cpu_core_num:
-            raise ValueError('The number of core is {}, but you want {}!'.format(cpu_core_num, num_core_input))
-        parser.add_argument('--alg_queue_max_size', type=int, default=1)
+    if trainer_type == 'off_serial_trainer':
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
         parser.add_argument('--buffer_warm_size', type=int, default=1000)
         parser.add_argument('--buffer_max_size', type=int, default=400*1000)
         parser.add_argument('--replay_batch_size', type=int, default=1024)
+        parser.add_argument('--sampler_sync_interval', type=int, default=1)
 
     ################################################
     # 5. Parameters for sampler
@@ -109,7 +99,7 @@ if __name__ == "__main__":
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
     parser.add_argument('--apprfunc_save_interval', type=int, default=100)
-    parser.add_argument('--log_save_interval', type=int, default=10)
+    parser.add_argument('--log_save_interval', type=int, default=100)
 
     # Get parameter dictionary
     args = vars(parser.parse_args())
