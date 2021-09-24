@@ -37,9 +37,9 @@ class OffSampler():
         self.total_sample_number = 0
         self.obsv_dim = kwargs['obsv_dim']
         self.act_dim = kwargs['action_dim']
-        if 'constrained_dim' in kwargs.keys():
+        if 'constraint_dim' in kwargs.keys():
             self.is_constrained = True
-            self.con_dim = kwargs['constrained_dim']
+            self.con_dim = kwargs['constraint_dim']
         else:
             self.is_constrained = False
         if 'adversary_dim' in kwargs.keys():
@@ -92,14 +92,14 @@ class OffSampler():
                 self.done = False
             data = [self.obs.copy(), action, reward, next_obs.copy(), self.done, logp, info['TimeLimit.truncated']]
             if self.is_constrained:
-                sth_about_constrained = np.zeros(self.con_dim)
+                constraint = info['constraint']
             else:
-                sth_about_constrained = None
+                constraint = None
             if self.is_adversary:
                 sth_about_adversary = np.zeros(self.advers_dim)
             else:
                 sth_about_adversary = None
-            data.append(sth_about_constrained)
+            data.append(constraint)
             data.append(sth_about_adversary)
             batch_data.append(tuple(data))
             self.obs = next_obs
