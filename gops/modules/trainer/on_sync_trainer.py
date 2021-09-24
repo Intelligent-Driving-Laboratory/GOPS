@@ -30,7 +30,7 @@ warnings.filterwarnings('ignore')
 
 class OnSyncTrainer():
     def __init__(self, alg, sampler, evaluator, **kwargs):
-        self.alg = alg[0]
+        self.alg = alg
         self.samplers = sampler
         self.evaluator = evaluator
         self.iteration = 0
@@ -78,9 +78,8 @@ class OnSyncTrainer():
         sampler_tb_dict = sampler_tb_dict[0]
         all_samples = concate(samples)
         for _ in range(self.num_epoch):
-            weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
-            self.alg.load_state_dict.remote(weights)  # 更新learner参数
-            grads, alg_tb_dict = ray.get(self.alg.compute_gradient.remote(all_samples, self.iteration))
+            self.alg.load_state_dict(self.networks.state_dict())  # 更新learner参数
+            grads, alg_tb_dict = self.alg.compute_gradient(all_samples, self.iteration)
             self.networks.update(grads)
             self.iteration += 1
 
@@ -119,5 +118,6 @@ class OnSyncTrainer():
 def concate(samples):
     all_samples = {}
     for key in samples[0].keys():
-        all_samples[key] = torch.cat([sample[key] for sample in samples], dim=0)
+        if samples[0][key] is not None:
+            all_samples[key] = torch.cat([sample[key] for sample in samples], dim=0)
     return all_samples
