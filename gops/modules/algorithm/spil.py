@@ -151,11 +151,11 @@ class SPIL:
         end_time = time.time()
 
 
-        self.tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
-        self.tb_info[tb_tags["safe_probability1"]] = self.safe_prob[0].item()
-        self.tb_info[tb_tags["lambda1"]] = self.lam[0].item()
-        self.tb_info[tb_tags["safe_probability2"]] = self.safe_prob[1].item()
-        self.tb_info[tb_tags["lambda2"]] = self.lam[1].item()
+        # self.tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
+        # self.tb_info[tb_tags["safe_probability1"]] = self.safe_prob[0].item()
+        # self.tb_info[tb_tags["lambda1"]] = self.lam[0].item()
+        # self.tb_info[tb_tags["safe_probability2"]] = self.safe_prob[1].item()
+        # self.tb_info[tb_tags["lambda2"]] = self.lam[1].item()
 
         # writer.add_scalar(tb_tags['Lambda'], self.lam, iter)
         # writer.add_scalar(tb_tags['Safe_prob'], self.safe_prob, iter)

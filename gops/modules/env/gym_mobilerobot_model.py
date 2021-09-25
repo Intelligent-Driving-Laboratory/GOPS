@@ -139,8 +139,8 @@ class Robot():
     def tracking_error(self, x):
         error_position = x[:, 1]
         error_head = x[:, 2]
-        error_head = torch.where(error_head > np.pi, error_head - np.pi * 2, error_head)
-        error_head = torch.where(error_head < -np.pi, error_head + np.pi * 2, error_head)
+        # error_head = torch.where(error_head > np.pi, error_head - np.pi * 2, error_head)
+        # error_head = torch.where(error_head < -np.pi, error_head + np.pi * 2, error_head)
 
         error_v = x[:, 3] - self.robot_params['v_desired']
         tracking = torch.cat((error_position.reshape(-1, 1), error_head.reshape(-1, 1), error_v.reshape(-1, 1)), 1)

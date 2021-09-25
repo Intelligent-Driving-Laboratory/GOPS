@@ -46,6 +46,8 @@ class GymMobilerobot:
         self.observation_space = spaces.Box(lb_state, hb_state)
 
         self.seed()
+        self.state = self.reset()
+
         self.steps = 0
 
     def seed(self, seed=None):
@@ -214,7 +216,7 @@ class Robot():
             np.random.normal(0, stds[1], [states.shape[0]]) * 0.5
         next_state = [x + T * np.cos(theta) * v_cmd,
                       y + T * np.sin(theta) * v_cmd,
-                      np.clip(theta + T * w_cmd, -np.pi/2, np.pi),
+                      np.clip(theta + T * w_cmd, -np.pi, np.pi),
                       v_cmd,
                       w_cmd]
 
