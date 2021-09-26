@@ -38,17 +38,17 @@ class ApproxContainer(nn.Module):
         policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
         self.policy: nn.Module = create_apprfunc(**policy_args)
 
-    def update(self, grads: List[np.ndarray], iteration: int):
+    def update(self, grads: List[np.ndarray]):
         policy_weight, v_weight = grads[0], grads[1]
-        nn.utils.convert_parameters.vector_to_parameters(torch.from_numpy(policy_weight), self.policy.parameters())
-        nn.utils.convert_parameters.vector_to_parameters(torch.from_numpy(v_weight), self.v.parameters())
-
+        nn.utils.convert_parameters.vector_to_parameters(policy_weight, self.policy.parameters())
+        nn.utils.convert_parameters.vector_to_parameters(v_weight, self.v.parameters())
 
 class TRPO:
     def __init__(self, 
         delta: float, gamma: float, lamda: float, rtol: float, atol: float,
         damping_factor: float, max_cg: int, alpha: float, max_search: int,
-        train_v_iters: int, **kwargs
+        train_v_iters: int, enable_cuda: bool,
+        **kwargs
     ):
         self.delta = delta
         self.gamma = gamma
@@ -60,6 +60,7 @@ class TRPO:
         self.alpha = alpha
         self.max_search = max_search
         self.train_v_iters = train_v_iters
+        self.enable_cuda = enable_cuda
         self.networks = ApproxContainer(**kwargs)
         action_type = kwargs['action_type']
         if action_type == 'continu':
@@ -69,12 +70,17 @@ class TRPO:
         else:
             raise ValueError(f'Unknown action_type: {action_type}')
 
-    def compute_gradient(self, data: Dict[str, torch.Tensor]):
+    def compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
         start_time = time.time()
         obs, act, rew, obs2, done, time_limited = data['obs'], data['act'], data['rew'], data['obs2'], data['done'], data['time_limited']
         done = torch.logical_or(done, time_limited)  # Current workaround: avoid self-bootstrap
         val: torch.Tensor = self.networks.v(obs)
+        # Run _estimate_advantage on gpu may not be benificial
+        # Or make _estimate_advantage work better with cuda
         adv, ret = self._estimate_advantage(obs, obs2, rew, done, val.detach())
+        if self.enable_cuda:
+            self.networks.cuda()
+            obs, act, adv, ret = obs.cuda(), act.cuda(), adv.cuda(), ret.cuda()
 
         # pi
         with torch.no_grad():
@@ -92,19 +98,25 @@ class TRPO:
         pi = self._get_distribution(logits=logits)
         surrogate_advantage = get_surrogate_advantage(pi.log_prob(act))
         g_params = torch.autograd.grad(surrogate_advantage, self.networks.policy.parameters(), retain_graph=True)
-
+        # FIXME: CNN layer's g would be non-contiguous, needing further investigation
+        # Current workaround is making sure it's contiguous
+        g_params = [g_param.contiguous() for g_param in g_params]
         g_vec = nn.utils.convert_parameters.parameters_to_vector(g_params)
         x0_vec = torch.zeros_like(g_vec)
         d_kl = pi.kl_divergence(pi_old).mean()
         def hvp(f: torch.Tensor, x: torch.Tensor):
+            # FIXME: CNN layer's g would be non-contiguous, needing further investigation
+            # Current workaround is making sure it's contiguous
+            g_params = torch.autograd.grad(f, self.networks.policy.parameters(), create_graph=True)
+            g_params = [g_param.contiguous() for g_param in g_params]
+            g_vec = nn.utils.convert_parameters.parameters_to_vector(g_params)
             hvp_params = torch.autograd.grad(
-                torch.dot(
-                    nn.utils.convert_parameters.parameters_to_vector(
-                        torch.autograd.grad(f, self.networks.policy.parameters(), create_graph=True)
-                    ), x
-                ),
+                torch.dot(g_vec, x),
                 self.networks.policy.parameters(), retain_graph=True
             )
+            # FIXME: CNN layer's hvp would be non-contiguous, e.g. with stride of (9, 144, 3, 1), needing further investigation
+            # Current workaround is making sure it's contiguous
+            hvp_params = [hvp_param.contiguous() for hvp_param in hvp_params]
             return nn.utils.convert_parameters.parameters_to_vector(hvp_params)
 
         def cg_func(x: torch.Tensor):
@@ -134,8 +146,7 @@ class TRPO:
 
         # v loss
         for i in range(self.train_v_iters):
-            if i > 0:
-                val = self.networks.v(obs)
+            val = self.networks.v(obs)
             self.networks.v_optimizer.zero_grad()
             v_loss = F.mse_loss(val, ret)
             v_loss.backward()
@@ -143,10 +154,14 @@ class TRPO:
         v_loss = v_loss.item()
         val_avg = val.detach().mean().item()
 
+        if self.enable_cuda:
+            new_policy.cpu()
+            self.networks.cpu()
+
         with torch.no_grad():
             weight_list = (
-                nn.utils.convert_parameters.parameters_to_vector(new_policy.parameters()).numpy(),
-                nn.utils.convert_parameters.parameters_to_vector(self.networks.v.parameters()).numpy(),
+                nn.utils.convert_parameters.parameters_to_vector(new_policy.parameters()),
+                nn.utils.convert_parameters.parameters_to_vector(self.networks.v.parameters()),
             )
         end_time = time.time()
 
@@ -254,3 +269,5 @@ class TRPO:
         adv_buf = adv_buf.sub_(adv_buf_mean).div_(adv_buf_std)
         return adv_buf, ret_buf
 
+    def load_state_dict(self, state_dict: Dict[str, torch.Tensor]):
+        self.networks.load_state_dict(state_dict)

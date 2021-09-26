@@ -29,6 +29,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_cartpole')
     parser.add_argument('--algorithm', type=str, default='DQN')
+    parser.add_argument('--enable_cuda', default=True, help='Enable CUDA')
 
     ################################################
     # 1. Parameters for environment
@@ -80,7 +81,7 @@ if __name__ == "__main__":
     if trainer_type == 'off_serial_trainer':
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
         # Size of collected samples before training
-        parser.add_argument('--buffer_warm_size', type=int, default=1000)
+        parser.add_argument('--buffer_warm_size', type=int, default=1024)
         # Max size of reply buffer
         parser.add_argument('--buffer_max_size', type=int, default=100000)
         # Batch size of replay samples from buffer
@@ -90,7 +91,7 @@ if __name__ == "__main__":
     
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument('--sampler_name', type=str, default='mc_sampler')
+    parser.add_argument('--sampler_name', type=str, default='off_sampler')
     # Batch size of sampler for buffer store
     parser.add_argument('--sample_batch_size', type=int, default=16)
     # Add noise to actions for better exploration
