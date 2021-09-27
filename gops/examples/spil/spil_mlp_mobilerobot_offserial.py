@@ -12,9 +12,9 @@ import os
 import numpy as np
 import multiprocessing
 
-import sys
-gops_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..')
-sys.path.insert(0, gops_path)
+# import sys
+# gops_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..')
+# sys.path.insert(0, gops_path)
 
 from modules.create_pkg.create_alg import create_alg
 from modules.create_pkg.create_buffer import create_buffer
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     parser.add_argument('--trainer', type=str, default='off_serial_trainer')
     parser.add_argument('--max_iteration', type=int, default=1000,
                         help='Maximum iteration number')
-    parser.add_argument('--ini_network_dir', type=str, default=None)
+    parser.add_argument('--ini_network_dir', type=str, default='D:/Seafile/Research/GOPS/gops/gops/results/SPIL/0927-112733/apprfunc/apprfunc_4000.pkl')
     trainer_type = parser.parse_args().trainer
     if trainer_type == 'off_serial_trainer':
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')

@@ -11,6 +11,11 @@ import argparse
 import os
 import numpy as np
 import multiprocessing
+
+import sys
+gops_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..')
+sys.path.insert(0, gops_path)
+
 from modules.create_pkg.create_alg import create_alg
 from modules.create_pkg.create_buffer import create_buffer
 from modules.create_pkg.create_env import create_env
@@ -78,8 +83,8 @@ if __name__ == "__main__":
         import ray
 
         ray.init()
-        parser.add_argument('--num_algs', type=int, default=1, help='number of algs') #22
-        parser.add_argument('--num_samplers', type=int, default=1, help='number of samplers') #7
+        parser.add_argument('--num_algs', type=int, default=20, help='number of algs') #22
+        parser.add_argument('--num_samplers', type=int, default=7, help='number of samplers') #7
         parser.add_argument('--num_buffers', type=int, default=1, help='number of buffers') #1
         cpu_core_num = multiprocessing.cpu_count()
         num_core_input = parser.parse_args().num_algs + parser.parse_args().num_samplers + parser.parse_args().num_buffers + 2
@@ -87,7 +92,7 @@ if __name__ == "__main__":
             raise ValueError('The number of core is {}, but you want {}!'.format(cpu_core_num, num_core_input))
         parser.add_argument('--alg_queue_max_size', type=int, default=1)
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
-        parser.add_argument('--buffer_warm_size', type=int, default=1000)
+        parser.add_argument('--buffer_warm_size', type=int, default=10*1000)
         parser.add_argument('--buffer_max_size', type=int, default=400*1000)
         parser.add_argument('--replay_batch_size', type=int, default=1024)
 
@@ -102,14 +107,14 @@ if __name__ == "__main__":
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument('--evaluator_name', type=str, default='evaluator')
-    parser.add_argument('--num_eval_episode', type=int, default=5)
+    parser.add_argument('--num_eval_episode', type=int, default=10)
     parser.add_argument('--eval_interval', type=int, default=100)
 
     ################################################
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
-    parser.add_argument('--apprfunc_save_interval', type=int, default=100)
-    parser.add_argument('--log_save_interval', type=int, default=10)
+    parser.add_argument('--apprfunc_save_interval', type=int, default=200)
+    parser.add_argument('--log_save_interval', type=int, default=1000)
 
     # Get parameter dictionary
     args = vars(parser.parse_args())

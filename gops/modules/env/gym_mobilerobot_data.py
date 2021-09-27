@@ -105,7 +105,7 @@ class GymMobilerobot:
 
     def reset(self, n_agent=1):
         def uniform(low, high):
-            return np.random.random([1])*(high-low) + low
+            return np.random.random([n_agent])*(high-low) + low
 
         state = np.zeros([n_agent, self.state_dim])
         for i in range(1+self.n_obstacle):
@@ -130,8 +130,8 @@ class GymMobilerobot:
 
         return state
 
-    def render(self,):
-        n_window = 1
+    def render(self, n_window=3):
+
         if not hasattr(self, 'artists'):
             self.render_init(n_window)
         state = self.state
@@ -151,7 +151,7 @@ class GymMobilerobot:
                 for k in range(self.n_obstacle):
                     circles[k+1].center = state[idx, 3+(k+1)*5:3+(k+1)*5+2]
                     arrows[k+1].set_data(arrow_pos(state[idx, 3+(k+1)*5:3+(k+1)*5+5]))
-            plt.pause(0.08)
+            plt.pause(0.02)
 
     def render_init(self, n_window=1):
 
@@ -160,8 +160,8 @@ class GymMobilerobot:
 
         r_rob = self.robot.robot_params['radius']
         r_obs = self.obses[0].robot_params['radius']
-        for i in range(1):
-            for j in range(1):
+        for i in range(n_window):
+            for j in range(n_window):
                 if n_window == 1:
                     ax = axs
                 else:
