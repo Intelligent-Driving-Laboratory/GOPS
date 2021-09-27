@@ -133,7 +133,6 @@ class OffAsyncTrainer():
             if self.iteration % self.eval_interval == 0:
                 # calculate total sample number
                 self.evaluator.load_state_dict.remote(self.networks.state_dict())
-                #self.evaluator.render_batch()
                 total_avg_return = ray.get(self.evaluator.run_evaluation.remote(self.iteration))
                 # get ram for buffer
                 self.writer.add_scalar(tb_tags['Buffer RAM of RL iteration'],

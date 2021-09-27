@@ -95,13 +95,5 @@ class Evaluator():
     def run_evaluation(self, iteration):
         return self.run_n_episodes(self.num_eval_episode, iteration)
 
-    def render_batch(self):
-        self.env.render_init()
-        with torch.no_grad():
-            x = self.env.reset(9)
-            for i in range(80):
-                u = self.networks.new_policy(torch.Tensor(x))
-                x, r, done, _ = self.env.step(u.numpy())
-                self.env.render()
-        # plt.pause(11)
         # add self.writer:
+
