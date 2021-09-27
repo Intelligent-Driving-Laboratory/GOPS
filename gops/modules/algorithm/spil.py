@@ -152,10 +152,10 @@ class SPIL:
 
 
         self.tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
-        self.tb_info[tb_tags["safe_probability1"]] = self.safe_prob[0].item()
-        self.tb_info[tb_tags["lambda1"]] = self.lam[0].item()
-        self.tb_info[tb_tags["safe_probability2"]] = self.safe_prob[1].item()
-        self.tb_info[tb_tags["lambda2"]] = self.lam[1].item()
+        # self.tb_info[tb_tags["safe_probability1"]] = self.safe_prob[0].item()
+        # self.tb_info[tb_tags["lambda1"]] = self.lam[0].item()
+        # self.tb_info[tb_tags["safe_probability2"]] = self.safe_prob[1].item()
+        # self.tb_info[tb_tags["lambda2"]] = self.lam[1].item()
 
         # writer.add_scalar(tb_tags['Lambda'], self.lam, iter)
         # writer.add_scalar(tb_tags['Safe_prob'], self.safe_prob, iter)
@@ -248,8 +248,8 @@ class SPIL:
         lam = np.clip(self.Ki * self.delta_i + self.Kp * delta_p + self.Kd * delta_d, 0, 3333)
         self.safe_prob_pre = self.safe_prob
         self.lam = lam
-        self.tb_info[tb_tags["I1"]] = self.delta_i[0].item()
-        self.tb_info[tb_tags["I2"]] = self.delta_i[1].item()
+        # self.tb_info[tb_tags["I1"]] = self.delta_i[0].item()
+        # self.tb_info[tb_tags["I2"]] = self.delta_i[1].item()
         return 1 / (1+lam.sum()), lam / (1+lam.sum())
         #return 1, lam / (1 + lam.sum())
 
