@@ -36,6 +36,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_pendulum', help='')
     parser.add_argument('--algorithm', type=str, default='PPO', help='')
+    parser.add_argument('--enable_cuda', default=False, help='Disable CUDA')
 
     ################################################
     # 1. Parameters for environment

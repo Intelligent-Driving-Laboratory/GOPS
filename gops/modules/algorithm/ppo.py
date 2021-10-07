@@ -95,15 +95,6 @@ class PPO():
         self.loss_value_clip = False
         self.loss_value_norm = True
 
-        print('--------------------------------')
-        print('| Proximal Policy Optimization |')
-        print('| {:<16}'.format('schedule_adam') + ' | ' + '{:<9} |'.format(self.schedule_adam))
-        print('| {:<16}'.format('schedule_clip') + ' | ' + '{:<9} |'.format(self.schedule_clip))
-        print('| {:<16}'.format('advantage_norm') + ' | ' + '{:<9} |'.format(str(self.advantage_norm)))
-        print('| {:<16}'.format('loss_value_clip') + ' | ' + '{:<9} |'.format(str(self.loss_value_clip)))
-        print('| {:<16}'.format('loss_value_norm') + ' | ' + '{:<9} |'.format(str(self.loss_value_norm)))
-        print('--------------------------------')
-
         self.networks = ApproxContainer(**kwargs)
         self.approximate_optimizer = Adam(self.networks.parameters(), lr=kwargs['learning_rate'])
         self.act_dist_cls = GaussDistribution
@@ -122,6 +113,19 @@ class PPO():
             else:
                 warning_msg = "param '" + key + "'is not defined in algorithm!"
                 warnings.warn(warning_msg)
+        print('--------------------------------')
+        print('| Proximal Policy Optimization |')
+        print('| {:<16}'.format('gamma') + ' | ' + '{:<9} |'.format(self.gamma))
+        print('| {:<16}'.format('lambda') + ' | ' + '{:<9} |'.format(self.lamb))
+        print('| {:<16}'.format('clip') + ' | ' + '{:<9} |'.format(str(self.clip)))
+        print('| {:<16}'.format('factor_value') + ' | ' + '{:<9} |'.format(str(self.loss_coefficient_value)))
+        print('| {:<16}'.format('factor_entropy') + ' | ' + '{:<9} |'.format(str(self.loss_coefficient_entropy)))
+        print('| {:<16}'.format('schedule_adam') + ' | ' + '{:<9} |'.format(self.schedule_adam))
+        print('| {:<16}'.format('schedule_clip') + ' | ' + '{:<9} |'.format(self.schedule_clip))
+        print('| {:<16}'.format('advantage_norm') + ' | ' + '{:<9} |'.format(str(self.advantage_norm)))
+        print('| {:<16}'.format('loss_value_clip') + ' | ' + '{:<9} |'.format(str(self.loss_value_clip)))
+        print('| {:<16}'.format('loss_value_norm') + ' | ' + '{:<9} |'.format(str(self.loss_value_norm)))
+        print('--------------------------------')
 
     def get_parameters(self):
         params = dict()
