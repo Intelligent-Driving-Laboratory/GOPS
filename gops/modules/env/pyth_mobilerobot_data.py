@@ -130,7 +130,7 @@ class GymMobilerobot:
 
         return state
 
-    def render(self, n_window=3):
+    def render(self, n_window=1):
 
         if not hasattr(self, 'artists'):
             self.render_init(n_window)
