@@ -105,8 +105,8 @@ if __name__ == "__main__":
         import ray
 
         ray.init()
-        parser.add_argument('--num_algs', type=int, default=2, help='number of algs')
-        parser.add_argument('--num_samplers', type=int, default=2, help='number of samplers')
+        parser.add_argument('--num_algs', type=int, default=5, help='number of algs')
+        parser.add_argument('--num_samplers', type=int, default=5, help='number of samplers')
         parser.add_argument('--num_buffers', type=int, default=1, help='number of buffers')
         cpu_core_num = multiprocessing.cpu_count()
         num_core_input = parser.parse_args().num_algs + parser.parse_args().num_samplers + parser.parse_args().num_buffers + 2
