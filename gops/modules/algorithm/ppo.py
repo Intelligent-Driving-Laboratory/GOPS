@@ -18,6 +18,7 @@ import torch.nn as nn
 from torch.optim import Adam
 from numba import njit
 import time
+import warnings
 
 from modules.create_pkg.create_apprfunc import create_apprfunc
 from modules.utils.action_distributions import GaussDistribution
@@ -41,9 +42,10 @@ class ApproxContainer(nn.Module):
 
         self.approximate_optimizer = Adam(self.parameters(), lr=self.learning_rate)
 
-    def update(self, grads, iteration):
-        value_grad_len = len(list(self.value.parameters()))
-        value_grad, policy_grad = grads[:value_grad_len], grads[value_grad_len:]
+    def update(self, grads_info:dict):
+        iteration = grads_info['iteration']
+        value_grad = grads_info['value_grad']
+        policy_grad = grads_info['policy_grad']
 
         for p, grad in zip(self.value.parameters(), value_grad):
             p._grad = torch.from_numpy(grad)
@@ -68,7 +70,6 @@ class PPO():
     def __init__(self, **kwargs):
         self.data_gae = dict()
         self.trainer_type = kwargs['trainer']
-        self.iteration = 0
         self.max_iteration = kwargs['max_iteration']
         self.print_interval = kwargs['print_interval']
         self.gradient_step = 0
@@ -80,29 +81,19 @@ class PPO():
         self.indices = np.arange(self.sample_batch_size)
 
         # Parameters for algorithm
-        self.gamma = kwargs['gamma']
+        self.gamma = 0.99
         self.lamb = 0.95  # applied in GAE, making a compromise between bias & var
         self.clip = 0.2
         self.clip_now = 0.2
         self.EPS = 1e-8
-        self.loss_coefficient_value = kwargs['loss_coefficient_value']
-        self.loss_coefficient_entropy = kwargs['loss_coefficient_entropy']
-        self.learning_rate = kwargs['learning_rate']
+        self.loss_coefficient_value = 1.0
+        self.loss_coefficient_entropy = 0.01
 
         self.schedule_adam = 'linear'
         self.schedule_clip = 'linear'
         self.advantage_norm = True
         self.loss_value_clip = False
         self.loss_value_norm = True
-
-        print('--------------------------------')
-        print('| Proximal Policy Optimization |')
-        print('| {:<16}'.format('schedule_adam') + ' | ' + '{:<9} |'.format(self.schedule_adam))
-        print('| {:<16}'.format('schedule_clip') + ' | ' + '{:<9} |'.format(self.schedule_clip))
-        print('| {:<16}'.format('advantage_norm') + ' | ' + '{:<9} |'.format(str(self.advantage_norm)))
-        print('| {:<16}'.format('loss_value_clip') + ' | ' + '{:<9} |'.format(str(self.loss_value_clip)))
-        print('| {:<16}'.format('loss_value_norm') + ' | ' + '{:<9} |'.format(str(self.loss_value_norm)))
-        print('--------------------------------')
 
         self.networks = ApproxContainer(**kwargs)
         self.approximate_optimizer = Adam(self.networks.parameters(), lr=kwargs['learning_rate'])
@@ -115,12 +106,52 @@ class PPO():
             self.networks.policy = self.networks.policy.cuda()
         # ------------------------------------
 
-    def compute_gradient(self, data):
+    def set_parameters(self, param_dict):
+        for key in param_dict:
+            if hasattr(self, key):
+                setattr(self, key, param_dict[key])
+            else:
+                warning_msg = "param '" + key + "'is not defined in algorithm!"
+                warnings.warn(warning_msg)
+        print('--------------------------------')
+        print('| Proximal Policy Optimization |')
+        print('| {:<16}'.format('gamma') + ' | ' + '{:<9} |'.format(self.gamma))
+        print('| {:<16}'.format('lambda') + ' | ' + '{:<9} |'.format(self.lamb))
+        print('| {:<16}'.format('clip') + ' | ' + '{:<9} |'.format(str(self.clip)))
+        print('| {:<16}'.format('factor_value') + ' | ' + '{:<9} |'.format(str(self.loss_coefficient_value)))
+        print('| {:<16}'.format('factor_entropy') + ' | ' + '{:<9} |'.format(str(self.loss_coefficient_entropy)))
+        print('| {:<16}'.format('schedule_adam') + ' | ' + '{:<9} |'.format(self.schedule_adam))
+        print('| {:<16}'.format('schedule_clip') + ' | ' + '{:<9} |'.format(self.schedule_clip))
+        print('| {:<16}'.format('advantage_norm') + ' | ' + '{:<9} |'.format(str(self.advantage_norm)))
+        print('| {:<16}'.format('loss_value_clip') + ' | ' + '{:<9} |'.format(str(self.loss_value_clip)))
+        print('| {:<16}'.format('loss_value_norm') + ' | ' + '{:<9} |'.format(str(self.loss_value_norm)))
+        print('--------------------------------')
+
+    def get_parameters(self):
+        params = dict()
+        params['is_gpu'] = self.is_gpu
+        params['gamma'] = self.gamma
+        params['lamb'] = self.lamb
+        params['clip'] = self.clip
+        params['clip_now'] = self.clip_now
+        params['EPS'] = self.EPS
+        params['loss_coefficient_value'] = self.loss_coefficient_value
+        params['loss_coefficient_entropy'] = self.loss_coefficient_entropy
+
+        params['schedule_adam'] = self.schedule_adam
+        params['schedule_clip'] = self.schedule_clip
+        params['advantage_norm'] = self.advantage_norm
+        params['loss_value_clip'] = self.loss_value_clip
+        params['loss_value_norm'] = self.loss_value_norm
+
+        return params
+
+    def compute_gradient(self, data:dict, iteration):
         tb_info = dict()
         start_time = time.time()
         self.approximate_optimizer.zero_grad()
 
-        self.gradient_step = self.iteration % self.num_epoch
+        self.gradient_step = iteration % self.num_epoch
         if self.gradient_step == 0:
             self.data_gae = self.__generalization_advantage_estimate(data)  # 1/10 of total time
             # create the indices array
@@ -131,9 +162,9 @@ class PPO():
         mb_indices = self.indices[mb_start: mb_start + self.mini_batch_size]
         mb_sample = {k: self.data_gae[k][mb_indices] for k in list(self.data_gae.keys())}
 
-        loss_total, loss_surrogate, loss_value, loss_entropy, approximate_kl, clip_fra = self.__compute_loss(mb_sample)
+        loss_total, loss_surrogate, loss_value, loss_entropy, approximate_kl, clip_fra = \
+            self.__compute_loss(mb_sample, iteration)
         loss_total.backward()  # < 2ms
-        self.iteration += 1
 
         value_grad = [p._grad.numpy() for p in self.networks.value.parameters()]
         policy_grad = [p._grad.numpy() for p in self.networks.policy.parameters()]
@@ -147,13 +178,13 @@ class PPO():
         # tb_info[tb_tags["clip_fraction"]] = clip_fra.item()
         tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
 
-        if self.iteration % self.print_interval == 0:
-            print('iteration: {}  total_loss = {:.4f} = {:.10f} + {} * {:.4f} - {} * {:.4f}'
-                  .format(self.iteration, loss_total.item(), loss_surrogate.item(),
-                          self.loss_coefficient_value, loss_value.item(),
-                          self.loss_coefficient_entropy, loss_entropy.item()))
+        if (iteration + 1) % self.print_interval == 0:
+            print(f'iteration: {iteration + 1}  '
+                  f'total_loss = {loss_total:.4f} = '
+                  f'{loss_surrogate:.4f} + {self.loss_coefficient_value} * {loss_value:.4f} - '
+                  f'{self.loss_coefficient_entropy} * {loss_entropy:.4f}')
             # print('------------------------------------')
-            # print('| {:<16}'.format('iteration') + ' | ' + '{:<14} |'.format(self.iteration))
+            # print('| {:<16}'.format('iteration') + ' | ' + '{:<14} |'.format(iteration + 1))
             # print('| {:<16}'.format('loss_total') + ' | ' + '{:.12f} |'.format(loss_total.item()))
             # print('| {:<16}'.format('loss_actor') + ' | ' + '{:.12f} |'.format(loss_surrogate.item()))
             # print('| {:<16}'.format('loss_critic') + ' | ' + '{:.12f} |'.format(loss_value.item()))
@@ -163,12 +194,17 @@ class PPO():
             # print('| {:<16}'.format('alg_time') + ' | ' + '{:.12f} |'.format(end_time - start_time))
             # print('------------------------------------')
 
-        return value_grad + policy_grad, tb_info
+        grad_info = dict()
+        grad_info['value_grad'] = value_grad
+        grad_info['policy_grad'] = policy_grad
+        grad_info['iteration'] = iteration
 
-    def __compute_loss(self, data):
+        return grad_info, tb_info
+
+    def __compute_loss(self, data, iteration):
         if data.get('ret') is None:  # GAE needs to be done
             extended_data = self.__generalization_advantage_estimate(data)
-            print('iteration = ', self.iteration, ': Finish GAE in compute_loss!!!')
+            print('iteration = ', iteration + 1, ': Finish GAE in compute_loss!!!')
             obs, act, rew, obs2 = extended_data['obs'], extended_data['act'], extended_data['rew'], extended_data['obs2']
             mask, pro = extended_data['mask'], extended_data['pro']
             returns, advantages, values = extended_data['ret'], extended_data['adv'], extended_data['val']
@@ -222,13 +258,13 @@ class PPO():
         loss_total = loss_surrogate + self.loss_coefficient_value * loss_value - self.loss_coefficient_entropy * loss_entropy
 
         if self.schedule_clip == 'linear':
-            decay_rate = 1 - (self.iteration / self.max_iteration)
+            decay_rate = 1 - (iteration / self.max_iteration)
             assert decay_rate >= 0, "the decay_rate is less than 0!"
             self.clip_now = self.clip * decay_rate
 
         return loss_total, loss_surrogate, loss_value, loss_entropy, approximate_kl, clip_fraction
 
-    def __generalization_advantage_estimate(self, data):
+    def __generalization_advantage_estimate(self, data:dict):
         if self.is_gpu:
             obs, act, rew, obs2, done = data['obs'].cuda(), data['act'].cuda(), data['rew'].cuda(), data['obs2'].cuda(), data['done'].cuda()
             logp, time_limited = data['logp'].cuda(), data['time_limited'].cuda()

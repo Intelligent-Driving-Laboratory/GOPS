@@ -32,6 +32,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_carracing2')
     parser.add_argument('--algorithm', type=str, default='SAC')
+    parser.add_argument('--enable_cuda', default=True, help='Disable CUDA')
 
     ################################################
     # 1. Parameters for environment
@@ -114,7 +115,7 @@ if __name__ == "__main__":
         parser.add_argument('--sampler_sync_interval', type=int, default=1)
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument('--sampler_name', type=str, default='mc_sampler')
+    parser.add_argument('--sampler_name', type=str, default='off_sampler')
     # Batch size of sampler for buffer store
     parser.add_argument('--sample_batch_size', type=int, default=10)
     # Add noise to actions for better exploration
@@ -139,22 +140,7 @@ if __name__ == "__main__":
     # Get parameter dictionary
     args = vars(parser.parse_args())
     env = create_env(**args)
-
-    # args = init_args(env, **args)
-    args['obsv_dim'] = env.observation_space.shape
-    args['action_dim'] = env.action_space.shape[0]
-    args['action_high_limit'] = env.action_space.high
-    args['action_low_limit'] = env.action_space.low
-    if args['save_folder'] is None:
-        args['save_folder'] = os.path.join('../results/' +
-                                           parser.parse_args().algorithm,
-                                           datetime.datetime.now().strftime("%m%d-%H%M%S"))
-    os.makedirs(args['save_folder'], exist_ok=True)
-    os.makedirs(args['save_folder'] + '/apprfunc', exist_ok=True)
-    os.makedirs(args['save_folder'] + '/evaluator', exist_ok=True)
-
-    with open(args['save_folder'] + '/config.json', 'w', encoding='utf-8') as f:
-        json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
+    args = init_args(env, **args)
 
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function

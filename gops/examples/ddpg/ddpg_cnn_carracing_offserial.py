@@ -134,7 +134,7 @@ if __name__ == "__main__":
 
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument('--sampler_name', type=str, default='mc_sampler')
+    parser.add_argument('--sampler_name', type=str, default='off_sampler')
     parser.add_argument('--sample_batch_size', type=int, default=10,
                         help='Batch size of sampler for buffer store')
     parser.add_argument('--noise_params', type=dict,
@@ -147,6 +147,7 @@ if __name__ == "__main__":
     parser.add_argument('--evaluator_name', type=str, default='evaluator')
     parser.add_argument('--num_eval_episode', type=int, default=5)
     parser.add_argument('--eval_interval', type=int, default=100)
+    parser.add_argument('--eval_save', type=bool, default=False)
 
     ################################################
     # 8. Data savings

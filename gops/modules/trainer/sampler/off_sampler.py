@@ -19,6 +19,7 @@ from modules.utils.tensorboard_tools import tb_tags
 from modules.utils.utils import array_to_scalar
 
 
+
 class OffSampler():
     def __init__(self, **kwargs):
         self.env = create_env(**kwargs)
@@ -36,7 +37,16 @@ class OffSampler():
         self.total_sample_number = 0
         self.obsv_dim = kwargs['obsv_dim']
         self.act_dim = kwargs['action_dim']
-
+        if 'constraint_dim' in kwargs.keys():
+            self.is_constrained = True
+            self.con_dim = kwargs['constraint_dim']
+        else:
+            self.is_constrained = False
+        if 'adversary_dim' in kwargs.keys():
+            self.is_adversary = True
+            self.advers_dim = kwargs['adversary_dim']
+        else:
+            self.is_adversary = False
         if self.action_type == 'continu':
             self.noise_processor = GaussNoise(**self.noise_params)
             if self.policy_func_name == 'StochaPolicy':
@@ -80,8 +90,18 @@ class OffSampler():
                 info['TimeLimit.truncated'] = False
             if info['TimeLimit.truncated']:
                 self.done = False
-            batch_data.append(
-                (self.obs.copy(), action, reward, next_obs.copy(), self.done, logp, info['TimeLimit.truncated']))
+            data = [self.obs.copy(), action, reward, next_obs.copy(), self.done, logp, info['TimeLimit.truncated']]
+            if self.is_constrained:
+                constraint = info['constraint']
+            else:
+                constraint = None
+            if self.is_adversary:
+                sth_about_adversary = np.zeros(self.advers_dim)
+            else:
+                sth_about_adversary = None
+            data.append(constraint)
+            data.append(sth_about_adversary)
+            batch_data.append(tuple(data))
             self.obs = next_obs
             if self.done or info['TimeLimit.truncated']:
                 self.obs = self.env.reset()
@@ -93,30 +113,3 @@ class OffSampler():
 
     def get_total_sample_number(self):
         return self.total_sample_number
-
-    def samples_conversion(self, samples):
-        obs_tensor = torch.zeros(self.sample_batch_size, self.obsv_dim)
-        act_tensor = torch.zeros(self.sample_batch_size, self.act_dim)
-        obs2_tensor = torch.zeros(self.sample_batch_size, self.obsv_dim)
-        rew_tensor = torch.zeros(self.sample_batch_size, )
-        done_tensor = torch.zeros(self.sample_batch_size, )
-        logp_tensor = torch.zeros(self.sample_batch_size, )
-        time_limited_tensor = torch.zeros(self.sample_batch_size, )
-        idx = 0
-        for sample in samples:
-            obs, act, rew, next_obs, done, logp, time_limited = sample
-            obs_tensor[idx] = torch.from_numpy(obs)
-            act_tensor[idx] = torch.from_numpy(act)
-            rew_tensor[idx] = torch.tensor(array_to_scalar(rew))
-            obs2_tensor[idx] = torch.from_numpy(next_obs)
-            done_tensor[idx] = torch.tensor(array_to_scalar(done))
-            logp_tensor[idx] = torch.tensor(logp)
-            time_limited_tensor[idx] = torch.tensor(time_limited)
-            idx += 1
-        time_limited_tensor[-1] = True
-        return dict(obs=obs_tensor, act=act_tensor, obs2=obs2_tensor, rew=rew_tensor,
-                    done=done_tensor, logp=logp_tensor, time_limited=time_limited_tensor)
-
-    def sample_with_replay_format(self):
-        samples, sampler_tb_dict = self.sample()
-        return self.samples_conversion(samples), sampler_tb_dict

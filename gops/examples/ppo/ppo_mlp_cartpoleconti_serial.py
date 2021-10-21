@@ -36,6 +36,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_cartpoleconti', help='')
     parser.add_argument('--algorithm', type=str, default='PPO', help='')
+    parser.add_argument('--enable_cuda', default=False, help='Disable CUDA')
 
     ################################################
     # 1. Parameters for environment
@@ -46,7 +47,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_type', type=str, default='continu', help='')
     parser.add_argument('--is_render', type=bool, default=False, help='')
     parser.add_argument('--is_adversary', type=bool, default=False, help='Adversary training')
-    parser.add_argument('--enable_cuda', default=False, help='Disable CUDA')
+    parser.add_argument('--is_constrained', type=bool, default=False, help='Constrained training')
 
     ################################################
     # 2.1 Parameters of value approximate function
@@ -79,9 +80,6 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for algorithm
-    parser.add_argument('--gamma', type=float, default=0.995, help='0.99 in the paper')
-    parser.add_argument('--loss_coefficient_value', type=float, default=0.5, help='1 in the paper')
-    parser.add_argument('--loss_coefficient_entropy', type=float, default=0.01, help='0.01 in the paper')
     parser.add_argument('--learning_rate', type=float, default=3e-4, help='3e-4 in the paper')
 
     ################################################
@@ -102,7 +100,7 @@ if __name__ == "__main__":
 
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument('--sampler_name', type=str, default='mc_sampler')
+    parser.add_argument('--sampler_name', type=str, default='on_sampler')
     # Batch size of sampler for buffer store
     parser.add_argument('--sample_batch_size', type=int, default=1024,
                         help='Batch size of sampler for buffer store = 1024')  # 8 env * 128 step
@@ -141,9 +139,10 @@ if __name__ == "__main__":
     env = create_env(**args)
     args = init_args(env, **args)
 
-    start_tensorboard(args['save_folder'])
+    # start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
+    alg.set_parameters({'gamma': 0.995, 'loss_coefficient_value': 0.5, 'loss_coefficient_entropy': 0.01})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

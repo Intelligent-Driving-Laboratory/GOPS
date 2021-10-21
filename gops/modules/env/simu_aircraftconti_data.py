@@ -25,7 +25,9 @@ class SimuAircraftconti(gym.Env):
             if adv_action is None:
                 raise ValueError('Adversary training setting is wrong')
         state, isdone, reward = self._step_physics({'Action': action.astype(np.float64), 'AdverAction': adv_action.astype(np.float64)})
+        self.cstep += 1
         info = {'TimeLimit.truncated':self.cstep>200}
+        print(state, self.cstep)
         return state, reward, isdone, info
 
     def reset(self):
@@ -58,7 +60,7 @@ if __name__ == "__main__":
     env = SimuAircraftconti()
     s = env.reset()
     for i in range(50):
-        a = np.ones([1])*20
+        a = np.ones([1])*5
         sp, r, d, _ = env.step(a)
         print(s, a, r, d)
         s = sp
