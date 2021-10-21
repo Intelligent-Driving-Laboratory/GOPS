@@ -95,7 +95,7 @@ if __name__ == "__main__":
     ################################################
     # 4. Parameters for trainer
     # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
-    parser.add_argument('--trainer', type=str, default='off_async_trainer')
+    parser.add_argument('--trainer', type=str, default='off_serial_trainer')
     # Maximum iteration number
     parser.add_argument('--max_iteration', type=int, default=int(1e6))
     trainer_type = parser.parse_args().trainer
