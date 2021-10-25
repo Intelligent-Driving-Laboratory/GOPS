@@ -51,7 +51,7 @@ if __name__ == "__main__":
     value_func_type = parser.parse_args().value_func_type
     ### 2.1.1 MLP, CNN, RNN
     if value_func_type == 'MLP':
-        parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256])
+        parser.add_argument('--value_hidden_sizes', type=list, default=[400, 400])
         # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
         parser.add_argument('--value_hidden_activation', type=str, default='relu')
         # Output Layer: linear
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     value_func_type = parser.parse_args().value_func_type
     ### 2.1.1 MLP, CNN, RNN
     if value_func_type == 'MLP':
-        parser.add_argument('--q_hidden_sizes', type=list, default=[256, 256])
+        parser.add_argument('--q_hidden_sizes', type=list, default=[400, 400])
         # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
         parser.add_argument('--q_hidden_activation', type=str, default='relu')
         # Output Layer: linear
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     policy_func_type = parser.parse_args().policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == 'MLP':
-        parser.add_argument('--policy_hidden_sizes', type=list, default=[256, 256])
+        parser.add_argument('--policy_hidden_sizes', type=list, default=[400, 400])
         # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
         parser.add_argument('--policy_hidden_activation', type=str, default='relu')
         # Output Layer: tanh
@@ -91,6 +91,8 @@ if __name__ == "__main__":
     parser.add_argument('--q_learning_rate', type=float, default=3e-4)
     parser.add_argument('--policy_learning_rate', type=float, default=3e-4)
     parser.add_argument('--alpha_learning_rate', type=float, default=3e-4)
+    parser.add_argument('--auto_alpha', type=bool, default=False)
+    parser.add_argument('--alpha', type=float, default=0.2)
 
     ################################################
     # 4. Parameters for trainer
@@ -115,7 +117,7 @@ if __name__ == "__main__":
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='off_sampler')
     # Batch size of sampler for buffer store
-    parser.add_argument('--sample_batch_size', type=int, default=10)
+    parser.add_argument('--sample_batch_size', type=int, default=5)
     # Add noise to actions for better exploration
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
