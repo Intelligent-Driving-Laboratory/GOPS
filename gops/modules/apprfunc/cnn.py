@@ -9,6 +9,7 @@
 
 __all__ = ['DetermPolicy', 'StochaPolicy', 'ActionValue', 'ActionValueDis', 'StateValue']
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -52,12 +53,12 @@ class DetermPolicy(nn.Module):
             conv_channels = [32, 64, 64]
             conv_strides = [4, 2, 1]
             conv_activation = nn.ReLU
-            conv_input_channel = obs_dim[-1]
+            conv_input_channel = obs_dim[0]
             mlp_hidden_layers = [512, 256]
 
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
+            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
 
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
@@ -68,12 +69,12 @@ class DetermPolicy(nn.Module):
             conv_channels = [8, 16, 32, 64, 128, 256]
             conv_strides = [2, 2, 2, 2, 1, 1]
             conv_activation = nn.ReLU
-            conv_input_channel = obs_dim[-1]
+            conv_input_channel = obs_dim[0]
             mlp_hidden_layers = [128]
 
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
+            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
 
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
@@ -81,12 +82,12 @@ class DetermPolicy(nn.Module):
             raise NotImplementedError
 
     def forward(self, obs):
-        img = obs.permute(0, 3, 1, 2)
-        img = self.conv(img)
+        # obs = obs.permute(0, 3, 1, 2)
+        img = self.conv(obs)
         feature = img.view(img.size(0), -1)
         feature = self.mlp(feature)
-        action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(feature) \
-                 + (self.act_high_lim + self.act_low_lim) / 2
+        action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(feature) + (
+                    self.act_high_lim + self.act_low_lim) / 2
         return action
 
 
@@ -111,16 +112,15 @@ class StochaPolicy(nn.Module):
             conv_channels = [32, 64, 64]
             conv_strides = [4, 2, 1]
             conv_activation = nn.ReLU
-            conv_input_channel = obs_dim[-1]
+            conv_input_channel = obs_dim[0]
             mlp_hidden_layers = [512, 256]
 
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
-            mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
-
-            self.mean = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
-            self.log_std = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
+            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            policy_mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
+            self.mean = MLP(policy_mlp_sizes, self.hidden_activation, self.output_activation)
+            self.log_std = MLP(policy_mlp_sizes, self.hidden_activation, self.output_activation)
 
         elif conv_type == "type_2":
             # CNN+MLP Parameters
@@ -128,25 +128,24 @@ class StochaPolicy(nn.Module):
             conv_channels = [8, 16, 32, 64, 128, 256]
             conv_strides = [2, 2, 2, 2, 1, 1]
             conv_activation = nn.ReLU
-            conv_input_channel = obs_dim[-1]
+            conv_input_channel = obs_dim[0]
             mlp_hidden_layers = [128]
 
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
-            mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
+            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            policy_mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
+            self.mean = MLP(policy_mlp_sizes, self.hidden_activation, self.output_activation)
+            self.log_std = MLP(policy_mlp_sizes, self.hidden_activation, self.output_activation)
 
-            self.mean = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
-            self.log_std = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
         else:
             raise NotImplementedError
 
     def forward(self, obs):
-        img = obs.permute(0, 3, 1, 2)
-        img = self.conv(img)
+        img = self.conv(obs)
         feature = img.view(img.size(0), -1)
-        action_mean = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(self.mean(feature)) \
-                      + (self.act_high_lim + self.act_low_lim) / 2
+        action_mean = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(self.mean(feature)) + (
+                    self.act_high_lim + self.act_low_lim) / 2
         action_std = torch.clamp(self.log_std(feature), self.min_log_std, self.max_log_std).exp()
         return torch.cat((action_mean, action_std), dim=-1)
 
@@ -165,12 +164,12 @@ class ActionValue(nn.Module):
             conv_channels = [32, 64, 64]
             conv_strides = [4, 2, 1]
             conv_activation = nn.ReLU
-            conv_input_channel = obs_dim[-1]
+            conv_input_channel = obs_dim[0]
             mlp_hidden_layers = [512, 256]
 
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
+            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims+act_dim] + mlp_hidden_layers + [1]
 
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
@@ -181,20 +180,19 @@ class ActionValue(nn.Module):
             conv_channels = [8, 16, 32, 64, 128, 256]
             conv_strides = [2, 2, 2, 2, 1, 1]
             conv_activation = nn.ReLU
-            conv_input_channel = obs_dim[-1]
+            conv_input_channel = obs_dim[0]
             mlp_hidden_layers = [128]
 
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
+            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims+act_dim] + mlp_hidden_layers + [1]
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
         else:
             raise NotImplementedError
 
     def forward(self, obs, act):
-        img = obs.permute(0, 3, 1, 2)
-        img = self.conv(img)
+        img = self.conv(obs)
         feature = torch.cat([img.view(img.size(0), -1), act], -1)
         return self.mlp(feature)
 
@@ -202,7 +200,7 @@ class ActionValue(nn.Module):
 class ActionValueDis(nn.Module):
     def __init__(self, **kwargs):
         super(ActionValueDis, self).__init__()
-        act_num = kwargs['act_dim']
+        act_num = kwargs['act_num']
         obs_dim = kwargs['obs_dim']
         conv_type = kwargs['conv_type']
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
@@ -213,12 +211,12 @@ class ActionValueDis(nn.Module):
             conv_channels = [32, 64, 64]
             conv_strides = [4, 2, 1]
             conv_activation = nn.ReLU
-            conv_input_channel = obs_dim[-1]
-            mlp_hidden_layers = [512, 256]
+            conv_input_channel = obs_dim[0]
+            mlp_hidden_layers = [512]
 
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
+            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_num]
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
 
@@ -228,22 +226,22 @@ class ActionValueDis(nn.Module):
             conv_channels = [8, 16, 32, 64, 128, 256]
             conv_strides = [2, 2, 2, 2, 1, 1]
             conv_activation = nn.ReLU
-            conv_input_channel = obs_dim[-1]
+            conv_input_channel = obs_dim[0]
             mlp_hidden_layers = [128]
 
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
+            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_num]
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
         else:
             raise NotImplementedError
 
     def forward(self, obs):
-        img = obs.permute(0, 3, 1, 2)
-        img = self.conv(img)
+        img = self.conv(obs)
         feature = img.view(img.size(0), -1)
-        return self.mlp(feature)
+        act_value_dis = self.mlp(feature)
+        return torch.squeeze(act_value_dis, -1)
 
 
 class StochaPolicyDis(ActionValueDis):
@@ -263,12 +261,12 @@ class StateValue(nn.Module):
             conv_channels = [32, 64, 64]
             conv_strides = [4, 2, 1]
             conv_activation = nn.ReLU
-            conv_input_channel = obs_dim[-1]
-            mlp_hidden_layers = [512, 256]
+            conv_input_channel = obs_dim[0]
+            mlp_hidden_layers = [512]
 
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
+            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [1]
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
 
@@ -278,19 +276,20 @@ class StateValue(nn.Module):
             conv_channels = [8, 16, 32, 64, 128, 256]
             conv_strides = [2, 2, 2, 2, 1, 1]
             conv_activation = nn.ReLU
-            conv_input_channel = obs_dim[-1]
+            conv_input_channel = obs_dim[0]
             mlp_hidden_layers = [128]
 
             # Construct CNN+MLP
             self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0).permute(0, 3, 1, 2)).reshape(1, -1).shape[-1]
+            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [1]
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
         else:
             raise NotImplementedError
 
     def forward(self, obs):
-        img = obs.permute(0, 3, 1, 2)
-        img = self.conv(img)
+        img = self.conv(obs)
         feature = img.view(img.size(0), -1)
-        return self.mlp(feature)
+        v = self.mlp(feature)
+        v = torch.squeeze(v, -1)
+        return v
