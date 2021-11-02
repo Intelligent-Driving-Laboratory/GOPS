@@ -166,8 +166,8 @@ class PPO():
             self.__compute_loss(mb_sample, iteration)
         loss_total.backward()  # < 2ms
 
-        value_grad = [p._grad.numpy() for p in self.networks.value.parameters()]
-        policy_grad = [p._grad.numpy() for p in self.networks.policy.parameters()]
+        value_grad = [p._grad.cpu().numpy() for p in self.networks.value.parameters()]
+        policy_grad = [p._grad.cpu().numpy() for p in self.networks.policy.parameters()]
 
         end_time = time.time()
         # tb_info[tb_tags["loss_total"]] = loss_total.item()
@@ -275,7 +275,7 @@ class PPO():
             # pro = self._get_log_pro(obs, act)
             pro = logp
             values = self.networks.value(obs)
-            prev_value = self.networks.value(obs2[-1, :])
+            prev_value = self.networks.value(obs2[-1, :].unsqueeze(0))
 
         mask = (~done.to(torch.bool) | time_limited.to(torch.bool)).to(torch.int)  # useless?
         deltas = torch.zeros_like(done)
