@@ -27,7 +27,7 @@ def create_alg(**kwargs):
         alg_cls = getattr(module, alg_name)
         if trainer == 'off_serial_trainer' or trainer == 'on_serial_trainer' or trainer == 'on_sync_trainer':
             alg = alg_cls(**kwargs)
-        elif trainer == 'off_async_trainer':
+        elif trainer == 'off_async_trainer' or trainer == 'off_async_trainermix':
             alg = [ray.remote(num_cpus=1)(alg_cls).remote(**kwargs)
                    for _ in range(kwargs['num_algs'])]
         else:

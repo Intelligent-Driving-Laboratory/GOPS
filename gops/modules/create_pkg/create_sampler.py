@@ -21,7 +21,7 @@ def create_sampler(**kwargs):
         sampler_cls = getattr(module, sampler_name)
         if trainer == 'off_serial_trainer' or trainer == 'on_serial_trainer':
             sampler = sampler_cls(**kwargs)
-        elif trainer == 'off_async_trainer' or trainer == 'on_sync_trainer':
+        elif trainer == 'off_async_trainer' or trainer == 'on_sync_trainer' or trainer == 'off_async_trainermix':
             sampler = [ray.remote(num_cpus=1)(sampler_cls).remote(**kwargs) for _ in range(kwargs['num_samplers'])]
         else:
             raise NotImplementedError("This trainer is not properly defined")

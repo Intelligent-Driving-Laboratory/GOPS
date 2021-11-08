@@ -14,7 +14,7 @@ def create_buffer(**kwargs):
     trainer = kwargs['trainer']
     if trainer == 'on_serial_trainer' or trainer == 'on_sync_trainer':
         buffer = None
-    elif trainer == 'off_serial_trainer' or trainer == 'off_async_trainer':
+    elif trainer == 'off_serial_trainer' or trainer == 'off_async_trainer' or trainer == 'off_async_trainermix':
         buffer_file_name = kwargs['buffer_name'].lower()
         try:
             file = __import__(buffer_file_name)
@@ -27,7 +27,7 @@ def create_buffer(**kwargs):
             buffer_cls = getattr(file, buffer_name)  # 返回
             if trainer == 'off_serial_trainer':
                 buffer = buffer_cls(**kwargs)
-            elif trainer == 'off_async_trainer':
+            elif trainer == 'off_async_trainer' or trainer == 'off_async_trainermix':
                 buffer = [ray.remote(num_cpus=1)(ReplayBuffer).remote(**kwargs) for _ in range(kwargs['num_buffers'])]
             else:
                 raise NotImplementedError("This trainer is not properly defined")
