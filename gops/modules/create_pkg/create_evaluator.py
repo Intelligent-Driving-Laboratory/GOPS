@@ -21,7 +21,7 @@ def create_evaluator(**kwargs):
         evaluator_cls = getattr(file, evaluator_name)
         if trainer == 'off_serial_trainer' or trainer == 'on_serial_trainer':
             evaluator = evaluator_cls(**kwargs)
-        elif trainer == 'off_async_trainer' or trainer == 'on_sync_trainer':
+        elif trainer == 'off_async_trainer' or trainer == 'on_sync_trainer' or trainer == 'off_async_trainermix':
             evaluator = ray.remote(num_cpus=1)(Evaluator).remote(**kwargs)
         else:
             raise NotImplementedError("This trainer is not properly defined")

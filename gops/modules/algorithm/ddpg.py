@@ -164,6 +164,13 @@ class DDPG:
         q_policy = self.networks.q(o, self.networks.policy(o))
         return -q_policy.mean()
 
+    def update_policy(self, data:dict, iteration):
+        grad_info, tb_info = self.compute_gradient(data, iteration)
+        self.networks.update(grad_info)
+        return grad_info, tb_info
+
+    def state_dict(self,):
+        return self.networks.state_dict()
 
 if __name__ == '__main__':
     print('this is ddpg algorithm!')
