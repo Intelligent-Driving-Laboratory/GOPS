@@ -23,7 +23,7 @@ def create_trainer(alg, sampler, buffer, evaluator, **kwargs):
     # get
     if hasattr(file, trainer_name_camel):
         trainer_cls = getattr(file, trainer_name_camel)
-        if trainer_name == 'off_serial_trainer' or trainer_name == 'off_async_trainer':
+        if trainer_name == 'off_serial_trainer' or trainer_name == 'off_async_trainer' or trainer_name == 'off_async_trainermix':
             trainer = trainer_cls(alg, sampler, buffer, evaluator, **kwargs)
         elif trainer_name == 'on_serial_trainer' or trainer_name == 'on_sync_trainer':
             trainer = trainer_cls(alg, sampler, evaluator, **kwargs)
