@@ -41,10 +41,10 @@ class DetermPolicy(nn.Module):
         act_dim = kwargs['act_dim']
         obs_dim = kwargs['obs_dim']
         conv_type = kwargs['conv_type']
-        action_high_limit = kwargs['action_high_limit']
-        action_low_limit = kwargs['action_low_limit']
-        self.register_buffer('act_high_lim', torch.from_numpy(action_high_limit))
-        self.register_buffer('act_low_lim', torch.from_numpy(action_low_limit))
+        act_high_lim = kwargs['act_high_lim']
+        act_low_lim = kwargs['act_low_lim']
+        self.register_buffer('act_high_lim', torch.from_numpy(act_high_lim))
+        self.register_buffer('act_low_lim', torch.from_numpy(act_low_lim))
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
         if conv_type == "type_1":
@@ -97,10 +97,10 @@ class StochaPolicy(nn.Module):
         act_dim = kwargs['act_dim']
         obs_dim = kwargs['obs_dim']
         conv_type = kwargs['conv_type']
-        action_high_limit = kwargs['action_high_limit']
-        action_low_limit = kwargs['action_low_limit']
-        self.register_buffer('act_high_lim', torch.from_numpy(action_high_limit))
-        self.register_buffer('act_low_lim', torch.from_numpy(action_low_limit))
+        act_high_lim = kwargs['act_high_lim']
+        act_low_lim = kwargs['act_low_lim']
+        self.register_buffer('act_high_lim', torch.from_numpy(act_high_lim))
+        self.register_buffer('act_low_lim', torch.from_numpy(act_low_lim))
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
         self.min_log_std = kwargs['min_log_std']

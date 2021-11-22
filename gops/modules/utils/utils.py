@@ -50,14 +50,21 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
         var['hidden_activation'] = kwargs[key + '_hidden_activation']
         var['output_activation'] = kwargs[key + '_output_activation']
         var['conv_type'] = kwargs[key + '_conv_type']
+    elif type == 'CNN_SHARED':
+        if key == 'feature':
+            var['conv_type'] = kwargs['conv_type']
+        else:
+            var['feature_net'] = kwargs['feature_net']
+            var['hidden_activation'] = kwargs[key + '_hidden_activation']
+            var['output_activation'] = kwargs[key + '_output_activation']
     elif type == 'POLY':
         pass
     else:
         raise NotImplementedError
 
     if kwargs['action_type'] == 'continu':
-        var['action_high_limit'] = kwargs['action_high_limit']
-        var['action_low_limit'] = kwargs['action_low_limit']
+        var['act_high_lim'] = kwargs['action_high_limit']
+        var['act_low_lim'] = kwargs['action_low_limit']
         var['act_dim'] = kwargs['action_dim']
     else:
         var['act_num'] = kwargs['action_num']

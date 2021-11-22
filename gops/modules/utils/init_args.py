@@ -9,6 +9,7 @@ from modules.utils.utils import change_type
 
 
 def init_args(env, **args):
+    # cuda
     if args['enable_cuda']:
         if torch.cuda.is_available():
             args['use_gpu'] = True
@@ -19,6 +20,7 @@ def init_args(env, **args):
     else:
         args['use_gpu'] = False
 
+    # observation dimension
     if len(env.observation_space.shape) == 1:
         args['obsv_dim'] = env.observation_space.shape[0]
     else:
@@ -34,6 +36,18 @@ def init_args(env, **args):
 
     if hasattr(env, 'constraint_dim'):  # get the dimension of constrain
         args['constraint_dim'] = env.constraint_dim
+
+    if args['value_func_type'] == 'CNN_SHARED' or args['policy_func_type'] == 'CNN_SHARED':
+        assert args['value_func_type'] == args[
+            'policy_func_type'], 'The function type of both value and policy should be CNN_SHARED'
+        assert args['value_conv_type'] == args[
+            'policy_conv_type'], 'The conv type of value and policy should be the same'
+        args['cnn_shared'] = True
+        args['feature_func_name'] = 'Feature'
+        args['feature_func_type'] = 'CNN_SHARED'
+        args['conv_type'] = args['value_conv_type']
+    else:
+        args['cnn_shared'] = False
 
     # Create save arguments
     if args['save_folder'] is None:
