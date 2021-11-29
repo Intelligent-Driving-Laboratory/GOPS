@@ -66,7 +66,7 @@ class OffSampler():
     def sample(self):
         self.total_sample_number += self.sample_batch_size
         tb_info = dict()
-        start_time = time.time()
+        start_time = time.perf_counter()
         batch_data = []
         for _ in range(self.sample_batch_size):
             batch_obs = torch.from_numpy(np.expand_dims(self.obs, axis=0).astype('float32'))
@@ -106,7 +106,7 @@ class OffSampler():
             if self.done or info['TimeLimit.truncated']:
                 self.obs = self.env.reset()
 
-        end_time = time.time()
+        end_time = time.perf_counter()
         tb_info[tb_tags["sampler_time"]] = (end_time - start_time) * 1000
 
         return batch_data, tb_info

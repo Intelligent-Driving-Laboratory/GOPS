@@ -2,12 +2,13 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Wenxuan Wang
-#  Description: Infinite ADP algorithm in continute version of Cartpole Enviroment
+#  Creator: Yao Mu
+#  Description: Mixed Actor Critic (MAC) in stochastic system
 #
-#  Update Date: 2020-11-10, Wenxuan Wang
+#  Update Date: 2021-10-22, Yao Mu
 
 import argparse
+import os
 import numpy as np
 
 from modules.create_pkg.create_alg import create_alg
@@ -20,6 +21,7 @@ from modules.utils.init_args import init_args
 from modules.utils.plot import plot_all
 from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
 
+os.environ["OMP_NUM_THREADS"] = "1"
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -27,9 +29,9 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='gym_cartpoleconti')
-    parser.add_argument('--algorithm', type=str, default='INFADP')
-    parser.add_argument('--enable_cuda', default=True, help='Enable CUDA')
+    parser.add_argument('--env_id', type=str, default='gym_pendulum')
+    parser.add_argument('--algorithm', type=str, default='MAC')
+    parser.add_argument('--enable_cuda', default=False, help='Enable CUDA')
 
     # 1. Parameters for environment
     parser.add_argument('--obsv_dim', type=int, default=None)
@@ -60,12 +62,12 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument('--value_learning_rate', type=float, default=8e-5)
-    parser.add_argument('--policy_learning_rate', type=float, default=5e-5)
+    parser.add_argument('--value_learning_rate', type=float, default=1e-4)
+    parser.add_argument('--policy_learning_rate', type=float, default=1e-4)
 
     # 4. Parameters for trainer
     parser.add_argument('--trainer', type=str, default='off_async_trainer')
-    parser.add_argument('--max_iteration', type=int, default=2000,
+    parser.add_argument('--max_iteration', type=int, default=3000,
                         help='Maximum iteration number')
     parser.add_argument('--ini_network_dir', type=str, default=None)
     trainer_type = parser.parse_args().trainer
@@ -88,7 +90,7 @@ if __name__ == "__main__":
     parser.add_argument('--sample_batch_size', type=int, default=256)
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([1], dtype=np.float32)})
+                                 'std': np.array([0.6], dtype=np.float32)})
 
     ################################################
     # 7. Parameters for evaluator
@@ -110,9 +112,9 @@ if __name__ == "__main__":
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
     for alg_id in alg:
-        alg_id.set_parameters.remote({'reward_scale': 0.1, 'gamma': 0.99, 'tau': 0.005})
+        alg_id.set_parameters.remote({'reward_scale': -0.01, 'gamma': 1.0, 'tau': 0.005})
     # Step 2: create sampler in trainer
-    sampler = create_sampler(**args)  # 调用alg里面的函数，创建自己的网络
+    sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
     buffer = create_buffer(**args)
     # Step 4: create evaluator in trainer
