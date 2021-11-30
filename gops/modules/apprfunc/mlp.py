@@ -99,7 +99,6 @@ class ActionValueDis(nn.Module):
         obs_dim = kwargs['obs_dim']
         act_num = kwargs['act_num']
         hidden_sizes = kwargs['hidden_sizes']
-        print(kwargs['output_activation'])
         self.q = mlp([obs_dim] + list(hidden_sizes) + [act_num],
                      get_activation_func(kwargs['hidden_activation']),
                      get_activation_func(kwargs['output_activation']))

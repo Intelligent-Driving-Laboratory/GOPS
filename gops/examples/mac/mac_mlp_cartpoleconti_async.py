@@ -9,8 +9,8 @@
 #  Update Date: 2021-10-22, Yao Mu
 
 import argparse
-import os
 import numpy as np
+import multiprocessing
 
 from modules.create_pkg.create_alg import create_alg
 from modules.create_pkg.create_buffer import create_buffer
@@ -78,6 +78,10 @@ if __name__ == "__main__":
         parser.add_argument('--num_algs', type=int, default=2)
         parser.add_argument('--num_samplers', type=int, default=1)
         parser.add_argument('--num_buffers', type=int, default=1)
+        cpu_core_num = multiprocessing.cpu_count()
+        num_core_input = parser.parse_args().num_algs + parser.parse_args().num_samplers + parser.parse_args().num_buffers + 2
+        if num_core_input > cpu_core_num:
+            raise ValueError('The number of core is {}, but you want {}!'.format(cpu_core_num, num_core_input))
         parser.add_argument('--alg_queue_max_size', type=int, default=1)
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
         parser.add_argument('--buffer_warm_size', type=int, default=1000)

@@ -107,7 +107,7 @@ class DDPG:
             d = d.cuda()
         # ------------------------------------
         tb_info = dict()
-        start_time = time.time()
+        start_time = time.perf_counter()
         self.networks.q_optimizer.zero_grad()
         loss_q, q = self.__compute_loss_q( o, a, r, o2, d)
         loss_q.backward()
@@ -132,7 +132,7 @@ class DDPG:
         policy_grad = [p._grad for p in self.networks.policy.parameters()]
 
         # ------------------------------------
-        end_time = time.time()
+        end_time = time.perf_counter()
         tb_info[tb_tags["loss_critic"]] = loss_q.item()
         tb_info[tb_tags["critic_avg_value"]] = q.item()
         tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
@@ -153,9 +153,8 @@ class DDPG:
     def __compute_loss_q(self,  o, a, r, o2, d):
         q = self.networks.q(o, a)
 
-        with torch.no_grad():
-            q_policy_targ = self.networks.q_target(o2, self.networks.policy(o2))
-            backup = r + self.gamma * (1 - d) * q_policy_targ
+        q_policy_targ = self.networks.q_target(o2, self.networks.policy_target(o2))
+        backup = r + self.gamma * (1 - d) * q_policy_targ
 
         loss_q = ((q - backup) ** 2).mean()
         return loss_q, torch.mean(q)

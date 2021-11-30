@@ -8,7 +8,7 @@
 #  Update Date: 2021-10-22, Yao Mu
 
 import argparse
-import os
+import multiprocessing
 import numpy as np
 
 from modules.create_pkg.create_alg import create_alg
@@ -21,7 +21,6 @@ from modules.utils.init_args import init_args
 from modules.utils.plot import plot_all
 from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
 
-os.environ["OMP_NUM_THREADS"] = "1"
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -78,6 +77,10 @@ if __name__ == "__main__":
         parser.add_argument('--num_algs', type=int, default=2)
         parser.add_argument('--num_samplers', type=int, default=1)
         parser.add_argument('--num_buffers', type=int, default=1)
+        cpu_core_num = multiprocessing.cpu_count()
+        num_core_input = parser.parse_args().num_algs + parser.parse_args().num_samplers + parser.parse_args().num_buffers + 2
+        if num_core_input > cpu_core_num:
+            raise ValueError('The number of core is {}, but you want {}!'.format(cpu_core_num, num_core_input))
         parser.add_argument('--alg_queue_max_size', type=int, default=1)
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
         parser.add_argument('--buffer_warm_size', type=int, default=1000)
