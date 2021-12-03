@@ -42,8 +42,8 @@ class DetermPolicy(nn.Module):
         self.pi = mlp(pi_sizes,
                       get_activation_func(kwargs['hidden_activation']),
                       get_activation_func(kwargs['output_activation']))
-        self.register_buffer('act_high_lim', torch.from_numpy(kwargs['action_high_limit']))
-        self.register_buffer('act_low_lim', torch.from_numpy(kwargs['action_low_limit']))
+        self.register_buffer('act_high_lim', torch.from_numpy(kwargs['act_high_lim']))
+        self.register_buffer('act_low_lim', torch.from_numpy(kwargs['act_low_lim']))
 
     def forward(self, obs):
         action = (self.act_high_lim-self.act_low_lim)/2 * torch.tanh(self.pi(obs))\
@@ -68,8 +68,8 @@ class StochaPolicy(nn.Module):
                            get_activation_func(kwargs['output_activation']))
         self.min_log_std = kwargs['min_log_std']
         self.max_log_std = kwargs['max_log_std']
-        self.register_buffer('act_high_lim', torch.from_numpy(kwargs['action_high_limit']))
-        self.register_buffer('act_low_lim', torch.from_numpy(kwargs['action_low_limit']))
+        self.register_buffer('act_high_lim', torch.from_numpy(kwargs['act_high_lim']))
+        self.register_buffer('act_low_lim', torch.from_numpy(kwargs['act_low_lim']))
 
     def forward(self, obs):
         action_mean = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(self.mean(obs)) \

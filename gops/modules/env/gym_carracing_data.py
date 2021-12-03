@@ -11,7 +11,7 @@ import gym
 import numpy as np
 
 
-class Env():
+class Env():  # todo:从git上找的环境设置，需要自己改一下
     """
     Environment wrapper for CarRacing
     """
@@ -23,7 +23,7 @@ class Env():
         self.img_stack = 4
         self.action_repeat = 4
         self.action_space = self.env.action_space
-        self.action_space.low = np.array([0., 0., 0.])
+        self.action_space.low = np.array([0., 0., 0.]).astype(np.float32)
         self.observation_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(4, 96, 96))
 
     def reset(self):
@@ -90,7 +90,7 @@ def env_creator(**kwargs):
     try:
         return Env()
     except:
-        raise ModuleNotFoundError('Warning: Atari_py is not installed')
+        raise ModuleNotFoundError('Warning: gym[box2d] is not installed')
 
 
 if __name__ == '__main__':

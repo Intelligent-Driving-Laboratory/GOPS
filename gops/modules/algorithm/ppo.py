@@ -35,6 +35,11 @@ class ApproxContainer(nn.Module):
 
         value_func_type = kwargs['value_func_type']
         policy_func_type = kwargs['policy_func_type']
+
+        if kwargs['cnn_shared']:  # todo:设置默认false
+            feature_args = get_apprfunc_dict('feature', value_func_type, **kwargs)
+            kwargs['feature_net'] = create_apprfunc(**feature_args)
+
         value_args = get_apprfunc_dict('value', value_func_type, **kwargs)
         self.value = create_apprfunc(**value_args)
         policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
