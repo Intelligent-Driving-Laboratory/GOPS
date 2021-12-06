@@ -2,13 +2,13 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yuxuan JIANG
+#  Creator: Yao Mu
+#  Description: Mixed Actor Critic (MAC) in stochastic system
 #
-#  Description: gym environment, discrete action, cart pole, dqn
-#  Update Date: 2021-01-03, Yuxuan JIANG & Guojian ZHAN : implement DQN
-#  Update Date: 2021-07-11, Yuxuan JIANG : adapt to new trainer interface
+#  Update Date: 2021-10-22, Yao Mu
 
 import argparse
+import numpy as np
 
 from modules.create_pkg.create_alg import create_alg
 from modules.create_pkg.create_buffer import create_buffer
@@ -20,83 +20,67 @@ from modules.utils.init_args import init_args
 from modules.utils.plot import plot_all
 from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
 
-
 if __name__ == "__main__":
     # Parameters Setup
     parser = argparse.ArgumentParser()
 
     ################################################
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='gym_cartpole')
-    parser.add_argument('--algorithm', type=str, default='DQN')
-    parser.add_argument('--enable_cuda', default=True, help='Enable CUDA')
+    parser.add_argument('--env_id', type=str, default='gym_cartpoleconti')
+    parser.add_argument('--algorithm', type=str, default='MAC')
+    parser.add_argument('--enable_cuda', default=False, help='Enable CUDA')
 
-    ################################################
     # 1. Parameters for environment
-    parser.add_argument('--obsv_dim', type=int, default=None) # dim(State)
-    parser.add_argument('--action_dim', type=int, default=1) # dim(Action)
-    parser.add_argument('--action_num', type=int, default=None, help='Num of discrete actions (similar to gym.spaces.Discrete)')
-    parser.add_argument('--action_type', type=str, default='discret') # Options: continu/discret
-    parser.add_argument('--is_render', type=bool, default=False) # Draw environment animation
-
+    parser.add_argument('--obsv_dim', type=int, default=None)
+    parser.add_argument('--action_dim', type=int, default=None)
+    parser.add_argument('--action_high_limit', type=list, default=None)
+    parser.add_argument('--action_low_limit', type=list, default=None)
+    parser.add_argument('--action_type', type=str, default='continu')
+    parser.add_argument('--is_render', type=bool, default=False)
+    parser.add_argument('--is_adversary', type=bool, default=False, help='Adversary training')
+    parser.add_argument('--is_constrained', type=bool, default=False, help='Adversary training')
     ################################################
     # 2.1 Parameters of value approximate function
-    # Options: StateValue/ActionValue/ActionValueDis
-    parser.add_argument('--value_func_name', type=str, default='ActionValueDis')
-    # Options: MLP/CNN/RNN/POLY/GAUSS
+    parser.add_argument('--value_func_name', type=str, default='StateValue')
     parser.add_argument('--value_func_type', type=str, default='MLP')
     value_func_type = parser.parse_args().value_func_type
-    ### 2.1.1 MLP, CNN, RNN
     if value_func_type == 'MLP':
-        parser.add_argument('--value_hidden_sizes', type=list, default=[32, 32])
-        # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
+        parser.add_argument('--value_hidden_sizes', type=list, default=[64, 64])
         parser.add_argument('--value_hidden_activation', type=str, default='relu')
-        # Output Layer: linear
         parser.add_argument('--value_output_activation', type=str, default='linear')
-    ### 2.1.2 Polynominal
-    if value_func_type == 'POLY':
-        pass
-    ### 2.1.3 Gauss Radical Func
-    if value_func_type == 'GAUSS':
-        parser.add_argument('--value_num_kernel', type=int, default=30)
-    
-    parser.add_argument('--policy_func_name', type=str, default='DetermPolicyDis')  # Implicit policy
+    # 2.2 Parameters of policy approximate function
+    parser.add_argument('--policy_func_name', type=str, default='DetermPolicy')
+    parser.add_argument('--policy_func_type', type=str, default='MLP')
+    policy_func_type = parser.parse_args().policy_func_type
+    if policy_func_type == 'MLP':
+        parser.add_argument('--policy_hidden_sizes', type=list, default=[64, 64])
+        parser.add_argument('--policy_hidden_activation', type=str, default='relu', help='')
+        parser.add_argument('--policy_output_activation', type=str, default='linear', help='')
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--tau', type=float, default=0.01)
-    parser.add_argument('--learning_rate', type=float, default=1e-4)
+    parser.add_argument('--value_learning_rate', type=float, default=1e-3)
+    parser.add_argument('--policy_learning_rate', type=float, default=1e-3)
 
-    ################################################
     # 4. Parameters for trainer
-    # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
     parser.add_argument('--trainer', type=str, default='off_serial_trainer')
-    # Maximum iteration number
-    parser.add_argument('--max_iteration', type=int, default=5000*10)
-    parser.add_argument('--num_epoch', type=int, default=1)
-    trainer_type = parser.parse_args().trainer
+    parser.add_argument('--max_iteration', type=int, default=5000,
+                        help='Maximum iteration number')
     parser.add_argument('--ini_network_dir', type=str, default=None)
-    # 4.3. Parameters for off_serial_trainer
+    trainer_type = parser.parse_args().trainer
     if trainer_type == 'off_serial_trainer':
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
-        # Size of collected samples before training
-        parser.add_argument('--buffer_warm_size', type=int, default=1024)
-        # Max size of reply buffer
+        parser.add_argument('--buffer_warm_size', type=int, default=1000)
         parser.add_argument('--buffer_max_size', type=int, default=100000)
-        # Batch size of replay samples from buffer
-        parser.add_argument('--replay_batch_size', type=int, default=1024)
-        # Period of sync central policy of each sampler
+        parser.add_argument('--replay_batch_size', type=int, default=256)
         parser.add_argument('--sampler_sync_interval', type=int, default=1)
-    
     ################################################
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='off_sampler')
-    # Batch size of sampler for buffer store
-    parser.add_argument('--sample_batch_size', type=int, default=16)
-    # Add noise to actions for better exploration
+    parser.add_argument('--sample_batch_size', type=int, default=256)
     parser.add_argument('--noise_params', type=dict,
-                        default={'epsilon': 0.1})
+                        default={'mean': np.array([0], dtype=np.float32),
+                                 'std': np.array([0.1], dtype=np.float32)})
 
     ################################################
     # 7. Parameters for evaluator
@@ -107,19 +91,17 @@ if __name__ == "__main__":
     ################################################
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
-    # Save value/policy every N updates
-    parser.add_argument('--apprfunc_save_interval', type=int, default=500)
-    # Save key info every N updates
+    parser.add_argument('--apprfunc_save_interval', type=int, default=5000)
     parser.add_argument('--log_save_interval', type=int, default=100)
 
     # Get parameter dictionary
     args = vars(parser.parse_args())
     env = create_env(**args)
     args = init_args(env, **args)
-
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
-    alg = create_alg(**args)
+    alg = create_alg(**args)  # create appr_model in algo **vars(args)
+    alg.set_parameters({'reward_scale': 0.1, 'gamma': 0.99, 'tau': 0.2})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
@@ -133,6 +115,6 @@ if __name__ == "__main__":
     trainer.train()
     print('Training is finished!')
 
-    # Plot and save training figures
+    # plot and save training curve
     plot_all(args['save_folder'])
     save_tb_to_csv(args['save_folder'])

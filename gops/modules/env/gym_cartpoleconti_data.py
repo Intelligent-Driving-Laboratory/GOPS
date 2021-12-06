@@ -12,7 +12,9 @@ from gym import spaces
 from gym.utils import seeding
 import numpy as np
 from gym.wrappers.time_limit import TimeLimit
+
 gym.logger.setLevel(gym.logger.ERROR)
+
 
 class _GymCartpoleconti(gym.Env):
     metadata = {
@@ -28,7 +30,7 @@ class _GymCartpoleconti(gym.Env):
         self.total_mass = (self.masspole + self.masscart)
         self.length = 0.5  # actually half the pole's length
         self.polemass_length = (self.masspole * self.length)
-        self.force_mag = 30.0
+        self.force_mag = 10.0
         self.tau = 0.02  # seconds between state updates
         self.min_action = -1.0
         self.max_action = 1.0
@@ -80,7 +82,7 @@ class _GymCartpoleconti(gym.Env):
         sintheta = math.sin(theta)
         temp = (force + self.polemass_length * theta_dot * theta_dot * sintheta) / self.total_mass
         thetaacc = (self.gravity * sintheta - costheta * temp) / \
-            (self.length * (4.0/3.0 - self.masspole * costheta * costheta / self.total_mass))
+                   (self.length * (4.0 / 3.0 - self.masspole * costheta * costheta / self.total_mass))
 
         xacc = temp - self.polemass_length * thetaacc * costheta / self.total_mass
         x = x + self.tau * x_dot
@@ -89,7 +91,7 @@ class _GymCartpoleconti(gym.Env):
         theta_dot = theta_dot + self.tau * thetaacc + advu
         return (x, x_dot, theta, theta_dot)
 
-    def step(self, action, adv_action=None):
+    def step(self, action: np.ndarray, adv_action=None):
         action = np.expand_dims(action, 0)
         if adv_action is None:
             adv_action = 0
@@ -98,12 +100,12 @@ class _GymCartpoleconti(gym.Env):
         self.state = self.stepPhysics(force, float(adv_action))
         x, x_dot, theta, theta_dot = self.state
         done = x < -self.x_threshold \
-            or x > self.x_threshold \
-            or theta < -self.theta_threshold_radians \
-            or theta > self.theta_threshold_radians
+               or x > self.x_threshold \
+               or theta < -self.theta_threshold_radians \
+               or theta > self.theta_threshold_radians
         done = bool(done)
 
-        #-----------------
+        # -----------------
         self.steps += 1
         # if self.steps >=self.max_episode_steps:
         #     done = True
@@ -125,11 +127,10 @@ Any further steps are undefined behavior.
             self.steps_beyond_done += 1
             reward = 0.0
 
-
         return np.array(self.state), reward, done, {}
 
     def reset(self):
-        self.state = self.np_random.uniform(low=[-2,-0.05,-0.2,-0.05], high=[2,0.05,0.2,0.05], size=(4,))
+        self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
         self.steps = 0
         return np.array(self.state)
@@ -139,7 +140,7 @@ Any further steps are undefined behavior.
         screen_height = 400
 
         world_width = self.x_threshold * 2
-        scale = screen_width /world_width
+        scale = screen_width / world_width
         carty = 100  # TOP OF CART
         polewidth = 10.0
         polelen = scale * 1.0
@@ -155,7 +156,7 @@ Any further steps are undefined behavior.
             self.carttrans = rendering.Transform()
             cart.add_attr(self.carttrans)
             self.viewer.add_geom(cart)
-            l, r, t, b = -polewidth / 2, polewidth / 2, polelen-polewidth / 2, -polewidth / 2
+            l, r, t, b = -polewidth / 2, polewidth / 2, polelen - polewidth / 2, -polewidth / 2
             pole = rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
             pole.set_color(.8, .6, .4)
             self.poletrans = rendering.Transform(translation=(0, axleoffset))

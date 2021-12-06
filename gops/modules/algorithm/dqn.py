@@ -82,7 +82,7 @@ class DQN():
         self.networks = ApproxContainer(learning_rate, tau, **kwargs)
 
     def compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
-        start_time = time.time()
+        start_time = time.perf_counter()
         obs, act, rew, obs2, done = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
         if self.enable_cuda:
             self.networks.cuda()
@@ -95,7 +95,7 @@ class DQN():
         if self.enable_cuda:
             self.networks.cpu()
 
-        end_time = time.time()
+        end_time = time.perf_counter()
 
         q_grad = [p._grad for p in self.networks.q.parameters()]
         tb_info = {
