@@ -23,7 +23,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 class RoadMap():
     def __init__(self):
-        self.path = os.path.join(os.path.dirname(__file__),"resources/G1511.csv")
+        self.path = os.path.join(os.path.dirname(__file__),"resources/Roadmap.csv")
         self.map_road = pd.DataFrame(pd.read_csv(self.path, header=None))
         self.x = np.array(self.map_road.iloc[0:, 0].dropna(), dtype='float32')  # x
         self.y = np.array(self.map_road.iloc[0:, 1], dtype='float32')  # theta
@@ -442,15 +442,3 @@ def clip_by_tensor(t, t_min, t_max):
 
 if __name__ == "__main__":
     print(111111111)
-    # parser = argparse.ArgumentParser()
-    # ################################################
-    # # 1. Parameters for environment
-    # parser.add_argument('--dynamic_state_dim', type=int, default=3)
-    # parser.add_argument('--pre_horizon', type=int, default=10)
-    # parser.add_argument('--sample_batch_size', type=int, default=256)
-    # args = vars(parser.parse_args())
-    # env = PythPccTrucklcfModel(**args)
-    # env.initialize_state()
-    # for i in range(10000):
-    #     next_state, reward, done = env.forward(state=torch.zeros(256,11), action=torch.linspace(-63.6, 603.9, 256), beyond_done=torch.tensor(1))
-    #     print(next_state)

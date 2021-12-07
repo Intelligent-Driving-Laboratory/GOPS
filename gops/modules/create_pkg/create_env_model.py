@@ -35,10 +35,10 @@ def create_env_model(**kwargs):
 
     if hasattr(file, "env_moedel_creator"):
         y = getattr(file, "env_moedel_creator")
-        env_model = y()
+        env_model = y(**kwargs)
     elif hasattr(file, env_name_camel):
         y = getattr(file, env_name_camel)
-        env_model = y()
+        env_model = y(**kwargs)
     else:
         raise NotImplementedError("This environment model is not properly defined")
     print("Create environment model successfully!")

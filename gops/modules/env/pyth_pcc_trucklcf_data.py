@@ -23,7 +23,7 @@ from gym.wrappers.time_limit import TimeLimit
 
 class RoadMap():
     def __init__(self):
-        self.path = os.path.join(os.path.dirname(__file__),"resources/G1511.csv")
+        self.path = os.path.join(os.path.dirname(__file__),"resources/Roadmap.csv")
         self.map_road = pd.DataFrame(pd.read_csv(self.path, header=None))
         self.x = np.array(self.map_road.iloc[0:, 0].dropna(), dtype='float32')  # x
         self.y = np.array(self.map_road.iloc[0:, 1], dtype='float32')  # theta
@@ -81,14 +81,10 @@ class PythPCCTruck(gym.Env):
         action_high = np.array([self.max_action])
         self.observation_space = spaces.Box(state_low, state_high)
         self.action_space = spaces.Box(action_low, action_high)
-
         self.seed()
         self.viewer = None
-
         self.steps_beyond_done = None
-
         self.steps = 0
-
         # read fuel map table and torque map table
         self.path_Fuel_trucksim = os.path.join(os.path.dirname(__file__), "resources/Fuel_we_thr_150kw.csv")
         self.Fuel_trucksim = pd.DataFrame(pd.read_csv(self.path_Fuel_trucksim, header=None))

@@ -19,6 +19,9 @@ def get_activation_func(key: str):
     if key == 'relu':
         activation_func = nn.ReLU
 
+    elif key == 'elu':
+        activation_func = nn.ELU
+
     elif key == 'tanh':
         activation_func = nn.Tanh
 
