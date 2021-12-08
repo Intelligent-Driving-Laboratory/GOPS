@@ -76,7 +76,6 @@ class PPO():
         self.data_gae = dict()
         self.trainer_type = kwargs['trainer']
         self.max_iteration = kwargs['max_iteration']
-        self.print_interval = kwargs['print_interval']
         self.gradient_step = 0
         self.num_epoch = kwargs['num_epoch']
         self.num_repeat = kwargs['num_repeat']
@@ -153,7 +152,7 @@ class PPO():
 
     def compute_gradient(self, data:dict, iteration):
         tb_info = dict()
-        start_time = time.time()
+        start_time = time.perf_counter()
         self.approximate_optimizer.zero_grad()
 
         self.gradient_step = iteration % self.num_epoch
@@ -174,7 +173,7 @@ class PPO():
         value_grad = [p._grad.cpu().numpy() for p in self.networks.value.parameters()]
         policy_grad = [p._grad.cpu().numpy() for p in self.networks.policy.parameters()]
 
-        end_time = time.time()
+        end_time = time.perf_counter()
         # tb_info[tb_tags["loss_total"]] = loss_total.item()
         tb_info[tb_tags["loss_actor"]] = loss_surrogate.item()
         tb_info[tb_tags["loss_critic"]] = loss_value.item()
@@ -183,11 +182,11 @@ class PPO():
         # tb_info[tb_tags["clip_fraction"]] = clip_fra.item()
         tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
 
-        if (iteration + 1) % self.print_interval == 0:
-            print(f'iteration: {iteration + 1}  '
-                  f'total_loss = {loss_total:.4f} = '
-                  f'{loss_surrogate:.4f} + {self.loss_coefficient_value} * {loss_value:.4f} - '
-                  f'{self.loss_coefficient_entropy} * {loss_entropy:.4f}')
+        # if (iteration + 1) % self.print_interval == 0:
+        #     print(f'iteration: {iteration + 1}  '
+        #           f'total_loss = {loss_total:.4f} = '
+        #           f'{loss_surrogate:.4f} + {self.loss_coefficient_value} * {loss_value:.4f} - '
+        #           f'{self.loss_coefficient_entropy} * {loss_entropy:.4f}')
             # print('------------------------------------')
             # print('| {:<16}'.format('iteration') + ' | ' + '{:<14} |'.format(iteration + 1))
             # print('| {:<16}'.format('loss_total') + ' | ' + '{:.12f} |'.format(loss_total.item()))

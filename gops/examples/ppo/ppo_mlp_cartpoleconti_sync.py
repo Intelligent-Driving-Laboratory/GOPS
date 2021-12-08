@@ -1,13 +1,16 @@
-#  Copyright (c). All Rights Reserved.
-#  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
 #
-#  Creator: Yang Yujie
+#  Creator: Jie Li
+#  Description: PPO algorithm, MLP, continuous version of cart pole, on serial trainer
+#  Update Date: 2021-06-11
+
+
+#  General Optimal control Problem Solver (GOPS)
+
 
 import argparse
-import os
-
 import numpy as np
+import multiprocessing
 
 from modules.create_pkg.create_alg import create_alg
 from modules.create_pkg.create_buffer import create_buffer
@@ -19,7 +22,6 @@ from modules.utils.init_args import init_args
 from modules.utils.plot import plot_all
 from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
 
-os.environ["OMP_NUM_THREADS"] = "1"
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -27,20 +29,20 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='gym_cartpoleconti')
-    parser.add_argument('--algorithm', type=str, default='SAC')
-    parser.add_argument('--enable_cuda', default=True, help='Disable CUDA')
+    parser.add_argument('--env_id', type=str, default='gym_cartpoleconti', help='')
+    parser.add_argument('--algorithm', type=str, default='PPO', help='')
+    parser.add_argument('--enable_cuda', default=False, help='Enable CUDA')
 
     ################################################
     # 1. Parameters for environment
-    parser.add_argument('--obsv_dim', type=int, default=None)  # dim(State)
-    parser.add_argument('--action_dim', type=int, default=None)  # dim(Action)
+    parser.add_argument('--obsv_dim', type=int, default=None)
+    parser.add_argument('--action_dim', type=int, default=None)
     parser.add_argument('--action_high_limit', type=list, default=None)
     parser.add_argument('--action_low_limit', type=list, default=None)
-    parser.add_argument('--action_type', type=str, default='continu')  # Options: continu/discret
-    parser.add_argument('--is_render', type=bool, default=False)  # Draw environment animation
+    parser.add_argument('--action_type', type=str, default='continu')
+    parser.add_argument('--is_render', type=bool, default=False)
     parser.add_argument('--is_adversary', type=bool, default=False, help='Adversary training')
-
+    parser.add_argument('--is_constrained', type=bool, default=False, help='Adversary training')
     ################################################
     # 2.1 Parameters of value approximate function
     # Options: StateValue/ActionValue/ActionValueDis
@@ -48,25 +50,10 @@ if __name__ == "__main__":
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--value_func_type', type=str, default='MLP')
     value_func_type = parser.parse_args().value_func_type
-    ### 2.1.1 MLP, CNN, RNN
     if value_func_type == 'MLP':
         parser.add_argument('--value_hidden_sizes', type=list, default=[64, 64])
-        # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
-        parser.add_argument('--value_hidden_activation', type=str, default='relu')
-        # Output Layer: linear
-        parser.add_argument('--value_output_activation', type=str, default='linear')
-
-    parser.add_argument('--q_func_name', type=str, default='ActionValue')
-    # Options: MLP/CNN/RNN/POLY/GAUSS
-    parser.add_argument('--q_func_type', type=str, default='MLP')
-    value_func_type = parser.parse_args().value_func_type
-    ### 2.1.1 MLP, CNN, RNN
-    if value_func_type == 'MLP':
-        parser.add_argument('--q_hidden_sizes', type=list, default=[64, 64])
-        # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
-        parser.add_argument('--q_hidden_activation', type=str, default='relu')
-        # Output Layer: linear
-        parser.add_argument('--q_output_activation', type=str, default='linear')
+    parser.add_argument('--value_hidden_activation', type=str, default='relu')
+    parser.add_argument('--value_output_activation', type=str, default='linear')
 
     # 2.2 Parameters of policy approximate function
     # Options: None/DetermPolicy/StochaPolicy
@@ -74,43 +61,59 @@ if __name__ == "__main__":
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--policy_func_type', type=str, default='MLP')
     policy_func_type = parser.parse_args().policy_func_type
-    ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == 'MLP':
         parser.add_argument('--policy_hidden_sizes', type=list, default=[64, 64])
-        # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
-        parser.add_argument('--policy_hidden_activation', type=str, default='relu')
-        # Output Layer: tanh
-        parser.add_argument('--policy_output_activation', type=str, default='linear')
-    parser.add_argument('--policy_min_log_std', type=int, default=-20)
-    parser.add_argument('--policy_max_log_std', type=int, default=2)
-
+        parser.add_argument('--policy_hidden_activation', type=str, default='relu', help='')
+        parser.add_argument('--policy_output_activation', type=str, default='linear', help='')
+        parser.add_argument('--policy_min_log_std', type=int, default=-8)  # -6
+        parser.add_argument('--policy_max_log_std', type=int, default=2)  # 3
     ################################################
-    # 3. Parameters for RL algorithm
-    parser.add_argument('--value_learning_rate', type=float, default=1e-3)
-    parser.add_argument('--q_learning_rate', type=float, default=1e-3)
-    parser.add_argument('--policy_learning_rate', type=float, default=1e-3)
-    parser.add_argument('--alpha_learning_rate', type=float, default=1e-3)
+    # 3. Parameters for algorithm
+    parser.add_argument('--learning_rate', type=float, default=1e-3, help='3e-4 in the paper')
 
     ################################################
     # 4. Parameters for trainer
-    # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
-    parser.add_argument('--trainer', type=str, default='on_serial_trainer')
+    parser.add_argument('--trainer', type=str, default='on_sync_trainer')
     # Maximum iteration number
     parser.add_argument('--max_iteration', type=int, default=5000)
     trainer_type = parser.parse_args().trainer
     parser.add_argument('--ini_network_dir', type=str, default=None)
-    # 4.3. Parameters for off_serial_trainer
-    if trainer_type == 'on_serial_trainer':
-        parser.add_argument('--num_epoch', type=int, default=1)
+    # 4.3. Parameters for sync trainer
+    if trainer_type == 'on_sync_trainer':
+        parser.add_argument('--num_repeat', type=int, default=10, help='5')  # 5 repeat
+        parser.add_argument('--num_mini_batch', type=int, default=4, help='8')  # 8 mini_batch
+        parser.add_argument('--mini_batch_size', type=int, default=64, help='128')  # 8 mini_batch * 128 = 1024
+        parser.add_argument('--num_epoch', type=int,
+                            default=parser.parse_args().num_repeat * parser.parse_args().num_mini_batch,
+                            help='# 50 gradient step per sample')
+        import ray
+        ray.init()
+        parser.add_argument('--num_samplers', type=int, default=2, help='number of samplers')
+        cpu_core_num = multiprocessing.cpu_count()
+        num_core_input = parser.parse_args().num_samplers + 3
+        if num_core_input > cpu_core_num:
+            raise ValueError('The number of core is {}, but you want {}!'.format(cpu_core_num, num_core_input))
+
+
+
     ################################################
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='on_sampler')
     # Batch size of sampler for buffer store
-    parser.add_argument('--sample_batch_size', type=int, default=256)
+    parser.add_argument('--sample_batch_size', type=int, default=256,
+                        help='Batch size of sampler for buffer store = 1024')  # 8 env * 128 step
+    assert parser.parse_args().num_mini_batch * parser.parse_args().mini_batch_size == parser.parse_args().sample_batch_size, 'sample_batch_size error'
     # Add noise to actions for better exploration
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0], dtype=np.float32)})
+                                 'std': np.array([0], dtype=np.float32)},
+                        help='Add noise to actions for exploration')
+
+    ################################################
+    # 6. Parameters for buffer
+    parser.add_argument('--buffer_name', type=str, default='replay_buffer')
+    parser.add_argument('--buffer_warm_size', type=int, default=1000)
+    parser.add_argument('--buffer_max_size', type=int, default=100000)
 
     ################################################
     # 7. Parameters for evaluator
@@ -122,9 +125,11 @@ if __name__ == "__main__":
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument('--apprfunc_save_interval', type=int, default=100)
+    parser.add_argument('--apprfunc_save_interval', type=int, default=5000,
+                        help='Save value/policy every N updates')
     # Save key info every N updates
-    parser.add_argument('--log_save_interval', type=int, default=100)
+    parser.add_argument('--log_save_interval', type=int, default=100,
+                        help='Save gradient time/critic loss/actor loss/average value every N updates')
 
     # Get parameter dictionary
     args = vars(parser.parse_args())
@@ -134,6 +139,7 @@ if __name__ == "__main__":
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
+    alg.set_parameters({'gamma': 0.99, 'loss_coefficient_value': 0.5, 'loss_coefficient_entropy': 0.01})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
@@ -150,3 +156,4 @@ if __name__ == "__main__":
     # Plot and save training figures
     plot_all(args['save_folder'])
     save_tb_to_csv(args['save_folder'])
+

@@ -9,10 +9,8 @@
 
 
 import argparse
-import copy
-import datetime
-import json
 import os
+os.environ["OMP_NUM_THREADS"] = "4"
 import numpy as np
 
 from modules.create_pkg.create_alg import create_alg
@@ -21,12 +19,11 @@ from modules.create_pkg.create_env import create_env
 from modules.create_pkg.create_evaluator import create_evaluator
 from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
-from modules.utils.utils import change_type
 from modules.utils.init_args import init_args
 from modules.utils.plot import plot_all
 from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
 
-os.environ["OMP_NUM_THREADS"] = "1"
+
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -57,7 +54,7 @@ if __name__ == "__main__":
     parser.add_argument('--value_func_type', type=str, default='MLP')
     value_func_type = parser.parse_args().value_func_type
     # 2.1.1 MLP, CNN, RNN
-    parser.add_argument('--value_hidden_sizes', type=list, default=[64, 64, 64])
+    parser.add_argument('--value_hidden_sizes', type=list, default=[64, 64])
     # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
     parser.add_argument('--value_hidden_activation', type=str, default='relu')
     # Output Layer: linear
@@ -87,7 +84,7 @@ if __name__ == "__main__":
     # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
     parser.add_argument('--trainer', type=str, default='on_serial_trainer')
     # Maximum iteration number
-    parser.add_argument('--max_iteration', type=int, default=6400, help='8000')  # 1200 gradient step
+    parser.add_argument('--max_iteration', type=int, default=8000, help='8000')  # 1200 gradient step
     trainer_type = parser.parse_args().trainer
     parser.add_argument('--ini_network_dir', type=str, default=None)
     # 4.1. Parameters for on_serial_trainer
@@ -108,7 +105,7 @@ if __name__ == "__main__":
     # Add noise to actions for better exploration
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([1e-6], dtype=np.float32)},
+                                 'std': np.array([0], dtype=np.float32)},
                         help='Add noise to actions for exploration')
 
     ################################################
@@ -121,17 +118,16 @@ if __name__ == "__main__":
     # 7. Parameters for evaluator
     parser.add_argument('--evaluator_name', type=str, default='evaluator')
     parser.add_argument('--num_eval_episode', type=int, default=5)
-    parser.add_argument('--eval_interval', type=int, default=4*parser.parse_args().num_epoch)
-    parser.add_argument('--print_interval', type=int, default=4*parser.parse_args().num_epoch)
+    parser.add_argument('--eval_interval', type=int, default=100)
 
     ################################################
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument('--apprfunc_save_interval', type=int, default=4*parser.parse_args().num_epoch,
+    parser.add_argument('--apprfunc_save_interval', type=int, default=8000,
                         help='Save value/policy every N updates')
     # Save key info every N updates
-    parser.add_argument('--log_save_interval', type=int, default=4*parser.parse_args().num_epoch,
+    parser.add_argument('--log_save_interval', type=int, default=100,
                         help='Save gradient time/critic loss/actor loss/average value every N updates')
 
     # Get parameter dictionary

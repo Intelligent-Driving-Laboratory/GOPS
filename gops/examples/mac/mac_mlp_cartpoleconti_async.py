@@ -94,7 +94,7 @@ if __name__ == "__main__":
     parser.add_argument('--sample_batch_size', type=int, default=256)
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0.1], dtype=np.float32)})
+                                 'std': np.array([0.2], dtype=np.float32)})
 
     ################################################
     # 7. Parameters for evaluator

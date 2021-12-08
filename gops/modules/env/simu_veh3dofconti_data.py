@@ -3,7 +3,7 @@ import gym
 from modules.env.resources import vehicle3dof
 import numpy as np
 
-class SimuVehicle3dofconti(gym.Env):
+class SimuVeh3dofconti(gym.Env):
 
     def __init__(self, **kwargs):
         self._physics = vehicle3dof.model_wrapper()

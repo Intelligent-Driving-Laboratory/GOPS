@@ -9,10 +9,8 @@
 
 
 import argparse
-import copy
-import datetime
-import json
 import os
+os.environ["OMP_NUM_THREADS"] = "4"
 import numpy as np
 
 from modules.create_pkg.create_alg import create_alg
@@ -21,12 +19,11 @@ from modules.create_pkg.create_env import create_env
 from modules.create_pkg.create_evaluator import create_evaluator
 from modules.create_pkg.create_sampler import create_sampler
 from modules.create_pkg.create_trainer import create_trainer
-from modules.utils.utils import change_type
 from modules.utils.init_args import init_args
 from modules.utils.plot import plot_all
 from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
 
-os.environ["OMP_NUM_THREADS"] = "1"
+
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -53,8 +50,8 @@ if __name__ == "__main__":
     # 2.1 Parameters of value approximate function
     # Options: StateValue/ActionValue/ActionValueDis
     parser.add_argument('--value_func_name', type=str, default='StateValue')
-    # Options: MLP/CNN/RNN/POLY/GAUSS
-    parser.add_argument('--value_func_type', type=str, default='CNN')
+    # Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS
+    parser.add_argument('--value_func_type', type=str, default='CNN_SHARED')
     value_func_type = parser.parse_args().value_func_type
     # 2.1.1 MLP, CNN, RNN
     parser.add_argument('--value_hidden_activation', type=str, default='relu')
@@ -65,7 +62,7 @@ if __name__ == "__main__":
     # Options: None/DetermPolicy/StochaPolicy
     parser.add_argument('--policy_func_name', type=str, default='StochaPolicy')
     # Options: MLP/CNN/RNN/POLY/GAUSS
-    parser.add_argument('--policy_func_type', type=str, default='CNN')
+    parser.add_argument('--policy_func_type', type=str, default='CNN_SHARED')
     policy_func_type = parser.parse_args().policy_func_type
     # 2.2.1 MLP, CNN, RNN
     parser.add_argument('--policy_hidden_activation', type=str, default='relu', help='')

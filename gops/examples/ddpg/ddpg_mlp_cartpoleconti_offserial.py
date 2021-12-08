@@ -9,8 +9,9 @@
 #  Update Date: 2021-05-21, Shengbo Li: Reformualte code formats
 
 import argparse
+import os
+os.environ["OMP_NUM_THREADS"] = "4"
 import numpy as np
-
 from modules.create_pkg.create_alg import create_alg
 from modules.create_pkg.create_buffer import create_buffer
 from modules.create_pkg.create_env import create_env

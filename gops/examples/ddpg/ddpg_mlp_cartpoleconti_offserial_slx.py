@@ -13,6 +13,7 @@
 
 import argparse
 import os
+os.environ["OMP_NUM_THREADS"] = "4"
 import numpy as np
 
 from modules.create_pkg.create_alg import create_alg

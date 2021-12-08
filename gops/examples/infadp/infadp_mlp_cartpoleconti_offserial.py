@@ -8,6 +8,8 @@
 #  Update Date: 2020-11-10, Wenxuan Wang
 
 import argparse
+import os
+os.environ["OMP_NUM_THREADS"] = "4"
 import numpy as np
 
 from modules.create_pkg.create_alg import create_alg
@@ -81,7 +83,7 @@ if __name__ == "__main__":
     parser.add_argument('--sample_batch_size', type=int, default=256)
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0.1], dtype=np.float32)})
+                                 'std': np.array([0.2], dtype=np.float32)})
 
     ################################################
     # 7. Parameters for evaluator

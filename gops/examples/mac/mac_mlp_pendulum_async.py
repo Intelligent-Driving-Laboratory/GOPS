@@ -47,7 +47,7 @@ if __name__ == "__main__":
     parser.add_argument('--value_func_type', type=str, default='MLP')
     value_func_type = parser.parse_args().value_func_type
     if value_func_type == 'MLP':
-        parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256, 128])
+        parser.add_argument('--value_hidden_sizes', type=list, default=[64, 64])
         parser.add_argument('--value_hidden_activation', type=str, default='relu')
         parser.add_argument('--value_output_activation', type=str, default='linear')
     # 2.2 Parameters of policy approximate function
@@ -55,18 +55,18 @@ if __name__ == "__main__":
     parser.add_argument('--policy_func_type', type=str, default='MLP')
     policy_func_type = parser.parse_args().policy_func_type
     if policy_func_type == 'MLP':
-        parser.add_argument('--policy_hidden_sizes', type=list, default=[256, 256])
+        parser.add_argument('--policy_hidden_sizes', type=list, default=[64, 64])
         parser.add_argument('--policy_hidden_activation', type=str, default='relu', help='')
-        parser.add_argument('--policy_output_activation', type=str, default='tanh', help='')
+        parser.add_argument('--policy_output_activation', type=str, default='linear', help='')
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument('--value_learning_rate', type=float, default=1e-4)
-    parser.add_argument('--policy_learning_rate', type=float, default=1e-4)
+    parser.add_argument('--value_learning_rate', type=float, default=1e-3)
+    parser.add_argument('--policy_learning_rate', type=float, default=1e-3)
 
     # 4. Parameters for trainer
     parser.add_argument('--trainer', type=str, default='off_async_trainer')
-    parser.add_argument('--max_iteration', type=int, default=3000,
+    parser.add_argument('--max_iteration', type=int, default=5000,
                         help='Maximum iteration number')
     parser.add_argument('--ini_network_dir', type=str, default=None)
     trainer_type = parser.parse_args().trainer
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
     for alg_id in alg:
-        alg_id.set_parameters.remote({'reward_scale': -0.01, 'gamma': 1.0, 'tau': 0.005})
+        alg_id.set_parameters.remote({'reward_scale': 0.1, 'gamma': 0.99, 'tau': 0.05})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
