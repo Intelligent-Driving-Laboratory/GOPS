@@ -33,8 +33,8 @@ class DetermPolicy(nn.Module):
         act_dim = kwargs['act_dim']
         self.degree = 4
         self.pi = nn.Linear(obs_dim*self.degree, act_dim)
-        action_high_limit = kwargs['action_high_limit']
-        action_low_limit = kwargs['action_low_limit']
+        action_high_limit = kwargs['act_high_lim']
+        action_low_limit = kwargs['act_low_lim']
         self.register_buffer('act_high_lim', torch.from_numpy(action_high_limit))
         self.register_buffer('act_low_lim', torch.from_numpy(action_low_limit))
 
@@ -50,8 +50,8 @@ class StochaPolicy(nn.Module):
         super().__init__()
         obs_dim = kwargs['obs_dim']
         act_dim = kwargs['act_dim']
-        action_high_limit = kwargs['action_high_limit']
-        action_low_limit = kwargs['action_low_limit']
+        action_high_limit = kwargs['act_high_lim']
+        action_low_limit = kwargs['act_low_lim']
         self.min_log_std = kwargs['min_log_std']
         self.max_log_std = kwargs['max_log_std']
         self.degree = 4
