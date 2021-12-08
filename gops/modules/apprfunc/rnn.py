@@ -33,8 +33,8 @@ class DetermPolicy(nn.Module):
         super().__init__()
         obs_dim = kwargs['obs_dim'][1]
         act_dim = kwargs['act_dim']
-        action_high_limit = kwargs['action_high_limit']
-        action_low_limit = kwargs['action_low_limit']
+        action_high_limit = kwargs['act_high_lim']
+        action_low_limit = kwargs['act_low_lim']
         hidden_sizes = kwargs['hidden_sizes']
         pi_sizes = list(hidden_sizes) + [act_dim]
         self.rnn = nn.RNN(obs_dim, hidden_sizes[0], 1, batch_first=True)
@@ -55,8 +55,8 @@ class StochaPolicy(nn.Module):
         obs_dim = kwargs['obs_dim'][1]
         act_dim = kwargs['act_dim']
         hidden_sizes = kwargs['hidden_sizes']
-        action_high_limit = kwargs['action_high_limit']
-        action_low_limit = kwargs['action_low_limit']
+        action_high_limit = kwargs['act_high_lim']
+        action_low_limit = kwargs['act_low_lim']
         self.min_log_std = kwargs['min_log_std']
         self.max_log_std = kwargs['max_log_std']
 

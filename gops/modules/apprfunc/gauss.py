@@ -38,8 +38,8 @@ class DetermPolicy(nn.Module):
         act_dim = kwargs['act_dim']
         num_kernel = kwargs['num_kernel']
         self.pi = RBF(obs_dim, act_dim, num_kernel)
-        self.register_buffer('act_high_lim', torch.from_numpy(kwargs['action_high_limit']))
-        self.register_buffer('act_low_lim', torch.from_numpy(kwargs['action_low_limit']))
+        self.register_buffer('act_high_lim', torch.from_numpy(kwargs['act_high_lim']))
+        self.register_buffer('act_low_lim', torch.from_numpy(kwargs['act_low_lim']))
 
     def forward(self, obs):
         action = (self.act_high_lim-self.act_low_lim)/2 * self.pi.forward(obs)\
@@ -58,8 +58,8 @@ class StochaPolicy(nn.Module):
         self.std = RBF(obs_dim, act_dim, num_kernel)
         self.min_log_std = kwargs['min_log_std']
         self.max_log_std = kwargs['max_log_std']
-        self.register_buffer('act_high_lim', torch.from_numpy(kwargs['action_high_limit']))
-        self.register_buffer('act_low_lim', torch.from_numpy(kwargs['action_low_limit']))
+        self.register_buffer('act_high_lim', torch.from_numpy(kwargs['act_high_lim']))
+        self.register_buffer('act_low_lim', torch.from_numpy(kwargs['act_low_lim']))
 
     def forward(self, obs):
         action_mean = (self.act_high_lim - self.act_low_lim) / 2 * self.mean(obs) \
