@@ -5,6 +5,7 @@
 
 import argparse
 import os
+os.environ["OMP_NUM_THREADS"] = "4"
 import numpy as np
 
 from modules.create_pkg.create_alg import create_alg
@@ -17,7 +18,7 @@ from modules.utils.init_args import init_args
 from modules.utils.plot import plot_all
 from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
 
-os.environ["OMP_NUM_THREADS"] = "1"
+
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -43,7 +44,7 @@ if __name__ == "__main__":
     parser.add_argument('--value_func_type', type=str, default='MLP')
     value_func_type = parser.parse_args().value_func_type
     if value_func_type == 'MLP':
-        parser.add_argument('--value_hidden_sizes', type=list, default=[256, 256, 128])
+        parser.add_argument('--value_hidden_sizes', type=list, default=[64, 64])
         parser.add_argument('--value_hidden_activation', type=str, default='relu')
         parser.add_argument('--value_output_activation', type=str, default='linear')
 
@@ -52,14 +53,14 @@ if __name__ == "__main__":
     parser.add_argument('--policy_func_type', type=str, default='MLP')
     policy_func_type = parser.parse_args().policy_func_type
     if policy_func_type == 'MLP':
-        parser.add_argument('--policy_hidden_sizes', type=list, default=[256, 256])
+        parser.add_argument('--policy_hidden_sizes', type=list, default=[64, 64])
         parser.add_argument('--policy_hidden_activation', type=str, default='relu')
-        parser.add_argument('--policy_output_activation', type=str, default='tanh')
+        parser.add_argument('--policy_output_activation', type=str, default='linear')
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument('--value_learning_rate', type=float, default=1e-4)
-    parser.add_argument('--policy_learning_rate', type=float, default=1e-5)
+    parser.add_argument('--value_learning_rate', type=float, default=1e-3)
+    parser.add_argument('--policy_learning_rate', type=float, default=1e-3)
 
     ################################################
     # 4. Parameters for trainer
@@ -71,7 +72,7 @@ if __name__ == "__main__":
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
         parser.add_argument('--buffer_warm_size', type=int, default=1000)
         parser.add_argument('--buffer_max_size', type=int, default=100000)
-        parser.add_argument('--replay_batch_size', type=int, default=1024)
+        parser.add_argument('--replay_batch_size', type=int, default=256)
         parser.add_argument('--sampler_sync_interval', type=int, default=1)
 
     ################################################
@@ -80,7 +81,7 @@ if __name__ == "__main__":
     parser.add_argument('--sample_batch_size', type=int, default=256)
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0.1], dtype=np.float32)})
+                                 'std': np.array([0.2], dtype=np.float32)})
 
     ################################################
     # 7. Parameters for evaluator

@@ -20,7 +20,6 @@ from modules.utils.init_args import init_args
 from modules.utils.plot import plot_all
 from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
 
-os.environ["OMP_NUM_THREADS"] = "1"
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -30,7 +29,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_cartpoleconti')
     parser.add_argument('--algorithm', type=str, default='SAC')
-    parser.add_argument('--enable_cuda', default=True, help='Disable CUDA')
+    parser.add_argument('--enable_cuda', default=False, help='Disable CUDA')
 
     ################################################
     # 1. Parameters for environment
@@ -105,9 +104,9 @@ if __name__ == "__main__":
         import ray
 
         ray.init()
-        parser.add_argument('--num_algs', type=int, default=2, help='number of algs')
+        parser.add_argument('--num_algs', type=int, default=1, help='number of algs')
         parser.add_argument('--num_samplers', type=int, default=2, help='number of samplers')
-        parser.add_argument('--num_buffers', type=int, default=2, help='number of buffers')
+        parser.add_argument('--num_buffers', type=int, default=1, help='number of buffers')
         cpu_core_num = multiprocessing.cpu_count()
         num_core_input = parser.parse_args().num_algs + parser.parse_args().num_samplers + parser.parse_args().num_buffers + 2
         if num_core_input > cpu_core_num:
@@ -125,7 +124,7 @@ if __name__ == "__main__":
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='off_sampler')
     # Batch size of sampler for buffer store
-    parser.add_argument('--sample_batch_size', type=int, default=1)
+    parser.add_argument('--sample_batch_size', type=int, default=256)
     # Add noise to actions for better exploration
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),

@@ -27,7 +27,7 @@ class SimuAircraftconti(gym.Env):
         state, isdone, reward = self._step_physics({'Action': action.astype(np.float64), 'AdverAction': adv_action.astype(np.float64)})
         self.cstep += 1
         info = {'TimeLimit.truncated':self.cstep>200}
-        print(state, self.cstep)
+        # print(state, self.cstep)
         return state, reward, isdone, info
 
     def reset(self):

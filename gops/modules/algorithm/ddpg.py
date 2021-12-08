@@ -93,8 +93,8 @@ class DDPG:
         return params
 
     def compute_gradient(self, data:dict, iteration):
-        o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
-        # ------------------------------------
+        o, a, r, o2, d = data['obs'], data['act'], data['rew']*self.reward_scale, data['obs2'], data['done']
+        # ------------------------------------*
         if self.use_gpu:
             self.networks.policy = self.networks.policy.cuda()
             self.networks.q = self.networks.q.cuda()

@@ -71,7 +71,7 @@ class OnSerialTrainer():
 
             # apply grad
             self.networks.update(grads)
-
+            self.iteration += 1
 
         # log
             if self.iteration % self.log_save_interval == 0:
@@ -96,7 +96,7 @@ class OnSerialTrainer():
             if self.iteration % self.apprfunc_save_interval == 0:
                 torch.save(self.networks.state_dict(),
                            self.save_folder + '/apprfunc/apprfunc_{}.pkl'.format(self.iteration))
-            self.iteration += 1
+
 
     def train(self):
         while self.iteration < self.max_iteration:

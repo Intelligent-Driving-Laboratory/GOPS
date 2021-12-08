@@ -7,6 +7,7 @@
 
 import argparse
 import os
+os.environ["OMP_NUM_THREADS"] = "4"
 import numpy as np
 
 from modules.create_pkg.create_alg import create_alg
@@ -19,7 +20,7 @@ from modules.utils.init_args import init_args
 from modules.utils.plot import plot_all
 from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
 
-os.environ["OMP_NUM_THREADS"] = "1"
+
 
 if __name__ == "__main__":
     # Parameters Setup

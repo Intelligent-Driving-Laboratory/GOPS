@@ -9,6 +9,8 @@
 
 
 import argparse
+import os
+os.environ["OMP_NUM_THREADS"] = "4"
 import numpy as np
 
 from modules.create_pkg.create_alg import create_alg
@@ -96,7 +98,7 @@ if __name__ == "__main__":
     # Add noise to actions for better exploration
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0.2], dtype=np.float32)},
+                                 'std': np.array([0], dtype=np.float32)},
                         help='Add noise to actions for exploration')
 
     ################################################
@@ -110,7 +112,6 @@ if __name__ == "__main__":
     parser.add_argument('--evaluator_name', type=str, default='evaluator')
     parser.add_argument('--num_eval_episode', type=int, default=5)
     parser.add_argument('--eval_interval', type=int, default=100)
-    parser.add_argument('--print_interval', type=int, default=3*parser.parse_args().num_epoch)
 
     ################################################
     # 8. Data savings

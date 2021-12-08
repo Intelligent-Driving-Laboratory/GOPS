@@ -81,6 +81,7 @@ class GymPendulumModel(torch.nn.Module):
         newsinth = torch.sin(newth)
         state_next = torch.stack([newcosth, newsinth, newthdot], dim=-1)
         reward = angle_normalize(th) ** 2 + .1 * thdot ** 2 + .001 * (action ** 2).squeeze(-1)
+        reward = -reward
         ############################################################################################
 
         # define the ending condation here the format is just like isdone = l(next_state)
@@ -99,7 +100,7 @@ def angle_normalize(x):
 
 
 def arccs(sinth, costh):
-    eps = 0.9999
+    eps = 0.9999  # fixme: avoid grad becomes inf when cos(theta) = 0
     th = torch.acos(eps * costh)
     th = th * (sinth > 0) + (2 * pi - th) * (sinth <= 0)
     return th

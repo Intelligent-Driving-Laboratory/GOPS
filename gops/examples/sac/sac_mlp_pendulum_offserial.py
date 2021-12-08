@@ -108,12 +108,12 @@ if __name__ == "__main__":
         # Batch size of replay samples from buffer
         parser.add_argument('--replay_batch_size', type=int, default=256)
         # Period of sync central policy of each sampler
-        parser.add_argument('--sampler_sync_interval', type=int, default=1)
+        parser.add_argument('--sampler_sync_interval', type=int, default=256)
     ################################################
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='off_sampler')
     # Batch size of sampler for buffer store
-    parser.add_argument('--sample_batch_size', type=int, default=1)
+    parser.add_argument('--sample_batch_size', type=int, default=256)
     # Add noise to actions for better exploration
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),

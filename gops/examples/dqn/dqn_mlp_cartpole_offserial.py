@@ -9,6 +9,8 @@
 #  Update Date: 2021-07-11, Yuxuan JIANG : adapt to new trainer interface
 
 import argparse
+import os
+os.environ["OMP_NUM_THREADS"] = "4"
 
 from modules.create_pkg.create_alg import create_alg
 from modules.create_pkg.create_buffer import create_buffer
