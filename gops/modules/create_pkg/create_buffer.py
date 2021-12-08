@@ -6,7 +6,6 @@
 
 """
 #  Update Date: 2020-12-13, Hao SUN: add create buffer function
-import ray
 from ..trainer.buffer.replay_buffer import ReplayBuffer
 
 
@@ -28,6 +27,7 @@ def create_buffer(**kwargs):
             if trainer == 'off_serial_trainer':
                 buffer = buffer_cls(**kwargs)
             elif trainer == 'off_async_trainer' or trainer == 'off_async_trainermix':
+                import ray
                 buffer = [ray.remote(num_cpus=1)(ReplayBuffer).remote(**kwargs) for _ in range(kwargs['num_buffers'])]
             else:
                 raise NotImplementedError("This trainer is not properly defined")
