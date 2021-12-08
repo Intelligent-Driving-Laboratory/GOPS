@@ -23,7 +23,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 class RoadMap():
     def __init__(self):
-        self.path = os.path.join(os.path.dirname(__file__),"resources/Roadmap.csv")
+        self.path = os.path.join(os.path.dirname(__file__),"resources/pyth_pcc_trucklcf_file/Roadmap.csv")
         self.map_road = pd.DataFrame(pd.read_csv(self.path, header=None))
         self.x = np.array(self.map_road.iloc[0:, 0].dropna(), dtype='float32')  # x
         self.y = np.array(self.map_road.iloc[0:, 1], dtype='float32')  # theta
@@ -67,7 +67,7 @@ class PythPccTrucklcfModel(torch.nn.Module):
         self.min_action = -63.6  # Tecmd lower limit [Nm]
         self.max_action = 603.9  # Tecmd Upper limit [Nm]
         self.ades_k = 0
-        self.gear = torch.torch.full([self.sample_batch_size, ], 6, dtype=torch.int8)
+        self.gear = torch.full([self.sample_batch_size, ], 6, dtype=torch.int8)
         self.shift_interval = 4  # [s]
         # Road map
         self.map_x, self.map_Theta = road_map.load_data_cal()
@@ -86,7 +86,7 @@ class PythPccTrucklcfModel(torch.nn.Module):
         self.iteration_index = 0
 
         # read torque map table
-        self.path_Torque_trucksim = os.path.join(os.path.dirname(__file__), "resources/Te_throttle_engspd_150kw.csv")
+        self.path_Torque_trucksim = os.path.join(os.path.dirname(__file__), "resources/pyth_pcc_trucklcf_file/Te_throttle_engspd_150kw.csv")
         self.Torque_trucksim = pd.DataFrame(pd.read_csv(self.path_Torque_trucksim, header=None))
         self.Torque_throttle = np.array(self.Torque_trucksim.iloc[0, 1:].dropna())  # axis X: throttle
         self.Torque_engspd = np.array(self.Torque_trucksim.iloc[1:, 0])  # axis Y: engspd unit: rpm
@@ -101,7 +101,7 @@ class PythPccTrucklcfModel(torch.nn.Module):
     
     def initialize_state(self):
         self.d_init_state = torch.empty([self.sample_batch_size, self.dynamic_state_dim])
-        self.d_init_state[:, 0] = torch.normal(0.0, 0.35, [self.sample_batch_size, ]) +self.v_target  # v
+        self.d_init_state[:, 0] = torch.normal(0.0, 0.35, [self.sample_batch_size, ]) + self.v_target  # v
         self.d_init_state[:, 1] = torch.linspace(self.min_action, self.max_action, self.sample_batch_size)
         self.d_init_state[:, 2] = torch.linspace(0, 10000,self.sample_batch_size)
         return self.d_init_state
