@@ -114,7 +114,7 @@ class INFADP:
 
         if iteration % (self.pev_step + self.pim_step) < self.pev_step:
             self.networks.v.zero_grad()
-            loss_v, v = self.compute_loss_v(deepcopy(data))
+            loss_v, v = self.compute_loss_v(data)
             loss_v.backward()
             v_grad = [p.grad for p in self.networks.v.parameters()]
             self.tb_info[tb_tags["loss_critic"]] = loss_v.item()
@@ -122,7 +122,7 @@ class INFADP:
             grads_dict['v'] = v_grad
         else:
             self.networks.policy.zero_grad()
-            loss_policy = self.compute_loss_policy(deepcopy(data))
+            loss_policy = self.compute_loss_policy(data)
             loss_policy.backward()
             policy_grad = [p.grad for p in self.networks.policy.parameters()]
             self.tb_info[tb_tags["loss_actor"]] = loss_policy.item()

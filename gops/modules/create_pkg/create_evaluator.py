@@ -4,7 +4,6 @@
 #
 #  Creator: Yang GUAN
 #  Description: Create evaluator
-import ray
 from ..trainer.evaluator import Evaluator
 
 
@@ -22,6 +21,7 @@ def create_evaluator(**kwargs):
         if trainer == 'off_serial_trainer' or trainer == 'on_serial_trainer':
             evaluator = evaluator_cls(**kwargs)
         elif trainer == 'off_async_trainer' or trainer == 'on_sync_trainer' or trainer == 'off_async_trainermix':
+            import ray
             evaluator = ray.remote(num_cpus=1)(Evaluator).remote(**kwargs)
         else:
             raise NotImplementedError("This trainer is not properly defined")
