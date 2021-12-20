@@ -40,7 +40,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_high_limit', type=list, default=None)
     parser.add_argument('--action_low_limit', type=list, default=None)
     parser.add_argument('--action_type', type=str, default='continu')
-    parser.add_argument('--is_render', type=bool, default=False)
+    parser.add_argument('--is_render', type=bool, default=True)
     parser.add_argument('--is_adversary', type=bool, default=False, help='Adversary training')
 
     ################################################
@@ -96,8 +96,8 @@ if __name__ == "__main__":
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument('--evaluator_name', type=str, default='evaluator')
-    parser.add_argument('--num_eval_episode', type=int, default=5)
-    parser.add_argument('--eval_interval', type=int, default=100)
+    parser.add_argument('--num_eval_episode', type=int, default=1)
+    parser.add_argument('--eval_interval', type=int, default=300)
 
     ################################################
     # 8. Data savings

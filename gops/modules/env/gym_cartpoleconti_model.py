@@ -14,7 +14,7 @@ import torch
 
 
 class GymCartpolecontiModel(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
         """
         you need to define parameters here

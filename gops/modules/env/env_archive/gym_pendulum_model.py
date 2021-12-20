@@ -14,7 +14,7 @@ pi = torch.tensor(np.pi, dtype=torch.float32)
 
 
 class GymPendulumModel(torch.nn.Module):
-    def __init__(self):
+    def __init__(self,**kwargs):
         super().__init__()
         """
         you need to define parameters here
