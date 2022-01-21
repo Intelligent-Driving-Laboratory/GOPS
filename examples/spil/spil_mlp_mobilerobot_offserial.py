@@ -77,7 +77,7 @@ if __name__ == "__main__":
     parser.add_argument('--trainer', type=str, default='off_serial_trainer')
     parser.add_argument('--max_iteration', type=int, default=1000,
                         help='Maximum iteration number')
-    parser.add_argument('--ini_network_dir', type=str, default=None) # 'D:/Seafile/Research/GOPS/gops/gops/results/SPIL/0927-112733/apprfunc/apprfunc_4000.pkl'
+    parser.add_argument('--ini_network_dir', type=str, default=None) # 'D:/Seafile/Research/GOPS/modules/modules/results/SPIL/0927-112733/apprfunc/apprfunc_4000.pkl'
     trainer_type = parser.parse_args().trainer
     if trainer_type == 'off_serial_trainer':
         parser.add_argument('--buffer_name', type=str, default='replay_buffer')
