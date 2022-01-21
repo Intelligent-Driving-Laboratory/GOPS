@@ -13,15 +13,15 @@ import os
 os.environ["OMP_NUM_THREADS"] = "4"
 import numpy as np
 
-from modules.create_pkg.create_alg import create_alg
-from modules.create_pkg.create_buffer import create_buffer
-from modules.create_pkg.create_env import create_env
-from modules.create_pkg.create_evaluator import create_evaluator
-from modules.create_pkg.create_sampler import create_sampler
-from modules.create_pkg.create_trainer import create_trainer
-from modules.utils.init_args import init_args
-from modules.utils.plot import plot_all
-from modules.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
+from gops.create_pkg.create_alg import create_alg
+from gops.create_pkg.create_buffer import create_buffer
+from gops.create_pkg.create_env import create_env
+from gops.create_pkg.create_evaluator import create_evaluator
+from gops.create_pkg.create_sampler import create_sampler
+from gops.create_pkg.create_trainer import create_trainer
+from gops.utils.init_args import init_args
+from gops.utils.plot import plot_all
+from gops.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
 
 
 if __name__ == "__main__":
