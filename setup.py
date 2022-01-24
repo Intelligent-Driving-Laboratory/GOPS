@@ -25,14 +25,15 @@ setup(
         'gops.env': find_data_packages('gops/env')
     },
     install_requires=[
-        'torch>=1.8.0',
-        'numpy',
-        'ray>=1.0.0',
+        'torch>=1.8.0,<=1.10.1',
+        'numpy<=1.22.1',
+        'ray>=1.0.0,<=1.9.2',
         'gym>=0.17.0,<0.20.0',
-        'box2d',
-        'pandas',
-        'tensorboard',
-        'matplotlib'
+        'box2d<=2.4.1',
+        'pandas<=1.5.0',
+        'tensorboard<=2.8.0',
+        'matplotlib<=3.5.1',
+        'pyglet<=1.5.21'
     ],
-    python_requires='>=3.8',
+    python_requires='>=3.6',
 )
