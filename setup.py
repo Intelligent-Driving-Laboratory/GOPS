@@ -33,7 +33,8 @@ setup(
         'pandas<=1.5.0',
         'tensorboard<=2.8.0',
         'matplotlib<=3.5.1',
-        'pyglet<=1.5.21'
+        'pyglet<=1.5.21',
+        'scipy<=1.7.3'
     ],
     python_requires='>=3.6',
 )
