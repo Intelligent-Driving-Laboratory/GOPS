@@ -47,15 +47,14 @@ class OffAsyncTrainer():
         self.log_save_interval = kwargs['log_save_interval']
         self.apprfunc_save_interval = kwargs['apprfunc_save_interval']
         self.iteration = 0
-
         self.save_folder = kwargs['save_folder']
         self.log_save_interval = kwargs['log_save_interval']
         self.apprfunc_save_interval = kwargs['apprfunc_save_interval']
         self.eval_interval = kwargs['eval_interval']
+        self.sample_interval = 1
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
         self.writer.add_scalar(tb_tags['alg_time'], 0, 0)
         self.writer.add_scalar(tb_tags['sampler_time'], 0, 0)
-
         self.writer.flush()
 
         # create center network
@@ -107,12 +106,13 @@ class OffAsyncTrainer():
     def step(self):
         # sampling
         sampler_tb_dict = {}
-        for sampler, objID in self.sample_tasks.completed():  # 对每个完成的sampler，
-            batch_data, sampler_tb_dict = ray.get(objID)  # 获得sample的batch
-            random.choice(self.buffers).add_batch.remote(batch_data)  # 随机选择buffer，加入batch
-            weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
-            sampler.load_state_dict.remote(weights)  # 同步sampler的参数
-            self.sample_tasks.add(sampler, sampler.sample.remote())
+        if self.iteration % self.sample_interval == 0:
+            for sampler, objID in self.sample_tasks.completed():  # 对每个完成的sampler，
+                batch_data, sampler_tb_dict = ray.get(objID)  # 获得sample的batch
+                random.choice(self.buffers).add_batch.remote(batch_data)  # 随机选择buffer，加入batch
+                weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
+                sampler.load_state_dict.remote(weights)  # 同步sampler的参数
+                self.sample_tasks.add(sampler, sampler.sample.remote())
 
         # learning
         for alg, objID in self.learn_tasks.completed():
