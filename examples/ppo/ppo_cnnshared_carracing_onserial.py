@@ -42,7 +42,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_high_limit', type=list, default=None, help='')
     parser.add_argument('--action_low_limit', type=list, default=None, help='')
     parser.add_argument('--action_type', type=str, default='continu', help='')
-    parser.add_argument('--is_render', type=bool, default=True, help='')
+    parser.add_argument('--is_render', type=bool, default=False, help='')
     parser.add_argument('--is_adversary', type=bool, default=False, help='Adversary training')
     parser.add_argument('--is_constrained', type=bool, default=False, help='Constrained training')
 
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
     parser.add_argument('--trainer', type=str, default='on_serial_trainer')
     # Maximum iteration number
-    parser.add_argument('--max_iteration', type=int, default=100000, help='8000')  # 1200 gradient step
+    parser.add_argument('--max_iteration', type=int, default=1000, help='8000')  # 1200 gradient step
     trainer_type = parser.parse_args().trainer
     parser.add_argument('--ini_network_dir', type=str, default=None)
     # 4.1. Parameters for on_serial_trainer
@@ -114,18 +114,17 @@ if __name__ == "__main__":
     # 7. Parameters for evaluator
     parser.add_argument('--evaluator_name', type=str, default='evaluator')
     parser.add_argument('--num_eval_episode', type=int, default=5)
-    parser.add_argument('--eval_interval', type=int, default=1*parser.parse_args().num_epoch)
-    parser.add_argument('--print_interval', type=int, default=1*parser.parse_args().num_epoch)
+    parser.add_argument('--eval_interval', type=int, default=10)
     parser.add_argument('--eval_save', type=bool, default=False)
 
     ################################################
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument('--apprfunc_save_interval', type=int, default=1*parser.parse_args().num_epoch,
+    parser.add_argument('--apprfunc_save_interval', type=int, default=50,
                         help='Save value/policy every N updates')
     # Save key info every N updates
-    parser.add_argument('--log_save_interval', type=int, default=1*parser.parse_args().num_epoch,
+    parser.add_argument('--log_save_interval', type=int, default=5,
                         help='Save gradient time/critic loss/actor loss/average value every N updates')
 
     # Get parameter dictionary
