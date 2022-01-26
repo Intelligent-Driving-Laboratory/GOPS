@@ -69,10 +69,8 @@ class OffSerialTrainer():
     def step(self):
         # sampling
         sampler_tb_dict = {}
-
-        if self.iteration % self.sampler_sync_interval == 0:
-            self.sampler.networks.load_state_dict(self.networks.state_dict())
         if self.iteration % self.sample_interval == 0:
+            self.sampler.networks.load_state_dict(self.networks.state_dict())
             sampler_samples, sampler_tb_dict = self.sampler.sample()
             self.buffer.add_batch(sampler_samples)
 
