@@ -77,7 +77,7 @@ if __name__ == "__main__":
     # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
     parser.add_argument('--trainer', type=str, default='on_serial_trainer')
     # Maximum iteration number
-    parser.add_argument('--max_iteration', type=int, default=5000)
+    parser.add_argument('--max_iteration', type=int, default=500)
     trainer_type = parser.parse_args().trainer
     parser.add_argument('--ini_network_dir', type=str, default=None)
     # 4.1. Parameters for on_serial_trainer
@@ -111,16 +111,16 @@ if __name__ == "__main__":
     # 7. Parameters for evaluator
     parser.add_argument('--evaluator_name', type=str, default='evaluator')
     parser.add_argument('--num_eval_episode', type=int, default=5)
-    parser.add_argument('--eval_interval', type=int, default=100)
+    parser.add_argument('--eval_interval', type=int, default=5)
 
     ################################################
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument('--apprfunc_save_interval', type=int, default=5000,
+    parser.add_argument('--apprfunc_save_interval', type=int, default=200,
                         help='Save value/policy every N updates')
     # Save key info every N updates
-    parser.add_argument('--log_save_interval', type=int, default=100,
+    parser.add_argument('--log_save_interval', type=int, default=5,
                         help='Save gradient time/critic loss/actor loss/average value every N updates')
 
     # Get parameter dictionary
