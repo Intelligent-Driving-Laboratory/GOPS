@@ -79,7 +79,9 @@ class OnSerialTrainer():
         # evaluate
         if self.iteration % self.eval_interval == 0:
             self.evaluator.networks.load_state_dict(self.networks.state_dict())
+            self.sampler.env.close()
             total_avg_return = self.evaluator.run_evaluation(self.iteration)
+            self.evaluator.env.close()
             self.writer.add_scalar(tb_tags['TAR of RL iteration'],
                                    total_avg_return,
                                    self.iteration)
