@@ -49,16 +49,8 @@ class OffSampler():
             self.is_adversary = False
         if self.action_type == 'continu':
             self.noise_processor = GaussNoise(**self.noise_params)
-            if self.policy_func_name == 'StochaPolicy':
-                self.action_distirbution_cls = GaussDistribution
-            elif self.policy_func_name == 'DetermPolicy':
-                self.action_distirbution_cls = DiracDistribution
         elif self.action_type == 'discret':
             self.noise_processor = EpsilonGreedy(**self.noise_params)
-            if self.policy_func_name == 'StochaPolicyDis':
-                self.action_distirbution_cls = CategoricalDistribution
-            elif self.policy_func_name == 'DetermPolicyDis':
-                self.action_distirbution_cls = ValueDiracDistribution
 
     def load_state_dict(self, state_dict):
         self.networks.load_state_dict(state_dict)
@@ -75,7 +67,7 @@ class OffSampler():
             else:
                 logits = self.networks.policy.q(batch_obs)
 
-            action_distribution = self.action_distirbution_cls(logits)
+            action_distribution = self.networks.create_action_distributions(logits)
             action = action_distribution.sample().detach()[0]
             if hasattr(action_distribution, 'log_prob'):
                 logp = action_distribution.log_prob(action).item()

@@ -36,16 +36,6 @@ class Evaluator():
         self.save_folder = kwargs['save_folder']
         self.eval_save = kwargs.get('eval_save', True)
 
-        if self.action_type == 'continu':
-            if self.policy_func_name == 'StochaPolicy':
-                self.action_distirbution_cls = GaussDistribution
-            elif self.policy_func_name == 'DetermPolicy':
-                self.action_distirbution_cls = DiracDistribution
-        elif self.action_type == 'discret':
-            if self.policy_func_name == 'StochaPolicyDis':
-                self.action_distirbution_cls = CategoricalDistribution
-            elif self.policy_func_name == 'DetermPolicyDis':
-                self.action_distirbution_cls = ValueDiracDistribution
         self.print_time = 0
         self.print_iteration = -1
 
@@ -67,7 +57,7 @@ class Evaluator():
         while not (done or info['TimeLimit.truncated']):
             batch_obs = torch.from_numpy(np.expand_dims(obs, axis=0).astype('float32'))
             logits = self.networks.policy(batch_obs)
-            action_distribution = self.action_distirbution_cls(logits)
+            action_distribution = self.networks.create_action_distributions(logits)
             action = action_distribution.mode()
             action = action.detach().numpy()[0]
             next_obs, reward, done, info = self.env.step(action)
