@@ -58,6 +58,7 @@ class OffSerialTrainer():
         self.sampler_sync_interval = kwargs['sampler_sync_interval']
         self.apprfunc_save_interval = kwargs['apprfunc_save_interval']
         self.eval_interval = kwargs['eval_interval']
+        self.sample_interval = 1
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
         self.writer.add_scalar(tb_tags['alg_time'], 0, 0)
         self.writer.add_scalar(tb_tags['sampler_time'], 0, 0)
@@ -67,11 +68,11 @@ class OffSerialTrainer():
 
     def step(self):
         # sampling
-        if self.iteration % self.sampler_sync_interval == 0:
+        sampler_tb_dict = {}
+        if self.iteration % self.sample_interval == 0:
             self.sampler.networks.load_state_dict(self.networks.state_dict())
-
-        sampler_samples, sampler_tb_dict = self.sampler.sample()
-        self.buffer.add_batch(sampler_samples)
+            sampler_samples, sampler_tb_dict = self.sampler.sample()
+            self.buffer.add_batch(sampler_samples)
 
         # replay
         replay_samples = self.buffer.sample_batch(self.replay_batch_size)

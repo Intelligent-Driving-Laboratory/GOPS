@@ -46,27 +46,15 @@ class ApproxContainer(nn.Module):
 
         self.approximate_optimizer = Adam(self.parameters(), lr=self.learning_rate)
 
-    def update(self, grads_info:dict):
-        iteration = grads_info['iteration']
-        value_grad = grads_info['value_grad']
-        policy_grad = grads_info['policy_grad']
+    def update(self, info: dict):
+        value_weights = info['value_weights']
+        policy_weights = info['policy_weights']
 
-        for p, grad in zip(self.value.parameters(), value_grad):
-            p._grad = torch.from_numpy(grad)
+        for p, weight in zip(self.value.parameters(), value_weights):
+            p.data = torch.from_numpy(weight)
 
-        for p, grad in zip(self.policy.parameters(), policy_grad):
-            p._grad = torch.from_numpy(grad)
-
-        self.approximate_optimizer.step()
-
-        if self.schedule_adam == 'linear':
-            decay_rate = 1 - (iteration / self.max_iteration)
-            assert decay_rate >= 0, "the decay_rate is less than 0!"
-            lr_now = self.learning_rate * decay_rate
-            # set learning rate
-            for g in self.approximate_optimizer.param_groups:
-                g['lr'] = lr_now
-
+        for p, weight in zip(self.policy.parameters(), policy_weights):
+            p.data = torch.from_numpy(weight)
 
 class PPO():
     __has_gpu = torch.cuda.is_available()
@@ -75,7 +63,6 @@ class PPO():
         self.data_gae = dict()
         self.trainer_type = kwargs['trainer']
         self.max_iteration = kwargs['max_iteration']
-        self.gradient_step = 0
         self.num_epoch = kwargs['num_epoch']
         self.num_repeat = kwargs['num_repeat']
         self.num_mini_batch = kwargs['num_mini_batch']
@@ -99,7 +86,8 @@ class PPO():
         self.loss_value_norm = True
 
         self.networks = ApproxContainer(**kwargs)
-        self.approximate_optimizer = Adam(self.networks.parameters(), lr=kwargs['learning_rate'])
+        self.learning_rate = kwargs['learning_rate']
+        self.approximate_optimizer = Adam(self.networks.parameters(), lr=self.learning_rate)
         self.act_dist_cls = GaussDistribution
         self.enable_cuda = kwargs['enable_cuda']
         self.is_gpu = self.__has_gpu and self.enable_cuda
@@ -152,25 +140,35 @@ class PPO():
     def compute_gradient(self, data:dict, iteration):
         tb_info = dict()
         start_time = time.perf_counter()
-        self.approximate_optimizer.zero_grad()
 
-        self.gradient_step = iteration % self.num_epoch
-        if self.gradient_step == 0:
-            self.data_gae = self.__generalization_advantage_estimate(data)  # 1/10 of total time
-            # create the indices array
-            self.indices = np.arange(self.sample_batch_size)
-            np.random.shuffle(self.indices)
+        # self.gradient_step = iteration % self.num_epoch
+        # if self.gradient_step == 0:
 
-        mb_start = self.mini_batch_size * (self.gradient_step % self.num_mini_batch)
-        mb_indices = self.indices[mb_start: mb_start + self.mini_batch_size]
-        mb_sample = {k: self.data_gae[k][mb_indices] for k in list(self.data_gae.keys())}
+        self.data_gae = self.__generalization_advantage_estimate(data)  # 1/10 of total time
+        # create the indices array
+        self.indices = np.arange(self.sample_batch_size)
+        np.random.shuffle(self.indices)
 
-        loss_total, loss_surrogate, loss_value, loss_entropy, approximate_kl, clip_fra = \
-            self.__compute_loss(mb_sample, iteration)
-        loss_total.backward()  # < 2ms
+        for gradient_step in range(self.num_epoch):
+            mb_start = self.mini_batch_size * (gradient_step % self.num_mini_batch)
+            mb_indices = self.indices[mb_start: mb_start + self.mini_batch_size]
+            mb_sample = {k: self.data_gae[k][mb_indices] for k in list(self.data_gae.keys())}
 
-        value_grad = [p._grad.cpu().numpy() for p in self.networks.value.parameters()]
-        policy_grad = [p._grad.cpu().numpy() for p in self.networks.policy.parameters()]
+            loss_total, loss_surrogate, loss_value, loss_entropy, approximate_kl, clip_fra = \
+                self.__compute_loss(mb_sample, iteration)
+            self.approximate_optimizer.zero_grad()
+            loss_total.backward()  # < 2ms
+            self.approximate_optimizer.step()
+            if self.schedule_adam == 'linear':
+                decay_rate = 1 - (iteration / self.max_iteration)
+                assert decay_rate >= 0, "the decay_rate is less than 0!"
+                lr_now = self.learning_rate * decay_rate
+                # set learning rate
+                for g in self.approximate_optimizer.param_groups:
+                    g['lr'] = lr_now
+
+        value_weights = [p.detach().cpu().numpy() for p in self.networks.value.parameters()]
+        policy_weights = [p.detach().cpu().numpy() for p in self.networks.policy.parameters()]
 
         end_time = time.perf_counter()
         # tb_info[tb_tags["loss_total"]] = loss_total.item()
@@ -198,8 +196,8 @@ class PPO():
             # print('------------------------------------')
 
         grad_info = dict()
-        grad_info['value_grad'] = value_grad
-        grad_info['policy_grad'] = policy_grad
+        grad_info['value_weights'] = value_weights
+        grad_info['policy_weights'] = policy_weights
         grad_info['iteration'] = iteration
 
         return grad_info, tb_info

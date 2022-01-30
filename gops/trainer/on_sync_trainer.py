@@ -72,47 +72,47 @@ class OnSyncTrainer():
         weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
         for sampler in self.samplers:  # 对每个完成的sampler，
             sampler.load_state_dict.remote(weights)  # 同步sampler的参数
-        sampler_tb_dict = {}
         samples, sampler_tb_dict = zip(
             *ray.get([sampler.sample_with_replay_format.remote() for sampler in self.samplers]))
         sampler_tb_dict = sampler_tb_dict[0]
         all_samples = concate(samples)
-        for _ in range(self.num_epoch):
-            self.alg.load_state_dict(self.networks.state_dict())  # 更新learner参数
-            grads, alg_tb_dict = self.alg.compute_gradient(all_samples, self.iteration)
-            self.networks.update(grads)
-            self.iteration += 1
+
+        # learning
+        self.alg.load_state_dict(self.networks.state_dict())  # 更新learner参数
+        grads, alg_tb_dict = self.alg.compute_gradient(all_samples, self.iteration)
+        self.networks.update(grads)
 
         # log
-            if self.iteration % self.log_save_interval == 0:
-                print('Iter = ', self.iteration)
-                add_scalars(alg_tb_dict, self.writer, step=self.iteration)
-                add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
+        if self.iteration % self.log_save_interval == 0:
+            print('Iter = ', self.iteration)
+            add_scalars(alg_tb_dict, self.writer, step=self.iteration)
+            add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
 
-            # evaluate
-            if self.iteration % self.eval_interval == 0:
-                # calculate total sample number
-                self.evaluator.load_state_dict.remote(self.networks.state_dict())
-                total_avg_return = ray.get(self.evaluator.run_evaluation.remote(self.iteration))
-                self.writer.add_scalar(tb_tags['TAR of RL iteration'],
-                                       total_avg_return,
-                                       self.iteration)
-                self.writer.add_scalar(tb_tags['TAR of total time'],
-                                       total_avg_return,
-                                       int(time.time() - self.start_time))
-                self.writer.add_scalar(tb_tags['TAR of collected samples'],
-                                       total_avg_return,
-                                       sum(ray.get(
-                                           [sampler.get_total_sample_number.remote() for sampler in self.samplers])))
+        # evaluate
+        if self.iteration % self.eval_interval == 0:
+            # calculate total sample number
+            self.evaluator.load_state_dict.remote(self.networks.state_dict())
+            total_avg_return = ray.get(self.evaluator.run_evaluation.remote(self.iteration))
+            self.writer.add_scalar(tb_tags['TAR of RL iteration'],
+                                   total_avg_return,
+                                   self.iteration)
+            self.writer.add_scalar(tb_tags['TAR of total time'],
+                                   total_avg_return,
+                                   int(time.time() - self.start_time))
+            self.writer.add_scalar(tb_tags['TAR of collected samples'],
+                                   total_avg_return,
+                                   sum(ray.get(
+                                       [sampler.get_total_sample_number.remote() for sampler in self.samplers])))
 
-            # save
-            if self.iteration % self.apprfunc_save_interval == 0:
-                torch.save(self.networks.state_dict(),
-                           self.save_folder + '/apprfunc/apprfunc_{}.pkl'.format(self.iteration))
+        # save
+        if self.iteration % self.apprfunc_save_interval == 0:
+            torch.save(self.networks.state_dict(),
+                       self.save_folder + '/apprfunc/apprfunc_{}.pkl'.format(self.iteration))
 
     def train(self):
         while self.iteration < self.max_iteration:
             self.step()
+            self.iteration += 1
 
 
 def concate(samples):
