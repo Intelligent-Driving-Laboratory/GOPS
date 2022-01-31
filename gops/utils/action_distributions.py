@@ -4,6 +4,7 @@
 """
 import torch
 
+
 class GaussDistribution():
     def __init__(self, logits):
         self.logits = logits
@@ -12,21 +13,32 @@ class GaussDistribution():
             base_distribution=torch.distributions.Normal(self.mean, self.std),
             reinterpreted_batch_ndims=1
         )
+        self.act_high_lim = torch.tensor([1.])
+        self.act_low_lim = torch.tensor([-1.])
 
     def sample(self):
-        return self.gauss_distribution.sample()
+        action = self.gauss_distribution.sample()
+        action_limited = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(action)/1.0000001 + (
+                    self.act_high_lim + self.act_low_lim) / 2
+        return action_limited
 
     def rsample(self):
-        return self.gauss_distribution.rsample()
+        action = self.gauss_distribution.rsample()
+        action_limited = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(action)/1.0000001 + (
+                    self.act_high_lim + self.act_low_lim) / 2
+        return action_limited
 
-    def log_prob(self, action) -> torch.Tensor:
-        return self.gauss_distribution.log_prob(action)
+    def log_prob(self, action_limited) -> torch.Tensor:
+        action = torch.atanh(
+            (2 * action_limited - (self.act_high_lim + self.act_low_lim)) / (self.act_high_lim - self.act_low_lim))
+        log_prob = self.gauss_distribution.log_prob(action) - torch.log((self.act_high_lim - self.act_low_lim) * (1 - torch.pow(torch.tanh(action), 2))).sum(-1)
+        return log_prob
 
     def entropy(self):
         return self.gauss_distribution.entropy()
 
     def mode(self):
-        return self.mean
+        return (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(self.mean) + (self.act_high_lim + self.act_low_lim) / 2
 
     def kl_divergence(self, other:'GaussDistribution') -> torch.Tensor:
         return torch.distributions.kl.kl_divergence(self.gauss_distribution, other.gauss_distribution)
@@ -74,3 +86,12 @@ class ValueDiracDistribution():
 
     def mode(self):
         return torch.argmax(self.logits, dim=-1)
+
+
+if __name__ == "__main__":
+    logits = torch.tensor([0.0, 1.0])
+    act_dist = GaussDistribution(logits)
+    for i in range(10):
+        act = act_dist.rsample()
+        print('act', act)
+        print('log_prob', act_dist.log_prob(act))

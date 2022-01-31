@@ -14,6 +14,7 @@ import numpy as np  # Matrix computation library
 import torch
 import torch.nn as nn
 from gops.utils.utils import get_activation_func
+from act_distribution_cls import Action_Distribution
 
 
 # Define MLP function
@@ -31,7 +32,7 @@ def count_vars(module):
 
 
 # Deterministic policy
-class DetermPolicy(nn.Module):
+class DetermPolicy(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs['obs_dim']
@@ -44,6 +45,7 @@ class DetermPolicy(nn.Module):
                       get_activation_func(kwargs['output_activation']))
         self.register_buffer('act_high_lim', torch.from_numpy(kwargs['act_high_lim']))
         self.register_buffer('act_low_lim', torch.from_numpy(kwargs['act_low_lim']))
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
     def forward(self, obs):
         action = (self.act_high_lim-self.act_low_lim)/2 * torch.tanh(self.pi(obs))\
@@ -52,7 +54,7 @@ class DetermPolicy(nn.Module):
 
 
 # Stochastic Policy
-class StochaPolicy(nn.Module):
+class StochaPolicy(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs['obs_dim']
@@ -70,6 +72,7 @@ class StochaPolicy(nn.Module):
         self.max_log_std = kwargs['max_log_std']
         self.register_buffer('act_high_lim', torch.from_numpy(kwargs['act_high_lim']))
         self.register_buffer('act_low_lim', torch.from_numpy(kwargs['act_low_lim']))
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
     def forward(self, obs):
         action_mean = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(self.mean(obs)) \
@@ -78,7 +81,7 @@ class StochaPolicy(nn.Module):
         return torch.cat((action_mean, action_std), dim=-1)
 
 
-class ActionValue(nn.Module):
+class ActionValue(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs['obs_dim']
@@ -87,13 +90,14 @@ class ActionValue(nn.Module):
         self.q = mlp([obs_dim + act_dim] + list(hidden_sizes) + [1],
                      get_activation_func(kwargs['hidden_activation']),
                      get_activation_func(kwargs['output_activation']))
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
     def forward(self, obs, act):
         q = self.q(torch.cat([obs, act], dim=-1))
         return torch.squeeze(q, -1)
 
 
-class ActionValueDis(nn.Module):
+class ActionValueDis(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs['obs_dim']
@@ -102,16 +106,17 @@ class ActionValueDis(nn.Module):
         self.q = mlp([obs_dim] + list(hidden_sizes) + [act_num],
                      get_activation_func(kwargs['hidden_activation']),
                      get_activation_func(kwargs['output_activation']))
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
     def forward(self, obs):
         return self.q(obs)
 
 
-class StochaPolicyDis(ActionValueDis):
+class StochaPolicyDis(ActionValueDis, Action_Distribution):
     pass
 
 
-class StateValue(nn.Module):
+class StateValue(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs['obs_dim']
@@ -119,6 +124,7 @@ class StateValue(nn.Module):
         self.v = mlp([obs_dim] + list(hidden_sizes) + [1],
                      get_activation_func(kwargs['hidden_activation']),
                      get_activation_func(kwargs['output_activation']))
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
     def forward(self, obs):
         v = self.v(obs)
