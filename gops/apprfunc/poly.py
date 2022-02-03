@@ -14,6 +14,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from gops.utils.utils import get_activation_func
+from act_distribution_cls import Action_Distribution
 
 
 def make_features(x, degree=4):
@@ -26,7 +27,7 @@ def count_vars(module):
     return sum([np.prod(p.shape) for p in module.parameters()])
 
 
-class DetermPolicy(nn.Module):
+class DetermPolicy(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs['obs_dim']
@@ -37,6 +38,7 @@ class DetermPolicy(nn.Module):
         action_low_limit = kwargs['act_low_lim']
         self.register_buffer('act_high_lim', torch.from_numpy(action_high_limit))
         self.register_buffer('act_low_lim', torch.from_numpy(action_low_limit))
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
     def forward(self, obs):
         obs = make_features(obs, self.degree)
@@ -45,7 +47,7 @@ class DetermPolicy(nn.Module):
         return action
 
 
-class StochaPolicy(nn.Module):
+class StochaPolicy(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs['obs_dim']
@@ -59,6 +61,7 @@ class StochaPolicy(nn.Module):
         self.log_std = nn.Linear(obs_dim * self.degree, act_dim)
         self.register_buffer('act_high_lim', torch.from_numpy(action_high_limit))
         self.register_buffer('act_low_lim', torch.from_numpy(action_low_limit))
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
     def forward(self, obs):
         obs = make_features(obs, self.degree)
@@ -68,13 +71,14 @@ class StochaPolicy(nn.Module):
         return torch.cat((action_mean, action_std), dim=-1)
 
 
-class ActionValue(nn.Module):
+class ActionValue(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs['obs_dim']
         act_dim = kwargs['act_dim']
         self.degree = 2
         self.q = nn.Linear((obs_dim+act_dim) * self.degree, 1)
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
     def forward(self, obs, act):
         input = torch.cat([obs, act], dim=-1)
@@ -83,29 +87,31 @@ class ActionValue(nn.Module):
         return torch.squeeze(q, -1)
 
 
-class ActionValueDis(nn.Module):
+class ActionValueDis(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim  = kwargs['obs_dim']
         act_num = kwargs['act_num']
         self.degree = 2
         self.q = nn.Linear(obs_dim*self.degree, act_num)
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
     def forward(self, obs):
         obs = make_features(obs, self.degree)
         return self.q(obs)
 
 
-class StochaPolicyDis(ActionValueDis):
+class StochaPolicyDis(ActionValueDis, Action_Distribution):
     pass
 
 
-class StateValue(nn.Module):
+class StateValue(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs['obs_dim']
         self.degree = 2
         self.v = nn.Linear(obs_dim * self.degree, 1)
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
     def forward(self, obs):
         obs = make_features(obs, self.degree)

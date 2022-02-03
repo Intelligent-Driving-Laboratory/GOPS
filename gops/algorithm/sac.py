@@ -59,6 +59,10 @@ class ApproxContainer(nn.Module):
         self.q2_optimizer = Adam(self.q2.parameters(), lr=kwargs['q_learning_rate'])
         self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs['policy_learning_rate'])
 
+    # create action_distributions
+    def create_action_distributions(self, logits):
+        return self.policy.get_act_dist(logits)
+
     def update(self, grads_info):
         value_grad = grads_info['value_grad']
         q1_grad = grads_info['q1_grad']
@@ -139,7 +143,7 @@ class SAC:
 
         obs = data['obs']
         logits = self.networks.policy(obs)
-        act_dist = self.act_dist_cls(logits)
+        act_dist = self.networks.create_action_distributions(logits)
         new_act = act_dist.rsample()
         new_logp = act_dist.log_prob(new_act)
         data.update({

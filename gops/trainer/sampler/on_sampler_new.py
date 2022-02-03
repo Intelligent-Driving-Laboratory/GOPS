@@ -49,18 +49,6 @@ class OnSamplerNew():
             self.advers_dim = kwargs['adversary_dim']
         else:
             self.is_adversary = False
-        if self.action_type == 'continu':
-            self.noise_processor = GaussNoise(**self.noise_params)
-            if self.policy_func_name == 'StochaPolicy':
-                self.action_distirbution_cls = GaussDistribution
-            elif self.policy_func_name == 'DetermPolicy':
-                self.action_distirbution_cls = DiracDistribution
-        elif self.action_type == 'discret':
-            self.noise_processor = EpsilonGreedy(**self.noise_params)
-            if self.policy_func_name == 'StochaPolicyDis':
-                self.action_distirbution_cls = CategoricalDistribution
-            elif self.policy_func_name == 'DetermPolicyDis':
-                self.action_distirbution_cls = ValueDiracDistribution
         self.obs_dim = self.obsv_dim
         if isinstance(self.obs_dim, int):
             self.obs_dim = (self.obs_dim, )
@@ -77,6 +65,10 @@ class OnSamplerNew():
             self.mb_con = np.zeros((self.sample_batch_size, self.con_dim))
         if self.is_adversary:
             self.mb_avs = np.zeros((self.sample_batch_size, self.advers_dim))
+        if self.action_type == 'continu':
+            self.noise_processor = GaussNoise(**self.noise_params)
+        elif self.action_type == 'discret':
+            self.noise_processor = EpsilonGreedy(**self.noise_params)
 
     def load_state_dict(self, state_dict):
         self.networks.load_state_dict(state_dict)
@@ -92,7 +84,7 @@ class OnSamplerNew():
                 logits = self.networks.policy(obs_expand)
             else:
                 logits = self.networks.policy.q(obs_expand)
-            action_distribution = self.action_distirbution_cls(logits)
+            action_distribution = self.networks.create_action_distributions(logits)
             action = action_distribution.sample().detach()[0]
             if hasattr(action_distribution, 'log_prob'):
                 logp = action_distribution.log_prob(action).item()

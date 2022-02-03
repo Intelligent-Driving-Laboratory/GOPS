@@ -46,6 +46,10 @@ class ApproxContainer(nn.Module):
 
         self.approximate_optimizer = Adam(self.parameters(), lr=self.learning_rate)
 
+    # create action_distributions
+    def create_action_distributions(self, logits):
+        return self.policy.get_act_dist(logits)
+
     def update(self, info: dict):
         value_weights = info['value_weights']
         policy_weights = info['policy_weights']
@@ -297,11 +301,9 @@ class PPO():
 
     def __get_log_pro(self, obs, act):  # torch.Size([1024, 4]) & torch.Size([1024, 1])
         logits = self.networks.policy(obs)  # torch.Size([1024, 1]) & torch.Size([1024, 1])
-        action_mean, action_std = torch.chunk(logits, chunks=2, dim=-1)
-        action_log_std = torch.log(action_std)  # torch.Size([1024, 1])
-        action_var = action_std.pow(2)  # torch.Size([1024, 1])
-        log_pro = - 0.5 * math.log(2 * math.pi) - action_log_std - (act - action_mean).pow(2) / (2 * action_var)
-        return log_pro.sum(1)
+        act_dist = self.networks.create_action_distributions(logits)
+        log_pro = act_dist.log_prob(act)
+        return log_pro
 
     def load_state_dict(self, state_dict):
         self.networks.load_state_dict(state_dict)

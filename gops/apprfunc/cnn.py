@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from gops.utils.utils import get_activation_func
-
+from act_distribution_cls import Action_Distribution
 
 def CNN(kernel_sizes, channels, strides, activation, input_channel):
     layers = []
@@ -35,7 +35,7 @@ def MLP(sizes, activation, output_activation=nn.Identity):
     return nn.Sequential(*layers)
 
 
-class DetermPolicy(nn.Module):
+class DetermPolicy(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super(DetermPolicy, self).__init__()
         act_dim = kwargs['act_dim']
@@ -47,6 +47,7 @@ class DetermPolicy(nn.Module):
         self.register_buffer('act_low_lim', torch.from_numpy(act_low_lim))
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
         if conv_type == "type_1":
             # CNN+MLP Parameters
             conv_kernel_sizes = [8, 4, 3]
@@ -91,7 +92,7 @@ class DetermPolicy(nn.Module):
         return action
 
 
-class StochaPolicy(nn.Module):
+class StochaPolicy(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super(StochaPolicy, self).__init__()
         act_dim = kwargs['act_dim']
@@ -105,6 +106,7 @@ class StochaPolicy(nn.Module):
         self.output_activation = get_activation_func(kwargs['output_activation'])
         self.min_log_std = kwargs['min_log_std']
         self.max_log_std = kwargs['max_log_std']
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
         if conv_type == "type_1":
             # CNN+MLP Parameters
@@ -150,7 +152,7 @@ class StochaPolicy(nn.Module):
         return torch.cat((action_mean, action_std), dim=-1)
 
 
-class ActionValue(nn.Module):
+class ActionValue(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super(ActionValue, self).__init__()
         act_dim = kwargs['act_dim']
@@ -158,6 +160,7 @@ class ActionValue(nn.Module):
         conv_type = kwargs['conv_type']
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
         if conv_type == "type_1":
             # CNN+MLP Parameters
             conv_kernel_sizes = [8, 4, 3]
@@ -197,7 +200,7 @@ class ActionValue(nn.Module):
         return self.mlp(feature)
 
 
-class ActionValueDis(nn.Module):
+class ActionValueDis(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super(ActionValueDis, self).__init__()
         act_num = kwargs['act_num']
@@ -205,6 +208,7 @@ class ActionValueDis(nn.Module):
         conv_type = kwargs['conv_type']
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
         if conv_type == "type_1":
             # CNN+MLP Parameters
             conv_kernel_sizes = [8, 4, 3]
@@ -244,17 +248,18 @@ class ActionValueDis(nn.Module):
         return torch.squeeze(act_value_dis, -1)
 
 
-class StochaPolicyDis(ActionValueDis):
+class StochaPolicyDis(ActionValueDis, Action_Distribution):
     pass
 
 
-class StateValue(nn.Module):
+class StateValue(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super(StateValue, self).__init__()
         obs_dim = kwargs['obs_dim']
         conv_type = kwargs['conv_type']
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
         if conv_type == "type_1":
             # CNN+MLP Parameters
             conv_kernel_sizes = [8, 4, 3]
