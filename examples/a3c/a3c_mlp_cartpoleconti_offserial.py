@@ -69,7 +69,7 @@ if __name__ == "__main__":
         # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
         parser.add_argument('--policy_hidden_activation', type=str, default='relu')
         # Output Layer: tanh
-        parser.add_argument('--policy_output_activation', type=str, default='tanh')
+        parser.add_argument('--policy_output_activation', type=str, default='linear')
 
     ################################################
     # 3. Parameters for RL algorithm
@@ -120,6 +120,7 @@ if __name__ == "__main__":
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
+    alg.set_parameters({'reward_scale': 0.1, 'gamma': 0.99,  'delay_update': 1})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
