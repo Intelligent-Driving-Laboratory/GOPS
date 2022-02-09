@@ -124,8 +124,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
     def forward(self, obs):
         img = self.conv(obs)
         feature = img.view(img.size(0), -1)
-        action_mean = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(self.mean(feature)) + (
-                    self.act_high_lim + self.act_low_lim) / 2
+        action_mean = self.mean(feature)
         action_std = torch.clamp(self.log_std(feature), self.min_log_std, self.max_log_std).exp()
         return torch.cat((action_mean, action_std), dim=-1)
 

@@ -75,8 +75,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
         self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
     def forward(self, obs):
-        action_mean = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(self.mean(obs)) \
-                      + (self.act_high_lim + self.act_low_lim) / 2
+        action_mean = self.mean(obs)
         action_std = torch.clamp(self.log_std(obs), self.min_log_std, self.max_log_std).exp()
         return torch.cat((action_mean, action_std), dim=-1)
 
