@@ -77,8 +77,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
     def forward(self, obs):
         _, h = self.rnn(obs)
         h = h.squeeze(0)
-        action_mean = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(self.mean(h)) \
-                      + (self.act_high_lim + self.act_low_lim) / 2
+        action_mean = self.mean(h)
         action_std = torch.clamp(self.log_std(h), self.min_log_std, self.max_log_std).exp()
         return torch.cat((action_mean, action_std), dim=-1)
 
