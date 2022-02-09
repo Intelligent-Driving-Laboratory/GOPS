@@ -8,7 +8,12 @@
 #  Update Date: 2021-05-55, Yuhang Zhang: create environment
 
 import gym
+from gops.utils.env_utils import safe_make
 
 
 def env_creator(**kwargs):
-    return gym.make("Pendulum-v0")
+    return safe_make("Pendulum-v0")
+
+
+if __name__ == '__main__':
+    env = env_creator()
