@@ -50,6 +50,9 @@ class ApproxContainer(nn.Module):
         self.target = target_network
         self.q_optimizer = Adam(self.q.parameters(), lr=self.lr)
 
+    def create_action_distributions(self, logits):
+        return self.q.get_act_dist(logits)
+
     def update(self, grads):
         q_grad = grads
         for p, grad in zip(self.q.parameters(), q_grad):
