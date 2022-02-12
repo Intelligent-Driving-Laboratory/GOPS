@@ -113,7 +113,7 @@ if __name__ == "__main__":
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='off_sampler')
     # Batch size of sampler for buffer store
-    parser.add_argument('--sample_batch_size', type=int, default=64)
+    parser.add_argument('--sample_batch_size', type=int, default=256)
     # Add noise to actions for better exploration
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument('--apprfunc_save_interval', type=int, default=100)
+    parser.add_argument('--apprfunc_save_interval', type=int, default=500)
     # Save key info every N updates
     parser.add_argument('--log_save_interval', type=int, default=100)
 
@@ -141,6 +141,7 @@ if __name__ == "__main__":
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
+    alg.set_parameters({'reward_scale': 0.1, 'gamma': 0.99, 'tau': 0.2, 'delay_update': 1})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

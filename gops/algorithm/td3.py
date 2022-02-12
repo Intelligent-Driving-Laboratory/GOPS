@@ -136,6 +136,14 @@ class TD3:
                 warning_msg = "param '" + key + "'is not defined in algorithm!"
                 warnings.warn(warning_msg)
 
+    def get_parameters(self):
+        params = dict()
+        params['gamma'] = self.gamma
+        params['tau'] = self.tau
+        params['use_gpu'] = self.use_gpu
+        params['reward_scale'] = self.reward_scale
+        params['delay_update'] = self.delay_update
+        return params
 
     def compute_gradient(self,  data:dict, iteration):
         o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
