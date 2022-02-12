@@ -36,6 +36,11 @@ class ApproxContainer(nn.Module):
 
         value_func_type = kwargs['value_func_type']
         policy_func_type = kwargs['policy_func_type']
+
+        if kwargs['cnn_shared']:  # todo:设置默认false
+            feature_args = get_apprfunc_dict('feature', value_func_type, **kwargs)
+            kwargs['feature_net'] = create_apprfunc(**feature_args)
+
         q_args = get_apprfunc_dict('value', value_func_type, **kwargs)
 
         self.q1 = create_apprfunc(**q_args)
@@ -68,6 +73,10 @@ class ApproxContainer(nn.Module):
         self.q1_optimizer = Adam(self.q1.parameters(), lr=kwargs['value_learning_rate'])
         self.q2_optimizer = Adam(self.q2.parameters(), lr=kwargs['value_learning_rate'])
 
+    # create action_distributions
+    def create_action_distributions(self, logits):
+        return self.policy.get_act_dist(logits)
+
     def update(self, grads_info:dict):
         # used by trainer to update networks
         q1_grad = grads_info['q1_grad']
@@ -75,6 +84,7 @@ class ApproxContainer(nn.Module):
         policy_grad = grads_info['policy_grad']
         iteration = grads_info['iteration']
         self.polyak = 1 - grads_info['tau']
+        self.delay_update = grads_info['delay_update']
 
         # update q network
         for p, grad in zip(self.q1.parameters(), q1_grad):
@@ -111,11 +121,11 @@ class TD3:
         self.target_noise = kwargs.get('target_noise',0.2)
         self.noise_clip = kwargs.get('noise_clip',0.5)
         self.act_limit = kwargs['action_high_limit'][0]
-        self.use_gpu = kwargs['enable_cuda']
+        self.use_gpu = kwargs['use_gpu']
 
         self.gamma = 0.99
         self.tau = 0.005
-        self.delay_update = 1
+        self.delay_update = 2
         self.reward_scale = 1
 
     def set_parameters(self, param_dict):
@@ -129,6 +139,7 @@ class TD3:
 
     def compute_gradient(self,  data:dict, iteration):
         o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
+        r = r*self.reward_scale
         self.networks.q1_optimizer.zero_grad()
         self.networks.q2_optimizer.zero_grad()
         self.networks.policy_optimizer.zero_grad()

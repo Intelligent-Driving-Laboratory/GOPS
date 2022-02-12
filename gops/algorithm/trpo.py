@@ -30,13 +30,21 @@ class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         value_func_type = kwargs['value_func_type']
+        policy_func_type = kwargs['policy_func_type']
+
+        if kwargs['cnn_shared']:  # todo:设置默认false
+            feature_args = get_apprfunc_dict('feature', value_func_type, **kwargs)
+            kwargs['feature_net'] = create_apprfunc(**feature_args)
+
         v_args = get_apprfunc_dict('value', value_func_type, **kwargs)
         self.v: nn.Module = create_apprfunc(**v_args)
         self.v_optimizer = Adam(self.v.parameters(), lr=kwargs['value_learning_rate'])
-        
-        policy_func_type = kwargs['policy_func_type']
+
         policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
         self.policy: nn.Module = create_apprfunc(**policy_args)
+
+    def create_action_distributions(self, logits):
+        return self.policy.get_act_dist(logits)
 
     def update(self, grads: List[np.ndarray]):
         policy_weight, v_weight = grads[0], grads[1]
@@ -47,7 +55,7 @@ class TRPO:
     def __init__(self, 
         delta: float, gamma: float, lamda: float, rtol: float, atol: float,
         damping_factor: float, max_cg: int, alpha: float, max_search: int,
-        train_v_iters: int, enable_cuda: bool,
+        train_v_iters: int, use_gpu: bool,
         **kwargs
     ):
         self.delta = delta
@@ -60,7 +68,7 @@ class TRPO:
         self.alpha = alpha
         self.max_search = max_search
         self.train_v_iters = train_v_iters
-        self.enable_cuda = enable_cuda
+        self.use_gpu = use_gpu
         self.networks = ApproxContainer(**kwargs)
         action_type = kwargs['action_type']
         if action_type == 'continu':
@@ -78,7 +86,7 @@ class TRPO:
         # Run _estimate_advantage on gpu may not be benificial
         # Or make _estimate_advantage work better with cuda
         adv, ret = self._estimate_advantage(obs, obs2, rew, done, val.detach())
-        if self.enable_cuda:
+        if self.use_gpu:
             self.networks.cuda()
             obs, act, adv, ret = obs.cuda(), act.cuda(), adv.cuda(), ret.cuda()
 
@@ -154,7 +162,7 @@ class TRPO:
         v_loss = v_loss.item()
         val_avg = val.detach().mean().item()
 
-        if self.enable_cuda:
+        if self.use_gpu:
             new_policy.cpu()
             self.networks.cpu()
 

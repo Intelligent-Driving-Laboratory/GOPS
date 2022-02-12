@@ -33,6 +33,11 @@ class ApproxContainer(nn.Module):
         # create value network
         value_func_type = kwargs['value_func_type']
         value_args = get_apprfunc_dict('value', value_func_type, **kwargs)
+
+        if kwargs['cnn_shared']:  # todo:设置默认false
+            feature_args = get_apprfunc_dict('feature', value_func_type, **kwargs)
+            kwargs['feature_net'] = create_apprfunc(**feature_args)
+
         self.value = create_apprfunc(**value_args)
 
         # create q networks

@@ -66,7 +66,7 @@ class ApproxContainer(nn.Module):
 
 
 class DQN():
-    def __init__(self, learning_rate: float, gamma: float, tau: float, enable_cuda: bool, **kwargs):
+    def __init__(self, learning_rate: float, gamma: float, tau: float, use_gpu: bool, **kwargs):
         """Deep Q-Network (DQN) algorithm
 
         A DQN implementation with soft target update.
@@ -80,14 +80,14 @@ class DQN():
             tau (float, optional): Average factor. Defaults to 0.005.
         """
         self.gamma = gamma
-        self.enable_cuda = enable_cuda
+        self.use_gpu = use_gpu
 
         self.networks = ApproxContainer(learning_rate, tau, **kwargs)
 
     def compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
         start_time = time.perf_counter()
         obs, act, rew, obs2, done = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
-        if self.enable_cuda:
+        if self.use_gpu:
             self.networks.cuda()
             obs, act, rew, obs2, done = obs.cuda(), act.cuda(), rew.cuda(), obs2.cuda(), done.cuda()
 
@@ -95,7 +95,7 @@ class DQN():
         loss = self.compute_loss(obs, act, rew, obs2, done)
         loss.backward()
 
-        if self.enable_cuda:
+        if self.use_gpu:
             self.networks.cpu()
 
         end_time = time.perf_counter()

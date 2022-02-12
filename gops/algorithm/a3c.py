@@ -66,7 +66,7 @@ class ApproxContainer(nn.Module):
 class A3C:
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs)
-        self.use_gpu = kwargs['enable_cuda']
+        self.use_gpu = kwargs['use_gpu']
         self.gamma = 0.99
         self.reward_scale = 1
         self.delay_update =  1
