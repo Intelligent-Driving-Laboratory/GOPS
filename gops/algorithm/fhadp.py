@@ -34,6 +34,9 @@ class ApproxContainer(nn.Module):
         self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs['policy_learning_rate'])
         self.optimizer_dict = {'policy': self.policy_optimizer}
 
+    def create_action_distributions(self, logits):
+        return self.policy.get_act_dist(logits)
+
     def update(self, grad_info):
         grads_dict = grad_info['grads_dict']
         for net_name, grads in grads_dict.items():

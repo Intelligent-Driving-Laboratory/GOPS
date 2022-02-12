@@ -27,6 +27,11 @@ class ApproxContainer(nn.Module):
         super().__init__()
         value_func_type = kwargs['value_func_type']
         policy_func_type = kwargs['policy_func_type']
+
+        if kwargs['cnn_shared']:  # todo:设置默认false
+            feature_args = get_apprfunc_dict('feature', value_func_type, **kwargs)
+            kwargs['feature_net'] = create_apprfunc(**feature_args)
+
         q_args = get_apprfunc_dict('value', value_func_type, **kwargs)
         self.q = create_apprfunc(**q_args)
         policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
@@ -42,6 +47,10 @@ class ApproxContainer(nn.Module):
 
         self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs['policy_learning_rate'])  # TODO:
         self.q_optimizer = Adam(self.q.parameters(), lr=kwargs['value_learning_rate'])
+
+    # create action_distributions
+    def create_action_distributions(self, logits):
+        return self.policy.get_act_dist(logits)
 
     def update(self, grads_info:dict):
         iteration = grads_info['iteration']
@@ -69,7 +78,7 @@ class ApproxContainer(nn.Module):
 class DDPG:
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs)
-        self.use_gpu = kwargs['enable_cuda']
+        self.use_gpu = kwargs['use_gpu']
         self.gamma = 0.99
         self.tau = 0.005
         self.delay_update = 1
