@@ -8,7 +8,7 @@
 #  Update Date: 2021-05-21, Shengbo Li: revise headline
 
 
-__all__ = ['DetermPolicy', 'StochaPolicy', 'ActionValue', 'ActionValueDis', 'StateValue']
+__all__ = ['DetermPolicy', 'StochaPolicy', 'ActionValue', 'ActionValueDis', 'ActionValueDistri', 'StateValue']
 
 import numpy as np  # Matrix computation library
 import torch
@@ -109,6 +109,31 @@ class ActionValueDis(nn.Module, Action_Distribution):
 
     def forward(self, obs):
         return self.q(obs)
+
+class ActionValueDistri(nn.Module):
+    def __init__(self, **kwargs):
+        super().__init__()
+        obs_dim = kwargs['obs_dim']
+        act_dim = kwargs['act_dim']
+        hidden_sizes = kwargs['hidden_sizes']
+        self.mean = mlp([obs_dim + act_dim] + list(hidden_sizes) + [1],
+                     get_activation_func(kwargs['hidden_activation']),
+                     get_activation_func(kwargs['output_activation']))
+
+        self.min_log_std = kwargs['min_log_std']
+        self.max_log_std = kwargs['max_log_std']
+        self.denominator = max(abs(self.min_log_std), self.max_log_std)
+        self.log_std = mlp([obs_dim + act_dim] + list(hidden_sizes) + [1],
+                     get_activation_func(kwargs['hidden_activation']),
+                     get_activation_func(kwargs['output_activation']))
+
+    def forward(self, obs, act,min = False):
+        value_mean = self.mean(torch.cat([obs, act], dim=-1))
+        log_std = self.log_std(torch.cat([obs, act], dim=-1))
+
+        value_log_std = torch.clamp_min(self.max_log_std * torch.tanh(log_std / self.denominator), 0) + \
+                  torch.clamp_max(-self.min_log_std * torch.tanh(log_std / self.denominator), 0)
+        return torch.cat((value_mean, value_log_std), dim=-1)
 
 
 class StochaPolicyDis(ActionValueDis, Action_Distribution):
