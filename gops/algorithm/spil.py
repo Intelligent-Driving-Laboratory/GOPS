@@ -37,6 +37,11 @@ class ApproxContainer(nn.Module):
         # self.polyak = 1 - kwargs['tau']
         value_func_type = kwargs['value_func_type']
         policy_func_type = kwargs['policy_func_type']
+
+        if kwargs['cnn_shared']:  # todo:设置默认false
+            feature_args = get_apprfunc_dict('feature', value_func_type, **kwargs)
+            kwargs['feature_net'] = create_apprfunc(**feature_args)
+
         v_args = get_apprfunc_dict('value', value_func_type, **kwargs)
         policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
 
@@ -57,6 +62,10 @@ class ApproxContainer(nn.Module):
         self.net_dict = {'v': self.v, 'policy': self.policy}
         self.target_net_dict = {'v': self.v_target, 'policy': self.policy_target}
         self.optimizer_dict = {'v': self.v_optimizer, 'policy': self.policy_optimizer}
+
+    # create action_distributions
+    def create_action_distributions(self, logits):
+        return self.policy.get_act_dist(logits)
 
     def update(self, grad_info):
         tau = grad_info['tau']

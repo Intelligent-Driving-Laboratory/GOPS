@@ -129,7 +129,7 @@ if __name__ == "__main__":
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument('--apprfunc_save_interval', type=int, default=100)
+    parser.add_argument('--apprfunc_save_interval', type=int, default=500)
     # Save key info every N updates
     parser.add_argument('--log_save_interval', type=int, default=100)
 
@@ -141,6 +141,7 @@ if __name__ == "__main__":
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
+    alg.set_parameters({'reward_scale': 0.1, 'gamma': 0.99, 'tau': 0.2, 'delay_update': 1})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

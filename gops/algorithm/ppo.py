@@ -46,6 +46,10 @@ class ApproxContainer(nn.Module):
 
         self.approximate_optimizer = Adam(self.parameters(), lr=self.learning_rate)
 
+    # create action_distributions
+    def create_action_distributions(self, logits):
+        return self.policy.get_act_dist(logits)
+
     def update(self, info: dict):
         value_weights = info['value_weights']
         policy_weights = info['policy_weights']
@@ -89,10 +93,9 @@ class PPO():
         self.learning_rate = kwargs['learning_rate']
         self.approximate_optimizer = Adam(self.networks.parameters(), lr=self.learning_rate)
         self.act_dist_cls = GaussDistribution
-        self.enable_cuda = kwargs['enable_cuda']
-        self.is_gpu = self.__has_gpu and self.enable_cuda
+        self.use_gpu = kwargs['use_gpu']
         # ------------------------------------
-        if self.is_gpu:
+        if self.use_gpu:
             self.networks.value = self.networks.value.cuda()
             self.networks.policy = self.networks.policy.cuda()
         # ------------------------------------
@@ -120,7 +123,7 @@ class PPO():
 
     def get_parameters(self):
         params = dict()
-        params['is_gpu'] = self.is_gpu
+        params['is_gpu'] = self.use_gpu
         params['gamma'] = self.gamma
         params['lamb'] = self.lamb
         params['clip'] = self.clip
@@ -266,7 +269,7 @@ class PPO():
         return loss_total, loss_surrogate, loss_value, loss_entropy, approximate_kl, clip_fraction
 
     def __generalization_advantage_estimate(self, data:dict):
-        if self.is_gpu:
+        if self.use_gpu:
             obs, act, rew, obs2, done = data['obs'].cuda(), data['act'].cuda(), data['rew'].cuda(), data['obs2'].cuda(), data['done'].cuda()
             logp, time_limited = data['logp'].cuda(), data['time_limited'].cuda()
         else:
@@ -297,11 +300,9 @@ class PPO():
 
     def __get_log_pro(self, obs, act):  # torch.Size([1024, 4]) & torch.Size([1024, 1])
         logits = self.networks.policy(obs)  # torch.Size([1024, 1]) & torch.Size([1024, 1])
-        action_mean, action_std = torch.chunk(logits, chunks=2, dim=-1)
-        action_log_std = torch.log(action_std)  # torch.Size([1024, 1])
-        action_var = action_std.pow(2)  # torch.Size([1024, 1])
-        log_pro = - 0.5 * math.log(2 * math.pi) - action_log_std - (act - action_mean).pow(2) / (2 * action_var)
-        return log_pro.sum(1)
+        act_dist = self.networks.create_action_distributions(logits)
+        log_pro = act_dist.log_prob(act)
+        return log_pro
 
     def load_state_dict(self, state_dict):
         self.networks.load_state_dict(state_dict)

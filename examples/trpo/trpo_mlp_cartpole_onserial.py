@@ -27,7 +27,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument('--env_id', type=str, default='gym_cartpole')
     parser.add_argument('--algorithm', type=str, default='TRPO')
-    parser.add_argument('--enable_cuda', default=True, help='Enable CUDA')
+    parser.add_argument('--enable_cuda', default=False, help='Enable CUDA')
 
     ################################################
     # 1. Parameters for environment

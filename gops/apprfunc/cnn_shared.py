@@ -14,6 +14,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from gops.utils.utils import get_activation_func
+from act_distribution_cls import Action_Distribution
 
 
 def CNN(kernel_sizes, channels, strides, activation, input_channel):
@@ -63,7 +64,7 @@ class Feature(nn.Module):
         self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
 
 
-class DetermPolicy(nn.Module):
+class DetermPolicy(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super(DetermPolicy, self).__init__()
         act_dim = kwargs['act_dim']
@@ -74,6 +75,7 @@ class DetermPolicy(nn.Module):
         self.register_buffer('act_low_lim', torch.from_numpy(act_low_lim))
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
         # MLP Parameters
         self.conv = kwargs['feature_net'].conv  # Shallow copy
@@ -94,7 +96,7 @@ class DetermPolicy(nn.Module):
         return action
 
 
-class StochaPolicy(nn.Module):
+class StochaPolicy(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super(StochaPolicy, self).__init__()
         act_dim = kwargs['act_dim']
@@ -107,6 +109,7 @@ class StochaPolicy(nn.Module):
         self.output_activation = get_activation_func(kwargs['output_activation'])
         self.min_log_std = kwargs['min_log_std']
         self.max_log_std = kwargs['max_log_std']
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
         # MLP Parameters
         self.conv = kwargs['feature_net'].conv  # Shallow copy
@@ -121,19 +124,19 @@ class StochaPolicy(nn.Module):
     def forward(self, obs):
         img = self.conv(obs)
         feature = img.view(img.size(0), -1)
-        action_mean = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(self.mean(feature)) + (
-                    self.act_high_lim + self.act_low_lim) / 2
+        action_mean = self.mean(feature)
         action_std = torch.clamp(self.log_std(feature), self.min_log_std, self.max_log_std).exp()
         return torch.cat((action_mean, action_std), dim=-1)
 
 
-class ActionValue(nn.Module):
+class ActionValue(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super(ActionValue, self).__init__()
         act_dim = kwargs['act_dim']
         obs_dim = kwargs['obs_dim']
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
         # MLP Parameters
         self.conv = kwargs['feature_net'].conv  # Shallow copy
@@ -150,13 +153,14 @@ class ActionValue(nn.Module):
         return self.mlp(feature)
 
 
-class ActionValueDis(nn.Module):
+class ActionValueDis(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super(ActionValueDis, self).__init__()
         act_num = kwargs['act_num']
         obs_dim = kwargs['obs_dim']
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
         # MLP Parameters
         self.conv = kwargs['feature_net'].conv  # Shallow copy
@@ -174,16 +178,17 @@ class ActionValueDis(nn.Module):
         return torch.squeeze(act_value_dis, -1)
 
 
-class StochaPolicyDis(ActionValueDis):
+class StochaPolicyDis(ActionValueDis, Action_Distribution):
     pass
 
 
-class StateValue(nn.Module):
+class StateValue(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super(StateValue, self).__init__()
         obs_dim = kwargs['obs_dim']
         self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
         self.output_activation = get_activation_func(kwargs['output_activation'])
+        self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
         # MLP Parameters
         self.conv = kwargs['feature_net'].conv  # Shallow copy
