@@ -20,7 +20,6 @@ import time
 import warnings
 
 from gops.create_pkg.create_apprfunc import create_apprfunc
-from gops.utils.action_distributions import GaussDistribution
 from gops.utils.utils import get_apprfunc_dict
 from gops.utils.tensorboard_tools import tb_tags
 
@@ -92,7 +91,6 @@ class PPO():
         self.networks = ApproxContainer(**kwargs)
         self.learning_rate = kwargs['learning_rate']
         self.approximate_optimizer = Adam(self.networks.parameters(), lr=self.learning_rate)
-        self.act_dist_cls = GaussDistribution
         self.use_gpu = kwargs['use_gpu']
         # ------------------------------------
         if self.use_gpu:
@@ -227,7 +225,7 @@ class PPO():
         mb_new_log_pro = self.__get_log_pro(mb_observation, mb_action)
 
         mb_return = returns.detach()
-        mb_advantage = advantages
+        mb_advantage = advantages.detach()
         mb_old_value = values
         mb_new_value = self.networks.value(mb_observation)
 

@@ -53,6 +53,7 @@ if __name__ == "__main__":
     # 2.2 Parameters of policy approximate function
     parser.add_argument('--policy_func_name', type=str, default='DetermPolicy')
     parser.add_argument('--policy_func_type', type=str, default='POLY')
+    parser.add_argument('--policy_act_distribution', type=str, default='default')
     policy_func_type = parser.parse_args().policy_func_type
     if policy_func_type == 'POLY':
         pass

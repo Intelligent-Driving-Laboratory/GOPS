@@ -72,6 +72,7 @@ if __name__ == "__main__":
     parser.add_argument('--policy_func_name', type=str, default='StochaPolicy')
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--policy_func_type', type=str, default='MLP')
+    parser.add_argument('--policy_act_distribution', type=str, default='default')
     policy_func_type = parser.parse_args().policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == 'MLP':
@@ -116,8 +117,7 @@ if __name__ == "__main__":
     parser.add_argument('--sample_batch_size', type=int, default=64)
     # Add noise to actions for better exploration
     parser.add_argument('--noise_params', type=dict,
-                        default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0], dtype=np.float32)})
+                        default=None)
 
     ################################################
     # 7. Parameters for evaluator

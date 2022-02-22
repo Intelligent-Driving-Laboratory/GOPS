@@ -65,6 +65,7 @@ if __name__ == "__main__":
     parser.add_argument('--policy_func_name', type=str, default='StochaPolicy')
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--policy_func_type', type=str, default='MLP')
+    parser.add_argument('--policy_act_distribution', type=str, default='default')
     policy_func_type = parser.parse_args().policy_func_type
     # 2.2.1 MLP, CNN, RNN
     parser.add_argument('--policy_hidden_sizes', type=list, default=[64, 64])
@@ -72,12 +73,12 @@ if __name__ == "__main__":
     parser.add_argument('--policy_hidden_activation', type=str, default='relu')
     # Output Layer: linear
     parser.add_argument('--policy_output_activation', type=str, default='linear')
-    parser.add_argument('--policy_min_log_std', type=int, default=-8)  # -6
+    parser.add_argument('--policy_min_log_std', type=int, default=-10)  # -6
     parser.add_argument('--policy_max_log_std', type=int, default=2)  # 3
 
     ################################################
     # 3. Parameters for algorithm
-    parser.add_argument('--learning_rate', type=float, default=1e-3, help='3e-4 in the paper')
+    parser.add_argument('--learning_rate', type=float, default=3e-4, help='3e-4 in the paper')
 
     ################################################
     # 4. Parameters for trainer
@@ -88,7 +89,7 @@ if __name__ == "__main__":
     trainer_type = parser.parse_args().trainer
     parser.add_argument('--ini_network_dir', type=str, default=None)
     # 4.1. Parameters for on_serial_trainer
-    parser.add_argument('--num_repeat', type=int, default=20, help='20')  # 2 repeat
+    parser.add_argument('--num_repeat', type=int, default=10, help='20')  # 2 repeat
     parser.add_argument('--num_mini_batch', type=int, default=8, help='8')  # 25 mini_batch
     parser.add_argument('--mini_batch_size', type=int, default=128, help='128')  # 25 mini_batch * 128 = 3200
     parser.add_argument('--num_epoch', type=int,
@@ -104,8 +105,7 @@ if __name__ == "__main__":
     assert parser.parse_args().num_mini_batch * parser.parse_args().mini_batch_size == parser.parse_args().sample_batch_size, 'sample_batch_size error'
     # Add noise to actions for better exploration
     parser.add_argument('--noise_params', type=dict,
-                        default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0], dtype=np.float32)},
+                        default=None,
                         help='Add noise to actions for exploration')
 
     ################################################
@@ -138,7 +138,9 @@ if __name__ == "__main__":
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters({'gamma': 0.95, 'loss_coefficient_value': 0.25, 'loss_coefficient_entropy': 0.01})
+    alg.set_parameters({'gamma': 0.99, 'loss_coefficient_value': 0.5, 'loss_coefficient_entropy': 0.01,
+                        'schedule_adam':'None','schedule_clip':'linear','loss_value_clip':False,
+                       'loss_value_norm':True})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

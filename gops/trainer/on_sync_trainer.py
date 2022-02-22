@@ -48,7 +48,6 @@ class OnSyncTrainer():
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
         self.writer.add_scalar(tb_tags['alg_time'], 0, 0)
         self.writer.add_scalar(tb_tags['sampler_time'], 0, 0)
-        self.num_epoch = kwargs['num_epoch']
 
         self.writer.flush()
 

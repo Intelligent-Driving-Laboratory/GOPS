@@ -95,7 +95,6 @@ class ApproxContainer(nn.Module):
 class DSAC:
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs)
-        self.act_dist_cls = GaussDistribution
         self.use_gpu = kwargs['enable_cuda']
         self.gamma = kwargs['gamma']
         self.tau = kwargs['tau']
@@ -113,7 +112,6 @@ class DSAC:
             self.alpha = self.log_alpha.exp().item()
         else:
             self.alpha = kwargs['alpha']
-
 
     def set_parameters(self, param_dict):
         for key in param_dict:
@@ -149,17 +147,12 @@ class DSAC:
 
         obs = data['obs']
         logits = self.networks.policy(obs)
-        act_dist = self.act_dist_cls(logits)
-        new_act = act_dist.rsample()
-        new_log_prob = act_dist.log_prob(new_act)
+        act_dist = self.networks.create_action_distributions(logits)
+        new_act,new_log_prob = act_dist.rsample()
         data.update({
             'new_act': new_act,
             'new_log_prob': new_log_prob
         })
-
-        self.networks.value_optimizer.zero_grad()
-        loss_value, value = self._compute_loss_value(data)
-        loss_value.backward()
 
         self.networks.q1_optimizer.zero_grad()
         self.networks.q2_optimizer.zero_grad()
@@ -196,9 +189,7 @@ class DSAC:
         }
 
         tb_info = {
-            tb_tags['loss_critic']: loss_value.item(),
             tb_tags['loss_actor']: loss_policy.item(),
-            tb_tags['critic_avg_value']: value.item(),
             'Train/critic_avg_q1': q1.item(),
             'Train/critic_avg_q2': q2.item(),
             'Train/entropy': entropy.item(),
@@ -207,7 +198,6 @@ class DSAC:
         }
 
         return grad_info, tb_info
-
 
     def _q_evaluate(self, obs, act, qnet, min=False):
         StochaQ = qnet(obs, act)

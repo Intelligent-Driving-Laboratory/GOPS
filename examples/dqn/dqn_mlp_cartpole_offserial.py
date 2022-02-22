@@ -47,7 +47,9 @@ if __name__ == "__main__":
     parser.add_argument('--value_func_name', type=str, default='ActionValueDis')
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--value_func_type', type=str, default='MLP')
+    parser.add_argument('--policy_act_distribution', type=str, default='default')
     value_func_type = parser.parse_args().value_func_type
+
     ### 2.1.1 MLP, CNN, RNN
     if value_func_type == 'MLP':
         parser.add_argument('--value_hidden_sizes', type=list, default=[64, 64])
