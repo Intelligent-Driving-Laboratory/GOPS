@@ -63,7 +63,7 @@ class GaussDistribution_Clip():
     def sample(self):
         action = self.gauss_distribution.sample()
         action_clipped = torch.clamp(action,self.act_low_lim, self.act_high_lim)
-        log_prob = self.gauss_distribution.log_prob(action)
+        log_prob = self.gauss_distribution.log_prob(action_clipped)
         return action_clipped, log_prob
 
     def rsample(self):
