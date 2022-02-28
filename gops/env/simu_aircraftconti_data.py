@@ -1,13 +1,13 @@
 from gym import spaces
 import gym
-from gops.env.resources import aircraft
+from gops.env.resources.simu_aircraft import aircraft
 import numpy as np
 
 class SimuAircraftconti(gym.Env):
 
     def __init__(self, **kwargs):
         self._physics = aircraft.model_wrapper()
-        self.is_adversary = kwargs['is_adversary']
+        self.is_adversary = kwargs.get("is_adversary", False)
 
         self.action_space = spaces.Box(np.array(self._physics.get_param()['a_min']).reshape(-1), np.array(self._physics.get_param()['a_max']).reshape(-1))
         self.observation_space = spaces.Box(np.array(self._physics.get_param()['x_min']).reshape(-1), np.array(self._physics.get_param()['x_max']).reshape(-1))
