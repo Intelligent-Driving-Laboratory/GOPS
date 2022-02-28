@@ -10,8 +10,8 @@
 
 __all__ = ['ApproxContainer', 'PPO']
 
-from copy import deepcopy
-import math
+
+from typing import Dict
 import numpy as np
 import torch
 import torch.nn as nn
@@ -27,10 +27,6 @@ from gops.utils.tensorboard_tools import tb_tags
 class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        self.max_iteration = kwargs['max_iteration']
-        self.learning_rate = kwargs['learning_rate']
-        self.schedule_adam = 'linear'
-
         value_func_type = kwargs['value_func_type']
         policy_func_type = kwargs['policy_func_type']
 
@@ -42,8 +38,6 @@ class ApproxContainer(nn.Module):
         self.value = create_apprfunc(**value_args)
         policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
         self.policy = create_apprfunc(**policy_args)
-
-        self.approximate_optimizer = Adam(self.parameters(), lr=self.learning_rate)
 
     # create action_distributions
     def create_action_distributions(self, logits):
@@ -60,10 +54,7 @@ class ApproxContainer(nn.Module):
             p.data = torch.from_numpy(weight)
 
 class PPO():
-    __has_gpu = torch.cuda.is_available()
-
     def __init__(self, **kwargs):
-        self.data_gae = dict()
         self.trainer_type = kwargs['trainer']
         self.max_iteration = kwargs['max_iteration']
         self.num_epoch = kwargs['num_epoch']
@@ -77,16 +68,18 @@ class PPO():
         self.gamma = 0.99
         self.lamb = 0.95  # applied in GAE, making a compromise between bias & var
         self.clip = 0.2
-        self.clip_now = 0.2
+        self.clip_now = self.clip
         self.EPS = 1e-8
+        self.loss_coefficient_kl = 0.2
         self.loss_coefficient_value = 1.0
-        self.loss_coefficient_entropy = 0.01
+        self.loss_coefficient_entropy = 0.0
 
-        self.schedule_adam = 'linear'
-        self.schedule_clip = 'linear'
+        self.schedule_adam = 'none'
+        self.schedule_clip = 'none'
         self.advantage_norm = True
-        self.loss_value_clip = False
-        self.loss_value_norm = True
+        self.loss_value_clip = True
+        self.value_clip = 10.0
+        self.loss_value_norm = False
 
         self.networks = ApproxContainer(**kwargs)
         self.learning_rate = kwargs['learning_rate']
@@ -127,6 +120,7 @@ class PPO():
         params['clip'] = self.clip
         params['clip_now'] = self.clip_now
         params['EPS'] = self.EPS
+        params['loss_coefficient_kl'] = self.loss_coefficient_kl
         params['loss_coefficient_value'] = self.loss_coefficient_value
         params['loss_coefficient_entropy'] = self.loss_coefficient_entropy
 
@@ -134,49 +128,48 @@ class PPO():
         params['schedule_clip'] = self.schedule_clip
         params['advantage_norm'] = self.advantage_norm
         params['loss_value_clip'] = self.loss_value_clip
+        params['value_clip'] = self.value_clip
         params['loss_value_norm'] = self.loss_value_norm
 
         return params
 
-    def compute_gradient(self, data:dict, iteration):
-        tb_info = dict()
+    def compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
         start_time = time.perf_counter()
 
-        # self.gradient_step = iteration % self.num_epoch
-        # if self.gradient_step == 0:
+        data_gae = self.__generalization_advantage_estimate(data)  # 1/10 of total time
 
-        self.data_gae = self.__generalization_advantage_estimate(data)  # 1/10 of total time
-        # create the indices array
-        self.indices = np.arange(self.sample_batch_size)
-        np.random.shuffle(self.indices)
+        for _ in range(self.num_repeat):
+            np.random.shuffle(self.indices)
 
-        for gradient_step in range(self.num_epoch):
-            mb_start = self.mini_batch_size * (gradient_step % self.num_mini_batch)
-            mb_indices = self.indices[mb_start: mb_start + self.mini_batch_size]
-            mb_sample = {k: self.data_gae[k][mb_indices] for k in list(self.data_gae.keys())}
-
-            loss_total, loss_surrogate, loss_value, loss_entropy, approximate_kl, clip_fra = \
-                self.__compute_loss(mb_sample, iteration)
-            self.approximate_optimizer.zero_grad()
-            loss_total.backward()  # < 2ms
-            self.approximate_optimizer.step()
-            if self.schedule_adam == 'linear':
-                decay_rate = 1 - (iteration / self.max_iteration)
-                assert decay_rate >= 0, "the decay_rate is less than 0!"
-                lr_now = self.learning_rate * decay_rate
-                # set learning rate
-                for g in self.approximate_optimizer.param_groups:
-                    g['lr'] = lr_now
+            for n in range(self.num_mini_batch):
+                mb_start = self.mini_batch_size * n
+                mb_end = self.mini_batch_size * (n + 1)
+                mb_indices = self.indices[mb_start:mb_end]
+                mb_sample = {k: v[mb_indices] for k, v in data_gae.items()}
+                loss_total, loss_surrogate, loss_value, loss_entropy, approximate_kl, clip_fra = \
+                    self.__compute_loss(mb_sample, iteration)
+                self.approximate_optimizer.zero_grad()
+                loss_total.backward()
+                self.approximate_optimizer.step()
+                if self.schedule_adam == 'linear':
+                    decay_rate = 1 - (iteration / self.max_iteration)
+                    assert decay_rate >= 0, "the decay_rate is less than 0!"
+                    lr_now = self.learning_rate * decay_rate
+                    # set learning rate
+                    for g in self.approximate_optimizer.param_groups:
+                        g['lr'] = lr_now
 
         value_weights = [p.detach().cpu().numpy() for p in self.networks.value.parameters()]
         policy_weights = [p.detach().cpu().numpy() for p in self.networks.policy.parameters()]
 
         end_time = time.perf_counter()
+        
+        tb_info = dict()
         # tb_info[tb_tags["loss_total"]] = loss_total.item()
         tb_info[tb_tags["loss_actor"]] = loss_surrogate.item()
         tb_info[tb_tags["loss_critic"]] = loss_value.item()
         # tb_info[tb_tags["loss_entropy"]] = loss_entropy.item()
-        # tb_info[tb_tags["approximate_KL"]] = approximate_kl.item()
+        tb_info["Train/kl_divergence"] = approximate_kl.item()
         # tb_info[tb_tags["clip_fraction"]] = clip_fra.item()
         tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
 
@@ -203,27 +196,23 @@ class PPO():
 
         return grad_info, tb_info
 
-    def __compute_loss(self, data, iteration):
-        if data.get('ret') is None:  # GAE needs to be done
-            extended_data = self.__generalization_advantage_estimate(data)
-            print('iteration = ', iteration + 1, ': Finish GAE in compute_loss!!!')
-            obs, act, rew, obs2 = extended_data['obs'], extended_data['act'], extended_data['rew'], extended_data['obs2']
-            mask, pro = extended_data['mask'], extended_data['pro']
-            returns, advantages, values = extended_data['ret'], extended_data['adv'], extended_data['val']
-        else:
-            obs, act, rew, obs2 = data['obs'], data['act'], data['rew'], data['obs2']
-            mask, pro = data['mask'], data['pro']
-            returns, advantages, values = data['ret'], data['adv'], data['val']
-
-        if self.advantage_norm:
-            advantages = (advantages - advantages.mean()) / (advantages.std() + self.EPS)  # standardization
+    def __compute_loss(self, data: Dict[str, torch.Tensor], iteration: int):
+        obs, act, rew, obs2 = data['obs'], data['act'], data['rew'], data['obs2']
+        mask, pro = data['mask'], data['pro']
+        returns, advantages, values = data['ret'], data['adv'], data['val']
+        logits = data['logits']
 
         # name completion
         mb_observation = obs
         mb_action = act
         mb_old_log_pro = pro
-        mb_new_log_pro = self.__get_log_pro(mb_observation, mb_action)
+        mb_old_logits = logits
+        mb_old_act_dist = self.networks.create_action_distributions(mb_old_logits)
+        mb_new_logits = self.networks.policy(mb_observation)
+        mb_new_act_dist = self.networks.create_action_distributions(mb_new_logits)
+        mb_new_log_pro = mb_new_act_dist.log_prob(mb_action)
 
+        assert not advantages.requires_grad and not returns.requires_grad
         mb_return = returns.detach()
         mb_advantage = advantages.detach()
         mb_old_value = values
@@ -239,7 +228,7 @@ class PPO():
             # unclipped value
             value_losses1 = torch.pow(mb_new_value - mb_return, 2)
             # clipped value
-            mb_new_value_clipped = mb_old_value + (mb_new_value - mb_return).clamp(1 - self.clip_now, 1 + self.clip_now)
+            mb_new_value_clipped = mb_old_value + (mb_new_value - mb_old_value).clamp(-self.value_clip, self.value_clip)
             value_losses2 = torch.pow(mb_new_value_clipped - mb_return, 2)
             # value loss
             value_losses = torch.max(value_losses1, value_losses2)
@@ -252,21 +241,26 @@ class PPO():
             loss_value = 0.5 * torch.mean(value_losses)
 
         # entropy loss
-        loss_entropy = - torch.mean(torch.exp(mb_new_log_pro) * mb_new_log_pro)
-        approximate_kl = 0.5 * torch.mean(torch.pow(mb_old_log_pro - mb_new_log_pro, 2))
+        loss_entropy = torch.mean(mb_new_act_dist.entropy())
+        loss_kl = torch.mean(mb_old_act_dist.kl_divergence(mb_new_act_dist))
         clip_fraction = torch.mean(torch.gt(torch.abs(ratio - 1.0), self.clip_now).float())
 
         # total loss
-        loss_total = loss_surrogate + self.loss_coefficient_value * loss_value - self.loss_coefficient_entropy * loss_entropy
+        loss_total = (
+            loss_surrogate +
+            self.loss_coefficient_kl * loss_kl +
+            self.loss_coefficient_value * loss_value -
+            self.loss_coefficient_entropy * loss_entropy
+        )
 
         if self.schedule_clip == 'linear':
             decay_rate = 1 - (iteration / self.max_iteration)
             assert decay_rate >= 0, "the decay_rate is less than 0!"
             self.clip_now = self.clip * decay_rate
 
-        return loss_total, loss_surrogate, loss_value, loss_entropy, approximate_kl, clip_fraction
+        return loss_total, loss_surrogate, loss_value, loss_entropy, loss_kl, clip_fraction
 
-    def __generalization_advantage_estimate(self, data:dict):
+    def __generalization_advantage_estimate(self, data: Dict[str, torch.Tensor]):
         if self.use_gpu:
             obs, act, rew, obs2, done = data['obs'].cuda(), data['act'].cuda(), data['rew'].cuda(), data['obs2'].cuda(), data['done'].cuda()
             logp, time_limited = data['logp'].cuda(), data['time_limited'].cuda()
@@ -274,10 +268,10 @@ class PPO():
             obs, act, rew, obs2, done = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
             logp, time_limited = data['logp'], data['time_limited']
         with torch.no_grad():
-            # pro = self._get_log_pro(obs, act)
             pro = logp
+            logits = self.networks.policy(obs)
             values = self.networks.value(obs)
-            prev_value = self.networks.value(obs2[-1, :].unsqueeze(0))
+            prev_value = self.networks.value(obs2[-1].unsqueeze(0))
 
         mask = (~done.to(torch.bool) | time_limited.to(torch.bool)).to(torch.int)  # useless?
         deltas = torch.zeros_like(done)
@@ -293,14 +287,11 @@ class PPO():
             prev_advantage = advantages[i]
         returns = advantages + values
 
-        return dict(obs=obs, act=act, rew=rew, obs2=obs2,
-                    mask=mask, pro=pro, ret=returns, adv=advantages, val=values)
+        if self.advantage_norm:
+            advantages = (advantages - advantages.mean()) / (advantages.std() + self.EPS)  # standardization
 
-    def __get_log_pro(self, obs, act):  # torch.Size([1024, 4]) & torch.Size([1024, 1])
-        logits = self.networks.policy(obs)  # torch.Size([1024, 1]) & torch.Size([1024, 1])
-        act_dist = self.networks.create_action_distributions(logits)
-        log_pro = act_dist.log_prob(act)
-        return log_pro
+        return dict(obs=obs, act=act, rew=rew, obs2=obs2, logits=logits,
+                    mask=mask, pro=pro, ret=returns, adv=advantages, val=values)
 
     def load_state_dict(self, state_dict):
         self.networks.load_state_dict(state_dict)
@@ -322,4 +313,3 @@ if __name__ == '__main__':
     print('this is PPO algorithm!')
     print(torch.cuda.is_available())
     print(torch.cuda.device_count())
-
