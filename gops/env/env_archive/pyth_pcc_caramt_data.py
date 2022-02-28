@@ -74,7 +74,7 @@ class VehicleInfo(Structure):
 
 class RoadMap():
     def __init__(self):
-        self.path = os.path.join(os.path.dirname(__file__), "../resources/roadmap.csv")
+        self.path = os.path.join(os.path.dirname(__file__), "../resources/car_model_dll/roadmap.csv")
         self.map_road = pd.DataFrame(pd.read_csv(self.path, header=None))
         self.x = np.array(self.map_road.iloc[0:, 0].dropna(), dtype='float32')  # x
         self.y = np.array(self.map_road.iloc[0:, 1], dtype='float32')  # theta
@@ -93,7 +93,7 @@ class PythPCCCarAMTModel(gym.Env):
 
     def __init__(self, road_map=RoadMap(),Car_parameter=CarParameter(),**kwargs):
         self.x_map, self.Theta = road_map.load_data_cal()
-        self.dll = CDLL(os.path.join(os.path.dirname(__file__), "../resources/CarModel_AMT.dll"))
+        self.dll = CDLL(os.path.join(os.path.dirname(__file__), "../resources/car_model_dll/CarModel_AMT.dll"))
         #Car_parameter
         Car_parameter.LX_AXLE = 2.91 # 轴距，m
         Car_parameter.LX_CG_SU = 1.015 # 悬上质量质心至前轴距离，m

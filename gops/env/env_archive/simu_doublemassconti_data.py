@@ -1,6 +1,6 @@
 from gym import spaces
 import gym
-from gops.env.resources import doublemass
+from gops.env.resources.simu_doublemass import doublemass
 import numpy as np
 
 class SimuDoublemassconti(gym.Env):

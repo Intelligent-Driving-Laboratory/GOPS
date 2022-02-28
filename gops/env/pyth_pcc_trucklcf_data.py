@@ -379,7 +379,7 @@ def env_creator(**kwargs):
     return TimeLimit(PythPCCTruck(**kwargs), 20000)
 
 if __name__ == "__main__":
-    env = PythPCCTruck()
+    env = PythPCCTruck(pre_horizon=10, max_iteration=10)
     env.reset()
     for i in range(10000):
         next_state, reward, done, _ = env.step(100)
