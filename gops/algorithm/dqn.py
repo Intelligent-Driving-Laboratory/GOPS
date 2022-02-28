@@ -45,7 +45,6 @@ class ApproxContainer(nn.Module):
                 return self.q.forward(obs)
 
         self.policy = policy_q
-        self.policy.q = policy_q
         self.q = Q_network
         self.target = target_network
         self.q_optimizer = Adam(self.q.parameters(), lr=self.lr)

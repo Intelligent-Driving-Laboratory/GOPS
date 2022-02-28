@@ -65,6 +65,7 @@ if __name__ == "__main__":
     parser.add_argument('--policy_func_name', type=str, default='StochaPolicy')
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--policy_func_type', type=str, default='MLP')
+    parser.add_argument('--policy_act_distribution', type=str, default='GaussDistribution')
     policy_func_type = parser.parse_args().policy_func_type
     # 2.2.1 MLP, CNN, RNN
     parser.add_argument('--policy_hidden_sizes', type=list, default=[64, 64])
@@ -72,8 +73,8 @@ if __name__ == "__main__":
     parser.add_argument('--policy_hidden_activation', type=str, default='relu')
     # Output Layer: linear
     parser.add_argument('--policy_output_activation', type=str, default='linear')
-    parser.add_argument('--policy_min_log_std', type=int, default=-8)  # -6
-    parser.add_argument('--policy_max_log_std', type=int, default=2)  # 3
+    parser.add_argument('--policy_min_log_std', type=int, default=-3)  # -6
+    parser.add_argument('--policy_max_log_std', type=int, default=4)  # 3
 
     ################################################
     # 3. Parameters for algorithm
@@ -104,8 +105,7 @@ if __name__ == "__main__":
     assert parser.parse_args().num_mini_batch * parser.parse_args().mini_batch_size == parser.parse_args().sample_batch_size, 'sample_batch_size error'
     # Add noise to actions for better exploration
     parser.add_argument('--noise_params', type=dict,
-                        default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0], dtype=np.float32)},
+                        default=None,
                         help='Add noise to actions for exploration')
 
     ################################################
@@ -138,7 +138,9 @@ if __name__ == "__main__":
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters({'gamma': 0.95, 'loss_coefficient_value': 0.25, 'loss_coefficient_entropy': 0.01})
+    alg.set_parameters({'gamma': 0.95, 'loss_coefficient_value': 0.25, 'loss_coefficient_entropy': 0.01,
+                        'schedule_adam':'linear','schedule_clip':'linear','loss_value_clip':False,
+                       'loss_value_norm':True})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

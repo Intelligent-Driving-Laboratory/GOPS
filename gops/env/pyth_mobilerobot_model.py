@@ -13,9 +13,9 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-class GymMobilerobotModel:
+class PythMobilerobotModel:
 
-    def __init__(self):
+    def __init__(self,**kwargs):
         """
         you need to define parameters here
         """

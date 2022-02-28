@@ -58,6 +58,7 @@ if __name__ == "__main__":
     parser.add_argument('--policy_func_name', type=str, default='StochaPolicyDis')
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--policy_func_type', type=str, default='MLP')
+    parser.add_argument('--policy_act_distribution', type=str, default='default')
     policy_func_type = parser.parse_args().policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == 'MLP':
@@ -88,7 +89,6 @@ if __name__ == "__main__":
     parser.add_argument('--trainer', type=str, default='on_serial_trainer')
     # Maximum iteration number
     parser.add_argument('--max_iteration', type=int, default=5000)
-    parser.add_argument('--num_epoch', type=int, default=1)
     trainer_type = parser.parse_args().trainer
     parser.add_argument('--ini_network_dir', type=str, default=None)
     # 4.1. Parameters for on_serial_trainer
@@ -109,8 +109,8 @@ if __name__ == "__main__":
     ################################################
     # 6. Parameters for evaluator
     parser.add_argument('--evaluator_name', type=str, default='evaluator')
-    parser.add_argument('--num_eval_episode', type=int, default=20)
-    parser.add_argument('--eval_interval', type=int, default=10)
+    parser.add_argument('--num_eval_episode', type=int, default=3)
+    parser.add_argument('--eval_interval', type=int, default=1)
 
     ################################################
     # 8. Data savings
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     # Save value/policy every N updates
     parser.add_argument('--apprfunc_save_interval', type=int, default=500)
     # Save key info every N updates
-    parser.add_argument('--log_save_interval', type=int, default=10)
+    parser.add_argument('--log_save_interval', type=int, default=1)
 
     # Get parameter dictionary
     args = vars(parser.parse_args())
