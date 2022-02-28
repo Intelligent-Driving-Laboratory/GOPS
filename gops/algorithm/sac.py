@@ -33,6 +33,11 @@ class ApproxContainer(nn.Module):
         # create value network
         value_func_type = kwargs['value_func_type']
         value_args = get_apprfunc_dict('value', value_func_type, **kwargs)
+
+        if kwargs['cnn_shared']:  # todo:设置默认false
+            feature_args = get_apprfunc_dict('feature', value_func_type, **kwargs)
+            kwargs['feature_net'] = create_apprfunc(**feature_args)
+
         self.value = create_apprfunc(**value_args)
 
         # create q networks
@@ -102,6 +107,7 @@ class SAC:
         self.use_gpu = kwargs['use_gpu']
         self.gamma = 0.99
         self.tau = 0.005
+        self.reward_scale = 1
         self.auto_alpha = True
         self.target_entropy = -kwargs['action_dim']
 
@@ -130,18 +136,20 @@ class SAC:
         params['use_gpu'] = self.use_gpu
         params['auto_alpha'] = self.auto_alpha
         params['alpha'] = self.alpha
+        params['reward_scale'] = self.reward_scale
         params['target_entropy'] = self.target_entropy
         return params
 
     def compute_gradient(self, data, iteration):
         start_time = time.time()
-
+        data['rew'] = data['rew']*self.reward_scale
         if self.use_gpu:
             self.networks = self.networks.cuda()
             for k, v in data.items():
                 data[k] = v.cuda()
 
         obs = data['obs']
+
         logits = self.networks.policy(obs)
         act_dist = self.networks.create_action_distributions(logits)
         new_act = act_dist.rsample()
