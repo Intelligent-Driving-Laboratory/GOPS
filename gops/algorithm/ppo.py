@@ -85,11 +85,9 @@ class PPO():
         self.learning_rate = kwargs['learning_rate']
         self.approximate_optimizer = Adam(self.networks.parameters(), lr=self.learning_rate)
         self.use_gpu = kwargs['use_gpu']
-        # ------------------------------------
         if self.use_gpu:
             self.networks.value = self.networks.value.cuda()
             self.networks.policy = self.networks.policy.cuda()
-        # ------------------------------------
 
     def set_parameters(self, param_dict):
         for key in param_dict:
@@ -172,22 +170,6 @@ class PPO():
         tb_info["Train/kl_divergence"] = approximate_kl.item()
         # tb_info[tb_tags["clip_fraction"]] = clip_fra.item()
         tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
-
-        # if (iteration + 1) % self.print_interval == 0:
-        #     print(f'iteration: {iteration + 1}  '
-        #           f'total_loss = {loss_total:.4f} = '
-        #           f'{loss_surrogate:.4f} + {self.loss_coefficient_value} * {loss_value:.4f} - '
-        #           f'{self.loss_coefficient_entropy} * {loss_entropy:.4f}')
-            # print('------------------------------------')
-            # print('| {:<16}'.format('iteration') + ' | ' + '{:<14} |'.format(iteration + 1))
-            # print('| {:<16}'.format('loss_total') + ' | ' + '{:.12f} |'.format(loss_total.item()))
-            # print('| {:<16}'.format('loss_actor') + ' | ' + '{:.12f} |'.format(loss_surrogate.item()))
-            # print('| {:<16}'.format('loss_critic') + ' | ' + '{:.12f} |'.format(loss_value.item()))
-            # print('| {:<16}'.format('loss_entropy') + ' | ' + '{:.12f} |'.format(loss_entropy.item()))
-            # print('| {:<16}'.format('approximate_KL') + ' | ' + '{:.12f} |'.format(approximate_kl.item()))
-            # print('| {:<16}'.format('clip_fraction') + ' | ' + '{:.12f} |'.format(clip_fra.item()))
-            # print('| {:<16}'.format('alg_time') + ' | ' + '{:.12f} |'.format(end_time - start_time))
-            # print('------------------------------------')
 
         grad_info = dict()
         grad_info['value_weights'] = value_weights
@@ -295,18 +277,6 @@ class PPO():
 
     def load_state_dict(self, state_dict):
         self.networks.load_state_dict(state_dict)
-
-
-# @njit
-# def _gae_return(values, values2, rew, done, gamma, lamb):
-#     advantages = np.zeros_like(rew)
-#     delta = rew + values2 * gamma - values
-#     scale = (1.0 - done) * gamma * lamb
-#     adv = 0
-#     for i in range(len(rew) - 1, -1, -1):
-#         adv = delta[i] + scale[i] * adv
-#         advantages[i] = adv
-#     return advantages
 
 
 if __name__ == '__main__':
