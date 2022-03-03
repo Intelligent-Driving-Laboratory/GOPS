@@ -72,6 +72,7 @@ if __name__ == "__main__":
     parser.add_argument('--policy_func_name', type=str, default='StochaPolicy')
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--policy_func_type', type=str, default='MLP')
+    parser.add_argument('--policy_act_distribution', type=str, default='default')
     policy_func_type = parser.parse_args().policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == 'MLP':
@@ -81,7 +82,7 @@ if __name__ == "__main__":
         # Output Layer: tanh
         parser.add_argument('--policy_output_activation', type=str, default='linear')
     parser.add_argument('--policy_min_log_std', type=int, default=-20)
-    parser.add_argument('--policy_max_log_std', type=int, default=2)
+    parser.add_argument('--policy_max_log_std', type=int, default=0.5)
 
     ################################################
     # 3. Parameters for RL algorithm
@@ -113,11 +114,10 @@ if __name__ == "__main__":
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='off_sampler')
     # Batch size of sampler for buffer store
-    parser.add_argument('--sample_batch_size', type=int, default=256)
+    parser.add_argument('--sample_batch_size', type=int, default=64)
     # Add noise to actions for better exploration
     parser.add_argument('--noise_params', type=dict,
-                        default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0], dtype=np.float32)})
+                        default=None)
 
     ################################################
     # 7. Parameters for evaluator
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters({'reward_scale': 0.1, 'gamma': 0.99, 'tau': 0.2, 'delay_update': 1})
+    alg.set_parameters({'reward_scale': 0.1, 'gamma': 0.99, 'tau': 0.2})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

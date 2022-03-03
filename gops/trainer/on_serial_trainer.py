@@ -41,7 +41,7 @@ class OnSerialTrainer():
         self.max_iteration = kwargs.get('max_iteration')
         self.batch_size = kwargs['sample_batch_size']
         self.ini_network_dir = kwargs['ini_network_dir']
-        self.num_epoch = kwargs['num_epoch']
+
 
         # initialize the networks
         if self.ini_network_dir is not None:

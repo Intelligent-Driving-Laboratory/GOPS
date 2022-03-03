@@ -152,8 +152,7 @@ class SAC:
 
         logits = self.networks.policy(obs)
         act_dist = self.networks.create_action_distributions(logits)
-        new_act = act_dist.rsample()
-        new_logp = act_dist.log_prob(new_act)
+        new_act, new_logp = act_dist.rsample()
         data.update({
             'new_act': new_act,
             'new_logp': new_logp

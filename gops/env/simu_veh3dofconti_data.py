@@ -1,13 +1,13 @@
 from gym import spaces
 import gym
-from gops.env.resources import vehicle3dof
+from gops.env.resources.simu_vehicle3dof import vehicle3dof
 import numpy as np
 
 class SimuVeh3dofconti(gym.Env):
 
     def __init__(self, **kwargs):
         self._physics = vehicle3dof.model_wrapper()
-        self.is_adversary = kwargs['is_adversary']
+        self.is_adversary = kwargs.get('is_adversary', False)
         self.action_space = spaces.Box(np.array(self._physics.get_param()['a_min']).reshape(-1), np.array(self._physics.get_param()['a_max']).reshape(-1))
         self.observation_space = spaces.Box(np.array(self._physics.get_param()['x_min']).reshape(-1), np.array(self._physics.get_param()['x_max']).reshape(-1))
         self.adv_action_space = spaces.Box(np.array(self._physics.get_param()['adva_min']).reshape(-1), np.array(self._physics.get_param()['adva_max']).reshape(-1))
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     import gym
     import numpy as np
 
-    env = SimuVehicle3dofconti()
+    env = SimuVeh3dofconti()
     s = env.reset()
     for i in range(50):
         a = np.array([1.0, 5000, 5000, 5000, 5000])*0.001

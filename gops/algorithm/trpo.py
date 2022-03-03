@@ -70,13 +70,6 @@ class TRPO:
         self.train_v_iters = train_v_iters
         self.use_gpu = use_gpu
         self.networks = ApproxContainer(**kwargs)
-        action_type = kwargs['action_type']
-        if action_type == 'continu':
-            self.action_distirbution_cls = GaussDistribution
-        elif action_type == 'discret':
-            self.action_distirbution_cls = CategoricalDistribution
-        else:
-            raise ValueError(f'Unknown action_type: {action_type}')
 
     def compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
         start_time = time.time()
@@ -94,7 +87,7 @@ class TRPO:
         with torch.no_grad():
             logits_old = self.networks.policy(obs)
             # print('std:', logits_old[...,1].mean().item())
-        pi_old = self._get_distribution(logits=logits_old)
+        pi_old = self.networks.create_action_distributions(logits=logits_old)
         logp_old = pi_old.log_prob(act)
 
         def get_surrogate_advantage(logp: torch.Tensor):
@@ -103,7 +96,7 @@ class TRPO:
             )
 
         logits = self.networks.policy(obs)
-        pi = self._get_distribution(logits=logits)
+        pi = self.networks.create_action_distributions(logits=logits)
         surrogate_advantage = get_surrogate_advantage(pi.log_prob(act))
         g_params = torch.autograd.grad(surrogate_advantage, self.networks.policy.parameters(), retain_graph=True)
         # FIXME: CNN layer's g would be non-contiguous, needing further investigation
@@ -143,7 +136,7 @@ class TRPO:
             update_policy(self.alpha**i)
             # with torch.no_grad():
             logits_new = new_policy(obs)
-            pi_new = self._get_distribution(logits=logits_new)
+            pi_new = self.networks.create_action_distributions(logits=logits_new)
             logp_new = pi_new.log_prob(act)
 
             if get_surrogate_advantage(logp_new) > 0 and pi_new.kl_divergence(pi_old).mean() < self.delta:
@@ -229,12 +222,9 @@ class TRPO:
             r_dot, r_dot_old = torch.dot(r, r), r_dot
             beta = r_dot / r_dot_old
             p = r.add(p, alpha=beta)
-        print(f'mode2: max_cg {r.norm(2)}, {b.norm(2)}, {r.norm(2) / b.norm(2)}')
+       # print(f'mode2: max_cg {r.norm(2)}, {b.norm(2)}, {r.norm(2) / b.norm(2)}')
         return x, r
         # raise ValueError("_conjugate_gradient failed to converge within max_cg iterations")
-
-    def _get_distribution(self, logits: torch.Tensor):
-        return self.action_distirbution_cls(logits)
 
     def _estimate_advantage(self, obs: torch.Tensor, obs2: torch.Tensor, rew: torch.Tensor, done: torch.Tensor, val: torch.Tensor):
         gamma, lamda = self.gamma, self.lamda

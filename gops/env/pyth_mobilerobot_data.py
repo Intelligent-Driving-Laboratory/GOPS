@@ -19,7 +19,7 @@ from gym.wrappers.time_limit import TimeLimit
 gym.logger.setLevel(gym.logger.ERROR)
 
 
-class GymMobilerobot:
+class PythMobilerobot:
 
     def __init__(self, **kwargs):
         """

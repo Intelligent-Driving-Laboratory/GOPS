@@ -3,7 +3,7 @@
 
 """
 import time
-
+import sys
 import torch
 import torch.nn as nn
 import numpy as np
@@ -11,6 +11,7 @@ import numpy as np
 from gops.utils.tensorboard_tools import tb_tags
 from gops.utils.action_distributions import *
 import random
+import importlib
 
 
 def get_activation_func(key: str):
@@ -70,16 +71,25 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
         var['act_high_lim'] = kwargs['action_high_limit']
         var['act_low_lim'] = kwargs['action_low_limit']
         var['act_dim'] = kwargs['action_dim']
-        if kwargs['policy_func_name'] == 'StochaPolicy':
-            var['action_distirbution_cls'] = GaussDistribution
-        elif kwargs['policy_func_name'] == 'DetermPolicy':
-            var['action_distirbution_cls'] = DiracDistribution
+
     else:
         var['act_num'] = kwargs['action_num']
-        if kwargs['policy_func_name'] == 'StochaPolicyDis':
-            var['action_distirbution_cls'] = CategoricalDistribution
-        elif kwargs['policy_func_name'] == 'DetermPolicyDis':
-            var['action_distirbution_cls'] = ValueDiracDistribution
+
+    if kwargs['policy_act_distribution'] == 'default':
+        if kwargs['action_type'] == 'continu':
+            if kwargs['policy_func_name'] == 'StochaPolicy':
+                var['action_distirbution_cls'] = GaussDistribution
+            elif kwargs['policy_func_name'] == 'DetermPolicy':
+                var['action_distirbution_cls'] = DiracDistribution
+        else:
+            if kwargs['policy_func_name'] == 'StochaPolicyDis':
+                var['action_distirbution_cls'] = CategoricalDistribution
+            elif kwargs['policy_func_name'] == 'DetermPolicyDis':
+                var['action_distirbution_cls'] = ValueDiracDistribution
+    else:
+
+        var['action_distirbution_cls'] = getattr(sys.modules[__name__], kwargs['policy_act_distribution'])
+
 
     return var
 

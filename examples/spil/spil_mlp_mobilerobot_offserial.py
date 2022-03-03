@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='gym_mobilerobot')
+    parser.add_argument('--env_id', type=str, default='pyth_mobilerobot')
     parser.add_argument('--algorithm', type=str, default='SPIL')
     parser.add_argument('--enable_cuda', default=False, help='Enable CUDA')
 
@@ -62,6 +62,7 @@ if __name__ == "__main__":
     # 2.2 Parameters of policy approximate function
     parser.add_argument('--policy_func_name', type=str, default='DetermPolicy')
     parser.add_argument('--policy_func_type', type=str, default='MLP')
+    parser.add_argument('--policy_act_distribution', type=str, default='default')
     policy_func_type = parser.parse_args().policy_func_type
     if policy_func_type == 'MLP':
         parser.add_argument('--policy_hidden_sizes', type=list, default=[64, 64])
