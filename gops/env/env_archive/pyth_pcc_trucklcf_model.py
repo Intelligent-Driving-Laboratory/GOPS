@@ -23,7 +23,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 class RoadMap():
     def __init__(self):
-        self.path = os.path.join(os.path.dirname(__file__),"resources/pyth_pcc_trucklcf_file/Roadmap.csv")
+        self.path = os.path.join(os.path.dirname(os.path.dirname(__file__)),"resources/pyth_pcc_trucklcf_file/Roadmap.csv")
         self.map_road = pd.DataFrame(pd.read_csv(self.path, header=None))
         self.x = np.array(self.map_road.iloc[0:, 0].dropna(), dtype='float32')  # x
         self.y = np.array(self.map_road.iloc[0:, 1], dtype='float32')  # theta
@@ -86,7 +86,7 @@ class PythPccTrucklcfModel(torch.nn.Module):
         self.iteration_index = 0
 
         # read torque map table
-        self.path_Torque_trucksim = os.path.join(os.path.dirname(__file__), "resources/pyth_pcc_trucklcf_file/Te_throttle_engspd_150kw.csv")
+        self.path_Torque_trucksim = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources/pyth_pcc_trucklcf_file/Te_throttle_engspd_150kw.csv")
         self.Torque_trucksim = pd.DataFrame(pd.read_csv(self.path_Torque_trucksim, header=None))
         self.Torque_throttle = np.array(self.Torque_trucksim.iloc[0, 1:].dropna())  # axis X: throttle
         self.Torque_engspd = np.array(self.Torque_trucksim.iloc[1:, 0])  # axis Y: engspd unit: rpm
