@@ -187,9 +187,9 @@ class ActionValueDistri(nn.Module, Action_Distribution):
         self.output_activation = get_activation_func(kwargs['output_activation'])
         self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
-        self.register_buffer('min_log_std', torch.from_numpy(kwargs['min_log_std']))
-        self.register_buffer('max_log_std', torch.from_numpy(kwargs['max_log_std']))
-        self.register_buffer('denominator', max(abs(self.min_log_std), self.max_log_std))
+        self.min_log_std = kwargs['min_log_std']
+        self.max_log_std = kwargs['max_log_std']
+        self.denominator = max(abs(self.min_log_std), self.max_log_std)
 
         # MLP Parameters
         self.conv = kwargs['feature_net'].conv  # Shallow copy
