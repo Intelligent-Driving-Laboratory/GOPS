@@ -1,4 +1,4 @@
-from resources.crossing import endtoend
+from gops.env.resources.crossing import endtoend
 
 
 

@@ -113,12 +113,8 @@ class OnSampler():
                        'time_limited': torch.zeros(self.sample_batch_size, )}
         if self.is_constrained:
             tensor_dict['con'] = torch.zeros(self.sample_batch_size, self.con_dim)
-        else:
-            tensor_dict['con'] = None
         if self.is_adversary:
             tensor_dict['advers'] = torch.zeros(self.sample_batch_size, self.advers_dim)
-        else:
-            tensor_dict['advers'] = None
         idx = 0
         for sample in samples:
             obs, act, rew, next_obs, done, logp, time_limited = sample[:7]
