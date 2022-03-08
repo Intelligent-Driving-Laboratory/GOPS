@@ -103,6 +103,7 @@ class PPO():
         print('| {:<16}'.format('clip') + ' | ' + '{:<9} |'.format(str(self.clip)))
         print('| {:<16}'.format('factor_value') + ' | ' + '{:<9} |'.format(str(self.loss_coefficient_value)))
         print('| {:<16}'.format('factor_entropy') + ' | ' + '{:<9} |'.format(str(self.loss_coefficient_entropy)))
+        print('| {:<16}'.format('factor_kl') + ' | ' + '{:<9} |'.format(str(self.loss_coefficient_kl)))
         print('| {:<16}'.format('schedule_adam') + ' | ' + '{:<9} |'.format(self.schedule_adam))
         print('| {:<16}'.format('schedule_clip') + ' | ' + '{:<9} |'.format(self.schedule_clip))
         print('| {:<16}'.format('advantage_norm') + ' | ' + '{:<9} |'.format(str(self.advantage_norm)))
