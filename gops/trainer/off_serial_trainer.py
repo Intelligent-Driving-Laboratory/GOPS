@@ -33,11 +33,7 @@ class OffSerialTrainer():
         self.evaluator = evaluator
 
         # Import algorithm, appr func, sampler & buffer
-        alg_name = kwargs['algorithm']
-        alg_file_name = alg_name.lower()
-        file = __import__(alg_file_name)
-        ApproxContainer = getattr(file, 'ApproxContainer')
-        self.networks = ApproxContainer(**kwargs)
+        self.networks = alg.networks
         self.iteration = 0
         self.max_iteration = kwargs.get('max_iteration')
         self.warm_size = kwargs['buffer_warm_size']
@@ -66,6 +62,10 @@ class OffSerialTrainer():
         self.writer.flush()
         # setattr(self.alg, "writer", self.evaluator.writer)
 
+        self.use_gpu = kwargs['use_gpu']
+        if self.use_gpu:
+            self.networks.cuda()
+
     def step(self):
         # sampling
         sampler_tb_dict = {}
@@ -76,9 +76,11 @@ class OffSerialTrainer():
 
         # replay
         replay_samples = self.buffer.sample_batch(self.replay_batch_size)
+        if self.use_gpu:
+            for k, v in replay_samples.items():
+                replay_samples[k] = v.cuda()
 
         # learning
-        self.alg.networks.load_state_dict(self.networks.state_dict())
         grads, alg_tb_dict = self.alg.compute_gradient(replay_samples, self.iteration)
 
         # apply grad

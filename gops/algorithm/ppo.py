@@ -47,10 +47,10 @@ class ApproxContainer(nn.Module):
         policy_weights = info['policy_weights']
 
         for p, weight in zip(self.value.parameters(), value_weights):
-            p.data = torch.from_numpy(weight)
+            p.data = weight
 
         for p, weight in zip(self.policy.parameters(), policy_weights):
-            p.data = torch.from_numpy(weight)
+            p.data = weight
 
 class PPO():
     def __init__(self, **kwargs):
@@ -83,10 +83,6 @@ class PPO():
         self.networks = ApproxContainer(**kwargs)
         self.learning_rate = kwargs['learning_rate']
         self.approximate_optimizer = Adam(self.networks.parameters(), lr=self.learning_rate)
-        self.use_gpu = kwargs['use_gpu']
-        if self.use_gpu:
-            self.networks.value = self.networks.value.cuda()
-            self.networks.policy = self.networks.policy.cuda()
 
     def set_parameters(self, param_dict):
         for key in param_dict:
@@ -112,7 +108,6 @@ class PPO():
 
     def get_parameters(self):
         params = dict()
-        params['is_gpu'] = self.use_gpu
         params['gamma'] = self.gamma
         params['lamb'] = self.lamb
         params['clip'] = self.clip
@@ -157,8 +152,8 @@ class PPO():
                     for g in self.approximate_optimizer.param_groups:
                         g['lr'] = lr_now
 
-        value_weights = [p.detach().cpu().numpy() for p in self.networks.value.parameters()]
-        policy_weights = [p.detach().cpu().numpy() for p in self.networks.policy.parameters()]
+        value_weights = [p.detach() for p in self.networks.value.parameters()]
+        policy_weights = [p.detach() for p in self.networks.policy.parameters()]
 
         end_time = time.perf_counter()
         
@@ -243,12 +238,8 @@ class PPO():
         return loss_total, loss_surrogate, loss_value, loss_entropy, loss_kl, clip_fraction
 
     def __generalization_advantage_estimate(self, data: Dict[str, torch.Tensor]):
-        if self.use_gpu:
-            obs, act, rew, obs2, done = data['obs'].cuda(), data['act'].cuda(), data['rew'].cuda(), data['obs2'].cuda(), data['done'].cuda()
-            logp, time_limited = data['logp'].cuda(), data['time_limited'].cuda()
-        else:
-            obs, act, rew, obs2, done = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
-            logp, time_limited = data['logp'], data['time_limited']
+        obs, act, rew, obs2, done = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
+        logp, time_limited = data['logp'], data['time_limited']
         with torch.no_grad():
             pro = logp
             logits = self.networks.policy(obs)

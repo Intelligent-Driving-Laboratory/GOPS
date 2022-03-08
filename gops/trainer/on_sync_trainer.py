@@ -10,7 +10,6 @@
 __all__ = ['OnSyncTrainer']
 
 import logging
-import random
 import time
 
 import ray
@@ -23,6 +22,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 from gops.utils.tensorboard_tools import tb_tags
 import warnings
+from copy import deepcopy
 
 warnings.filterwarnings('ignore')
 
@@ -51,17 +51,17 @@ class OnSyncTrainer():
         self.writer.flush()
 
         # create center network
-        alg_name = kwargs['algorithm']
-        alg_file_name = alg_name.lower()
-        file = __import__(alg_file_name)
-        ApproxContainer = getattr(file, 'ApproxContainer')
-        self.networks = ApproxContainer(**kwargs)
+        self.networks = deepcopy(alg.networks)
 
         self.ini_network_dir = kwargs['ini_network_dir']
 
         # initialize the networks
         if self.ini_network_dir is not None:
             self.networks.load_state_dict(torch.load(self.ini_network_dir))
+
+        self.use_gpu = kwargs['use_gpu']
+        if self.use_gpu:
+            self.alg.networks.cuda()
 
         self.start_time = time.time()
 
@@ -74,11 +74,14 @@ class OnSyncTrainer():
             *ray.get([sampler.sample_with_replay_format.remote() for sampler in self.samplers]))
         sampler_tb_dict = sampler_tb_dict[0]
         all_samples = concate(samples)
+        if self.use_gpu:
+            for k, v in all_samples.items():
+                all_samples[k] = v.cuda()
 
         # learning
-        self.alg.load_state_dict(self.networks.state_dict())  # 更新learner参数
         grads, alg_tb_dict = self.alg.compute_gradient(all_samples, self.iteration)
-        self.networks.update(grads)
+        self.alg.networks.update(grads)
+        self.networks.load_state_dict(self.alg.networks.state_dict())
 
         # log
         if self.iteration % self.log_save_interval == 0:

@@ -33,16 +33,11 @@ class OnSerialTrainer():
         self.evaluator = evaluator
 
         # Import algorithm, appr func, sampler & buffer
-        alg_name = kwargs['algorithm']
-        alg_file_name = alg_name.lower()
-        file = __import__(alg_file_name)
-        ApproxContainer = getattr(file, 'ApproxContainer')
-        self.networks = ApproxContainer(**kwargs)
+        self.networks = alg.networks
         self.iteration = 0
         self.max_iteration = kwargs.get('max_iteration')
         self.batch_size = kwargs['sample_batch_size']
         self.ini_network_dir = kwargs['ini_network_dir']
-
 
         # initialize the networks
         if self.ini_network_dir is not None:
@@ -60,13 +55,19 @@ class OnSerialTrainer():
         self.start_time = time.time()
         # setattr(self.alg, "writer", self.evaluator.writer)
 
+        self.use_gpu = kwargs['use_gpu']
+        if self.use_gpu:
+            self.networks.cuda()
+
     def step(self):
         # sampling
         self.sampler.networks.load_state_dict(self.networks.state_dict())
         samples_with_replay_format, sampler_tb_dict = self.sampler.sample_with_replay_format()
+        if self.use_gpu:
+            for k, v in samples_with_replay_format.items():
+                samples_with_replay_format[k] = v.cuda()
 
         # learning
-        self.alg.networks.load_state_dict(self.networks.state_dict())
         grads, alg_tb_dict = self.alg.compute_gradient(samples_with_replay_format, self.iteration)
 
         # apply grad
