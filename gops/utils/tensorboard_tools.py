@@ -1,3 +1,13 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description:
+#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+
+
+
 """
 tensorboard related functions
 

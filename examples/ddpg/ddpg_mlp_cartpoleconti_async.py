@@ -2,7 +2,7 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yang GUAN and Wenhan CAO
+#  Creator: iDLab
 #  Description: Discrete version of Cartpole Enviroment
 
 

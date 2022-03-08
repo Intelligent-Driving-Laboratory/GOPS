@@ -2,8 +2,7 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yuxuan Jiang & Guojian Zhan
-#
+#  Creator: iDLab
 #  Description: discrete version of Cartpole Enviroment
 #  Update Date: 2021-07-11, Yuxuan Jiang & Guojian Zhan : TRPO with cartpole
 

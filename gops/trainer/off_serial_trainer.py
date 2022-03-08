@@ -2,11 +2,11 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yang GUAN
+#  Creator: iDLab
 #  Description: Serial trainer for RL algorithms
-#
 #  Update Date: 2021-03-10, Wenhan CAO: Revise Codes
 #  Update Date: 2021-05-21, Shengbo LI: Format Revise
+
 
 
 __all__ = ['OffSerialTrainer']

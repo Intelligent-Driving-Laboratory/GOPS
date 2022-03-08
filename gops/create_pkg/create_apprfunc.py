@@ -2,12 +2,8 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Hao SUN
-#  Description: Create apprfunc
-"""
-
-"""
-
+#  Creator: iDLab
+#  Description:
 #  Update Date: 2020-12-26, Hao SUN:  add create_apprfunc function
 
 

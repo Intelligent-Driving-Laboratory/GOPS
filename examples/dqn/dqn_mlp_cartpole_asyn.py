@@ -2,8 +2,7 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yuxuan JIANG
-#
+#  Creator: iDLab
 #  Description: gym environment, discrete action, cart pole, dqn
 #  Update Date: 2021-01-03, Yuxuan JIANG & Guojian ZHAN : implement DQN
 #  Update Date: 2021-07-11, Yuxuan JIANG : adapt to new trainer interface

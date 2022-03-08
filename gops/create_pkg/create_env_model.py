@@ -2,8 +2,10 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yuhang ZHANG
+#  Creator: iDLab
 #  Description: Create environments
+#  Update Date: 2020-11-10, Yuhang ZHANG:
+
 """
 resources:
 env = create_env('gym_pendulum_diff')
@@ -19,10 +21,6 @@ env = create_env('gym_pendulum_diff')
 3: Define an instantiating function env_creator() which return a instance of the environment
 Note: create_env() requires that either 2 or 3 is satisfied.
 """
-
-
-#  Update Date: 2020-11-10, Yuhang ZHANG:
-
 
 def create_env_model(**kwargs):
     env_model_name = kwargs['env_id'] + '_model'

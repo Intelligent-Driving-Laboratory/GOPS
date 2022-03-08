@@ -2,14 +2,10 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Sun Hao
-#  Description: Soft Actor-Critic
-#
-#  Update Date: 2021-6-17, Yang Yujie: implement SAC
-#
-#  Supported environment: gym_cartpoleconti, gym_pendulum
-#  Supported trainer: off_serial, off_async, on_serial, on_sync
-#  (Note that on-policy trainers are not recommended since SAC is an off-policy algorithm)
+#  Creator: iDLab
+#  Description:
+#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+
 
 __all__ = ['ApproxContainer', 'SAC']
 

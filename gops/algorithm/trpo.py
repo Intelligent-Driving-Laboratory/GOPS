@@ -1,7 +1,10 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yuxuan JIANG
-#  Description: Trust region policy optimization
+#  Creator: iDLab
+#  Description:
+#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
 
 
 __all__ = ["TRPO"]
@@ -22,7 +25,6 @@ from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.utils.action_distributions import GaussDistribution, CategoricalDistribution
 from gops.utils.utils import get_apprfunc_dict
 from gops.utils.tensorboard_tools import tb_tags
-
 
 EPSILON = 1e-8
 

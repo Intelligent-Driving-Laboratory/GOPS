@@ -2,7 +2,11 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yang Yujie
+#  Creator: iDLab
+#  Description: Soft Actor Critic
+#  Update Date: 2021-06-11, Yang Yujie
+
+
 
 import argparse
 import os

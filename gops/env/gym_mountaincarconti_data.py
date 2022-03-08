@@ -2,13 +2,13 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yuhang Zhang
+#  Creator: iDLab
 #  Description: Mountaincar Environment (continous version)
-#
 #  Update Date: 2021-05-55, Yuhang Zhang: create environment
 
-import gym
 
+
+import gym
 
 def env_creator(**kwargs):
     return gym.make('MountainCarContinuous-v0')

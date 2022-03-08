@@ -2,8 +2,11 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Hao SUN
+#  Creator: iDLab
 #  Description: Create trainers
+#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+
+
 """
 resources:
 

@@ -2,10 +2,11 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yang GUAN
+#  Creator: iDLab
 #  Description: Evaluation of trained policy
-#
-#  Update Date: 2021-05-10, Shengbo LI: renew env para
+#  Update Date: 2021-05-10, Yang GUAN: renew env para
+
+
 
 import datetime
 import os
@@ -17,7 +18,6 @@ import torch
 from gops.create_pkg.create_env import create_env
 
 from gops.utils.action_distributions import GaussDistribution, DiracDistribution, ValueDiracDistribution, CategoricalDistribution
-
 
 class Evaluator():
 

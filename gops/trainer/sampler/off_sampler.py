@@ -2,9 +2,8 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yang GUAN
+#  Creator: iDLab
 #  Description: Monte Carlo Sampler
-#
 #  Update Date: 2021-03-10, Wenhan CAO: Revise Codes
 
 

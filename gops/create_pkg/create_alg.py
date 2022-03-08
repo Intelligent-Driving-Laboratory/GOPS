@@ -2,13 +2,11 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Hao SUN
-#  Description: Create algorithm
-"""
-
-"""
-
+#  Creator: iDLab
+#  Description:
 #  Update Date: 2020-12-01, Hao SUN:
+
+
 import importlib
 
 def create_alg(**kwargs):

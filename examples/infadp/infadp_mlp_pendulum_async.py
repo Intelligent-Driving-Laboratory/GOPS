@@ -2,9 +2,8 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Wenxuan Wang
+#  Creator: iDLab
 #  Description: Infinite ADP algorithm in continute version of Cartpole Enviroment
-#
 #  Update Date: 2020-11-10, Wenxuan Wang
 
 import argparse

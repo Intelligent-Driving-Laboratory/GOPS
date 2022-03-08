@@ -2,10 +2,12 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Sun Hao
+#  Creator: iDLab
 #  Description: Acrobat Environment
-#
 #  Update Date: 2021-05-55, Sun Hao: create environment
+
+
+
 import math
 import gym
 from gym import spaces
@@ -14,7 +16,6 @@ import numpy as np
 from gym.wrappers.time_limit import TimeLimit
 
 gym.logger.setLevel(gym.logger.ERROR)
-
 
 class _GymCartpoleconti(gym.Env):
     metadata = {

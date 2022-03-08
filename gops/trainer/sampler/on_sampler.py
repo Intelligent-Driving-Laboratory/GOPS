@@ -2,10 +2,10 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yang GUAN
+#  Creator: iDLab
 #  Description: Monte Carlo Sampler
-#
 #  Update Date: 2021-03-10, Wenhan CAO: Revise Codes
+
 
 
 import numpy as np
@@ -17,7 +17,6 @@ from gops.utils.noise import GaussNoise, EpsilonGreedy
 import time
 from gops.utils.tensorboard_tools import tb_tags
 from gops.utils.utils import array_to_scalar
-
 
 class OnSampler():
     def __init__(self, **kwargs):

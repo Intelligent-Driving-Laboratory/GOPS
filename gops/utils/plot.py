@@ -1,9 +1,12 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
-#
-#  Creator: Zhang Yuhang
-#  Description: plot_figure, load_tensorboard_file
-
+#  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description:
+#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+
+
 
 import os
 import string
@@ -13,7 +16,6 @@ import matplotlib.colors as mcolors
 from itertools import cycle
 from gops.utils.tensorboard_tools import read_tensorboard
 import numpy as np
-
 
 def self_plot(data,
               fname=None,

@@ -1,11 +1,9 @@
-#coding=gbk
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yao Mu
+#  Creator:iDLab
 #  Description: Mixed Actor Critic (MAC) in stochastic system
-#
 #  Update Date: 2021-10-22, Yao Mu
 
 import argparse

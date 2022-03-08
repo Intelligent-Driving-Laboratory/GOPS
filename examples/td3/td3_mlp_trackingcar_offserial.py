@@ -2,7 +2,8 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Sun Hao
+#  Creator: iDLab
+#  Description: gym environment, continuous action, cart pole
 
 
 import argparse
