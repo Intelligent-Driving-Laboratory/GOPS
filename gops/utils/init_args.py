@@ -30,7 +30,18 @@ def init_args(env, **args):
     else:
         args['use_gpu'] = False
 
-    # observation dimension
+    # sampler
+    if args['trainer'] == 'on_sync_trainer':
+        args['batch_size_per_sampler'] = args['sample_batch_size'] // args['num_samplers']
+        if args['sample_batch_size'] % args['num_samplers'] != 0:
+            args['sample_batch_size'] = args['batch_size_per_sampler']*args['num_samplers']
+            error_msg = "sample_batch_size can not be exact divided by the number of samplers!"
+            raise ValueError(error_msg)
+    else:
+        args['batch_size_per_sampler'] = args['sample_batch_size']
+
+
+        # observation dimension
     if len(env.observation_space.shape) == 1:
         args['obsv_dim'] = env.observation_space.shape[0]
     else:
