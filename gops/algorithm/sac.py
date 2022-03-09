@@ -3,8 +3,9 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Description: Soft Actor Critic Algorithm (SAC)
+#  Update: 2021-03-05, Yujie Yang: create SAC algorithm
+
 
 
 __all__ = ['ApproxContainer', 'SAC']

@@ -3,8 +3,10 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Description: Finity ADP Algorithm
+#  Update: 2021-03-05, Fawang Zhang: create finity ADP algorithm
+
+
 
 __all__ = ['FHADP']
 from copy import deepcopy

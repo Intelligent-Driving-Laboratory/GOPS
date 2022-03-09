@@ -3,8 +3,9 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Description: Polynomial Approximation Function
+#  Update: 2021-03-05, Wenjun Zou: create polynomial function
+
 
 
 __all__=['DetermPolicy','StochaPolicy','ActionValue','ActionValueDis','StateValue']

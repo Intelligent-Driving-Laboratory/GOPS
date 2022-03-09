@@ -4,7 +4,7 @@
 #
 #  Creator: iDLab
 #  Description: continuous version of Cartpole Enviroment
-#  Update Date: 2021-07-11, Yuxuan Jiang & Guojian Zhan : TRPO with cartpoleconti
+#  Update Date: 2021-07-11, Yuxuan Jiang & Guojian Zhan: TRPO with cartpoleconti
 
 
 import argparse

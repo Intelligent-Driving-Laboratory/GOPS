@@ -3,8 +3,9 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Description: Deep Deterministic Policy Gradient Algorithm (DDPG)
+#  Update: 2021-03-05, Wenxuan Wang: create DDPG algorithm
+
 
 __all__ = ['ApproxContainer','DDPG']
 

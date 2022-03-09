@@ -3,8 +3,8 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Description: Infinity ADP Algorithm (infADP)
+#  Update: 2021-03-05, Wenxuan Wang: create infADP algorithm
 
 __all__ = ['INFADP']
 

@@ -3,8 +3,10 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Description: Mixed Actor Critic Algorithm (MAC)
+#  Update: 2021-03-05, Yao Mu: create MAC algorithm
+
+
 
 __all__ = ['MAC']
 

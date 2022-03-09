@@ -4,7 +4,8 @@
 #
 #  Creator: iDLab
 #  Description: PPO algorithm, MLP, continuous version of cart pole, on serial trainer
-#  Update Date: 2021-06-11, Li Jie
+#  Update Date: 2021-06-11, Li Jie: add PPO algorithm
+
 
 
 import argparse

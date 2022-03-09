@@ -4,8 +4,7 @@
 #
 #  Creator: iDLab
 #  Description: Vehicle 3DOF Model
-#  Update Date: 2021-10-21, Congsheng Zhang: create environment
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Update Date: 2021-05-55, Congsheng Zhang: create environment
 
 
 

@@ -1,3 +1,12 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: Simulink cartpole environment
+#  Update Date: 2021-07-011, Wenxuan Wang: create simulink environment
+
+
 from gym import spaces
 import gym
 from gops.env.resources.simu_cartpole import cartpole

@@ -1,11 +1,12 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
-
-#  Creator: Fawang Zhang
+#
+#  Creator: iDLab
 #  Description: PCC Car CVT Model Environment
-
 #  Update Date: 2021-07-011, Fawang Zhang: Solve the problem of slow training speed
+
+
 
 import os
 import gym

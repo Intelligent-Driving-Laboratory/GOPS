@@ -3,8 +3,8 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Update: 2021.05.01 Yang GUAN, Wenhan CAO
+#  Description: Asynchronous Parallel Trainer
+#  Update Date: 2021-05-10, Jiaxin Gao: renew parameters
 
 
 

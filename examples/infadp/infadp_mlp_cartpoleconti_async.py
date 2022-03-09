@@ -4,7 +4,7 @@
 #
 #  Creator: iDLab
 #  Description: Infinite ADP algorithm in continute version of Cartpole Enviroment
-#  Update Date: 2020-11-10, Wenxuan Wang
+#  Update Date: 2020-11-10, Wenxuan Wang: adjust parameters
 
 import argparse
 import multiprocessing

@@ -3,8 +3,8 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: A3C algorithm need cooperate with asynchronous or synchronous trainer
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Description: Asynchronous Advantage Actor Critic Algorithm (A3C)
+#  Update: 2021-03-05, Jiaxin Gao: create A3C algorithm
 
 
 __all__ = ['ApproxContainer', 'A3C']

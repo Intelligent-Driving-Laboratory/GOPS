@@ -4,14 +4,13 @@
 #
 #  Creator: iDLab
 #  Description: gym environment, continuous action, cart pole
-#  Update Date: 2020-11-10, Hao SUN: renew env para
-#  Update Date: 2020-11-13, Hao SUN：add new ddpg demo
-#  Update Date: 2020-12-11, Hao SUN：move buffer to trainer
-#  Update Date: 2020-12-12, Hao SUN：move create_* files to create_pkg
-#  Update Date: 2021-01-01, Hao SUN：chang name
+#  Update Date: 2020-11-10, Hao Sun: renew env para
+#  Update Date: 2020-11-13, Hao Sun: add new ddpg demo
+#  Update Date: 2020-12-11, Hao Sun: move buffer to trainer
+#  Update Date: 2020-12-12, Hao Sun: move create_* files to create_pkg
+#  Update Date: 2021-01-01, Hao Sun: change name
 
 
-#  General Optimal control Problem Solver (GOPS)
 
 import argparse
 import os

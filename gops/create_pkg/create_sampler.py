@@ -4,7 +4,9 @@
 #
 #  Creator: iDLab
 #  Description: Create sampler
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Update: 2021-03-05, Yuheng Lei: create sampler module
+
+
 
 import importlib
 

@@ -1,11 +1,11 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
-#
-#  Creator: Jie Li
-#  Description: transform the policy network saved by PyTorch to S-function
-#  Create Date: 2021-05-26
-#  Update Date: 2021-09-14
-
+#  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: transform the policy network saved by PyTorch to S-function
+#  Update Date: 2021-05-55, Jie Li: transform pyTorch network to matlab S-function
+
 
 
 import argparse

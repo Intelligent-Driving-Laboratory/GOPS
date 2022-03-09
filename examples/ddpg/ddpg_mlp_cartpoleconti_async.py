@@ -3,7 +3,9 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Discrete version of Cartpole Enviroment
+#  Description: Discrete version of Cartpole Enviroment, async trainer
+#  Update Date: 2021-11-10, Jiaxin Gao: adjust parameters
+
 
 
 import argparse

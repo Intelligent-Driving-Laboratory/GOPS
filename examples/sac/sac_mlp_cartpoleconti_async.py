@@ -4,7 +4,8 @@
 #
 #  Creator: iDLab
 #  Description: Soft Actor Critic
-#  Update Date: 2021-06-11, Yang Yujie
+#  Update Date: 2021-06-11, Yang Yujie: create SAC algorithm
+
 
 
 import argparse

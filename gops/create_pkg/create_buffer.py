@@ -3,8 +3,8 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Update Date: 2020-12-13, Hao SUN: add create buffer function
+#  Description: Create approximate function module
+#  Update Date: 2020-12-13, Hao Sun: add create buffer function
 
 
 

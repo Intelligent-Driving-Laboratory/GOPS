@@ -3,8 +3,8 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Author: Jiaxin Gao
+#  Description: Mixed Asynchronous Parallel Trainer
+#  Update Date: 2021-05-10, Jiaxin Gao: create mixed asynchronous trainer
 
 
 
