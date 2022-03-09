@@ -29,7 +29,7 @@ class OnSamplerNew():
         ApproxContainer = getattr(file, 'ApproxContainer')
         self.networks = ApproxContainer(**kwargs)
         self.noise_params = kwargs['noise_params']
-        self.sample_batch_size = kwargs['sample_batch_size']
+        self.sample_batch_size = kwargs['batch_size_per_sampler']
         self.obs = self.env.reset()
         self.has_render = hasattr(self.env, 'render')
         self.policy_func_name = kwargs['policy_func_name']

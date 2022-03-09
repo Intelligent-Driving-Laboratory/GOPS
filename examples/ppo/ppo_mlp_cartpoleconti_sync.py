@@ -83,15 +83,15 @@ if __name__ == "__main__":
     if trainer_type == 'on_sync_trainer':
         parser.add_argument('--num_repeat', type=int, default=10, help='5')  # 5 repeat
         parser.add_argument('--num_mini_batch', type=int, default=8, help='8')  # 8 mini_batch
-        parser.add_argument('--mini_batch_size', type=int, default=64, help='128')  # 8 mini_batch * 128 = 1024
+        parser.add_argument('--mini_batch_size', type=int, default=128, help='128')  # 8 mini_batch * 128 = 1024
         parser.add_argument('--num_epoch', type=int,
                             default=parser.parse_args().num_repeat * parser.parse_args().num_mini_batch,
                             help='# 50 gradient step per sample')
         import ray
         ray.init()
-        parser.add_argument('--num_samplers', type=int, default=1, help='number of samplers')
+        parser.add_argument('--num_samplers', type=int, default=2, help='number of samplers')
         cpu_core_num = multiprocessing.cpu_count()
-        num_core_input = parser.parse_args().num_samplers + 3
+        num_core_input = parser.parse_args().num_samplers + 2
         if num_core_input > cpu_core_num:
             raise ValueError('The number of core is {}, but you want {}!'.format(cpu_core_num, num_core_input))
 
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='on_sampler')
     # Batch size of sampler for buffer store
-    parser.add_argument('--sample_batch_size', type=int, default=512,
+    parser.add_argument('--sample_batch_size', type=int, default=1024,
                         help='Batch size of sampler for buffer store = 1024')  # 8 env * 128 step
     assert parser.parse_args().num_mini_batch * parser.parse_args().mini_batch_size == parser.parse_args().sample_batch_size, 'sample_batch_size error'
     # Add noise to actions for better exploration

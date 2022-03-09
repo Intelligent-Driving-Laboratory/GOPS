@@ -39,7 +39,6 @@ class OnSerialTrainer():
         self.networks = ApproxContainer(**kwargs)
         self.iteration = 0
         self.max_iteration = kwargs.get('max_iteration')
-        self.batch_size = kwargs['sample_batch_size']
         self.ini_network_dir = kwargs['ini_network_dir']
 
 
