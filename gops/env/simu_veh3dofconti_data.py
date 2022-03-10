@@ -3,8 +3,8 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Vehicle 3DOF model
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Description: Vehicle 3DOF Model
+#  Update Date: 2021-05-55, Congsheng Zhang: create environment
 
 
 

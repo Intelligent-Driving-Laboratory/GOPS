@@ -3,14 +3,10 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Description: Noise Function
+#  Update Date: 2021-03-10, Yuhang Zhang: Revise Codes
 
 
-"""
-
-
-"""
 
 import numpy as np
 import torch

@@ -1,10 +1,10 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
-
+#
 #  Creator: iDLab
 #  Description: PCC Discrete version of Truck
-#  Update Date: 2021-09-07 create env
+#  Update Date: 2021-09-07, Fawang Zhang: create env
 
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'

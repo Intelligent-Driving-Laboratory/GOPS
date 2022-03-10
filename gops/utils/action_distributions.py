@@ -3,14 +3,11 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Description: Action Distributions
+#  Update Date: 2021-03-10, Yujie Yang: Revise Codes
 
 
-"""
 
-
-"""
 import torch
 
 EPS = 1e-6

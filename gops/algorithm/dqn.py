@@ -3,8 +3,10 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Description: Deep Q-Learning Algorithm (DQN)
+#  Update: 2021-03-05, Wenxuan Wang: create DQN algorithm
+
+
 
 __all__ = ['DQN']
 

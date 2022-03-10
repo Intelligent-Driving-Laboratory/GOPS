@@ -4,7 +4,7 @@
 #
 #  Creator: iDLab
 #  Description: Prioritize Reply buffer
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Update: 2021-03-05, Yuheng Lei: Create reply buffer
 
 
 

@@ -3,7 +3,8 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:           Yang GUAN, Wenhan CAO
+#  Description: Serial trainer for RL algorithms
+#  Update Date: 2021-03-10, Wenhan CAO: Revise Codes
 
 
 

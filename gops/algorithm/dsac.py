@@ -3,8 +3,10 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Description: Distributed Soft Actor Critic Algorithm (DSAC)
+#  Update: 2021-03-05, Ziqing Gu: create DSAC algorithm
+
+
 
 __all__ = ['ApproxContainer','DSAC']
 

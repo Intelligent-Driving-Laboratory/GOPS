@@ -4,8 +4,10 @@
 #
 #  Creator: iDLab
 #  Description: gym environment, discrete action, cart pole, dqn
-#  Update Date: 2021-01-03, Yuxuan JIANG & Guojian ZHAN : implement DQN
-#  Update Date: 2021-07-11, Yuxuan JIANG : adapt to new trainer interface
+#  Update Date: 2021-01-03, Yuxuan Jiang & Guojian Zhan: implement DQN
+#  Update Date: 2021-07-11, Yuxuan Jiang: adapt to new trainer interface
+
+
 
 import argparse
 import os

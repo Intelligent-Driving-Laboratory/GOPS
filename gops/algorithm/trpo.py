@@ -3,8 +3,8 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Description: Trust Region Policy Optimization Algorithm (TRPO)
+#  Update: 2021-03-05, Yuxuan Jiang: create TRPO algorithm
 
 
 __all__ = ["TRPO"]

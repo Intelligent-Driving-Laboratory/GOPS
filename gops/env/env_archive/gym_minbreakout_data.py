@@ -1,3 +1,13 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: minbreakout_data Environment
+#  Update Date: 2021-05-55, Yuhang Zhang: create environment
+
+
+
 from gym.spaces import Discrete, Box
 from gym import Env
 from gym.wrappers.time_limit import TimeLimit

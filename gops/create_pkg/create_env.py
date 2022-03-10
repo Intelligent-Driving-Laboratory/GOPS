@@ -4,23 +4,8 @@
 #
 #  Creator: iDLab
 #  Description: Create environments
-#  Update Date: 2020-11-10, Yuhang ZHANG:
+#  Update Date: 2020-11-10, Yuhang Zhang: add create environments code
 
-"""
-resources:
-env = create_env('gym_pendulum_diff')
-
-1: Copy your environment file into env folder, and environment file is named as
-    gym_***.py
-    gym_***_diff.py
-    pyth_***.py
-    simu_***.py
-2: The environment class is named in camel-case style after file name
-    ex: GymMountaincarContiDiff in gym_mountaincar_conti_diff.py
-    ex: GymCartpoleConti in gym_cartpole_conti.py
-3: Define an instantiating function env_creator() which return a instance of the environment
-Note: create_env() requires that either 2 or 3 is satisfied.
-"""
 
 
 def create_env(**kwargs):

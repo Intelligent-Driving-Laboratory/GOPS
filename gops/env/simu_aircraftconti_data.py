@@ -3,8 +3,8 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Description: Aircraft Environment
+#  Update Date: 2021-05-55, Yuhang Zhang: create environment
 
 
 from gym import spaces

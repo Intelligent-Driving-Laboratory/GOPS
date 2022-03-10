@@ -4,7 +4,7 @@
 #
 #  Creator: iDLab
 #  Description: Evaluation of trained policy
-#  Update Date: 2021-05-10, Yang GUAN: renew env para
+#  Update Date: 2021-05-10, Yang Guan: renew environment parameters
 
 
 

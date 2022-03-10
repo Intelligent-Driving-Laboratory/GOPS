@@ -4,6 +4,9 @@
 #
 #  Creator: iDLab
 #  Description: gym environment, continuous action, cart pole
+#  Update Date: 2020-11-10, Wenxuan Wang: adjust parameters
+
+
 
 import argparse
 import os

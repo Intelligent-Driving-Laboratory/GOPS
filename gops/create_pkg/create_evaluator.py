@@ -4,7 +4,7 @@
 #
 #  Creator: iDLab
 #  Description: Create evaluator
-#  Update Date: 2020-11-10, Yang GUAN
+#  Update Date: 2020-11-10, Yang Guan: create evaluator module
 
 
 from ..trainer.evaluator import Evaluator

@@ -4,16 +4,9 @@
 #
 #  Creator: iDLab
 #  Description: Create trainers
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Update: 2021-03-05, Jiaxin Gao: create trainer module
 
 
-"""
-resources:
-
-"""
-
-
-#  Update Date: 2020-12-01, Hao SUN:
 
 def create_trainer(alg, sampler, buffer, evaluator, **kwargs):
     trainer_name = kwargs['trainer']

@@ -3,8 +3,8 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Description: Convolutional Neural NetworksAction (CNN)
+#  Update: 2021-03-05, Wenjun Zou: create CNN function
 
 
 __all__ = ['DetermPolicy', 'StochaPolicy', 'ActionValue', 'ActionValueDis', 'StateValue']

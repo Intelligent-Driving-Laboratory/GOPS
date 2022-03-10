@@ -3,8 +3,8 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description:
-#  Update Date: 2020-12-01, Hao SUN:
+#  Description: Create algorithm module
+#  Update Date: 2020-12-01, Hao Sun: create algorithm package code
 
 
 import importlib

@@ -2,9 +2,10 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Wenxuan Wang
+#  Creator: iDLab
 #  Description: Acrobat Environment
-#
+#  Update Date: 2021-05-55, Wenxuan Wang: create environment
+
 
 import warnings
 import torch

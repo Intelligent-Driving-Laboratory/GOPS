@@ -4,7 +4,8 @@
 #
 #  Creator: iDLab
 #  Description: Proximal Policy Optimization Algorithm (PPO)
-#  Update: 2021.03.05, Shengbo LI (example, can be deleted)
+#  Update: 2021-03-05, Yujie Yang: create PPO algorithm
+
 
 
 __all__ = ['ApproxContainer', 'PPO']
