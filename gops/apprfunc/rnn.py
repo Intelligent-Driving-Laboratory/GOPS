@@ -2,10 +2,11 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yao MU
-#  Description: Structural definition for approximation function
-#
-#  Update Date: 2021-05-21, Shengbo Li: revise headline
+#  Creator: iDLab
+#  Description: Recurrent Neural Network (RNN)
+#  Update: 2021-03-05, Wenjun Zou: create RNN function
+
+
 
 __all__=['DetermPolicy','StochaPolicy','ActionValue','ActionValueDis','StateValue']
 
@@ -77,8 +78,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
     def forward(self, obs):
         _, h = self.rnn(obs)
         h = h.squeeze(0)
-        action_mean = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(self.mean(h)) \
-                      + (self.act_high_lim + self.act_low_lim) / 2
+        action_mean = self.mean(h)
         action_std = torch.clamp(self.log_std(h), self.min_log_std, self.max_log_std).exp()
         return torch.cat((action_mean, action_std), dim=-1)
 

@@ -2,11 +2,11 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yang GUAN
+#  Creator: iDLab
 #  Description: Serial trainer for RL algorithms
-#
 #  Update Date: 2021-03-10, Wenhan CAO: Revise Codes
 #  Update Date: 2021-05-21, Shengbo LI: Format Revise
+
 
 
 __all__ = ['OnSerialTrainer']
@@ -39,9 +39,8 @@ class OnSerialTrainer():
         self.networks = ApproxContainer(**kwargs)
         self.iteration = 0
         self.max_iteration = kwargs.get('max_iteration')
-        self.batch_size = kwargs['sample_batch_size']
         self.ini_network_dir = kwargs['ini_network_dir']
-        self.num_epoch = kwargs['num_epoch']
+
 
         # initialize the networks
         if self.ini_network_dir is not None:

@@ -1,11 +1,10 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
-
-#  Creator: Fawang Zhang
+#
+#  Creator: iDLab
 #  Description: PCC Discrete version of Truck
-
-#  Update Date: 2021-09-07 create env
+#  Update Date: 2021-09-07, Fawang Zhang: create env
 
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
@@ -48,6 +47,7 @@ if __name__ == "__main__":
     # 2.2 Parameters of policy approximate function
     parser.add_argument('--policy_func_name', type=str, default='DetermPolicy')
     parser.add_argument('--policy_func_type', type=str, default='MLP')
+    parser.add_argument('--policy_act_distribution', type=str, default='default')
     policy_func_type = parser.parse_args().policy_func_type
     if policy_func_type == 'MLP':
         parser.add_argument('--policy_hidden_sizes', type=list, default=[256, 256, 256, 256])

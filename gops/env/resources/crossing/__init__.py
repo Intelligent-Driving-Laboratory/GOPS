@@ -1,5 +1,5 @@
-import gym
-
-from gym.envs.registration import register
-
-# register(id='CrossroadEnd2endMixPiFix-v0', entry_point='env_mix_single.endtoend:CrossroadEnd2endMixPiFix')
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab

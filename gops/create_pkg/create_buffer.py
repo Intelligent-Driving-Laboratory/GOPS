@@ -1,11 +1,13 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Hao SUN
-#  Description: Create buffer
-"""
+#  Creator: iDLab
+#  Description: Create approximate function module
+#  Update Date: 2020-12-13, Hao Sun: add create buffer function
 
-"""
-#  Update Date: 2020-12-13, Hao SUN: add create buffer function
+
+
 from ..trainer.buffer.replay_buffer import ReplayBuffer
 
 

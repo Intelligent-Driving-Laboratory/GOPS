@@ -2,13 +2,12 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yao MU
-#  Description: Structural definition for approximation function
-#
-#  Update Date: 2021-05-21, Shengbo Li: revise headline
+#  Creator: iDLab
+#  Description: Multilayer Perceptron (MLP)
+#  Update: 2021-03-05, Wenjun Zou: create MLP function
 
 
-__all__ = ['DetermPolicy', 'StochaPolicy', 'ActionValue', 'ActionValueDis', 'StateValue']
+__all__ = ['DetermPolicy', 'StochaPolicy', 'ActionValue', 'ActionValueDis', 'ActionValueDistri', 'StateValue']
 
 import numpy as np  # Matrix computation library
 import torch
@@ -48,8 +47,8 @@ class DetermPolicy(nn.Module, Action_Distribution):
         self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
     def forward(self, obs):
-        action = (self.act_high_lim-self.act_low_lim)/2 * torch.tanh(self.pi(obs))\
-                 + (self.act_high_lim + self.act_low_lim)/2
+        action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(self.pi(obs)) \
+                 + (self.act_high_lim + self.act_low_lim) / 2
         return action
 
 
@@ -75,8 +74,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
         self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
     def forward(self, obs):
-        action_mean = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(self.mean(obs)) \
-                      + (self.act_high_lim + self.act_low_lim) / 2
+        action_mean = self.mean(obs)
         action_std = torch.clamp(self.log_std(obs), self.min_log_std, self.max_log_std).exp()
         return torch.cat((action_mean, action_std), dim=-1)
 
@@ -110,6 +108,32 @@ class ActionValueDis(nn.Module, Action_Distribution):
 
     def forward(self, obs):
         return self.q(obs)
+
+
+class ActionValueDistri(nn.Module):
+    def __init__(self, **kwargs):
+        super().__init__()
+        obs_dim = kwargs['obs_dim']
+        act_dim = kwargs['act_dim']
+        hidden_sizes = kwargs['hidden_sizes']
+        self.mean = mlp([obs_dim + act_dim] + list(hidden_sizes) + [1],
+                     get_activation_func(kwargs['hidden_activation']),
+                     get_activation_func(kwargs['output_activation']))
+        self.min_log_std = kwargs['min_log_std']
+        self.max_log_std = kwargs['max_log_std']
+        self.denominator = max(abs(self.min_log_std), self.max_log_std)
+
+        self.log_std = mlp([obs_dim + act_dim] + list(hidden_sizes) + [1],
+                           get_activation_func(kwargs['hidden_activation']),
+                           get_activation_func(kwargs['output_activation']))
+
+    def forward(self, obs, act, min=False):
+        value_mean = self.mean(torch.cat([obs, act], dim=-1))
+        log_std = self.log_std(torch.cat([obs, act], dim=-1))
+
+        value_log_std = torch.clamp_min(self.max_log_std * torch.tanh(log_std / self.denominator), 0) + \
+                        torch.clamp_max(-self.min_log_std * torch.tanh(log_std / self.denominator), 0)
+        return torch.cat((value_mean, value_log_std), dim=-1)
 
 
 class StochaPolicyDis(ActionValueDis, Action_Distribution):

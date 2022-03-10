@@ -1,5 +1,12 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: Crossing Road Environment and Vehicle Dynamic Model
+#  Update Date: 2021-05-55, Jie Li: create environment and dynamic
+
+
 
 from math import pi, cos, sin
 import platform

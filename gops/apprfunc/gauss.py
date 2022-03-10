@@ -2,10 +2,10 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yao MU
-#  Description: Structural definition for approximation function
-#
-#  Update Date: 2021-05-21, Shengbo Li: revise headline
+#  Creator: iDLab
+#  Description: Gauss approximation function
+#  Update: 2021-03-05, Wenjun Zou: create gauss function
+
 
 __all__ = ['DetermPolicy', 'StochaPolicy', 'ActionValue', 'ActionValueDis', 'StateValue']
 
@@ -65,8 +65,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
         self.action_distirbution_cls = kwargs['action_distirbution_cls']
 
     def forward(self, obs):
-        action_mean = (self.act_high_lim - self.act_low_lim) / 2 * self.mean(obs) \
-                      + (self.act_high_lim + self.act_low_lim) / 2
+        action_mean = self.mean(obs)
         action_std = torch.clamp(self.std(obs), self.min_log_std, self.max_log_std).exp()
         return torch.cat((action_mean, action_std), dim=-1)
 

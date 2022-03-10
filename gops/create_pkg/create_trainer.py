@@ -2,15 +2,11 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Hao SUN
+#  Creator: iDLab
 #  Description: Create trainers
-"""
-resources:
-
-"""
+#  Update: 2021-03-05, Jiaxin Gao: create trainer module
 
 
-#  Update Date: 2020-12-01, Hao SUN:
 
 def create_trainer(alg, sampler, buffer, evaluator, **kwargs):
     trainer_name = kwargs['trainer']

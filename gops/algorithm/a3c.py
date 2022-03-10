@@ -1,13 +1,11 @@
-#   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Author: Jiaxin Gao
-# A3C algorithm need cooperate with asynchronous or synchronous trainer
+#  Creator: iDLab
+#  Description: Asynchronous Advantage Actor Critic Algorithm (A3C)
+#  Update: 2021-03-05, Jiaxin Gao: create A3C algorithm
+
 
 __all__ = ['ApproxContainer', 'A3C']
 
@@ -28,6 +26,12 @@ class ApproxContainer(nn.Module):
         super().__init__()
         value_func_type = kwargs['value_func_type']
         policy_func_type = kwargs['policy_func_type']
+
+        if kwargs['cnn_shared']:  # todo:设置默认false
+            feature_args = get_apprfunc_dict('feature', value_func_type, **kwargs)
+            kwargs['feature_net'] = create_apprfunc(**feature_args)
+
+
         value_args = get_apprfunc_dict('value', value_func_type, **kwargs)
         self.value = create_apprfunc(**value_args)
         policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
@@ -35,6 +39,10 @@ class ApproxContainer(nn.Module):
 
         self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs['policy_learning_rate'])
         self.value_optimizer = Adam(self.value.parameters(), lr=kwargs['value_learning_rate'])
+
+    # create action_distributions
+    def create_action_distributions(self, logits):
+        return self.policy.get_act_dist(logits)
 
     def update(self, grads_info: dict):
         iteration = grads_info['iteration']
@@ -56,10 +64,10 @@ class ApproxContainer(nn.Module):
 class A3C:
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs)
-        self.use_gpu = kwargs['enable_cuda']
-        self.gamma = 1
-        self.delay_update = 1
+        self.use_gpu = kwargs['use_gpu']
+        self.gamma = 0.99
         self.reward_scale = 1
+        self.delay_update =  1
         self.action_distirbution_cls = GaussDistribution
 
     def set_parameters(self, param_dict):
@@ -74,8 +82,8 @@ class A3C:
         params = dict()
         params['gamma'] = self.gamma
         params['use_gpu'] = self.use_gpu
-        params['delay_update'] = self.delay_update
         params['reward_scale'] = self.reward_scale
+        params['delay_update'] = self.delay_update
         return params
 
     def compute_gradient(self, data: dict, iteration):
@@ -137,7 +145,7 @@ class A3C:
 
     def __compute_loss_value(self, data):
         obs = data['obs']
-        rew = data['rew']
+        rew = data['rew']*self.reward_scale
         done = data['done']
         obs2 = data['obs2']
         value = self.networks.value(obs)
@@ -149,7 +157,7 @@ class A3C:
     def __compute_loss_policy(self, data):
         # one_step advantage r + V(obs2) - V(obs)
         obs = data['obs']
-        rew = data['rew']
+        rew = data['rew']*self.reward_scale
         done = data['done']
         obs2 = data['obs2']
         action = data['act']

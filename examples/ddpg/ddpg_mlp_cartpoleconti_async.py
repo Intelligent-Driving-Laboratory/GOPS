@@ -2,8 +2,10 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yang GUAN and Wenhan CAO
-#  Description: Discrete version of Cartpole Enviroment
+#  Creator: iDLab
+#  Description: Discrete version of Cartpole Enviroment, async trainer
+#  Update Date: 2021-11-10, Jiaxin Gao: adjust parameters
+
 
 
 import argparse
@@ -58,6 +60,7 @@ if __name__ == "__main__":
                         help='Options: None/DetermPolicy/StochaPolicy')
     parser.add_argument('--policy_func_type', type=str, default='MLP',
                         help='Options: MLP/CNN/RNN/POLY/GAUSS')
+    parser.add_argument('--policy_act_distribution', type=str, default='default')
     policy_func_type = parser.parse_args().policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == 'MLP':  # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh: Output Layer: tanh

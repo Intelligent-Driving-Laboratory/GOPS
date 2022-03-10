@@ -1,14 +1,11 @@
-# -*- coding: cp936 -*-
-#   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Author: Sun Hao
-#  Update Date: 2021-01-03, Yuxuan JIANG & Guojian ZHAN : implement DQN
+#  Creator: iDLab
+#  Description: Deep Q-Learning Algorithm (DQN)
+#  Update: 2021-03-05, Wenxuan Wang: create DQN algorithm
+
 
 
 __all__ = ['DQN']
@@ -45,10 +42,12 @@ class ApproxContainer(nn.Module):
                 return self.q.forward(obs)
 
         self.policy = policy_q
-        self.policy.q = policy_q
         self.q = Q_network
         self.target = target_network
         self.q_optimizer = Adam(self.q.parameters(), lr=self.lr)
+
+    def create_action_distributions(self, logits):
+        return self.q.get_act_dist(logits)
 
     def update(self, grads):
         q_grad = grads
@@ -63,7 +62,7 @@ class ApproxContainer(nn.Module):
 
 
 class DQN():
-    def __init__(self, learning_rate: float, gamma: float, tau: float, enable_cuda: bool, **kwargs):
+    def __init__(self, learning_rate: float, gamma: float, tau: float, use_gpu: bool, **kwargs):
         """Deep Q-Network (DQN) algorithm
 
         A DQN implementation with soft target update.
@@ -77,14 +76,14 @@ class DQN():
             tau (float, optional): Average factor. Defaults to 0.005.
         """
         self.gamma = gamma
-        self.enable_cuda = enable_cuda
+        self.use_gpu = use_gpu
 
         self.networks = ApproxContainer(learning_rate, tau, **kwargs)
 
     def compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
         start_time = time.perf_counter()
         obs, act, rew, obs2, done = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
-        if self.enable_cuda:
+        if self.use_gpu:
             self.networks.cuda()
             obs, act, rew, obs2, done = obs.cuda(), act.cuda(), rew.cuda(), obs2.cuda(), done.cuda()
 
@@ -92,7 +91,7 @@ class DQN():
         loss = self.compute_loss(obs, act, rew, obs2, done)
         loss.backward()
 
-        if self.enable_cuda:
+        if self.use_gpu:
             self.networks.cpu()
 
         end_time = time.perf_counter()

@@ -2,11 +2,12 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yuxuan JIANG
-#
+#  Creator: iDLab
 #  Description: gym environment, discrete action, cart pole, dqn
-#  Update Date: 2021-01-03, Yuxuan JIANG & Guojian ZHAN : implement DQN
-#  Update Date: 2021-07-11, Yuxuan JIANG : adapt to new trainer interface
+#  Update Date: 2021-01-03, Yuxuan Jiang & Guojian Zhan: implement DQN
+#  Update Date: 2021-07-11, Yuxuan Jiang: adapt to new trainer interface
+
+
 
 import argparse
 import multiprocessing
@@ -46,6 +47,7 @@ if __name__ == "__main__":
     parser.add_argument('--value_func_name', type=str, default='ActionValueDis')
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--value_func_type', type=str, default='MLP')
+    parser.add_argument('--policy_act_distribution', type=str, default='default')
     value_func_type = parser.parse_args().value_func_type
     ### 2.1.1 MLP, CNN, RNN
     if value_func_type == 'MLP':

@@ -1,12 +1,10 @@
-#   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Author: Sun Hao
+#  Creator: iDLab
+#  Description: Deep Deterministic Policy Gradient Algorithm (DDPG)
+#  Update: 2021-03-05, Wenxuan Wang: create DDPG algorithm
 
 
 __all__ = ['ApproxContainer','DDPG']
@@ -27,6 +25,11 @@ class ApproxContainer(nn.Module):
         super().__init__()
         value_func_type = kwargs['value_func_type']
         policy_func_type = kwargs['policy_func_type']
+
+        if kwargs['cnn_shared']:  # todo:设置默认false
+            feature_args = get_apprfunc_dict('feature', value_func_type, **kwargs)
+            kwargs['feature_net'] = create_apprfunc(**feature_args)
+
         q_args = get_apprfunc_dict('value', value_func_type, **kwargs)
         self.q = create_apprfunc(**q_args)
         policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
@@ -42,6 +45,10 @@ class ApproxContainer(nn.Module):
 
         self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs['policy_learning_rate'])  # TODO:
         self.q_optimizer = Adam(self.q.parameters(), lr=kwargs['value_learning_rate'])
+
+    # create action_distributions
+    def create_action_distributions(self, logits):
+        return self.policy.get_act_dist(logits)
 
     def update(self, grads_info:dict):
         iteration = grads_info['iteration']
@@ -69,7 +76,7 @@ class ApproxContainer(nn.Module):
 class DDPG:
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs)
-        self.use_gpu = kwargs['enable_cuda']
+        self.use_gpu = kwargs['use_gpu']
         self.gamma = 0.99
         self.tau = 0.005
         self.delay_update = 1

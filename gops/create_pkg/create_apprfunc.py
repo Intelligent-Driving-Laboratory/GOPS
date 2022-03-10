@@ -2,13 +2,9 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Hao SUN
-#  Description: Create apprfunc
-"""
-
-"""
-
-#  Update Date: 2020-12-26, Hao SUN:  add create_apprfunc function
+#  Creator: iDLab
+#  Description: Create approximate function module
+#  Update Date: 2020-12-26, Hao Sun: add create approximate function
 
 
 def create_apprfunc(**kwargs):

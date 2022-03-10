@@ -2,10 +2,11 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Wenxuan Wang
+#  Creator: iDLab
 #  Description: Infinite ADP algorithm in continute version of Cartpole Enviroment
-#
-#  Update Date: 2020-11-10, Wenxuan Wang
+#  Update Date: 2020-11-10, Wenxuan Wang: adjust parameters
+
+
 
 import argparse
 import os
@@ -55,11 +56,12 @@ if __name__ == "__main__":
     # 2.2 Parameters of policy approximate function
     parser.add_argument('--policy_func_name', type=str, default='DetermPolicy')
     parser.add_argument('--policy_func_type', type=str, default='MLP')
+    parser.add_argument('--policy_act_distribution', type=str, default='default')
     policy_func_type = parser.parse_args().policy_func_type
     if policy_func_type == 'MLP':
         parser.add_argument('--policy_hidden_sizes', type=list, default=[64, 64])
         parser.add_argument('--policy_hidden_activation', type=str, default='relu', help='')
-        parser.add_argument('--policy_output_activation', type=str, default='tanh', help='')
+        parser.add_argument('--policy_output_activation', type=str, default='linear', help='')
 
     ################################################
     # 3. Parameters for RL algorithm
@@ -88,10 +90,10 @@ if __name__ == "__main__":
     ################################################
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='off_sampler')
-    parser.add_argument('--sample_batch_size', type=int, default=256)
+    parser.add_argument('--sample_batch_size', type=int, default=32)
     parser.add_argument('--noise_params', type=dict,
                         default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0.6], dtype=np.float32)})
+                                 'std': np.array([0.2], dtype=np.float32)})
 
     ################################################
     # 7. Parameters for evaluator

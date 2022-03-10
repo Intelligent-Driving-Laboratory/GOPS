@@ -2,10 +2,11 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yuhang Zhang
+#  Creator: iDLab
 #  Description: Acrobat Environment
-#
 #  Update Date: 2021-05-55, Yuhang Zhang: create environment
+
+
 
 import math
 import warnings
@@ -13,9 +14,9 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-class GymMobilerobotModel:
+class PythMobilerobotModel:
 
-    def __init__(self):
+    def __init__(self,**kwargs):
         """
         you need to define parameters here
         """

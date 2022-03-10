@@ -1,12 +1,12 @@
-#   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Author: Yang GUAN, Wenhan CAO
+#  Creator: iDLab
+#  Description: Serial trainer for RL algorithms
+#  Update Date: 2021-03-10, Wenhan CAO: Revise Codes
+
+
 
 __all__ = ['OnSyncTrainer']
 
@@ -48,7 +48,6 @@ class OnSyncTrainer():
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
         self.writer.add_scalar(tb_tags['alg_time'], 0, 0)
         self.writer.add_scalar(tb_tags['sampler_time'], 0, 0)
-        self.num_epoch = kwargs['num_epoch']
 
         self.writer.flush()
 

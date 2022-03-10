@@ -1,15 +1,13 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
-#
-#  Creator: Hao SUN
-#  Description: gym environment, continuous action, cart pole
-#  Update Date: 2020-11-10, Hao SUN: renew env para
-#  Update Date: 2020-11-13, Hao SUN：add new ddpg demo
-#  Update Date: 2020-12-11, Hao SUN：move buffer to trainer
-#  Update Date: 2020-12-12, Hao SUN：move create_* files to create_pkg
-#  Update Date: 2021-01-01, Hao SUN：chang name
-
-
+#  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: gym environment, continuous action, cart pole
+#  Update Date: 2020-11-10, Hao Sun: renew env para
+#  Update Date: 2020-12-11, Hao Sun: move buffer to trainer
+
+
 
 import argparse
 import os
@@ -65,6 +63,7 @@ if __name__ == "__main__":
     parser.add_argument('--policy_func_name', type=str, default='DetermPolicy')
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--policy_func_type', type=str, default='MLP')
+    parser.add_argument('--policy_act_distribution', type=str, default='default')
     policy_func_type = parser.parse_args().policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == 'MLP':

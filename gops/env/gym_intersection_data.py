@@ -1,6 +1,14 @@
-from resources.crossing import endtoend
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: Intersection Environment
+#  Update Date: 2021-05-55, Yuhang Zhang: create environment
 
 
+
+from gops.env.resources.crossing import endtoend
 
 class GymCrossingData():
     def __init__(self):

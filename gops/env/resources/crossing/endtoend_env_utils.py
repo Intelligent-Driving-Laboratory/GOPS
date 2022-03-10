@@ -1,11 +1,12 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: Crossing Road End to End Utils
+#  Update Date: 2021-05-55, Yang Guan: create crossing road end to end utils
 
-# =====================================
-# @Time    : 2020/11/08
-# @Author  : Yang Guan (Tsinghua Univ.)
-# @FileName: endtoend_env_utils.py
-# =====================================
+
 
 import math
 import os

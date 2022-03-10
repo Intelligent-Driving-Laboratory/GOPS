@@ -1,7 +1,10 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yuxuan JIANG
-#  Description: Trust region policy optimization
+#  Creator: iDLab
+#  Description: Trust Region Policy Optimization Algorithm (TRPO)
+#  Update: 2021-03-05, Yuxuan Jiang: create TRPO algorithm
 
 
 __all__ = ["TRPO"]
@@ -23,20 +26,27 @@ from gops.utils.action_distributions import GaussDistribution, CategoricalDistri
 from gops.utils.utils import get_apprfunc_dict
 from gops.utils.tensorboard_tools import tb_tags
 
-
 EPSILON = 1e-8
 
 class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         value_func_type = kwargs['value_func_type']
+        policy_func_type = kwargs['policy_func_type']
+
+        if kwargs['cnn_shared']:  # todo:设置默认false
+            feature_args = get_apprfunc_dict('feature', value_func_type, **kwargs)
+            kwargs['feature_net'] = create_apprfunc(**feature_args)
+
         v_args = get_apprfunc_dict('value', value_func_type, **kwargs)
         self.v: nn.Module = create_apprfunc(**v_args)
         self.v_optimizer = Adam(self.v.parameters(), lr=kwargs['value_learning_rate'])
-        
-        policy_func_type = kwargs['policy_func_type']
+
         policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
         self.policy: nn.Module = create_apprfunc(**policy_args)
+
+    def create_action_distributions(self, logits):
+        return self.policy.get_act_dist(logits)
 
     def update(self, grads: List[np.ndarray]):
         policy_weight, v_weight = grads[0], grads[1]
@@ -47,7 +57,7 @@ class TRPO:
     def __init__(self, 
         delta: float, gamma: float, lamda: float, rtol: float, atol: float,
         damping_factor: float, max_cg: int, alpha: float, max_search: int,
-        train_v_iters: int, enable_cuda: bool,
+        train_v_iters: int, use_gpu: bool,
         **kwargs
     ):
         self.delta = delta
@@ -60,15 +70,8 @@ class TRPO:
         self.alpha = alpha
         self.max_search = max_search
         self.train_v_iters = train_v_iters
-        self.enable_cuda = enable_cuda
+        self.use_gpu = use_gpu
         self.networks = ApproxContainer(**kwargs)
-        action_type = kwargs['action_type']
-        if action_type == 'continu':
-            self.action_distirbution_cls = GaussDistribution
-        elif action_type == 'discret':
-            self.action_distirbution_cls = CategoricalDistribution
-        else:
-            raise ValueError(f'Unknown action_type: {action_type}')
 
     def compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
         start_time = time.time()
@@ -78,7 +81,7 @@ class TRPO:
         # Run _estimate_advantage on gpu may not be benificial
         # Or make _estimate_advantage work better with cuda
         adv, ret = self._estimate_advantage(obs, obs2, rew, done, val.detach())
-        if self.enable_cuda:
+        if self.use_gpu:
             self.networks.cuda()
             obs, act, adv, ret = obs.cuda(), act.cuda(), adv.cuda(), ret.cuda()
 
@@ -86,7 +89,7 @@ class TRPO:
         with torch.no_grad():
             logits_old = self.networks.policy(obs)
             # print('std:', logits_old[...,1].mean().item())
-        pi_old = self._get_distribution(logits=logits_old)
+        pi_old = self.networks.create_action_distributions(logits=logits_old)
         logp_old = pi_old.log_prob(act)
 
         def get_surrogate_advantage(logp: torch.Tensor):
@@ -95,7 +98,7 @@ class TRPO:
             )
 
         logits = self.networks.policy(obs)
-        pi = self._get_distribution(logits=logits)
+        pi = self.networks.create_action_distributions(logits=logits)
         surrogate_advantage = get_surrogate_advantage(pi.log_prob(act))
         g_params = torch.autograd.grad(surrogate_advantage, self.networks.policy.parameters(), retain_graph=True)
         # FIXME: CNN layer's g would be non-contiguous, needing further investigation
@@ -135,7 +138,7 @@ class TRPO:
             update_policy(self.alpha**i)
             # with torch.no_grad():
             logits_new = new_policy(obs)
-            pi_new = self._get_distribution(logits=logits_new)
+            pi_new = self.networks.create_action_distributions(logits=logits_new)
             logp_new = pi_new.log_prob(act)
 
             if get_surrogate_advantage(logp_new) > 0 and pi_new.kl_divergence(pi_old).mean() < self.delta:
@@ -154,7 +157,7 @@ class TRPO:
         v_loss = v_loss.item()
         val_avg = val.detach().mean().item()
 
-        if self.enable_cuda:
+        if self.use_gpu:
             new_policy.cpu()
             self.networks.cpu()
 
@@ -221,12 +224,9 @@ class TRPO:
             r_dot, r_dot_old = torch.dot(r, r), r_dot
             beta = r_dot / r_dot_old
             p = r.add(p, alpha=beta)
-        print(f'mode2: max_cg {r.norm(2)}, {b.norm(2)}, {r.norm(2) / b.norm(2)}')
+       # print(f'mode2: max_cg {r.norm(2)}, {b.norm(2)}, {r.norm(2) / b.norm(2)}')
         return x, r
         # raise ValueError("_conjugate_gradient failed to converge within max_cg iterations")
-
-    def _get_distribution(self, logits: torch.Tensor):
-        return self.action_distirbution_cls(logits)
 
     def _estimate_advantage(self, obs: torch.Tensor, obs2: torch.Tensor, rew: torch.Tensor, done: torch.Tensor, val: torch.Tensor):
         gamma, lamda = self.gamma, self.lamda

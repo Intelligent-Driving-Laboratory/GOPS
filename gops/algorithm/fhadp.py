@@ -1,14 +1,11 @@
-#   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Creator: Fawang ZHANG
-#  Update Date: 2021-11-30 create algorithm
-#  Comments: ?
+#  Creator: iDLab
+#  Description: Finity ADP Algorithm
+#  Update: 2021-03-05, Fawang Zhang: create finity ADP algorithm
+
 
 
 __all__ = ['FHADP']
@@ -33,6 +30,9 @@ class ApproxContainer(nn.Module):
         self.net_dict = {'policy': self.policy}
         self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs['policy_learning_rate'])
         self.optimizer_dict = {'policy': self.policy_optimizer}
+
+    def create_action_distributions(self, logits):
+        return self.policy.get_act_dist(logits)
 
     def update(self, grad_info):
         grads_dict = grad_info['grads_dict']

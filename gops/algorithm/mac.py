@@ -1,14 +1,11 @@
-#   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Author: Yao Mu
-#  Update Date: 2021-10-22
-#  Comments: ?
+#  Creator: iDLab
+#  Description: Mixed Actor Critic Algorithm (MAC)
+#  Update: 2021-03-05, Yao Mu: create MAC algorithm
+
 
 
 __all__ = ['MAC']
@@ -32,6 +29,11 @@ class ApproxContainer(nn.Module):
         super().__init__()
         value_func_type = kwargs['value_func_type']
         policy_func_type = kwargs['policy_func_type']
+
+        if kwargs['cnn_shared']:  # todo:设置默认false
+            feature_args = get_apprfunc_dict('feature', value_func_type, **kwargs)
+            kwargs['feature_net'] = create_apprfunc(**feature_args)
+
         v_args = get_apprfunc_dict('value', value_func_type, **kwargs)
         policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
 
@@ -52,6 +54,10 @@ class ApproxContainer(nn.Module):
         self.net_dict = {'v': self.v, 'policy': self.policy}
         self.target_net_dict = {'v': self.v_target, 'policy': self.policy_target}
         self.optimizer_dict = {'v': self.v_optimizer, 'policy': self.policy_optimizer}
+
+    # create action_distributions
+    def create_action_distributions(self, logits):
+        return self.policy.get_act_dist(logits)
 
     def update(self, grad_info):
         tau = grad_info['tau']

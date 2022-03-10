@@ -2,7 +2,11 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yang Yujie
+#  Creator: iDLab
+#  Description: Soft Actor Critic
+#  Update Date: 2021-06-11, Yang Yujie: create SAC algorithm
+
+
 
 import argparse
 import os
@@ -64,12 +68,13 @@ if __name__ == "__main__":
     parser.add_argument('--policy_func_name', type=str, default='StochaPolicy')
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--policy_func_type', type=str, default='POLY')
+    parser.add_argument('--policy_act_distribution', type=str, default='default')
     policy_func_type = parser.parse_args().policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == 'POLY':
         pass
     parser.add_argument('--policy_min_log_std', type=int, default=-20)
-    parser.add_argument('--policy_max_log_std', type=int, default=2)
+    parser.add_argument('--policy_max_log_std', type=int, default=0.5)
 
     ################################################
     # 3. Parameters for RL algorithm
@@ -83,7 +88,7 @@ if __name__ == "__main__":
     # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
     parser.add_argument('--trainer', type=str, default='off_serial_trainer')
     # Maximum iteration number
-    parser.add_argument('--max_iteration', type=int, default=500000)
+    parser.add_argument('--max_iteration', type=int, default=50000)
     trainer_type = parser.parse_args().trainer
     parser.add_argument('--ini_network_dir', type=str, default=None)
     # 4.3. Parameters for off_serial_trainer
@@ -101,11 +106,10 @@ if __name__ == "__main__":
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='off_sampler')
     # Batch size of sampler for buffer store
-    parser.add_argument('--sample_batch_size', type=int, default=1)
+    parser.add_argument('--sample_batch_size', type=int, default=64)
     # Add noise to actions for better exploration
     parser.add_argument('--noise_params', type=dict,
-                        default={'mean': np.array([0], dtype=np.float32),
-                                 'std': np.array([0], dtype=np.float32)})
+                        default=None)
 
     ################################################
     # 7. Parameters for evaluator
@@ -117,7 +121,7 @@ if __name__ == "__main__":
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument('--apprfunc_save_interval', type=int, default=100)
+    parser.add_argument('--apprfunc_save_interval', type=int, default=10000)
     # Save key info every N updates
     parser.add_argument('--log_save_interval', type=int, default=100)
 
@@ -129,6 +133,7 @@ if __name__ == "__main__":
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
+    alg.set_parameters({'reward_scale': 0.1, 'gamma': 0.99, 'tau': 0.2})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

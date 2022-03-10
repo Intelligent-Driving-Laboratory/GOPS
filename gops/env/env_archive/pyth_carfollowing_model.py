@@ -2,11 +2,11 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yuhang Zhang
+#  Creator: iDLab
 #  Description: Carfollowing Environment model
-#
 #  Update Date: 2021-11-22, Yuhang Zhang: create environment
-#
+
+
 
 import warnings
 

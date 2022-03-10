@@ -1,11 +1,12 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: Crossing Road Traffic design
+#  Update Date: 2021-05-55, Yang Guan: create crossing road traffic
 
-# =====================================
-# @Time    : 2020/11/08
-# @Author  : Yang Guan (Tsinghua Univ.)
-# @FileName: traffic.py
-# =====================================
+
 
 import copy
 import math

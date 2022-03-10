@@ -1,11 +1,10 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
-#
-#  Creator: Jie Li
-#  Description: PPO algorithm, MLP, continuous version of cart pole, on serial trainer
-#  Update Date: 2021-06-11
-
-
+#  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: PPO algorithm, MLP, continuous version of cart pole, on serial trainer
+#  Update Date: 2021-06-11, Li Jie: add PPO algorithm
 
 
 import argparse
@@ -63,6 +62,7 @@ if __name__ == "__main__":
     parser.add_argument('--policy_func_name', type=str, default='StochaPolicy')
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--policy_func_type', type=str, default='CNN_SHARED')
+    parser.add_argument('--policy_act_distribution', type=str, default='GaussDistribution_Clip')
     policy_func_type = parser.parse_args().policy_func_type
     # 2.2.1 MLP, CNN, RNN
     parser.add_argument('--policy_hidden_activation', type=str, default='relu', help='')
