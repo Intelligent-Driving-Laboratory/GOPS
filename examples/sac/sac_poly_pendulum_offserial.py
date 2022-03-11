@@ -26,9 +26,9 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument('--env_id', type=str, default='gym_cartpoleconti')
+    parser.add_argument('--env_id', type=str, default='gym_pendulum')
     parser.add_argument('--algorithm', type=str, default='SAC')
-    parser.add_argument('--enable_cuda', default=False, help='Disable CUDA')
+    parser.add_argument('--enable_cuda', default=True, help='Disable CUDA')
 
     ################################################
     # 1. Parameters for environment
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
     parser.add_argument('--trainer', type=str, default='off_serial_trainer')
     # Maximum iteration number
-    parser.add_argument('--max_iteration', type=int, default=5000)
+    parser.add_argument('--max_iteration', type=int, default=10000)
     trainer_type = parser.parse_args().trainer
     parser.add_argument('--ini_network_dir', type=str, default=None)
     # 4.3. Parameters for off_serial_trainer
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument('--apprfunc_save_interval', type=int, default=10000)
+    parser.add_argument('--apprfunc_save_interval', type=int, default=500)
     # Save key info every N updates
     parser.add_argument('--log_save_interval', type=int, default=100)
 
@@ -133,11 +133,11 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
     env = create_env(**args)
     args = init_args(env, **args)
-    print(args['save_folder'])
+
     start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters({'reward_scale': 0.1, 'gamma': 0.99, 'tau': 0.2})
+    alg.set_parameters({'reward_scale': 0.1, 'gamma': 0.99, 'tau': 0.05})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
