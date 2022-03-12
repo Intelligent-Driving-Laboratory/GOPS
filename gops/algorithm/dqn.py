@@ -1,14 +1,11 @@
-# -*- coding: cp936 -*-
-#   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Author: Sun Hao
-#  Update Date: 2021-01-03, Yuxuan JIANG & Guojian ZHAN : implement DQN
+#  Creator: iDLab
+#  Description: Deep Q-Learning Algorithm (DQN)
+#  Update: 2021-03-05, Wenxuan Wang: create DQN algorithm
+
 
 
 __all__ = ['DQN']

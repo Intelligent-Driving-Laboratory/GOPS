@@ -1,3 +1,13 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: Acrobat Environment
+#  Update Date: 2021-05-55, Yuhang Zhang: create environment
+
+
+
 from gym import spaces
 import gym
 from gops.env.resources.simu_doublemass import doublemass

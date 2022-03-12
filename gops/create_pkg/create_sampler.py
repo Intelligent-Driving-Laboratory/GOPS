@@ -2,8 +2,12 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yang GUAN
+#  Creator: iDLab
 #  Description: Create sampler
+#  Update: 2021-03-05, Yuheng Lei: create sampler module
+
+
+
 import importlib
 
 

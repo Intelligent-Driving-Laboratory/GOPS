@@ -2,10 +2,10 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Congsheng Zhang
-#  Description: Acrobat Environment
-#
-#  Update Date: 2021-10-21, Congsheng Zhang: create environment
+#  Creator: iDLab
+#  Description: Vehicle 3DOF Model
+#  Update Date: 2021-05-55, Congsheng Zhang: create environment
+
 
 
 import math
@@ -13,7 +13,6 @@ import warnings
 import numpy as np
 import torch
 import copy
-
 
 class SimuVehicle3dofcontiModel(torch.nn.Module):
     def __init__(self):

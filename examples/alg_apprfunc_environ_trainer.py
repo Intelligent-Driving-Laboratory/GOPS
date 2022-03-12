@@ -2,12 +2,13 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Sun Hao
+#  Creator: iDLab
 #  Description: Discrete version of Cartpole Enviroment
-#
-#  Update Date: 2020-11-10, Hao SUN: renew env para
+#  Update Date: 2020-11-10, Hao Sun: renew env para
 #  Update Date: 2021-05-21, Shengbo Li: Reformualte code formats
 #  Update Date: 2021-06-01, Shengbo Li: General Setup for GOPS examples
+
+
 
 import argparse
 import os

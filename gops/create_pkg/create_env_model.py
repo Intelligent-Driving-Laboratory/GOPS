@@ -2,26 +2,10 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yuhang ZHANG
+#  Creator: iDLab
 #  Description: Create environments
-"""
-resources:
-env = create_env('gym_pendulum_diff')
+#  Update Date: 2020-11-10, Yuhang Zhang: add create environments code
 
-1: Copy your environment file into env folder, and environment file is named as
-    gym_***.py
-    gym_***_diff.py
-    pyth_***.py
-    simu_***.py
-2: The environment class is named in camel-case style after file name
-    ex: GymMountaincarContiDiff in gym_mountaincar_conti_diff.py
-    ex: GymCartpoleConti in gym_cartpole_conti.py
-3: Define an instantiating function env_creator() which return a instance of the environment
-Note: create_env() requires that either 2 or 3 is satisfied.
-"""
-
-
-#  Update Date: 2020-11-10, Yuhang ZHANG:
 
 
 def create_env_model(**kwargs):

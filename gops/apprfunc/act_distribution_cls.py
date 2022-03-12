@@ -1,5 +1,12 @@
-#!/usr/bin/python
-# -*- coding: UTF-8 -*-
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: Action Distribution Function
+#  Update: 2021-03-05, Wenjun Zou: create action distribution function
+
+
 from gops.utils.action_distributions import GaussDistribution, DiracDistribution, ValueDiracDistribution, CategoricalDistribution
 import numpy as np  # Matrix computation library
 import torch

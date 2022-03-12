@@ -1,7 +1,12 @@
-#  Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Creator: Hao SUN
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
 #  Description: gym environment, continuous action, cart pole
+#  Update Date: 2020-11-10, Wenxuan Wang: adjust parameters
+
+
 
 import argparse
 import os

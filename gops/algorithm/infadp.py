@@ -1,16 +1,10 @@
-#   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Author: Sun Hao
-#  Update Date: 2020-11-13
-#  Update Date: 2021-01-03
-#  Comments: ?
-
+#  Creator: iDLab
+#  Description: Infinity ADP Algorithm (infADP)
+#  Update: 2021-03-05, Wenxuan Wang: create infADP algorithm
 
 __all__ = ['INFADP']
 

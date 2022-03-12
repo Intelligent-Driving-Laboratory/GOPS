@@ -2,15 +2,16 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Wenxuan Wang
-#  Description: Acrobat Environment
-#
+#  Creator: iDLab
+#  Description: GYM Environment
+#  Update Date: 2021-05-15, Shengbo Li: create file
+#  Update Date: 2022-01-12, Shengbo Li: update codes
+
 
 import warnings
 
 import numpy as np
 import torch
-
 
 class GymDemocontiModel(torch.nn.Module):
     def __init__(self):

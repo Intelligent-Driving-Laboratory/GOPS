@@ -1,5 +1,14 @@
-import ray
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: Task Pool Function for Ray Architecture
+#  Update Date: 2021-03-10, Yang Guan: Create codes
 
+
+
+import ray
 
 class TaskPool(object):
     """Helper class for tracking the status of many in-flight actor tasks."""

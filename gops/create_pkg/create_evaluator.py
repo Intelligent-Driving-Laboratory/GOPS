@@ -2,8 +2,11 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yang GUAN
+#  Creator: iDLab
 #  Description: Create evaluator
+#  Update Date: 2020-11-10, Yang Guan: create evaluator module
+
+
 from ..trainer.evaluator import Evaluator
 
 

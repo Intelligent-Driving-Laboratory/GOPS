@@ -1,11 +1,11 @@
-#   Copyright (c) Intelligent Driving Lab(iDLab), Tsinghua University. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Jie Li
-#  Description: gym environment, continuous action, cart pole
-#  Update Date: 2021-05-19
+#  Creator: iDLab
+#  Description: Proximal Policy Optimization Algorithm (PPO)
+#  Update: 2021-03-05, Yujie Yang: create PPO algorithm
 
-
-#  Proximal Policy Optimization Algorithm (PPO)
 
 
 __all__ = ['ApproxContainer', 'PPO']

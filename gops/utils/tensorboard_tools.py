@@ -1,7 +1,13 @@
-"""
-tensorboard related functions
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: Tensorboard Related Function
+#  Update Date: 2021-03-10, Yuhang Zhang: Create codes
 
-"""
+
+
 import numpy as np
 import pandas as pd
 import os

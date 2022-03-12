@@ -2,10 +2,9 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yao MU
-#  Description: Structural definition for approximation function
-#
-#  Update Date: 2021-05-21, Shengbo Li: revise headline
+#  Creator: iDLab
+#  Description: Multilayer Perceptron (MLP)
+#  Update: 2021-03-05, Wenjun Zou: create MLP function
 
 
 __all__ = ['DetermPolicy', 'StochaPolicy', 'ActionValue', 'ActionValueDis', 'ActionValueDistri', 'StateValue']
