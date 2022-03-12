@@ -80,6 +80,7 @@ class PPO():
         self.loss_value_clip = True
         self.value_clip = 10.0
         self.loss_value_norm = False
+        self.reward_scale = 1.0
 
         self.networks = ApproxContainer(**kwargs)
         self.learning_rate = kwargs['learning_rate']
@@ -134,7 +135,7 @@ class PPO():
 
     def compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
         start_time = time.perf_counter()
-
+        data['rew'] = self.reward_scale*data['rew']
         data_gae = self.__generalization_advantage_estimate(data)  # 1/10 of total time
 
         for _ in range(self.num_repeat):
