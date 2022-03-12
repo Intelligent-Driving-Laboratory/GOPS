@@ -30,6 +30,9 @@ def get_activation_func(key: str):
     elif key == 'elu':
         activation_func = nn.ELU
 
+    elif key == 'gelu':
+        activation_func = nn.GELU
+
     elif key == 'tanh':
         activation_func = nn.Tanh
 
