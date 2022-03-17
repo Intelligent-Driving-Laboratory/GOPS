@@ -140,8 +140,8 @@ if __name__ == "__main__":
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     alg.set_parameters({'gamma': 0.99, 'loss_coefficient_value': 0.5, 'loss_coefficient_entropy': 0.01,
-                        'schedule_adam':'None','schedule_clip':'linear','loss_value_clip':False,
-                       'loss_value_norm':True})
+                        'schedule_adam':'None','schedule_clip':'None','loss_value_clip':False,
+                       'loss_value_norm':False})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

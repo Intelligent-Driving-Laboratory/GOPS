@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
     # 4. Parameters for trainer
     parser.add_argument('--trainer', type=str, default='off_serial_trainer')
-    parser.add_argument('--max_iteration', type=int, default=5000,
+    parser.add_argument('--max_iteration', type=int, default=3000,
                         help='Maximum iteration number')
     parser.add_argument('--ini_network_dir', type=str, default=None)
     trainer_type = parser.parse_args().trainer
@@ -91,13 +91,13 @@ if __name__ == "__main__":
     # 7. Parameters for evaluator
     parser.add_argument('--evaluator_name', type=str, default='evaluator')
     parser.add_argument('--num_eval_episode', type=int, default=5)
-    parser.add_argument('--eval_interval', type=int, default=100)
+    parser.add_argument('--eval_interval', type=int, default=20)
 
     ################################################
     # 8. Data savings
     parser.add_argument('--save_folder', type=str, default=None)
     parser.add_argument('--apprfunc_save_interval', type=int, default=5000)
-    parser.add_argument('--log_save_interval', type=int, default=100)
+    parser.add_argument('--log_save_interval', type=int, default=20)
 
     # Get parameter dictionary
     args = vars(parser.parse_args())

@@ -64,12 +64,12 @@ if __name__ == "__main__":
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == 'POLY':
         pass
-    parser.add_argument('--policy_min_log_std', type=int, default=-20)
-    parser.add_argument('--policy_max_log_std', type=int, default=0.5)
+    parser.add_argument('--policy_min_log_std', type=int, default=-3)
+    parser.add_argument('--policy_max_log_std', type=int, default=4)
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument('--learning_rate', type=float, default=3e-4, help='3e-4 in the paper')
+    parser.add_argument('--learning_rate', type=float, default=1e-3, help='3e-4 in the paper')
 
     ################################################
     # 4. Parameters for trainer
@@ -80,9 +80,9 @@ if __name__ == "__main__":
     trainer_type = parser.parse_args().trainer
     parser.add_argument('--ini_network_dir', type=str, default=None)
     # 4.1. Parameters for on_serial_trainer
-    parser.add_argument('--num_repeat', type=int, default=10, help='5')  # 5 repeat
+    parser.add_argument('--num_repeat', type=int, default=20, help='5')  # 5 repeat
     parser.add_argument('--num_mini_batch', type=int, default=8, help='8')  # 8 mini_batch
-    parser.add_argument('--mini_batch_size', type=int, default=64, help='128')  # 8 mini_batch * 128 = 1024
+    parser.add_argument('--mini_batch_size', type=int, default=128, help='128')  # 8 mini_batch * 128 = 1024
     parser.add_argument('--num_epoch', type=int,
                         default=parser.parse_args().num_repeat * parser.parse_args().num_mini_batch,
                         help='# 50 gradient step per sample')
@@ -90,7 +90,7 @@ if __name__ == "__main__":
     # 5. Parameters for sampler
     parser.add_argument('--sampler_name', type=str, default='on_sampler')
     # Batch size of sampler for buffer store
-    parser.add_argument('--sample_batch_size', type=int, default=512,
+    parser.add_argument('--sample_batch_size', type=int, default=1024,
                         help='Batch size of sampler for buffer store = 1024')  # 8 env * 128 step
     assert parser.parse_args().num_mini_batch * parser.parse_args().mini_batch_size == parser.parse_args().sample_batch_size, 'sample_batch_size error'
     # Add noise to actions for better exploration

@@ -65,8 +65,8 @@ class StochaPolicy(nn.Module, Action_Distribution):
                         get_activation_func(kwargs['hidden_activation']),
                         get_activation_func(kwargs['output_activation']))
         self.log_std = mlp(pi_sizes,
-                           get_activation_func(kwargs['hidden_activation']),
-                           get_activation_func(kwargs['output_activation']))
+                        get_activation_func(kwargs['hidden_activation']),
+                        get_activation_func(kwargs['output_activation']))
         self.min_log_std = kwargs['min_log_std']
         self.max_log_std = kwargs['max_log_std']
         self.register_buffer('act_high_lim', torch.from_numpy(kwargs['act_high_lim']))

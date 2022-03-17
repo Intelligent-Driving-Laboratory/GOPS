@@ -13,7 +13,7 @@ import torch
 EPS = 1e-6
 
 
-class GaussDistribution():
+class TanhGaussDistribution():
     def __init__(self, logits):
         self.logits = logits
         self.mean, self.std = torch.chunk(logits, chunks=2, dim=-1)
@@ -28,7 +28,8 @@ class GaussDistribution():
         action = self.gauss_distribution.sample()
         action_limited = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(action) + (
                     self.act_high_lim + self.act_low_lim) / 2
-        log_prob = self.gauss_distribution.log_prob(action) - torch.log((self.act_high_lim - self.act_low_lim) * (1+EPS - torch.pow(torch.tanh(action), 2))).sum(-1)
+        log_prob = self.gauss_distribution.log_prob(action)- torch.log(
+            1+EPS - torch.pow(torch.tanh(action), 2)).sum(-1) - torch.log((self.act_high_lim-self.act_low_lim)/2).sum(-1)
         return action_limited, log_prob
 
     def rsample(self):
@@ -36,7 +37,7 @@ class GaussDistribution():
         action_limited = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(action) + (
                     self.act_high_lim + self.act_low_lim) / 2
         log_prob = self.gauss_distribution.log_prob(action) - torch.log(
-            (self.act_high_lim - self.act_low_lim) * (1+EPS - torch.pow(torch.tanh(action), 2))).sum(-1)
+            1+EPS - torch.pow(torch.tanh(action), 2)).sum(-1) - torch.log((self.act_high_lim-self.act_low_lim)/2).sum(-1)
         return action_limited, log_prob
 
     def log_prob(self, action_limited) -> torch.Tensor:
@@ -55,7 +56,7 @@ class GaussDistribution():
         return torch.distributions.kl.kl_divergence(self.gauss_distribution, other.gauss_distribution)
 
 
-class GaussDistribution_Clip():
+class GaussDistribution():
     def __init__(self, logits):
         self.logits = logits
         self.mean, self.std = torch.chunk(logits, chunks=2, dim=-1)
@@ -68,17 +69,16 @@ class GaussDistribution_Clip():
 
     def sample(self):
         action = self.gauss_distribution.sample()
-        action_clipped = torch.clamp(action,self.act_low_lim, self.act_high_lim)
-        log_prob = self.gauss_distribution.log_prob(action_clipped)
-        return action_clipped, log_prob
+        log_prob = self.gauss_distribution.log_prob(action)
+        return action, log_prob
 
     def rsample(self):
         action = self.gauss_distribution.rsample()
         log_prob = self.gauss_distribution.log_prob(action)
         return action, log_prob
 
-    def log_prob(self, action_clipped) -> torch.Tensor:
-        log_prob = self.gauss_distribution.log_prob(action_clipped)
+    def log_prob(self, action) -> torch.Tensor:
+        log_prob = self.gauss_distribution.log_prob(action)
         return log_prob
 
     def entropy(self):

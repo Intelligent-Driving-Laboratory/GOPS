@@ -70,7 +70,11 @@ class OnSampler():
             if self.noise_params is not None:
                 action = self.noise_processor.sample(action)
             action = np.array(action)  # ensure action is an array
-            next_obs, reward, self.done, info = self.env.step(action)
+            if self.action_type == 'continu':
+                action_clip = action.clip(self.env.action_space.low, self.env.action_space.high)
+            else:
+                action_clip = action
+            next_obs, reward, self.done, info = self.env.step(action_clip)
             if 'TimeLimit.truncated' not in info.keys():
                 info['TimeLimit.truncated'] = False
             if info['TimeLimit.truncated']:

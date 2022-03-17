@@ -61,7 +61,7 @@ if __name__ == "__main__":
     parser.add_argument('--policy_func_name', type=str, default='StochaPolicy')
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--policy_func_type', type=str, default='MLP')
-    parser.add_argument('--policy_act_distribution', type=str, default='GaussDistribution_Clip')
+    parser.add_argument('--policy_act_distribution', type=str, default='GaussDistribution')
     policy_func_type = parser.parse_args().policy_func_type
     if policy_func_type == 'MLP':
         parser.add_argument('--policy_hidden_sizes', type=list, default=[64, 64])
@@ -132,8 +132,8 @@ if __name__ == "__main__":
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     alg.set_parameters({'gamma': 0.99, 'loss_coefficient_value': 0.5, 'loss_coefficient_entropy': 0.01,
-                        'schedule_adam':'None','schedule_clip':'linear','loss_value_clip':False,
-                       'loss_value_norm':True})
+                        'schedule_adam':'None','schedule_clip':'None','loss_value_clip':False,
+                       'loss_value_norm':False})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
