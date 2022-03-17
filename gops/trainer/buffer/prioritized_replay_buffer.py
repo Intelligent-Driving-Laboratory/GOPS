@@ -7,11 +7,12 @@
 #  Update: 2021-03-05, Yuheng Lei: Create reply buffer
 
 
-
 import numpy as np
+
 
 class SumTree(object):
     data_pointer = 0
+
     def __init__(self, capacity):
         self.capacity = capacity
         self.tree = np.zeros(2 * capacity - 1)
@@ -61,24 +62,27 @@ class PrioritizedReplayBuffer(object):
     alpha = 0.6
     beta = 0.4
     beta_increment_per_sampling = 0.001
-    abs_err_upper = 1.
+    abs_err_upper = 1.0
 
     def __init__(self, buffer_size):
         self.tree = SumTree(buffer_size)
 
     def store(self, transition):
-        max_p = np.max(self.tree.tree[-self.tree.capacity:])
+        max_p = np.max(self.tree.tree[-self.tree.capacity :])
         if max_p == 0:
             max_p = self.abs_err_upper
         self.tree.add(max_p, transition)
 
     def sample(self, n):
-        b_idx, b_memory, ISWeights = np.empty((n,), dtype=np.int32), np.empty((n, self.tree.data[0].size)), np.empty(
-            (n, 1))
+        b_idx, b_memory, ISWeights = (
+            np.empty((n,), dtype=np.int32),
+            np.empty((n, self.tree.data[0].size)),
+            np.empty((n, 1)),
+        )
         pri_seg = self.tree.total_p / n
-        self.beta = np.min([1., self.beta + self.beta_increment_per_sampling])
+        self.beta = np.min([1.0, self.beta + self.beta_increment_per_sampling])
 
-        min_prob = np.min(self.tree.tree[-self.tree.capacity:]) / self.tree.total_p
+        min_prob = np.min(self.tree.tree[-self.tree.capacity :]) / self.tree.total_p
         if min_prob == 0:
             min_prob = 0.00001
         for i in range(n):

@@ -7,7 +7,13 @@
 #  Update: 2021-03-05, Wenjun Zou: create CNN function
 
 
-__all__ = ['DetermPolicy', 'StochaPolicy', 'ActionValue', 'ActionValueDis', 'StateValue']
+__all__ = [
+    "DetermPolicy",
+    "StochaPolicy",
+    "ActionValue",
+    "ActionValueDis",
+    "StateValue",
+]
 
 import numpy as np
 import torch
@@ -16,14 +22,21 @@ import torch.nn.functional as F
 from gops.utils.utils import get_activation_func
 from act_distribution_cls import Action_Distribution
 
+
 def CNN(kernel_sizes, channels, strides, activation, input_channel):
     layers = []
     for j in range(len(kernel_sizes)):
         act = activation
         if j == 0:
-            layers += [nn.Conv2d(input_channel, channels[j], kernel_sizes[j], strides[j]), act()]
+            layers += [
+                nn.Conv2d(input_channel, channels[j], kernel_sizes[j], strides[j]),
+                act(),
+            ]
         else:
-            layers += [nn.Conv2d(channels[j - 1], channels[j], kernel_sizes[j], strides[j]), act()]
+            layers += [
+                nn.Conv2d(channels[j - 1], channels[j], kernel_sizes[j], strides[j]),
+                act(),
+            ]
     return nn.Sequential(*layers)
 
 
@@ -38,16 +51,16 @@ def MLP(sizes, activation, output_activation=nn.Identity):
 class DetermPolicy(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super(DetermPolicy, self).__init__()
-        act_dim = kwargs['act_dim']
-        obs_dim = kwargs['obs_dim']
-        conv_type = kwargs['conv_type']
-        act_high_lim = kwargs['act_high_lim']
-        act_low_lim = kwargs['act_low_lim']
-        self.register_buffer('act_high_lim', torch.from_numpy(act_high_lim))
-        self.register_buffer('act_low_lim', torch.from_numpy(act_low_lim))
-        self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
-        self.output_activation = get_activation_func(kwargs['output_activation'])
-        self.action_distirbution_cls = kwargs['action_distirbution_cls']
+        act_dim = kwargs["act_dim"]
+        obs_dim = kwargs["obs_dim"]
+        conv_type = kwargs["conv_type"]
+        act_high_lim = kwargs["act_high_lim"]
+        act_low_lim = kwargs["act_low_lim"]
+        self.register_buffer("act_high_lim", torch.from_numpy(act_high_lim))
+        self.register_buffer("act_low_lim", torch.from_numpy(act_low_lim))
+        self.hidden_activation = get_activation_func(kwargs["hidden_activation"])
+        self.output_activation = get_activation_func(kwargs["output_activation"])
+        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
         if conv_type == "type_1":
             # CNN+MLP Parameters
             conv_kernel_sizes = [8, 4, 3]
@@ -58,8 +71,16 @@ class DetermPolicy(nn.Module, Action_Distribution):
             mlp_hidden_layers = [512, 256]
 
             # Construct CNN+MLP
-            self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            self.conv = CNN(
+                conv_kernel_sizes,
+                conv_channels,
+                conv_strides,
+                conv_activation,
+                conv_input_channel,
+            )
+            conv_num_dims = (
+                self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            )
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
 
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
@@ -74,8 +95,16 @@ class DetermPolicy(nn.Module, Action_Distribution):
             mlp_hidden_layers = [128]
 
             # Construct CNN+MLP
-            self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            self.conv = CNN(
+                conv_kernel_sizes,
+                conv_channels,
+                conv_strides,
+                conv_activation,
+                conv_input_channel,
+            )
+            conv_num_dims = (
+                self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            )
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
 
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
@@ -88,25 +117,26 @@ class DetermPolicy(nn.Module, Action_Distribution):
         feature = img.view(img.size(0), -1)
         feature = self.mlp(feature)
         action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(feature) + (
-                    self.act_high_lim + self.act_low_lim) / 2
+            self.act_high_lim + self.act_low_lim
+        ) / 2
         return action
 
 
 class StochaPolicy(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super(StochaPolicy, self).__init__()
-        act_dim = kwargs['act_dim']
-        obs_dim = kwargs['obs_dim']
-        conv_type = kwargs['conv_type']
-        act_high_lim = kwargs['act_high_lim']
-        act_low_lim = kwargs['act_low_lim']
-        self.register_buffer('act_high_lim', torch.from_numpy(act_high_lim))
-        self.register_buffer('act_low_lim', torch.from_numpy(act_low_lim))
-        self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
-        self.output_activation = get_activation_func(kwargs['output_activation'])
-        self.min_log_std = kwargs['min_log_std']
-        self.max_log_std = kwargs['max_log_std']
-        self.action_distirbution_cls = kwargs['action_distirbution_cls']
+        act_dim = kwargs["act_dim"]
+        obs_dim = kwargs["obs_dim"]
+        conv_type = kwargs["conv_type"]
+        act_high_lim = kwargs["act_high_lim"]
+        act_low_lim = kwargs["act_low_lim"]
+        self.register_buffer("act_high_lim", torch.from_numpy(act_high_lim))
+        self.register_buffer("act_low_lim", torch.from_numpy(act_low_lim))
+        self.hidden_activation = get_activation_func(kwargs["hidden_activation"])
+        self.output_activation = get_activation_func(kwargs["output_activation"])
+        self.min_log_std = kwargs["min_log_std"]
+        self.max_log_std = kwargs["max_log_std"]
+        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
 
         if conv_type == "type_1":
             # CNN+MLP Parameters
@@ -118,11 +148,23 @@ class StochaPolicy(nn.Module, Action_Distribution):
             mlp_hidden_layers = [512, 256]
 
             # Construct CNN+MLP
-            self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            self.conv = CNN(
+                conv_kernel_sizes,
+                conv_channels,
+                conv_strides,
+                conv_activation,
+                conv_input_channel,
+            )
+            conv_num_dims = (
+                self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            )
             policy_mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
-            self.mean = MLP(policy_mlp_sizes, self.hidden_activation, self.output_activation)
-            self.log_std = MLP(policy_mlp_sizes, self.hidden_activation, self.output_activation)
+            self.mean = MLP(
+                policy_mlp_sizes, self.hidden_activation, self.output_activation
+            )
+            self.log_std = MLP(
+                policy_mlp_sizes, self.hidden_activation, self.output_activation
+            )
 
         elif conv_type == "type_2":
             # CNN+MLP Parameters
@@ -134,11 +176,23 @@ class StochaPolicy(nn.Module, Action_Distribution):
             mlp_hidden_layers = [128]
 
             # Construct CNN+MLP
-            self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            self.conv = CNN(
+                conv_kernel_sizes,
+                conv_channels,
+                conv_strides,
+                conv_activation,
+                conv_input_channel,
+            )
+            conv_num_dims = (
+                self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            )
             policy_mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
-            self.mean = MLP(policy_mlp_sizes, self.hidden_activation, self.output_activation)
-            self.log_std = MLP(policy_mlp_sizes, self.hidden_activation, self.output_activation)
+            self.mean = MLP(
+                policy_mlp_sizes, self.hidden_activation, self.output_activation
+            )
+            self.log_std = MLP(
+                policy_mlp_sizes, self.hidden_activation, self.output_activation
+            )
 
         else:
             raise NotImplementedError
@@ -147,19 +201,21 @@ class StochaPolicy(nn.Module, Action_Distribution):
         img = self.conv(obs)
         feature = img.view(img.size(0), -1)
         action_mean = self.mean(feature)
-        action_std = torch.clamp(self.log_std(feature), self.min_log_std, self.max_log_std).exp()
+        action_std = torch.clamp(
+            self.log_std(feature), self.min_log_std, self.max_log_std
+        ).exp()
         return torch.cat((action_mean, action_std), dim=-1)
 
 
 class ActionValue(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super(ActionValue, self).__init__()
-        act_dim = kwargs['act_dim']
-        obs_dim = kwargs['obs_dim']
-        conv_type = kwargs['conv_type']
-        self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
-        self.output_activation = get_activation_func(kwargs['output_activation'])
-        self.action_distirbution_cls = kwargs['action_distirbution_cls']
+        act_dim = kwargs["act_dim"]
+        obs_dim = kwargs["obs_dim"]
+        conv_type = kwargs["conv_type"]
+        self.hidden_activation = get_activation_func(kwargs["hidden_activation"])
+        self.output_activation = get_activation_func(kwargs["output_activation"])
+        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
         if conv_type == "type_1":
             # CNN+MLP Parameters
             conv_kernel_sizes = [8, 4, 3]
@@ -170,9 +226,17 @@ class ActionValue(nn.Module, Action_Distribution):
             mlp_hidden_layers = [512, 256]
 
             # Construct CNN+MLP
-            self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
-            mlp_sizes = [conv_num_dims+act_dim] + mlp_hidden_layers + [1]
+            self.conv = CNN(
+                conv_kernel_sizes,
+                conv_channels,
+                conv_strides,
+                conv_activation,
+                conv_input_channel,
+            )
+            conv_num_dims = (
+                self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            )
+            mlp_sizes = [conv_num_dims + act_dim] + mlp_hidden_layers + [1]
 
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
 
@@ -186,9 +250,17 @@ class ActionValue(nn.Module, Action_Distribution):
             mlp_hidden_layers = [128]
 
             # Construct CNN+MLP
-            self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
-            mlp_sizes = [conv_num_dims+act_dim] + mlp_hidden_layers + [1]
+            self.conv = CNN(
+                conv_kernel_sizes,
+                conv_channels,
+                conv_strides,
+                conv_activation,
+                conv_input_channel,
+            )
+            conv_num_dims = (
+                self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            )
+            mlp_sizes = [conv_num_dims + act_dim] + mlp_hidden_layers + [1]
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
         else:
             raise NotImplementedError
@@ -202,12 +274,12 @@ class ActionValue(nn.Module, Action_Distribution):
 class ActionValueDis(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super(ActionValueDis, self).__init__()
-        act_num = kwargs['act_num']
-        obs_dim = kwargs['obs_dim']
-        conv_type = kwargs['conv_type']
-        self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
-        self.output_activation = get_activation_func(kwargs['output_activation'])
-        self.action_distirbution_cls = kwargs['action_distirbution_cls']
+        act_num = kwargs["act_num"]
+        obs_dim = kwargs["obs_dim"]
+        conv_type = kwargs["conv_type"]
+        self.hidden_activation = get_activation_func(kwargs["hidden_activation"])
+        self.output_activation = get_activation_func(kwargs["output_activation"])
+        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
         if conv_type == "type_1":
             # CNN+MLP Parameters
             conv_kernel_sizes = [8, 4, 3]
@@ -218,8 +290,16 @@ class ActionValueDis(nn.Module, Action_Distribution):
             mlp_hidden_layers = [512]
 
             # Construct CNN+MLP
-            self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            self.conv = CNN(
+                conv_kernel_sizes,
+                conv_channels,
+                conv_strides,
+                conv_activation,
+                conv_input_channel,
+            )
+            conv_num_dims = (
+                self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            )
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_num]
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
 
@@ -233,8 +313,16 @@ class ActionValueDis(nn.Module, Action_Distribution):
             mlp_hidden_layers = [128]
 
             # Construct CNN+MLP
-            self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            self.conv = CNN(
+                conv_kernel_sizes,
+                conv_channels,
+                conv_strides,
+                conv_activation,
+                conv_input_channel,
+            )
+            conv_num_dims = (
+                self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            )
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_num]
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
         else:
@@ -250,14 +338,14 @@ class ActionValueDis(nn.Module, Action_Distribution):
 class ActionValueDistri(nn.Module):
     def __init__(self, **kwargs):
         super(ActionValueDistri, self).__init__()
-        act_dim = kwargs['act_dim']
-        obs_dim = kwargs['obs_dim']
-        conv_type = kwargs['conv_type']
-        self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
-        self.output_activation = get_activation_func(kwargs['output_activation'])
-        self.action_distirbution_cls = kwargs['action_distirbution_cls']
-        self.min_log_std = kwargs['min_log_std']
-        self.max_log_std = kwargs['max_log_std']
+        act_dim = kwargs["act_dim"]
+        obs_dim = kwargs["obs_dim"]
+        conv_type = kwargs["conv_type"]
+        self.hidden_activation = get_activation_func(kwargs["hidden_activation"])
+        self.output_activation = get_activation_func(kwargs["output_activation"])
+        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.min_log_std = kwargs["min_log_std"]
+        self.max_log_std = kwargs["max_log_std"]
         self.denominator = max(abs(self.min_log_std), self.max_log_std)
         if conv_type == "type_1":
             # CNN+MLP Parameters
@@ -269,11 +357,21 @@ class ActionValueDistri(nn.Module):
             mlp_hidden_layers = [512, 256]
 
             # Construct CNN+MLP
-            self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
-            mlp_sizes = [conv_num_dims+act_dim] + mlp_hidden_layers + [1]
+            self.conv = CNN(
+                conv_kernel_sizes,
+                conv_channels,
+                conv_strides,
+                conv_activation,
+                conv_input_channel,
+            )
+            conv_num_dims = (
+                self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            )
+            mlp_sizes = [conv_num_dims + act_dim] + mlp_hidden_layers + [1]
             self.mean = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
-            self.log_std = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
+            self.log_std = MLP(
+                mlp_sizes, self.hidden_activation, self.output_activation
+            )
 
         elif conv_type == "type_2":
             # CNN+MLP Parameters
@@ -285,11 +383,21 @@ class ActionValueDistri(nn.Module):
             mlp_hidden_layers = [128]
 
             # Construct CNN+MLP
-            self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
-            mlp_sizes = [conv_num_dims+act_dim] + mlp_hidden_layers + [1]
+            self.conv = CNN(
+                conv_kernel_sizes,
+                conv_channels,
+                conv_strides,
+                conv_activation,
+                conv_input_channel,
+            )
+            conv_num_dims = (
+                self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            )
+            mlp_sizes = [conv_num_dims + act_dim] + mlp_hidden_layers + [1]
             self.mean = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
-            self.log_std = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
+            self.log_std = MLP(
+                mlp_sizes, self.hidden_activation, self.output_activation
+            )
         else:
             raise NotImplementedError
 
@@ -299,8 +407,11 @@ class ActionValueDistri(nn.Module):
         value_mean = self.mean(feature)
         log_std = self.log_std(feature)
 
-        value_log_std = torch.clamp_min(self.max_log_std * torch.tanh(log_std / self.denominator), 0) + \
-                        torch.clamp_max(-self.min_log_std * torch.tanh(log_std / self.denominator), 0)
+        value_log_std = torch.clamp_min(
+            self.max_log_std * torch.tanh(log_std / self.denominator), 0
+        ) + torch.clamp_max(
+            -self.min_log_std * torch.tanh(log_std / self.denominator), 0
+        )
         return torch.cat((value_mean, value_log_std), dim=-1)
 
 
@@ -311,11 +422,11 @@ class StochaPolicyDis(ActionValueDis, Action_Distribution):
 class StateValue(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super(StateValue, self).__init__()
-        obs_dim = kwargs['obs_dim']
-        conv_type = kwargs['conv_type']
-        self.hidden_activation = get_activation_func(kwargs['hidden_activation'])
-        self.output_activation = get_activation_func(kwargs['output_activation'])
-        self.action_distirbution_cls = kwargs['action_distirbution_cls']
+        obs_dim = kwargs["obs_dim"]
+        conv_type = kwargs["conv_type"]
+        self.hidden_activation = get_activation_func(kwargs["hidden_activation"])
+        self.output_activation = get_activation_func(kwargs["output_activation"])
+        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
         if conv_type == "type_1":
             # CNN+MLP Parameters
             conv_kernel_sizes = [8, 4, 3]
@@ -326,8 +437,16 @@ class StateValue(nn.Module, Action_Distribution):
             mlp_hidden_layers = [512]
 
             # Construct CNN+MLP
-            self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            self.conv = CNN(
+                conv_kernel_sizes,
+                conv_channels,
+                conv_strides,
+                conv_activation,
+                conv_input_channel,
+            )
+            conv_num_dims = (
+                self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            )
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [1]
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
 
@@ -341,8 +460,16 @@ class StateValue(nn.Module, Action_Distribution):
             mlp_hidden_layers = [128]
 
             # Construct CNN+MLP
-            self.conv = CNN(conv_kernel_sizes, conv_channels, conv_strides, conv_activation, conv_input_channel)
-            conv_num_dims = self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            self.conv = CNN(
+                conv_kernel_sizes,
+                conv_channels,
+                conv_strides,
+                conv_activation,
+                conv_input_channel,
+            )
+            conv_num_dims = (
+                self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
+            )
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [1]
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
         else:

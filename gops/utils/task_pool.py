@@ -7,8 +7,8 @@
 #  Update Date: 2021-03-10, Yang Guan: Create codes
 
 
-
 import ray
+
 
 class TaskPool(object):
     """Helper class for tracking the status of many in-flight actor tasks."""
@@ -26,7 +26,7 @@ class TaskPool(object):
         self._tasks[obj_id] = worker
         self._objects[obj_id] = all_obj_ids
 
-    def completed(self, blocking_wait=False):   #
+    def completed(self, blocking_wait=False):  #
         pending = list(self._tasks)
         if pending:
             ready, _ = ray.wait(pending, num_returns=len(pending), timeout=0)

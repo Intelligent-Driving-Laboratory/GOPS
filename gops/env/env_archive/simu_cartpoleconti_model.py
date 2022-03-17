@@ -7,7 +7,6 @@
 #  Update Date: 2021-05-55, Yuhang Zhang: create environment
 
 
-
 import math
 import warnings
 import numpy as np
@@ -24,9 +23,9 @@ class SimuCartpolecontiModel(torch.nn.Module):
         self.gravity = 9.8
         self.masscart = 1.0
         self.masspole = 0.1
-        self.total_mass = (self.masspole + self.masscart)
+        self.total_mass = self.masspole + self.masscart
         self.length = 0.5  # actually half the pole's length
-        self.polemass_length = (self.masspole * self.length)
+        self.polemass_length = self.masspole * self.length
         self.force_mag = 10.0
         self.theta_threshold_radians = 12 * 2 * math.pi / 360  # 12deg
         self.x_threshold = 2.4
@@ -45,20 +44,21 @@ class SimuCartpolecontiModel(torch.nn.Module):
         self.dt = 0.02  # seconds between state updates
         self.state_dim = 4
         self.action_dim = 1
-        lb_state = [self.min_x, self.min_x_dot, self.min_theta,  self.min_theta_dot]
-        hb_state = [self.max_x, self.max_x_dot, self.max_theta,  self.max_theta_dot]
+        lb_state = [self.min_x, self.min_x_dot, self.min_theta, self.min_theta_dot]
+        hb_state = [self.max_x, self.max_x_dot, self.max_theta, self.max_theta_dot]
         lb_action = [self.min_action]
         hb_action = [self.max_action]
 
         # do not change the following section
 
-        self.register_buffer('lb_state', torch.tensor(lb_state, dtype=torch.float32))
-        self.register_buffer('hb_state', torch.tensor(hb_state, dtype=torch.float32))
-        self.register_buffer('lb_action', torch.tensor(lb_action, dtype=torch.float32))
-        self.register_buffer('hb_action', torch.tensor(hb_action, dtype=torch.float32))
+        self.register_buffer("lb_state", torch.tensor(lb_state, dtype=torch.float32))
+        self.register_buffer("hb_state", torch.tensor(hb_state, dtype=torch.float32))
+        self.register_buffer("lb_action", torch.tensor(lb_action, dtype=torch.float32))
+        self.register_buffer("hb_action", torch.tensor(hb_action, dtype=torch.float32))
 
-
-    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)):
+    def forward(
+        self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)
+    ):
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
@@ -90,9 +90,14 @@ class SimuCartpolecontiModel(torch.nn.Module):
         costheta = torch.cos(theta)
         sintheta = torch.sin(theta)
         force = self.force_mag * action
-        temp = (torch.squeeze(force) + self.polemass_length * theta_dot * theta_dot * sintheta) / self.total_mass
-        thetaacc = (self.gravity * sintheta - costheta * temp) / \
-                   (self.length * (4.0 / 3.0 - self.masspole * costheta * costheta / self.total_mass))
+        temp = (
+            torch.squeeze(force)
+            + self.polemass_length * theta_dot * theta_dot * sintheta
+        ) / self.total_mass
+        thetaacc = (self.gravity * sintheta - costheta * temp) / (
+            self.length
+            * (4.0 / 3.0 - self.masspole * costheta * costheta / self.total_mass)
+        )
         xacc = temp - self.polemass_length * thetaacc * costheta / self.total_mass
         x = x + self.dt * x_dot
         x_dot = x_dot + self.dt * xacc
@@ -101,10 +106,12 @@ class SimuCartpolecontiModel(torch.nn.Module):
         state_next = torch.stack([x, x_dot, theta, theta_dot]).transpose(1, 0)
         ################################################################################################################
         # define the ending condation here the format is just like isdone = l(next_state)
-        isdone = (x < -self.x_threshold) + \
-                 (x > self.x_threshold) + \
-                 (theta < -self.theta_threshold_radians) + \
-                 (theta > self.theta_threshold_radians)
+        isdone = (
+            (x < -self.x_threshold)
+            + (x > self.x_threshold)
+            + (theta < -self.theta_threshold_radians)
+            + (theta > self.theta_threshold_radians)
+        )
         ############################################################################################
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
         reward = 1 - isdone.float()

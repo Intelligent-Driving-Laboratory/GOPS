@@ -10,4 +10,4 @@ import gym
 
 
 def env_creator(**kwargs):
-    return gym.make('Blackjack-v0')
+    return gym.make("Blackjack-v0")

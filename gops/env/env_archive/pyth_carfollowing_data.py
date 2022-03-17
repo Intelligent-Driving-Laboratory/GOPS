@@ -7,7 +7,6 @@
 #  Update Date: 2021-11-22, Yuhang Zhang: create environment
 
 
-
 import math
 import warnings
 import numpy as np
@@ -22,7 +21,6 @@ gym.logger.setLevel(gym.logger.ERROR)
 
 
 class PythCarfollowingData:
-
     def __init__(self, **kwargs):
 
         self.dyn = CarFollowingDynamics()
@@ -31,8 +29,16 @@ class PythCarfollowingData:
 
         lb_state = np.array([-np.inf, -np.inf, -np.inf])
         hb_state = -lb_state
-        lb_action = np.array([-4.0, ])
-        hb_action = np.array([3.0, ])
+        lb_action = np.array(
+            [
+                -4.0,
+            ]
+        )
+        hb_action = np.array(
+            [
+                3.0,
+            ]
+        )
 
         self.action_space = spaces.Box(low=lb_action, high=hb_action)
         self.observation_space = spaces.Box(lb_state, hb_state)
@@ -63,9 +69,11 @@ class PythCarfollowingData:
 
         isdone = state_next[2] < 2
 
-        constraint = self.dyn.compute_cost(state_next, action) # TODO: next state or state
+        constraint = self.dyn.compute_cost(
+            state_next, action
+        )  # TODO: next state or state
         self.steps += 1
-        info = {'TimeLimit.truncated': self.steps > 170, 'constraint': constraint}
+        info = {"TimeLimit.truncated": self.steps > 170, "constraint": constraint}
         return self.state, reward, isdone, info
 
     def reset(self):
@@ -90,12 +98,14 @@ class PythCarfollowingData:
     def close(self):
         pass
 
+
 def env_creator(**kwargs):
     return PythCarfollowingData()
 
 
 if __name__ == "__main__":
     from pprint import pprint
+
     env = PythCarfollowingData()
     for i in range(100):
         a = env.action_space.sample()
