@@ -10,5 +10,4 @@ import gym
 
 
 def env_creator(**kwargs):
-    return gym.make('Roulette-v0')
-
+    return gym.make("Roulette-v0")

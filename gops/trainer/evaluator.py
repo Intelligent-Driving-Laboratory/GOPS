@@ -7,7 +7,6 @@
 #  Update Date: 2021-05-10, Yang Guan: renew environment parameters
 
 
-
 import datetime
 import os
 
@@ -17,24 +16,29 @@ import numpy as np
 import torch
 from gops.create_pkg.create_env import create_env
 
-from gops.utils.action_distributions import GaussDistribution, DiracDistribution, ValueDiracDistribution, CategoricalDistribution
+from gops.utils.action_distributions import (
+    GaussDistribution,
+    DiracDistribution,
+    ValueDiracDistribution,
+    CategoricalDistribution,
+)
 
-class Evaluator():
 
+class Evaluator:
     def __init__(self, **kwargs):
         self.env = create_env(**kwargs)
-        alg_name = kwargs['algorithm']
+        alg_name = kwargs["algorithm"]
         alg_file_name = alg_name.lower()
         file = __import__(alg_file_name)
-        ApproxContainer = getattr(file, 'ApproxContainer')
+        ApproxContainer = getattr(file, "ApproxContainer")
         self.networks = ApproxContainer(**kwargs)
-        self.render = kwargs['is_render']
+        self.render = kwargs["is_render"]
 
-        self.num_eval_episode = kwargs['num_eval_episode']
-        self.action_type = kwargs['action_type']
-        self.policy_func_name = kwargs['policy_func_name']
-        self.save_folder = kwargs['save_folder']
-        self.eval_save = kwargs.get('eval_save', True)
+        self.num_eval_episode = kwargs["num_eval_episode"]
+        self.action_type = kwargs["action_type"]
+        self.policy_func_name = kwargs["policy_func_name"]
+        self.save_folder = kwargs["save_folder"]
+        self.eval_save = kwargs.get("eval_save", True)
 
         self.print_time = 0
         self.print_iteration = -1
@@ -53,9 +57,9 @@ class Evaluator():
         reward_list = []
         obs = self.env.reset()
         done = 0
-        info = {'TimeLimit.truncated': False}
-        while not (done or info['TimeLimit.truncated']):
-            batch_obs = torch.from_numpy(np.expand_dims(obs, axis=0).astype('float32'))
+        info = {"TimeLimit.truncated": False}
+        while not (done or info["TimeLimit.truncated"]):
+            batch_obs = torch.from_numpy(np.expand_dims(obs, axis=0).astype("float32"))
             logits = self.networks.policy(batch_obs)
             action_distribution = self.networks.create_action_distributions(logits)
             action = action_distribution.mode()
@@ -64,15 +68,23 @@ class Evaluator():
             obs_list.append(obs)
             action_list.append(action)
             obs = next_obs
-            if 'TimeLimit.truncated' not in info.keys():
-                info['TimeLimit.truncated'] = False
+            if "TimeLimit.truncated" not in info.keys():
+                info["TimeLimit.truncated"] = False
             # Draw environment animation
             if render:
                 self.env.render()
             reward_list.append(reward)
-        eval_dict = {'reward_list': reward_list, 'action_list': action_list, 'obs_list': obs_list}
+        eval_dict = {
+            "reward_list": reward_list,
+            "action_list": action_list,
+            "obs_list": obs_list,
+        }
         if self.eval_save:
-            np.save(self.save_folder + '/evaluator/iteration{}_episode{}'.format(iteration, self.print_time), eval_dict)
+            np.save(
+                self.save_folder
+                + "/evaluator/iteration{}_episode{}".format(iteration, self.print_time),
+                eval_dict,
+            )
         episode_return = sum(reward_list)
         return episode_return
 
@@ -86,4 +98,3 @@ class Evaluator():
         return self.run_n_episodes(self.num_eval_episode, iteration)
 
         # add self.writer:
-

@@ -7,8 +7,7 @@
 #  Update Date: 2021-03-10, Wenhan CAO: Revise Codes
 
 
-
-__all__ = ['OnSyncTrainer']
+__all__ = ["OnSyncTrainer"]
 
 import logging
 import random
@@ -25,40 +24,40 @@ logging.basicConfig(level=logging.INFO)
 from gops.utils.tensorboard_tools import tb_tags
 import warnings
 
-warnings.filterwarnings('ignore')
+warnings.filterwarnings("ignore")
 
 
-class OnSyncTrainer():
+class OnSyncTrainer:
     def __init__(self, alg, sampler, evaluator, **kwargs):
         self.alg = alg
         self.samplers = sampler
         self.evaluator = evaluator
         self.iteration = 0
-        self.max_iteration = kwargs['max_iteration']
-        self.ini_network_dir = kwargs['ini_network_dir']
-        self.save_folder = kwargs['save_folder']
-        self.log_save_interval = kwargs['log_save_interval']
-        self.apprfunc_save_interval = kwargs['apprfunc_save_interval']
+        self.max_iteration = kwargs["max_iteration"]
+        self.ini_network_dir = kwargs["ini_network_dir"]
+        self.save_folder = kwargs["save_folder"]
+        self.log_save_interval = kwargs["log_save_interval"]
+        self.apprfunc_save_interval = kwargs["apprfunc_save_interval"]
         self.iteration = 0
 
-        self.save_folder = kwargs['save_folder']
-        self.log_save_interval = kwargs['log_save_interval']
-        self.apprfunc_save_interval = kwargs['apprfunc_save_interval']
-        self.eval_interval = kwargs['eval_interval']
+        self.save_folder = kwargs["save_folder"]
+        self.log_save_interval = kwargs["log_save_interval"]
+        self.apprfunc_save_interval = kwargs["apprfunc_save_interval"]
+        self.eval_interval = kwargs["eval_interval"]
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
-        self.writer.add_scalar(tb_tags['alg_time'], 0, 0)
-        self.writer.add_scalar(tb_tags['sampler_time'], 0, 0)
+        self.writer.add_scalar(tb_tags["alg_time"], 0, 0)
+        self.writer.add_scalar(tb_tags["sampler_time"], 0, 0)
 
         self.writer.flush()
 
         # create center network
-        alg_name = kwargs['algorithm']
+        alg_name = kwargs["algorithm"]
         alg_file_name = alg_name.lower()
         file = __import__(alg_file_name)
-        ApproxContainer = getattr(file, 'ApproxContainer')
+        ApproxContainer = getattr(file, "ApproxContainer")
         self.networks = ApproxContainer(**kwargs)
 
-        self.ini_network_dir = kwargs['ini_network_dir']
+        self.ini_network_dir = kwargs["ini_network_dir"]
 
         # initialize the networks
         if self.ini_network_dir is not None:
@@ -72,7 +71,13 @@ class OnSyncTrainer():
         for sampler in self.samplers:  # 对每个完成的sampler，
             sampler.load_state_dict.remote(weights)  # 同步sampler的参数
         samples, sampler_tb_dict = zip(
-            *ray.get([sampler.sample_with_replay_format.remote() for sampler in self.samplers]))
+            *ray.get(
+                [
+                    sampler.sample_with_replay_format.remote()
+                    for sampler in self.samplers
+                ]
+            )
+        )
         sampler_tb_dict = sampler_tb_dict[0]
         all_samples = concate(samples)
 
@@ -83,7 +88,7 @@ class OnSyncTrainer():
 
         # log
         if self.iteration % self.log_save_interval == 0:
-            print('Iter = ', self.iteration)
+            print("Iter = ", self.iteration)
             add_scalars(alg_tb_dict, self.writer, step=self.iteration)
             add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
 
@@ -91,22 +96,36 @@ class OnSyncTrainer():
         if self.iteration % self.eval_interval == 0:
             # calculate total sample number
             self.evaluator.load_state_dict.remote(self.networks.state_dict())
-            total_avg_return = ray.get(self.evaluator.run_evaluation.remote(self.iteration))
-            self.writer.add_scalar(tb_tags['TAR of RL iteration'],
-                                   total_avg_return,
-                                   self.iteration)
-            self.writer.add_scalar(tb_tags['TAR of total time'],
-                                   total_avg_return,
-                                   int(time.time() - self.start_time))
-            self.writer.add_scalar(tb_tags['TAR of collected samples'],
-                                   total_avg_return,
-                                   sum(ray.get(
-                                       [sampler.get_total_sample_number.remote() for sampler in self.samplers])))
+            total_avg_return = ray.get(
+                self.evaluator.run_evaluation.remote(self.iteration)
+            )
+            self.writer.add_scalar(
+                tb_tags["TAR of RL iteration"], total_avg_return, self.iteration
+            )
+            self.writer.add_scalar(
+                tb_tags["TAR of total time"],
+                total_avg_return,
+                int(time.time() - self.start_time),
+            )
+            self.writer.add_scalar(
+                tb_tags["TAR of collected samples"],
+                total_avg_return,
+                sum(
+                    ray.get(
+                        [
+                            sampler.get_total_sample_number.remote()
+                            for sampler in self.samplers
+                        ]
+                    )
+                ),
+            )
 
         # save
         if self.iteration % self.apprfunc_save_interval == 0:
-            torch.save(self.networks.state_dict(),
-                       self.save_folder + '/apprfunc/apprfunc_{}.pkl'.format(self.iteration))
+            torch.save(
+                self.networks.state_dict(),
+                self.save_folder + "/apprfunc/apprfunc_{}.pkl".format(self.iteration),
+            )
 
     def train(self):
         while self.iteration < self.max_iteration:

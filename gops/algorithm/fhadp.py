@@ -7,8 +7,7 @@
 #  Update: 2021-03-05, Fawang Zhang: create finity ADP algorithm
 
 
-
-__all__ = ['FHADP']
+__all__ = ["FHADP"]
 from copy import deepcopy
 import torch.nn as nn
 from torch.optim import Adam
@@ -23,30 +22,33 @@ from gops.utils.tensorboard_tools import tb_tags
 class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        policy_func_type = kwargs['policy_func_type']
-        policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
+        policy_func_type = kwargs["policy_func_type"]
+        policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
 
         self.policy = create_apprfunc(**policy_args)
-        self.net_dict = {'policy': self.policy}
-        self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs['policy_learning_rate'])
-        self.optimizer_dict = {'policy': self.policy_optimizer}
+        self.net_dict = {"policy": self.policy}
+        self.policy_optimizer = Adam(
+            self.policy.parameters(), lr=kwargs["policy_learning_rate"]
+        )
+        self.optimizer_dict = {"policy": self.policy_optimizer}
 
     def create_action_distributions(self, logits):
         return self.policy.get_act_dist(logits)
 
     def update(self, grad_info):
-        grads_dict = grad_info['grads_dict']
+        grads_dict = grad_info["grads_dict"]
         for net_name, grads in grads_dict.items():
             for p, grad in zip(self.net_dict[net_name].parameters(), grads):
                 p.grad = grad
             self.optimizer_dict[net_name].step()
 
+
 class FHADP:
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
-        self.forward_step = kwargs['pre_horizon']
-        self.use_gpu = kwargs['use_gpu']
+        self.forward_step = kwargs["pre_horizon"]
+        self.use_gpu = kwargs["use_gpu"]
         if self.use_gpu:
             self.envmodel = self.envmodel.cuda()
         self.reward_scale = 0.1
@@ -62,9 +64,9 @@ class FHADP:
 
     def get_parameters(self):
         params = dict()
-        params['use_gpu'] = self.use_gpu
-        params['reward_scale'] = self.reward_scale
-        params['forward_step'] = self.forward_step
+        params["use_gpu"] = self.use_gpu
+        params["reward_scale"] = self.reward_scale
+        params["forward_step"] = self.forward_step
         return params
 
     def compute_gradient(self, data, iteration):
@@ -80,7 +82,7 @@ class FHADP:
         loss_policy.backward()
         policy_grad = [p.grad for p in self.networks.policy.parameters()]
         self.tb_info[tb_tags["loss_actor"]] = loss_policy.item()
-        grads_dict['policy'] = policy_grad
+        grads_dict["policy"] = policy_grad
 
         if self.use_gpu:
             self.networks = self.networks.cpu()
@@ -91,11 +93,17 @@ class FHADP:
 
         self.tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
 
-        grad_info['grads_dict'] = grads_dict
+        grad_info["grads_dict"] = grads_dict
         return grad_info, self.tb_info
 
     def compute_loss_policy(self, data):
-        o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']  # TODO  解耦字典
+        o, a, r, o2, d = (
+            data["obs"],
+            data["act"],
+            data["rew"],
+            data["obs2"],
+            data["done"],
+        )  # TODO  解耦字典
 
         # v_pi = torch.zeros(1)
         # for step in range(self.forward_step):
@@ -111,12 +119,14 @@ class FHADP:
         # print(v_pi.shape,v_pi.type(),-v_pi.mean())
         # return -v_pi.mean()
 
-        next_state_list, v_pi, done_list = self.envmodel.forward_n_step(o, self.networks.policy, self.forward_step, d)
-        return -(v_pi*self.reward_scale).mean()
+        next_state_list, v_pi, done_list = self.envmodel.forward_n_step(
+            o, self.networks.policy, self.forward_step, d
+        )
+        return -(v_pi * self.reward_scale).mean()
 
     def load_state_dict(self, state_dict):
         self.networks.load_state_dict(state_dict)
 
 
-if __name__ == '__main__':
-    print('11111')
+if __name__ == "__main__":
+    print("11111")

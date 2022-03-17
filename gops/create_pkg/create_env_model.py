@@ -7,13 +7,12 @@
 #  Update Date: 2020-11-10, Yuhang Zhang: add create environments code
 
 
-
 def create_env_model(**kwargs):
-    env_model_name = kwargs['env_id'] + '_model'
+    env_model_name = kwargs["env_id"] + "_model"
     try:
         file = __import__(env_model_name)
     except NotImplementedError:
-        raise NotImplementedError('This environment does not have differential model')
+        raise NotImplementedError("This environment does not have differential model")
 
     env_name_camel = formatter(env_model_name)
 
@@ -30,8 +29,8 @@ def create_env_model(**kwargs):
 
 
 def formatter(src: str, firstUpper: bool = True):
-    arr = src.split('_')
-    res = ''
+    arr = src.split("_")
+    res = ""
     for i in arr:
         res = res + i[0].upper() + i[1:]
 

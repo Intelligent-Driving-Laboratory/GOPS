@@ -10,4 +10,4 @@ import gym
 
 
 def env_creator(**kwargs):
-    return gym.make('GuessingGame-v0')
+    return gym.make("GuessingGame-v0")

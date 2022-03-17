@@ -7,7 +7,6 @@
 #  Update Date: 2021-05-55, Yuxuan Jiang & Guojian Zhan: create transform function
 
 
-
 import os
 import json
 from contextlib import contextmanager
@@ -23,7 +22,7 @@ MODEL_SOURCE_INJECTIONS = "#define {0} {0}__actual\n"
 MODEL_HEADER_INJECTIONS = "{0} {1}__actual = {2}::{1};\n"
 TYPE_MAPPING = {
     "uint8": "stdint.uint8_t",
-    "uint32":"stdint.uint32_t",
+    "uint32": "stdint.uint32_t",
     "logical": "stdint.uint8_t",
     "": "void*",  # TODO: better pointer suppor4t
     # TODO: more types
@@ -31,21 +30,21 @@ TYPE_MAPPING = {
 
 NP_TYPE_MAPPING = {
     "stdint.uint8_t": "uint8_t",
-    "stdint.uint32_t":"uint32_t",
+    "stdint.uint32_t": "uint32_t",
     "double": "double_t"
     # TODO: more types
 }
 
 PY_TYPE_MAPPING = {
     "stdint.uint8_t": "int",
-    "stdint.uint32_t":"int",
+    "stdint.uint32_t": "int",
     "double": "float"
     # TODO: more types, logical support?
 }
 
 PY_NP_TYPE_MAPPING = {
     "stdint.uint8_t": "np.uint",
-    "stdint.uint32_t":"np.uint",
+    "stdint.uint32_t": "np.uint",
     "double": "np.double"
     # TODO: more types
 }
@@ -61,8 +60,13 @@ def arrayify(inp):
 def write_text_safe(path: pathlib.Path, text: str):
     if path.exists():
         import time
-        path.rename(path.with_name(f"{path.name}_backup_{time.strftime('%H-%M-%S')}{path.suffix}"))
-    path.write_text(text, encoding='utf-8')
+
+        path.rename(
+            path.with_name(
+                f"{path.name}_backup_{time.strftime('%H-%M-%S')}{path.suffix}"
+            )
+        )
+    path.write_text(text, encoding="utf-8")
 
 
 class Types(Enum):
@@ -140,7 +144,9 @@ cdef class {class_name}:
     return self.{convert_out}(rty)
 """
 
-    TEMPLATE_ARRAY2NP = "np.asarray(<np.{dtype}[:{size}]> {name}).copy()"  # TODO: better way?
+    TEMPLATE_ARRAY2NP = (
+        "np.asarray(<np.{dtype}[:{size}]> {name}).copy()"  # TODO: better way?
+    )
     TEMPLATE_CDEF_FIELD = "cdef {type} {name}"
 
     TEMPLATE_BUILDER = """\
@@ -302,7 +308,11 @@ class {model}Env(gym.Env):
 
     def __init__(self, presets=None):
         if presets is None:
-            presets = [WriterContext.DIRECTIVES, WriterContext.BANNER, WriterContext.CIMPORTS]
+            presets = [
+                WriterContext.DIRECTIVES,
+                WriterContext.BANNER,
+                WriterContext.CIMPORTS,
+            ]
         self.indent_level = 0
         self.lines = []
 
@@ -340,7 +350,9 @@ class {model}Env(gym.Env):
 
     def to_string(self, indent_size=2):
         indent_unit = " " * indent_size
-        return "\n".join([(level * indent_unit + line).rstrip() for level, line in self.lines])
+        return "\n".join(
+            [(level * indent_unit + line).rstrip() for level, line in self.lines]
+        )
 
 
 class Transformer:
@@ -359,16 +371,18 @@ class Transformer:
 
     def generate_files(self):
         defs = self.generate_def()
-        self.paths["declaration"]["dest"].write_text(defs, encoding='utf-8')
+        self.paths["declaration"]["dest"].write_text(defs, encoding="utf-8")
 
         wrapper = self.generate_wrapper()
-        self.paths["wrapper"]["dest"].write_text(wrapper, encoding='utf-8')
+        self.paths["wrapper"]["dest"].write_text(wrapper, encoding="utf-8")
 
         builder = self.generate_builder()
-        self.paths["builder"]["dest"].write_text(builder, encoding='utf-8')
+        self.paths["builder"]["dest"].write_text(builder, encoding="utf-8")
 
         helper = self.generate_type_helper()
-        write_text_safe(self.paths["helper"]["dest"], helper)  # To avoid overwrite user code
+        write_text_safe(
+            self.paths["helper"]["dest"], helper
+        )  # To avoid overwrite user code
 
         shutil.copy(self.paths["header"]["src"], self.paths["header"]["dest"])
         shutil.copy(self.paths["source"]["src"], self.paths["source"]["dest"])
@@ -382,7 +396,9 @@ class Transformer:
         MODEL_SOURCE = self.paths["source"]["dest"]
         # MODEL_DATA = self.paths["source_data"]["dest"]
 
-        with open(MODEL_HEADER, "r+") as model_header_file, open(MODEL_SOURCE, "r+") as model_source_file:
+        with open(MODEL_HEADER, "r+") as model_header_file, open(
+            MODEL_SOURCE, "r+"
+        ) as model_source_file:
             # model_source = model_source_file.readlines()
             model_header = model_header_file.readlines()
             for i, line in enumerate(model_header):
@@ -436,7 +452,7 @@ class Transformer:
         def parse_field(field: dict):
             return {
                 "name": field["Identifier"],
-                "type": self.register_type(field["Type"])
+                "type": self.register_type(field["Type"]),
             }
 
         CODE_INFO = os.path.join(self.context, "codeInfo.json")
@@ -476,12 +492,23 @@ class Transformer:
                         "output": "getExternalOutputs",
                         # "param": code_info["Parameters"][0]["Implementation"]["BaseRegion"]["Identifier"],  # difference between Identifier and ElementIdentifier
                         "param": param,
-                        "param_inst": param, # MATLAB 2018 different param impl   + "__actual",
+                        "param_inst": param,  # MATLAB 2018 different param impl   + "__actual",
                         # "param_type": class_type["Parameters"][0]["Implementation"]["BaseRegion"]["Type"]["Name"]
                     },
-                    "methods": {method["Name"]: parse_method(method) for method in class_type["Methods"]},
-                    "fields": {field["Identifier"]: parse_field(field) for field in class_type["Elements"] if not (field["Identifier"].endswith("_B") or field["Identifier"].endswith("_DW") or field["Identifier"].endswith("_X"))}
-                }
+                    "methods": {
+                        method["Name"]: parse_method(method)
+                        for method in class_type["Methods"]
+                    },
+                    "fields": {
+                        field["Identifier"]: parse_field(field)
+                        for field in class_type["Elements"]
+                        if not (
+                            field["Identifier"].endswith("_B")
+                            or field["Identifier"].endswith("_DW")
+                            or field["Identifier"].endswith("_X")
+                        )
+                    },
+                },
             }
 
             self.mix_types(code_info["Types"])
@@ -496,7 +523,11 @@ class Transformer:
     def generate_def(self):
         writer = WriterContext()
 
-        with writer.write_block(WriterContext.TEMPLATE_EXTERN.format(header=self.code_info["class"]["header"])):
+        with writer.write_block(
+            WriterContext.TEMPLATE_EXTERN.format(
+                header=self.code_info["class"]["header"]
+            )
+        ):
             pending_scoped_defs = {}
             for type_name, type_def in self.type_registry.items():
                 if type_def["mode"] == Types.SCALAR:
@@ -507,10 +538,16 @@ class Transformer:
                 else:
                     scope = type_def["scope"]
                     if scope is None:
-                        with writer.write_block(WriterContext.TEMPLATE_CTYPEDEF_STRUCT.format(name=type_name)):
+                        with writer.write_block(
+                            WriterContext.TEMPLATE_CTYPEDEF_STRUCT.format(
+                                name=type_name
+                            )
+                        ):
                             for el in type_def["elements"]:
                                 type_info = self.type_registry[el["type"]]
-                                writer.write_line(type_info["repr"].format(name=el["name"]))
+                                writer.write_line(
+                                    type_info["repr"].format(name=el["name"])
+                                )
                     else:
                         if scope in pending_scoped_defs:
                             pending_scoped_defs[scope].append(type_def)
@@ -519,31 +556,51 @@ class Transformer:
 
             klass = self.code_info["class"]
             class_name = klass["name"]
-            with writer.write_block(WriterContext.TEMPLATE_CDEF_CLASS.format(name=class_name)):
+            with writer.write_block(
+                WriterContext.TEMPLATE_CDEF_CLASS.format(name=class_name)
+            ):
                 if class_name in pending_scoped_defs:
                     for type_def in pending_scoped_defs[class_name]:
                         type_name = type_def["name"]
-                        with writer.write_block(WriterContext.TEMPLATE_STRUCT.format(name=type_name)):
+                        with writer.write_block(
+                            WriterContext.TEMPLATE_STRUCT.format(name=type_name)
+                        ):
                             for el in type_def["elements"]:
                                 type_info = self.type_registry[el["type"]]
-                                writer.write_line(type_info["repr"].format(name=el["name"]))
+                                writer.write_line(
+                                    type_info["repr"].format(name=el["name"])
+                                )
                     del pending_scoped_defs[class_name]
 
                 for method_name, method_def in klass["methods"].items():
                     if method_name == class_name:
-                        writer.write_line(WriterContext.TEMPLATE_CTOR.format(name=class_name, args=""))
+                        writer.write_line(
+                            WriterContext.TEMPLATE_CTOR.format(name=class_name, args="")
+                        )
                     elif method_name == klass["mapping"]["input"]:
                         # TODO: not a elegant workaround
-                        writer.write_line(WriterContext.TEMPLATE_METHOD.format(name=method_name,
-                                                                               args=self.try_scope(method_def["arguments"]) + "*",
-                                                                               ret=self.try_scope(method_def["return"])))
+                        writer.write_line(
+                            WriterContext.TEMPLATE_METHOD.format(
+                                name=method_name,
+                                args=self.try_scope(method_def["arguments"]) + "*",
+                                ret=self.try_scope(method_def["return"]),
+                            )
+                        )
                     else:
-                        writer.write_line(WriterContext.TEMPLATE_METHOD.format(name=method_name,
-                                                                               args=self.try_scope(method_def["arguments"]),
-                                                                               ret=self.try_scope(method_def["return"])))
+                        writer.write_line(
+                            WriterContext.TEMPLATE_METHOD.format(
+                                name=method_name,
+                                args=self.try_scope(method_def["arguments"]),
+                                ret=self.try_scope(method_def["return"]),
+                            )
+                        )
 
                 for field_name, field_def in klass["fields"].items():
-                    writer.write_line(WriterContext.TEMPLATE_FIELD.format(name=field_name, type=field_def["type"]))
+                    writer.write_line(
+                        WriterContext.TEMPLATE_FIELD.format(
+                            name=field_name, type=field_def["type"]
+                        )
+                    )
 
             assert not pending_scoped_defs
         return writer.to_string()
@@ -569,48 +626,93 @@ class Transformer:
         output_type = self.try_scope(klass["methods"][mapping["output"]]["return"])
         param_type = self.try_scope(klass["fields"][mapping["param_inst"]]["type"])
 
-        writer.write_line(WriterContext.TEMPLATE_CIMPORT.format(path=self.paths["declaration"]["name"], name=self.paths["declaration"]["name"]))
-        with writer.write_block(WriterContext.TEMPLATE_WRAPPER_CLASS.format(
-            class_name=wrapper_class_name,
-            ctype=class_name,
-            init=mapping["init"],
-            term=mapping["term"],
-            step=mapping["step"],
-            input=mapping["input"],
-            output=mapping["output"],
-            input_type=input_type,
-            output_type=output_type,
-            convert_in=convert_in,
-            convert_out=convert_out,
-            convert_param_p2c=convert_param_p2c,
-            convert_param_c2p=convert_param_c2p,
-            param=mapping["param_inst"]
-        )):
+        writer.write_line(
+            WriterContext.TEMPLATE_CIMPORT.format(
+                path=self.paths["declaration"]["name"],
+                name=self.paths["declaration"]["name"],
+            )
+        )
+        with writer.write_block(
+            WriterContext.TEMPLATE_WRAPPER_CLASS.format(
+                class_name=wrapper_class_name,
+                ctype=class_name,
+                init=mapping["init"],
+                term=mapping["term"],
+                step=mapping["step"],
+                input=mapping["input"],
+                output=mapping["output"],
+                input_type=input_type,
+                output_type=output_type,
+                convert_in=convert_in,
+                convert_out=convert_out,
+                convert_param_p2c=convert_param_p2c,
+                convert_param_c2p=convert_param_c2p,
+                param=mapping["param_inst"],
+            )
+        ):
             writer.write_line("")
 
             # writer.write_line(WriterContext.TEMPLATE_WRAPPER_STATIC)
-            with writer.write_block(WriterContext.TEMPLATE_WRAPPER_CDEF.format(name=convert_in, ret=input_type, args=convert_in_param)):
-                self.generate_p2c_converter(writer, convert_in_param, klass["methods"][mapping["input"]]["arguments"])
+            with writer.write_block(
+                WriterContext.TEMPLATE_WRAPPER_CDEF.format(
+                    name=convert_in, ret=input_type, args=convert_in_param
+                )
+            ):
+                self.generate_p2c_converter(
+                    writer,
+                    convert_in_param,
+                    klass["methods"][mapping["input"]]["arguments"],
+                )
 
             # writer.write_line(WriterContext.TEMPLATE_WRAPPER_STATIC)
-            with writer.write_block(WriterContext.TEMPLATE_WRAPPER_CDEF.format(name=convert_out, ret="", args=output_type + " " + convert_out_param)):
-                self.generate_c2p_converter_tuple(writer, convert_out_param, klass["methods"][mapping["output"]]["return"])
+            with writer.write_block(
+                WriterContext.TEMPLATE_WRAPPER_CDEF.format(
+                    name=convert_out, ret="", args=output_type + " " + convert_out_param
+                )
+            ):
+                self.generate_c2p_converter_tuple(
+                    writer,
+                    convert_out_param,
+                    klass["methods"][mapping["output"]]["return"],
+                )
 
             # writer.write_line(WriterContext.TEMPLATE_WRAPPER_STATIC)
-            with writer.write_block(WriterContext.TEMPLATE_WRAPPER_CDEF.format(name=convert_param_p2c, ret=param_type, args=convert_param_p2c_param)):
-                self.generate_p2c_converter(writer, convert_param_p2c_param, klass["fields"][mapping["param_inst"]]["type"])
+            with writer.write_block(
+                WriterContext.TEMPLATE_WRAPPER_CDEF.format(
+                    name=convert_param_p2c, ret=param_type, args=convert_param_p2c_param
+                )
+            ):
+                self.generate_p2c_converter(
+                    writer,
+                    convert_param_p2c_param,
+                    klass["fields"][mapping["param_inst"]]["type"],
+                )
 
             # writer.write_line(WriterContext.TEMPLATE_WRAPPER_STATIC)
-            with writer.write_block(WriterContext.TEMPLATE_WRAPPER_CDEF.format(name=convert_param_c2p, ret="", args=param_type + " " + convert_param_c2p_param)):
-                self.generate_c2p_converter(writer, convert_param_c2p_param, klass["fields"][mapping["param_inst"]]["type"])
+            with writer.write_block(
+                WriterContext.TEMPLATE_WRAPPER_CDEF.format(
+                    name=convert_param_c2p,
+                    ret="",
+                    args=param_type + " " + convert_param_c2p_param,
+                )
+            ):
+                self.generate_c2p_converter(
+                    writer,
+                    convert_param_c2p_param,
+                    klass["fields"][mapping["param_inst"]]["type"],
+                )
         return writer.to_string()
 
     def generate_builder(self):
         writer = WriterContext(presets=[WriterContext.BANNER])
-        writer.write_line(WriterContext.TEMPLATE_BUILDER.format(name=self.code_info["name"],
-                                                                f1=self.paths["wrapper"]["filename"],
-                                                                f2=self.paths["source"]["filename"],
-                                                                f3=self.paths["source_data"]["filename"]))
+        writer.write_line(
+            WriterContext.TEMPLATE_BUILDER.format(
+                name=self.code_info["name"],
+                f1=self.paths["wrapper"]["filename"],
+                f2=self.paths["source"]["filename"],
+                f3=self.paths["source_data"]["filename"],
+            )
+        )
         return writer.to_string()
 
     def generate_type_helper(self):
@@ -623,9 +725,11 @@ class Transformer:
                 for el in elements:
                     el_info = self.type_registry[el["type"]]
 
-                    if el_info['mode'] == Types.SCALAR:
-                        writer.write_line(f"{el['name']}: {PY_TYPE_MAPPING[el['type']]}")
-                    elif el_info['mode'] == Types.ARRAY:
+                    if el_info["mode"] == Types.SCALAR:
+                        writer.write_line(
+                            f"{el['name']}: {PY_TYPE_MAPPING[el['type']]}"
+                        )
+                    elif el_info["mode"] == Types.ARRAY:
                         writer.write_line(f"{el['name']}: np.ndarray")
                     else:
                         # if el["type"] not in defined_structs:
@@ -636,16 +740,22 @@ class Transformer:
             for el in elements:
                 el_info = self.type_registry[el["type"]]
 
-                if el_info['mode'] == Types.SCALAR:
-                    writer.write_line(f"('{el['name']}', {PY_NP_TYPE_MAPPING[el['type']]}),")
-                elif el_info['mode'] == Types.ARRAY:
-                    writer.write_line(f"('{el['name']}', {PY_NP_TYPE_MAPPING[el_info['base']]}, ({el_info['size']},)),")
+                if el_info["mode"] == Types.SCALAR:
+                    writer.write_line(
+                        f"('{el['name']}', {PY_NP_TYPE_MAPPING[el['type']]}),"
+                    )
+                elif el_info["mode"] == Types.ARRAY:
+                    writer.write_line(
+                        f"('{el['name']}', {PY_NP_TYPE_MAPPING[el_info['base']]}, ({el_info['size']},)),"
+                    )
                 else:
                     with writer.write_block(f"('{el['name']}', [", "]),"):
                         generate_np_structure(el_info["elements"])
 
         writer = WriterContext(presets=[WriterContext.BANNER])
-        writer.write_line(f"{self.code_info['name']}_SAMPLE_TIME = {self.code_info['sample_time']}")
+        writer.write_line(
+            f"{self.code_info['name']}_SAMPLE_TIME = {self.code_info['sample_time']}"
+        )
 
         writer.write_line("from dataclasses import dataclass")
         writer.write_line("import numpy as np")
@@ -662,32 +772,33 @@ class Transformer:
         for type_to_gen in [input_type, output_type]:  # param_type meaningless here
             type_info = self.type_registry[type_to_gen]
             with writer.write_block(f"{type_to_gen}_dtype = [", "]"):
-                generate_np_structure(type_info['elements'])
+                generate_np_structure(type_info["elements"])
 
         # generate gym env
         if self.rl_compliant():
-            writer.write_line(WriterContext.TEMPLATE_GYM_COMPLIANT.format(
-                name=self.code_info["name"],
-                model=self.code_info['class']['name'],
-                input_type=input_type,
-                wrapper=self.paths["wrapper"]["name"],
-            ))
+            writer.write_line(
+                WriterContext.TEMPLATE_GYM_COMPLIANT.format(
+                    name=self.code_info["name"],
+                    model=self.code_info["class"]["name"],
+                    input_type=input_type,
+                    wrapper=self.paths["wrapper"]["name"],
+                )
+            )
         else:
-            writer.write_line(WriterContext.TEMPLATE_GYM_GENERAL.format(
-                name=self.code_info["name"],
-                model=self.code_info['class']['name'],
-                input_type=input_type,
-                wrapper=self.paths["wrapper"]["name"],
-            ))
+            writer.write_line(
+                WriterContext.TEMPLATE_GYM_GENERAL.format(
+                    name=self.code_info["name"],
+                    model=self.code_info["class"]["name"],
+                    input_type=input_type,
+                    wrapper=self.paths["wrapper"]["name"],
+                )
+            )
 
         return writer.to_string()
 
     def register_type(self, type_info: dict):
         def parse_element(el):
-            return {
-                "name": el["Identifier"],
-                "type": self.register_type(el["Type"])
-            }
+            return {"name": el["Identifier"], "type": self.register_type(el["Type"])}
 
         def nonscalar(size):
             if not isinstance(size, list):
@@ -710,7 +821,9 @@ class Transformer:
         def unroll(type_info):
             type_name = type_info["Name"]
             if "Dimensions" in type_info:
-                type_info["Dimensions"] = reduce(lambda x, y: x * y, arrayify(type_info["Dimensions"]), 1)
+                type_info["Dimensions"] = reduce(
+                    lambda x, y: x * y, arrayify(type_info["Dimensions"]), 1
+                )
                 if type_info["Dimensions"] == 1:
                     if type_name.startswith("matrix1x1x"):
                         type_name = type_name[10:]
@@ -748,8 +861,10 @@ class Transformer:
                 "name": type_name,
                 "mode": Types.STRUCT,
                 "scope": None,
-                "elements": [parse_element(el) for el in arrayify(type_info["Elements"])],
-                "repr": "{} {};".format(type_name, "{name}")
+                "elements": [
+                    parse_element(el) for el in arrayify(type_info["Elements"])
+                ],
+                "repr": "{} {};".format(type_name, "{name}"),
             }
         elif "Dimensions" in type_info:
             # array-like types
@@ -758,9 +873,11 @@ class Transformer:
                 "mode": Types.ARRAY,
                 "scope": None,
                 "base": self.register_type(type_info["BaseType"]),
-                "size": nonscalar(type_info["Dimensions"])
+                "size": nonscalar(type_info["Dimensions"]),
             }
-            array_type["repr"] = "{} {}[{}];".format(array_type['base'], "{name}", array_type['size'])
+            array_type["repr"] = "{} {}[{}];".format(
+                array_type["base"], "{name}", array_type["size"]
+            )
             self.type_registry[type_name] = array_type
         else:
             # double(real_T)
@@ -768,13 +885,17 @@ class Transformer:
                 "name": type_name,
                 "scope": None,
                 "mode": Types.SCALAR,
-                "repr": "{} {};".format(type_name, "{name}")
+                "repr": "{} {};".format(type_name, "{name}"),
             }
         return type_name
 
     def mix_types(self, types):
         for type in types:
-            if type["Name"].startswith("B_") or type["Name"].startswith("DW_") or type["Name"].startswith("X_"):
+            if (
+                type["Name"].startswith("B_")
+                or type["Name"].startswith("DW_")
+                or type["Name"].startswith("X_")
+            ):
                 continue
             id: str = type["Identifier"]
             if "::" not in id:
@@ -799,7 +920,15 @@ class Transformer:
         else:
             return scope + "." + type_name
 
-    def generate_c2p_converter(self, writer: WriterContext, name: str, type: str, with_return=True, paths=None, append=False):
+    def generate_c2p_converter(
+        self,
+        writer: WriterContext,
+        name: str,
+        type: str,
+        with_return=True,
+        paths=None,
+        append=False,
+    ):
         if paths is None:
             paths = []
         prefix = "return " if with_return else ""
@@ -810,15 +939,41 @@ class Transformer:
         elif type_info["mode"] == Types.ARRAY:
             # only scalar base type is currently supported
             dtype = NP_TYPE_MAPPING[type_info["base"]]
-            writer.write_line(prefix + WriterContext.TEMPLATE_ARRAY2NP.format(name=".".join(new_path), size=type_info["size"], dtype=dtype), append=append)
+            writer.write_line(
+                prefix
+                + WriterContext.TEMPLATE_ARRAY2NP.format(
+                    name=".".join(new_path), size=type_info["size"], dtype=dtype
+                ),
+                append=append,
+            )
         else:
-            with writer.write_block(("return " if with_return else "") + "{", "}", append=append, blank_line=False):
+            with writer.write_block(
+                ("return " if with_return else "") + "{",
+                "}",
+                append=append,
+                blank_line=False,
+            ):
                 for el in type_info["elements"]:
                     writer.write_line(f'"{el["name"]}": ')
-                    self.generate_c2p_converter(writer, el["name"], el["type"], with_return=False, paths=new_path, append=True)
+                    self.generate_c2p_converter(
+                        writer,
+                        el["name"],
+                        el["type"],
+                        with_return=False,
+                        paths=new_path,
+                        append=True,
+                    )
                     writer.write_line(",", append=True)
 
-    def generate_c2p_converter_tuple(self, writer: WriterContext, name: str, type: str, with_return=True, paths=None, append=False):
+    def generate_c2p_converter_tuple(
+        self,
+        writer: WriterContext,
+        name: str,
+        type: str,
+        with_return=True,
+        paths=None,
+        append=False,
+    ):
         if paths is None:
             paths = []
         prefix = "return " if with_return else ""
@@ -829,19 +984,41 @@ class Transformer:
         elif type_info["mode"] == Types.ARRAY:
             # only scalar base type is currently supported
             dtype = NP_TYPE_MAPPING[type_info["base"]]
-            writer.write_line(prefix + WriterContext.TEMPLATE_ARRAY2NP.format(name=".".join(new_path), size=type_info["size"], dtype=dtype), append=append)
+            writer.write_line(
+                prefix
+                + WriterContext.TEMPLATE_ARRAY2NP.format(
+                    name=".".join(new_path), size=type_info["size"], dtype=dtype
+                ),
+                append=append,
+            )
         else:
-            with writer.write_block(("return " if with_return else "") + "(", ")", append=append, blank_line=False):
+            with writer.write_block(
+                ("return " if with_return else "") + "(",
+                ")",
+                append=append,
+                blank_line=False,
+            ):
                 for el in type_info["elements"]:
                     # writer.write_line('"{name}": '.format(name=el["name"]))
-                    self.generate_c2p_converter_tuple(writer, el["name"], el["type"], with_return=False, paths=new_path, append=False)
+                    self.generate_c2p_converter_tuple(
+                        writer,
+                        el["name"],
+                        el["type"],
+                        with_return=False,
+                        paths=new_path,
+                        append=False,
+                    )
                     writer.write_line(",", append=True)
 
     def generate_p2c_converter(self, writer: WriterContext, name: str, type: str):
         # intended for structs
         type_info = self.type_registry[type]
         c_name = name + "_c"
-        writer.write_line(WriterContext.TEMPLATE_CDEF_FIELD.format(type=self.try_scope(type), name=c_name))
+        writer.write_line(
+            WriterContext.TEMPLATE_CDEF_FIELD.format(
+                type=self.try_scope(type), name=c_name
+            )
+        )
 
         base_template = c_name + ".{} = " + name + ".{}"
         pending = [(type_info["elements"], [])]
@@ -863,7 +1040,9 @@ class Transformer:
                     tmp = "']['".join(new_paths)
                     p_path_str = f"['{tmp}']"
                     tmp_name = f"__tmp_view_{counter}"
-                    writer.write_line(f"cdef {el_info['base']}[:] {tmp_name} = {name}{p_path_str}")
+                    writer.write_line(
+                        f"cdef {el_info['base']}[:] {tmp_name} = {name}{p_path_str}"
+                    )
                     writer.write_line(f"{c_name}.{c_path_str} = &{tmp_name}[0]")
                 else:
                     pending.append((el_info["elements"], new_paths))
@@ -874,63 +1053,75 @@ class Transformer:
         mapping = klass["mapping"]
         input_type = self.type_registry[klass["methods"][mapping["input"]]["arguments"]]
         output_type = self.type_registry[klass["methods"][mapping["output"]]["return"]]
-        
-        input_compliant = len(input_type["elements"]) == 1 and input_type["elements"][0]["name"] == "Action"
+
+        input_compliant = (
+            len(input_type["elements"]) == 1
+            and input_type["elements"][0]["name"] == "Action"
+        )
 
         # TODO: Reward and isDone
-        output_compliant = len(output_type["elements"]) == 1 and output_type["elements"][0]["name"] == "State"
+        output_compliant = (
+            len(output_type["elements"]) == 1
+            and output_type["elements"][0]["name"] == "State"
+        )
 
         return input_compliant and output_compliant
 
     def generate_paths(self):
         return {
             "declaration": {
-                "name": self.code_info['class']['name'],
+                "name": self.code_info["class"]["name"],
                 "filename": f"{self.code_info['class']['name']}.pxd",
-                "dest": self.out / f"{self.code_info['class']['name']}.pxd"
+                "dest": self.out / f"{self.code_info['class']['name']}.pxd",
             },
             "wrapper": {
                 "name": f"{self.code_info['class']['name']}_wrapper",
                 "filename": f"{self.code_info['class']['name']}_wrapper.pyx",
-                "dest": self.out / f"{self.code_info['class']['name']}_wrapper.pyx"
+                "dest": self.out / f"{self.code_info['class']['name']}_wrapper.pyx",
             },
-            "builder": {
-                "filename": "build.py",
-                "dest": self.out / "build.py"
-            },
+            "builder": {"filename": "build.py", "dest": self.out / "build.py"},
             "helper": {
                 "filename": f"{self.code_info['name']}_helper.py",
-                "dest": self.out / f"{self.code_info['name']}_helper.py"
+                "dest": self.out / f"{self.code_info['name']}_helper.py",
             },
             "header": {
                 "filename": self.code_info["class"]["header"],
                 "src": self.context / self.code_info["class"]["header"],
-                "dest": self.out / self.code_info["class"]["header"]
+                "dest": self.out / self.code_info["class"]["header"],
             },
             "source": {
                 "filename": self.code_info["class"]["source"],
                 "src": self.context / self.code_info["class"]["source"],
-                "dest": self.out / self.code_info["class"]["source"]
+                "dest": self.out / self.code_info["class"]["source"],
             },
             "source_data": {
                 "filename": self.code_info["class"]["source"][:-4] + "_data.cpp",
-                "src": self.context / (self.code_info["class"]["source"][:-4] + "_data.cpp"),
-                "dest": self.out / (self.code_info["class"]["source"][:-4] + "_data.cpp")
+                "src": self.context
+                / (self.code_info["class"]["source"][:-4] + "_data.cpp"),
+                "dest": self.out
+                / (self.code_info["class"]["source"][:-4] + "_data.cpp"),
             },
             "types": {
                 "filename": "rtwtypes.h",
                 "src": self.context / "rtwtypes.h",
-                "dest": self.out / "rtwtypes.h"
-            }
+                "dest": self.out / "rtwtypes.h",
+            },
         }
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description='Transform simulink codegen output.')
-    parser.add_argument('context', type=str, help="The folder containing ecoder generated files.")
-    parser.add_argument('--out', type=str, help="The folder for binding outputs. Default to python_out folder relative to context folder.", default=None)
+    parser = argparse.ArgumentParser(description="Transform simulink codegen output.")
+    parser.add_argument(
+        "context", type=str, help="The folder containing ecoder generated files."
+    )
+    parser.add_argument(
+        "--out",
+        type=str,
+        help="The folder for binding outputs. Default to python_out folder relative to context folder.",
+        default=None,
+    )
     args = parser.parse_args()
 
     transformer = Transformer(context=args.context, out=args.out)

@@ -7,14 +7,13 @@
 #  Update Date: 2020-11-10, Yuhang Zhang: add create environments code
 
 
-
 def create_env(**kwargs):
-    env_name = kwargs['env_id']
-    env_name_data = env_name + '_data'
+    env_name = kwargs["env_id"]
+    env_name_data = env_name + "_data"
     try:
         file = __import__(env_name_data)
     except NotImplementedError:
-        raise NotImplementedError('This environment does not exist')
+        raise NotImplementedError("This environment does not exist")
 
     env_name_camel = formatter(env_name)
 
@@ -25,15 +24,15 @@ def create_env(**kwargs):
         env_class = getattr(file, env_name_camel)
         env = env_class(**kwargs)
     else:
-        print("Env name: ",env_name_camel)
+        print("Env name: ", env_name_camel)
         raise NotImplementedError("This environment is not properly defined")
     print("Create environment successfully!")
     return env
 
 
 def formatter(src: str, firstUpper: bool = True):
-    arr = src.split('_')
-    res = ''
+    arr = src.split("_")
+    res = ""
     for i in arr:
         res = res + i[0].upper() + i[1:]
 
