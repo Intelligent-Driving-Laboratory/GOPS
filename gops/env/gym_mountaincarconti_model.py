@@ -7,7 +7,6 @@
 #  Update Date: 2021-05-55, Yuhang Zhang: create environment
 
 
-
 import warnings
 import torch
 import numpy as np
@@ -27,7 +26,9 @@ class GymMountaincarcontiModel(torch.nn.Module):
         self.min_position = -1.2
         self.max_position = 0.6
         self.max_speed = 0.07
-        self.goal_position = 0.45  # was 0.5 in gym, 0.45 in Arnaud de Broissia's version
+        self.goal_position = (
+            0.45  # was 0.5 in gym, 0.45 in Arnaud de Broissia's version
+        )
         self.goal_velocity = 0
         self.power = 0.0015
 
@@ -45,11 +46,10 @@ class GymMountaincarcontiModel(torch.nn.Module):
         hb_state = torch.tensor(self.hb_state, dtype=torch.float32)
         lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
         hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
-        self.register_buffer('lb_state', torch.tensor(lb_state, dtype=torch.float32))
-        self.register_buffer('hb_state', torch.tensor(hb_state, dtype=torch.float32))
-        self.register_buffer('lb_action', torch.tensor(lb_action, dtype=torch.float32))
-        self.register_buffer('hb_action', torch.tensor(hb_action, dtype=torch.float32))
-
+        self.register_buffer("lb_state", torch.tensor(lb_state, dtype=torch.float32))
+        self.register_buffer("hb_state", torch.tensor(hb_state, dtype=torch.float32))
+        self.register_buffer("lb_action", torch.tensor(lb_action, dtype=torch.float32))
+        self.register_buffer("hb_action", torch.tensor(hb_action, dtype=torch.float32))
 
     def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done):
         """
@@ -80,7 +80,7 @@ class GymMountaincarcontiModel(torch.nn.Module):
 
         #  define your forward function here: the format is just like: state_next = f(state,action)
         pos, vec = state[:, 0], state[:, 1]
-        vec = vec + self.power*action.squeeze(-1) - 0.0025*torch.cos(3*pos)
+        vec = vec + self.power * action.squeeze(-1) - 0.0025 * torch.cos(3 * pos)
         vec = clip_by_tensor(vec, self.lb_state[1], self.hb_state[1])
         pos = pos + vec
         pos = clip_by_tensor(pos, self.lb_state[0], self.hb_state[0])
@@ -95,7 +95,7 @@ class GymMountaincarcontiModel(torch.nn.Module):
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
         reward = torch.zeros(state.size()[0])
         reward[isdone] = 100.0
-        reward = reward - 0.1*action.squeeze(-1)**2
+        reward = reward - 0.1 * action.squeeze(-1) ** 2
 
         ############################################################################################
 

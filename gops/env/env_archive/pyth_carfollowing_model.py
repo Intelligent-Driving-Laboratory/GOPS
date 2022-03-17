@@ -7,7 +7,6 @@
 #  Update Date: 2021-11-22, Yuhang Zhang: create environment
 
 
-
 import warnings
 
 import numpy as np
@@ -29,8 +28,12 @@ class PythCarfollowingModel:
         self.constraint_dim = 1
         self.lb_state = [-np.inf, -np.inf, -np.inf]
         self.hb_state = [np.inf, np.inf, np.inf]
-        self.lb_action = [-4.0, ]
-        self.hb_action = [3.0, ]
+        self.lb_action = [
+            -4.0,
+        ]
+        self.hb_action = [
+            3.0,
+        ]
 
         # do not change the following section
         self.lb_state = torch.tensor(self.lb_state, dtype=torch.float32)
@@ -41,7 +44,6 @@ class PythCarfollowingModel:
         # self.register_buffer('hb_state', torch.tensor(hb_state, dtype=torch.float32))
         # self.register_buffer('lb_action', torch.tensor(lb_action, dtype=torch.float32))
         # self.register_buffer('hb_action', torch.tensor(hb_action, dtype=torch.float32))
-
 
     def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done):
         """
@@ -84,7 +86,7 @@ class PythCarfollowingModel:
         reward = self.dyn.compute_reward(state_next, action)
 
         ############################################################################################
-        info = {'constraint': 2 - state_next[:, 2]}
+        info = {"constraint": 2 - state_next[:, 2]}
         # beyond_done = beyond_done.bool()
         # mask = isdone * beyond_done
         # mask = torch.unsqueeze(mask, -1)

@@ -8,20 +8,20 @@
 
 
 def create_apprfunc(**kwargs):
-    apprfunc_name = kwargs['apprfunc']
+    apprfunc_name = kwargs["apprfunc"]
     apprfunc_file_name = apprfunc_name.lower()
     try:
         file = __import__(apprfunc_file_name)
     except NotImplementedError:
-        raise NotImplementedError('This apprfunc does not exist')
+        raise NotImplementedError("This apprfunc does not exist")
 
-    #name = kwargs['name'].upper()
+    # name = kwargs['name'].upper()
 
-    name = formatter( kwargs['name'])
+    name = formatter(kwargs["name"])
     # print(name)
     # print(kwargs)
 
-    if hasattr(file,name): #
+    if hasattr(file, name):  #
         apprfunc_cls = getattr(file, name)
         apprfunc = apprfunc_cls(**kwargs)
     else:
@@ -31,10 +31,9 @@ def create_apprfunc(**kwargs):
     return apprfunc
 
 
-
 def formatter(src: str, firstUpper: bool = True):
-    arr = src.split('_')
-    res = ''
+    arr = src.split("_")
+    res = ""
     for i in arr:
         res = res + i[0].upper() + i[1:]
 

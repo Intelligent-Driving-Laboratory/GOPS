@@ -7,12 +7,11 @@
 #  Update Date: 2021-03-10, Yuhang Zhang: Revise Codes
 
 
-
 import numpy as np
 import torch
 
 
-class EpsilonScheduler():
+class EpsilonScheduler:
     """Epsilon-greedy scheduler with epsilon schedule."""
 
     def __init__(self, EPS_START=0.9, EPS_END=0.05, EPS_DECAY=2000):
@@ -47,7 +46,7 @@ class EpsilonScheduler():
             return np.random.randint(action_num)
 
 
-class EpsilonGreedy():
+class EpsilonGreedy:
     def __init__(self, epsilon, action_num):
         self.epsilon = epsilon
         self.action_num = action_num
@@ -59,7 +58,7 @@ class EpsilonGreedy():
             return np.random.randint(self.action_num)
 
 
-class GaussNoise():
+class GaussNoise:
     def __init__(self, mean, std):
         self.mean = mean
         self.std = std

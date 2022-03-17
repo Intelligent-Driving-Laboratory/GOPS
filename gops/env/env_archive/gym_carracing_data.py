@@ -11,6 +11,6 @@ import gym
 
 def env_creator(**kwargs):
     try:
-        return gym.make('CarRacing-v0')
+        return gym.make("CarRacing-v0")
     except AttributeError:
         raise ModuleNotFoundError("Warning: Box2d or Swig are not installed")
