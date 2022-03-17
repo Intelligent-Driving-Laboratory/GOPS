@@ -34,10 +34,10 @@ class ApproxContainer(nn.Module):
             feature_args = get_apprfunc_dict('feature', value_func_type, **kwargs)
             kwargs['feature_net'] = create_apprfunc(**feature_args)
 
-        value_args = get_apprfunc_dict('value', value_func_type, **kwargs)
-        self.value = create_apprfunc(**value_args)
         policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
         self.policy = create_apprfunc(**policy_args)
+        value_args = get_apprfunc_dict('value', value_func_type, **kwargs)
+        self.value = create_apprfunc(**value_args)
 
     # create action_distributions
     def create_action_distributions(self, logits):
@@ -222,7 +222,7 @@ class PPO():
             mb_return_6std = 6 * mb_return.std()
             loss_value = torch.mean(value_losses) / mb_return_6std
         else:
-            loss_value = 0.5 * torch.mean(value_losses)
+            loss_value = torch.mean(value_losses)
 
         # entropy loss
         loss_entropy = torch.mean(mb_new_act_dist.entropy())
@@ -244,6 +244,7 @@ class PPO():
 
         return loss_total, loss_surrogate, loss_value, loss_entropy, loss_kl, clip_fraction
 
+    @torch.no_grad()
     def __generalization_advantage_estimate(self, data: Dict[str, torch.Tensor]):
         if self.use_gpu:
             obs, act, rew, obs2, done = data['obs'].cuda(), data['act'].cuda(), data['rew'].cuda(), data['obs2'].cuda(), data['done'].cuda()
@@ -251,19 +252,22 @@ class PPO():
         else:
             obs, act, rew, obs2, done = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
             logp, time_limited = data['logp'], data['time_limited']
-        with torch.no_grad():
-            pro = logp
-            logits = self.networks.policy(obs)
-            values = self.networks.value(obs)
-            prev_value = self.networks.value(obs2[-1].unsqueeze(0))
+
+        pro = logp
+        logits = self.networks.policy(obs)
+        values = self.networks.value(obs)
 
         mask = (~done.to(torch.bool) | time_limited.to(torch.bool)).to(torch.int)  # useless?
         deltas = torch.zeros_like(done)
         advantages = torch.zeros_like(done)
 
-        prev_advantage = 0
+        prev_advantage = prev_value = 0
         for i in reversed(range(self.sample_batch_size)):
             # generalization advantage estimate, ref: https://arxiv.org/pdf/1506.02438.pdf
+            if time_limited[i]:
+                # Trajectory truncated, need bootstrap
+                prev_value = self.networks.value(obs2[i].unsqueeze(0))
+                prev_advantage = 0
             deltas[i] = rew[i] + self.gamma * prev_value * (1 - done[i]) - values[i]
             advantages[i] = deltas[i] + self.gamma * self.lamb * prev_advantage * (1 - done[i])
 
@@ -272,7 +276,7 @@ class PPO():
         returns = advantages + values
 
         if self.advantage_norm:
-            advantages = (advantages - advantages.mean()) / (advantages.std() + self.EPS)  # standardization
+            advantages = (advantages - advantages.mean()) / (advantages.std() + self.EPS)  # unbiased=True
 
         return dict(obs=obs, act=act, rew=rew, obs2=obs2, logits=logits,
                     mask=mask, pro=pro, ret=returns, adv=advantages, val=values)
