@@ -7,24 +7,24 @@
 #  Update Date: 2021-05-55, Yuhang Zhang: create environment
 
 
-
 import gym
+from gym.utils import seeding
 import numpy as np
 
 
-class Env():  # todo:从git上找的环境设置，需要自己改一下
+class Env:  # todo:从git上找的环境设置，需要自己改一下
     """
     Environment wrapper for CarRacing
     """
 
     def __init__(self):
-        self.env = gym.make('CarRacing-v0')
+        self.env = gym.make("CarRacing-v0")
         self.env.seed(0)
         self.reward_threshold = self.env.spec.reward_threshold
         self.img_stack = 4
         self.action_repeat = 4
         self.action_space = self.env.action_space
-        self.action_space.low = np.array([0., 0., 0.]).astype(np.float32)
+        self.action_space.low = np.array([0.0, 0.0, 0.0]).astype(np.float32)
         self.observation_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(4, 96, 96))
 
     def reset(self):
@@ -40,7 +40,7 @@ class Env():  # todo:从git上找的环境设置，需要自己改一下
     def step(self, action):
         total_reward = 0
         a = action.copy()
-        a[0] = a[0]*2 - 1
+        a[0] = a[0] * 2 - 1
         # print('action = ', action)
         for i in range(self.action_repeat):
             img_rgb, reward, die, info = self.env.step(a)
@@ -56,6 +56,9 @@ class Env():  # todo:从git上找的环境设置，需要自己改一下
         assert len(self.stack) == self.img_stack
         return np.array(self.stack), total_reward, done, info
 
+    def seed(self, seed=None):
+        self.env.seed(seed)
+
     def render(self, *arg):
         self.env.render(*arg)
 
@@ -68,7 +71,7 @@ class Env():  # todo:从git上找的环境设置，需要自己改一下
         gray = np.dot(rgb[..., :], [0.299, 0.587, 0.114])
         if norm:
             # normalize
-            gray = gray / 128. - 1.
+            gray = gray / 128.0 - 1.0
         return gray
 
     @staticmethod
@@ -91,14 +94,14 @@ def env_creator(**kwargs):
     try:
         return Env()
     except:
-        raise ModuleNotFoundError('Warning: gym[box2d] is not installed')
+        raise ModuleNotFoundError("Warning: gym[box2d] is not installed")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     e = env_creator()
     s = e.reset()
-    print('high',e.action_space.high)
-    print('low', e.action_space.low)
+    print("high", e.action_space.high)
+    print("low", e.action_space.low)
     for i in range(100):
         a = e.action_space.sample()
         # a = np.array([0.2,0.0,0.3])

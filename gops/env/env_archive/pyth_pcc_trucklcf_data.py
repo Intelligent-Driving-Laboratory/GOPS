@@ -33,9 +33,7 @@ class RoadMap:
         Theta = [0]
         for i in range(len(self.y)):
             if i > 0:
-                delta = math.atan(
-                    (self.z[i] - self.z[i - 1]) / (self.y[i] - self.y[i - 1])
-                )
+                delta = math.atan((self.z[i] - self.z[i - 1]) / (self.y[i] - self.y[i - 1]))
                 Theta.append(delta)
         Theta_filter = savgol_filter(Theta, 35, 1, mode="nearest")  # rad
         return self.y.tolist(), Theta_filter
@@ -100,34 +98,18 @@ class PythPCCTruck(gym.Env):
             os.path.dirname(os.path.dirname(__file__)),
             "resources/pyth_pcc_trucklcf_file/Fuel_we_thr_150kw.csv",
         )
-        self.Fuel_trucksim = pd.DataFrame(
-            pd.read_csv(self.path_Fuel_trucksim, header=None)
-        )
-        self.Fuel_throttle = np.array(
-            self.Fuel_trucksim.iloc[0, 1:].dropna()
-        )  # axis X: throttle
-        self.Fuel_engspd = np.array(
-            self.Fuel_trucksim.iloc[1:, 0]
-        )  # axis Y: engspd unit: rpm
-        self.Fuel = np.array(
-            self.Fuel_trucksim.iloc[1:, 1:]
-        )  # axis Z: Fuel Rate, unit: kg/sec
+        self.Fuel_trucksim = pd.DataFrame(pd.read_csv(self.path_Fuel_trucksim, header=None))
+        self.Fuel_throttle = np.array(self.Fuel_trucksim.iloc[0, 1:].dropna())  # axis X: throttle
+        self.Fuel_engspd = np.array(self.Fuel_trucksim.iloc[1:, 0])  # axis Y: engspd unit: rpm
+        self.Fuel = np.array(self.Fuel_trucksim.iloc[1:, 1:])  # axis Z: Fuel Rate, unit: kg/sec
         self.path_Torque_trucksim = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
             "resources/pyth_pcc_trucklcf_file/Te_throttle_engspd_150kw.csv",
         )
-        self.Torque_trucksim = pd.DataFrame(
-            pd.read_csv(self.path_Torque_trucksim, header=None)
-        )
-        self.Torque_throttle = np.array(
-            self.Torque_trucksim.iloc[0, 1:].dropna()
-        )  # axis X: throttle
-        self.Torque_engspd = np.array(
-            self.Torque_trucksim.iloc[1:, 0]
-        )  # axis Y: engspd unit: rpm
-        self.Torque = np.array(
-            self.Torque_trucksim.iloc[1:, 1:]
-        )  # axis Z: Engine Torque, unit: N.m
+        self.Torque_trucksim = pd.DataFrame(pd.read_csv(self.path_Torque_trucksim, header=None))
+        self.Torque_throttle = np.array(self.Torque_trucksim.iloc[0, 1:].dropna())  # axis X: throttle
+        self.Torque_engspd = np.array(self.Torque_trucksim.iloc[1:, 0])  # axis Y: engspd unit: rpm
+        self.Torque = np.array(self.Torque_trucksim.iloc[1:, 1:])  # axis Z: Engine Torque, unit: N.m
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -145,7 +127,7 @@ class PythPCCTruck(gym.Env):
 
         v_next = v + self.dynamic_T * (
             Te * self.ig * self.i0 * self.etaT / (self.r * self.m)
-            - 0.5 * self.Cd * self.A * self.rho * (v ** 2) / self.m
+            - 0.5 * self.Cd * self.A * self.rho * (v**2) / self.m
             - self.gravity * (self.f * math.cos(theta) + math.sin(theta))
         )
         Te_next = Te + (action - Te) / self.tau_eng * self.dynamic_T
@@ -157,20 +139,13 @@ class PythPCCTruck(gym.Env):
     def step(self, action=None):
         v, Te, x = self.stepPhysics(action)
         self.ades_k = action
-        done = (
-            v - self.v_target < -self.v_threshold
-            or v - self.v_target > self.v_threshold
-            or x < 0
-            or x > 10000
-        )
+        done = v - self.v_target < -self.v_threshold or v - self.v_target > self.v_threshold or x < 0 or x > 10000
         done = bool(done)
 
         # compute future road slope
         future_ds_list = [x + v * self.dynamic_T * i for i in range(self.Np)]
         future_thetas_list = np.interp(future_ds_list, self.map_x, self.map_Theta)
-        self.state = np.concatenate(
-            (np.array([v - self.v_target]), future_thetas_list), axis=0
-        ).flatten(order="C")
+        self.state = np.concatenate((np.array([v - self.v_target]), future_thetas_list), axis=0).flatten(order="C")
 
         # -----------------
         self.steps += 1
@@ -247,9 +222,7 @@ class PythPCCTruck(gym.Env):
                 throttle = self.Fuel_throttle[-1]
         Thr_index = int(np.argwhere(throttle >= self.Fuel_throttle)[-1])
         EngSpd_index = int(np.argwhere(EngSpd >= self.Fuel_engspd)[-1])
-        if Thr_index != int(len(self.Fuel_throttle) - 1) and EngSpd_index != int(
-            len(self.Fuel_engspd) - 1
-        ):
+        if Thr_index != int(len(self.Fuel_throttle) - 1) and EngSpd_index != int(len(self.Fuel_engspd) - 1):
             scale_thr = (throttle - self.Fuel_throttle[Thr_index]) / (
                 self.Fuel_throttle[Thr_index + 1] - self.Fuel_throttle[Thr_index]
             )
@@ -257,35 +230,27 @@ class PythPCCTruck(gym.Env):
                 self.Fuel_engspd[EngSpd_index + 1] - self.Fuel_engspd[EngSpd_index]
             )
             Fuel_temp1 = self.Fuel[EngSpd_index][Thr_index] + scale_thr * (
-                self.Fuel[EngSpd_index][Thr_index + 1]
-                - self.Fuel[EngSpd_index][Thr_index]
+                self.Fuel[EngSpd_index][Thr_index + 1] - self.Fuel[EngSpd_index][Thr_index]
             )
             Fuel_temp2 = self.Fuel[EngSpd_index + 1][Thr_index] + scale_thr * (
-                self.Fuel[EngSpd_index + 1][Thr_index + 1]
-                - self.Fuel[EngSpd_index + 1][Thr_index]
+                self.Fuel[EngSpd_index + 1][Thr_index + 1] - self.Fuel[EngSpd_index + 1][Thr_index]
             )
             Fuel_result = Fuel_temp1 + scale_rpm * (Fuel_temp2 - Fuel_temp1)
 
-        elif Thr_index == int(len(self.Fuel_throttle) - 1) and EngSpd_index != int(
-            len(self.Fuel_engspd) - 1
-        ):
+        elif Thr_index == int(len(self.Fuel_throttle) - 1) and EngSpd_index != int(len(self.Fuel_engspd) - 1):
             scale_rpm = (EngSpd - self.Fuel_engspd[EngSpd_index]) / (
                 self.Fuel_engspd[EngSpd_index + 1] - self.Fuel_engspd[EngSpd_index]
             )
             Fuel_result = self.Fuel[EngSpd_index][Thr_index] + scale_rpm * (
-                self.Fuel[EngSpd_index + 1][Thr_index]
-                - self.Fuel[EngSpd_index][Thr_index]
+                self.Fuel[EngSpd_index + 1][Thr_index] - self.Fuel[EngSpd_index][Thr_index]
             )
 
-        elif Thr_index != int(len(self.Fuel_throttle) - 1) and EngSpd_index == int(
-            len(self.Fuel_engspd) - 1
-        ):
+        elif Thr_index != int(len(self.Fuel_throttle) - 1) and EngSpd_index == int(len(self.Fuel_engspd) - 1):
             scale_thr = (throttle - self.Fuel_throttle[Thr_index]) / (
                 self.Fuel_throttle[Thr_index + 1] - self.Fuel_throttle[Thr_index]
             )
             Fuel_result = self.Fuel[EngSpd_index][Thr_index] + scale_thr * (
-                self.Fuel[EngSpd_index][Thr_index + 1]
-                - self.Fuel[EngSpd_index][Thr_index]
+                self.Fuel[EngSpd_index][Thr_index + 1] - self.Fuel[EngSpd_index][Thr_index]
             )
 
         else:
@@ -347,45 +312,25 @@ class PythPCCTruck(gym.Env):
             if torq_temp[1] - torq_temp[0] == 0.0:
                 throttle = 0.0 + (Te - torq_temp[0]) / (0.0000001) * (0.1 - 0)
             else:
-                throttle = 0.0 + (Te - torq_temp[0]) / (torq_temp[1] - torq_temp[0]) * (
-                    0.1 - 0
-                )
+                throttle = 0.0 + (Te - torq_temp[0]) / (torq_temp[1] - torq_temp[0]) * (0.1 - 0)
         elif index_torq == 1:
-            throttle = 0.1 + (Te - torq_temp[1]) / (torq_temp[2] - torq_temp[1]) * (
-                0.2 - 0.1
-            )
+            throttle = 0.1 + (Te - torq_temp[1]) / (torq_temp[2] - torq_temp[1]) * (0.2 - 0.1)
         elif index_torq == 2:
-            throttle = 0.2 + (Te - torq_temp[2]) / (torq_temp[3] - torq_temp[2]) * (
-                0.3 - 0.2
-            )
+            throttle = 0.2 + (Te - torq_temp[2]) / (torq_temp[3] - torq_temp[2]) * (0.3 - 0.2)
         elif index_torq == 3:
-            throttle = 0.3 + (Te - torq_temp[3]) / (torq_temp[4] - torq_temp[3]) * (
-                0.4 - 0.3
-            )
+            throttle = 0.3 + (Te - torq_temp[3]) / (torq_temp[4] - torq_temp[3]) * (0.4 - 0.3)
         elif index_torq == 4:
-            throttle = 0.4 + (Te - torq_temp[4]) / (torq_temp[5] - torq_temp[4]) * (
-                0.5 - 0.4
-            )
+            throttle = 0.4 + (Te - torq_temp[4]) / (torq_temp[5] - torq_temp[4]) * (0.5 - 0.4)
         elif index_torq == 5:
-            throttle = 0.5 + (Te - torq_temp[5]) / (torq_temp[6] - torq_temp[5]) * (
-                0.6 - 0.5
-            )
+            throttle = 0.5 + (Te - torq_temp[5]) / (torq_temp[6] - torq_temp[5]) * (0.6 - 0.5)
         elif index_torq == 6:
-            throttle = 0.6 + (Te - torq_temp[6]) / (torq_temp[7] - torq_temp[6]) * (
-                0.7 - 0.6
-            )
+            throttle = 0.6 + (Te - torq_temp[6]) / (torq_temp[7] - torq_temp[6]) * (0.7 - 0.6)
         elif index_torq == 7:
-            throttle = 0.7 + (Te - torq_temp[7]) / (torq_temp[8] - torq_temp[7]) * (
-                0.8 - 0.7
-            )
+            throttle = 0.7 + (Te - torq_temp[7]) / (torq_temp[8] - torq_temp[7]) * (0.8 - 0.7)
         elif index_torq == 8:
-            throttle = 0.8 + (Te - torq_temp[8]) / (torq_temp[9] - torq_temp[8]) * (
-                0.9 - 0.8
-            )
+            throttle = 0.8 + (Te - torq_temp[8]) / (torq_temp[9] - torq_temp[8]) * (0.9 - 0.8)
         elif index_torq == 9:
-            throttle = 0.9 + (Te - torq_temp[8]) / (torq_temp[9] - torq_temp[8]) * (
-                1.0 - 0.9
-            )
+            throttle = 0.9 + (Te - torq_temp[8]) / (torq_temp[9] - torq_temp[8]) * (1.0 - 0.9)
         elif index_torq == 10:
             throttle = 1.0
 

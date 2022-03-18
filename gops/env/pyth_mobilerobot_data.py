@@ -7,7 +7,6 @@
 #  Update Date: 2021-05-55, Yuhang Zhang: create environment
 
 
-
 import math
 import warnings
 import numpy as np
@@ -66,7 +65,7 @@ class PythMobilerobot:
         ################################################################################################################
         #  define your forward function here: the format is just like: state_next = f(state,action)
         veh2vehdist = np.zeros((self.state.shape[0], self.n_obstacle))
-        action = action.reshape(1, -1) # TODO is right
+        action = action.reshape(1, -1)  # TODO is right
         for i in range(1 + self.n_obstacle):
             if i == 0:
                 robot_state = self.robot.f_xu(self.state[:, :5], action.reshape(1, -1), self.dt, "ego")
@@ -117,7 +116,7 @@ class PythMobilerobot:
         )
         ############################################################################################
         self.steps += 1
-        info = {"TimeLimit.truncated": self.steps > 170, "constraint": constraint.reshape(-1)} # TODO is right
+        info = {"TimeLimit.truncated": self.steps > 170, "constraint": constraint.reshape(-1)}  # TODO is right
         return state_next.reshape(-1), float(reward), isdone, info  # TODO is right
 
     # def forward_n_step(self, func, n, state: torch.Tensor):
@@ -134,7 +133,7 @@ class PythMobilerobot:
 
     def reset(self, n_agent=1):
         def uniform(low, high):
-            return np.random.random([n_agent]) * (high - low) + low
+            return self.np_random.random([n_agent]) * (high - low) + low
 
         state = np.zeros([n_agent, self.state_dim])
         for i in range(1 + self.n_obstacle):
@@ -160,7 +159,7 @@ class PythMobilerobot:
         self.steps = 0
         self.state = state
 
-        return state.reshape(-1) # TODO is right
+        return state.reshape(-1)  # TODO is right
 
     def render(self, n_window=1):
 

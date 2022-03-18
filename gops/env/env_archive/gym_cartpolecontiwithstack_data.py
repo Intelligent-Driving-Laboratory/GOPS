@@ -52,17 +52,11 @@ class _GymCartpoleconti(gym.Env):
             ]
         )
 
-        self.action_space = spaces.Box(
-            low=self.min_action, high=self.max_action, shape=(1,)
-        )
+        self.action_space = spaces.Box(low=self.min_action, high=self.max_action, shape=(1,))
         self.stack_length = 5
-        self.observation_space = spaces.Box(
-            np.array([-high] * self.stack_length), np.array([high] * self.stack_length)
-        )
+        self.observation_space = spaces.Box(np.array([-high] * self.stack_length), np.array([high] * self.stack_length))
 
-        self.adv_action_space = spaces.Box(
-            low=self.min_adv_action, high=self.max_adv_action, shape=(1,)
-        )
+        self.adv_action_space = spaces.Box(low=self.min_adv_action, high=self.max_adv_action, shape=(1,))
 
         self.seed()
         self.viewer = None
@@ -83,12 +77,9 @@ class _GymCartpoleconti(gym.Env):
         x, x_dot, theta, theta_dot = self.state
         costheta = math.cos(theta)
         sintheta = math.sin(theta)
-        temp = (
-            force + self.polemass_length * theta_dot * theta_dot * sintheta
-        ) / self.total_mass
+        temp = (force + self.polemass_length * theta_dot * theta_dot * sintheta) / self.total_mass
         thetaacc = (self.gravity * sintheta - costheta * temp) / (
-            self.length
-            * (4.0 / 3.0 - self.masspole * costheta * costheta / self.total_mass)
+            self.length * (4.0 / 3.0 - self.masspole * costheta * costheta / self.total_mass)
         )
 
         xacc = temp - self.polemass_length * thetaacc * costheta / self.total_mass
@@ -144,9 +135,7 @@ Any further steps are undefined behavior.
         return np.array(self.stack), reward, done, {}
 
     def reset(self):
-        self.state = self.np_random.uniform(
-            low=[-2, -0.05, -0.2, -0.05], high=[2, 0.05, 0.2, 0.05], size=(4,)
-        )
+        self.state = self.np_random.uniform(low=[-2, -0.05, -0.2, -0.05], high=[2, 0.05, 0.2, 0.05], size=(4,))
         self.steps_beyond_done = None
         self.steps = 0
         self.stack = [self.state] * self.stack_length

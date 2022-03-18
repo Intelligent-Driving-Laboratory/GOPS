@@ -87,9 +87,7 @@ class SimuVehicle3dofcontiModel(torch.nn.Module):
         self.register_buffer("lb_action", torch.tensor(lb_action, dtype=torch.float32))
         self.register_buffer("hb_action", torch.tensor(hb_action, dtype=torch.float32))
 
-    def forward(
-        self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)
-    ):
+    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)):
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
@@ -119,12 +117,7 @@ class SimuVehicle3dofcontiModel(torch.nn.Module):
         #  define your forward function here: the format is just like: state_next = f(state,action)
         state_next = state
         act_steer = action[:, 0]
-        act_acc = (
-            action[:, 1] * torch.cos(act_steer)
-            + action[:, 2]
-            + action[:, 3]
-            + action[:, 4]
-        ) / self.mass
+        act_acc = (action[:, 1] * torch.cos(act_steer) + action[:, 2] + action[:, 3] + action[:, 4]) / self.mass
 
         state_next[:, 0] = state[:, 0] + self.dt * (
             state[:, 2] * torch.cos(state[:, 4]) - state[:, 3] * torch.sin(state[:, 4])
@@ -147,8 +140,7 @@ class SimuVehicle3dofcontiModel(torch.nn.Module):
             + self.dt * (self.lf * self.kf - self.lr * self.kr) * state[:, 3]
             - self.dt * self.lf * self.kf * act_steer * state[:, 2]
         ) / (
-            self.Izz * state[:, 2]
-            - self.dt * (self.lf * self.lf * self.kf + self.lr * self.lr * self.kr)
+            self.Izz * state[:, 2] - self.dt * (self.lf * self.lf * self.kf + self.lr * self.lr * self.kr)
         )  # "r"
         # state_next = state_next.transpose(0, 1)
 
@@ -207,9 +199,7 @@ def clip_by_tensor(t, t_min, t_max):
 
 if __name__ == "__main__":
     e = SimuVehicle3dofcontiModel()
-    state = torch.tensor(
-        [[0.0, 0.0, 0.0001, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0001, 0.0, 0.0, 0.0]]
-    )
+    state = torch.tensor([[0.0, 0.0, 0.0001, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0001, 0.0, 0.0, 0.0]])
     reward = torch.zeros(size=[state.size()[0], 1000])
 
     def func(action):
@@ -222,9 +212,7 @@ if __name__ == "__main__":
         steer = np.pi * 5 / 180
         acc = 1000 * math.sin(step * 0.005 * math.pi) + 1000
 
-        action = torch.tensor(
-            [[steer, 0.0, acc, 0.0, 0.0], [steer, 0.0, acc, 0.0, 0.0]]
-        )
+        action = torch.tensor([[steer, 0.0, acc, 0.0, 0.0], [steer, 0.0, acc, 0.0, 0.0]])
         state_next, reward[:, step], isdone = e.forward(state, action)
         res.append(copy.deepcopy(state_next.numpy()[0]))
         state = state_next

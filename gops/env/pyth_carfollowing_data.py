@@ -165,7 +165,6 @@ if __name__ == "__main__":
     # import cv2
     import time
 
-
     env = env_creator()
 
     s = env.reset()

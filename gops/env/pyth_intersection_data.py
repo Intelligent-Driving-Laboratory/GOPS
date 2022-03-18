@@ -13,8 +13,9 @@ def env_creator(**kwargs):
     return TimeLimit(env, 200)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import numpy as np
+
     env = env_creator()
     obs = env.reset()
     print(env.observation_space, env.action_space)

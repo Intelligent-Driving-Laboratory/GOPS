@@ -84,7 +84,7 @@ class GymDemocontiModel(torch.nn.Module):
         mask = isdone or beyond_done
         mask = torch.unsqueeze(mask, -1)
         state_next = ~mask * state_next + mask * state
-        reward = ~ (beyond_done) * reward
+        reward = ~(beyond_done) * reward
         return state_next, reward, mask, {"constraint": None}
 
     def forward_n_step(self, func, n, state: torch.Tensor):
