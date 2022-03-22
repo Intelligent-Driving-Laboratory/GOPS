@@ -78,7 +78,7 @@ if __name__ == "__main__":
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
     parser.add_argument(
-        "--max_iteration", type=int, default=3000, help="Maximum iteration number"
+        "--max_iteration", type=int, default=6400, help="Maximum iteration number"
     )
     parser.add_argument("--ini_network_dir", type=str, default=None)
     trainer_type = parser.parse_args().trainer
@@ -86,12 +86,12 @@ if __name__ == "__main__":
         parser.add_argument("--buffer_name", type=str, default="replay_buffer")
         parser.add_argument("--buffer_warm_size", type=int, default=1000)
         parser.add_argument("--buffer_max_size", type=int, default=100000)
-        parser.add_argument("--replay_batch_size", type=int, default=256)
+        parser.add_argument("--replay_batch_size", type=int, default=64)
         parser.add_argument("--sampler_sync_interval", type=int, default=1)
     ################################################
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="off_sampler")
-    parser.add_argument("--sample_batch_size", type=int, default=32)
+    parser.add_argument("--sample_batch_size", type=int, default=8)
     parser.add_argument(
         "--noise_params",
         type=dict,
@@ -105,13 +105,13 @@ if __name__ == "__main__":
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
     parser.add_argument("--num_eval_episode", type=int, default=5)
-    parser.add_argument("--eval_interval", type=int, default=20)
+    parser.add_argument("--eval_interval", type=int, default=100)
 
     ################################################
     # 8. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
-    parser.add_argument("--apprfunc_save_interval", type=int, default=5000)
-    parser.add_argument("--log_save_interval", type=int, default=20)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=2000)
+    parser.add_argument("--log_save_interval", type=int, default=100)
 
     # Get parameter dictionary
     args = vars(parser.parse_args())
@@ -129,6 +129,7 @@ if __name__ == "__main__":
     evaluator = create_evaluator(**args)
     # Step 5: create trainer
     trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
+    trainer.sample_interval = 1
 
     # Start training ... ...
     trainer.train()

@@ -82,18 +82,8 @@ if __name__ == "__main__":
     ################################################
     # 3. Parameters for algorithm
     parser.add_argument(
-        "--learning_rate", type=float, default=3e-4, help="3e-4 in the paper"
+        "--learning_rate", type=float, default=1e-3, help="3e-4 in the paper"
     )
-
-    ################################################
-    # 4. Parameters for trainer
-    # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
-    parser.add_argument("--trainer", type=str, default="on_serial_trainer")
-    # Maximum iteration number
-    parser.add_argument("--max_iteration", type=int, default=100)
-    trainer_type = parser.parse_args().trainer
-    parser.add_argument("--ini_network_dir", type=str, default=None)
-    # 4.1. Parameters for on_serial_trainer
     parser.add_argument("--num_repeat", type=int, default=10, help="5")  # 5 repeat
     parser.add_argument(
         "--num_mini_batch", type=int, default=8, help="8"
@@ -107,6 +97,15 @@ if __name__ == "__main__":
         default=parser.parse_args().num_repeat * parser.parse_args().num_mini_batch,
         help="# 50 gradient step per sample",
     )
+
+    ################################################
+    # 4. Parameters for trainer
+    # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
+    parser.add_argument("--trainer", type=str, default="on_serial_trainer")
+    # Maximum iteration number
+    parser.add_argument("--max_iteration", type=int, default=100)
+    trainer_type = parser.parse_args().trainer
+    parser.add_argument("--ini_network_dir", type=str, default=None)
 
     ################################################
     # 5. Parameters for sampler
@@ -129,12 +128,6 @@ if __name__ == "__main__":
         default=None,
         help="Add noise to actions for exploration",
     )
-
-    ################################################
-    # 6. Parameters for buffer
-    parser.add_argument("--buffer_name", type=str, default="replay_buffer")
-    parser.add_argument("--buffer_warm_size", type=int, default=1000)
-    parser.add_argument("--buffer_max_size", type=int, default=100000)
 
     ################################################
     # 7. Parameters for evaluator
@@ -177,6 +170,7 @@ if __name__ == "__main__":
             "schedule_clip": "None",
             "loss_value_clip": False,
             "loss_value_norm": False,
+            "reward_scale": 0.1
         }
     )
     # Step 2: create sampler in trainer

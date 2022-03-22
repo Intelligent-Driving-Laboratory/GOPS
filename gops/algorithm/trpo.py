@@ -84,6 +84,7 @@ class TRPO:
         self.max_search = max_search
         self.train_v_iters = train_v_iters
         self.use_gpu = use_gpu
+        self.reward_scale = 1.0
         self.networks = ApproxContainer(**kwargs)
 
     def compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
@@ -91,7 +92,7 @@ class TRPO:
         obs, act, rew, obs2, done, time_limited = (
             data["obs"],
             data["act"],
-            data["rew"],
+            data["rew"]*self.reward_scale,
             data["obs2"],
             data["done"],
             data["time_limited"],

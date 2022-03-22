@@ -86,13 +86,13 @@ if __name__ == "__main__":
     if policy_func_type == "POLY":
         pass
     parser.add_argument("--policy_min_log_std", type=int, default=-20)
-    parser.add_argument("--policy_max_log_std", type=int, default=0.5)
+    parser.add_argument("--policy_max_log_std", type=int, default=1)
 
     ################################################
     # 3. Parameters for RL algorithm
     parser.add_argument("--value_learning_rate", type=float, default=1e-3)
     parser.add_argument("--q_learning_rate", type=float, default=1e-3)
-    parser.add_argument("--policy_learning_rate", type=float, default=1e-3)
+    parser.add_argument("--policy_learning_rate", type=float, default=8e-3)
     parser.add_argument("--alpha_learning_rate", type=float, default=1e-3)
 
     ################################################
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
     # Maximum iteration number
-    parser.add_argument("--max_iteration", type=int, default=5000)
+    parser.add_argument("--max_iteration", type=int, default=2*6400)
     trainer_type = parser.parse_args().trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     # 4.3. Parameters for off_serial_trainer
@@ -111,21 +111,21 @@ if __name__ == "__main__":
         # Max size of reply buffer
         parser.add_argument("--buffer_max_size", type=int, default=int(1e5))
         # Batch size of replay samples from buffer
-        parser.add_argument("--replay_batch_size", type=int, default=256)
+        parser.add_argument("--replay_batch_size", type=int, default=64)
         # Period of sync central policy of each sampler
         parser.add_argument("--sampler_sync_interval", type=int, default=1)
     ################################################
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="off_sampler")
     # Batch size of sampler for buffer store
-    parser.add_argument("--sample_batch_size", type=int, default=64)
+    parser.add_argument("--sample_batch_size", type=int, default=8)
     # Add noise to actions for better exploration
     parser.add_argument("--noise_params", type=dict, default=None)
 
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=5)
+    parser.add_argument("--num_eval_episode", type=int, default=10)
     parser.add_argument("--eval_interval", type=int, default=100)
 
     ################################################

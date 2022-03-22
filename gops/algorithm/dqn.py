@@ -12,6 +12,7 @@ __all__ = ["DQN"]
 
 from copy import deepcopy
 import time
+import warnings
 from typing import Dict
 import torch
 import torch.nn as nn
@@ -24,11 +25,9 @@ from gops.utils.tensorboard_tools import tb_tags
 
 
 class ApproxContainer(nn.Module):
-    def __init__(self, learning_rate=0.001, tau=0.005, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__()
 
-        self.polyak = 1 - tau
-        self.lr = learning_rate
         value_func_type = kwargs["value_func_type"]
         Q_network_dict = get_apprfunc_dict("value", value_func_type, **kwargs)
         Q_network: nn.Module = create_apprfunc(**Q_network_dict)
@@ -44,27 +43,26 @@ class ApproxContainer(nn.Module):
         self.policy = policy_q
         self.q = Q_network
         self.target = target_network
-        self.q_optimizer = Adam(self.q.parameters(), lr=self.lr)
+        self.q_optimizer = Adam(self.q.parameters(), lr=kwargs["value_learning_rate"])
 
     def create_action_distributions(self, logits):
         return self.q.get_act_dist(logits)
 
-    def update(self, grads):
-        q_grad = grads
+    def update(self, grads_info: dict):
+        polyak = 1 - grads_info["tau"]
+        q_grad = grads_info["q_grad"]
         for p, grad in zip(self.q.parameters(), q_grad):
             p._grad = grad
         self.q_optimizer.step()
 
         with torch.no_grad():
             for p, p_targ in zip(self.q.parameters(), self.target.parameters()):
-                p_targ.data.mul_(self.polyak)
-                p_targ.data.add_((1 - self.polyak) * p.data)
+                p_targ.data.mul_(polyak)
+                p_targ.data.add_((1 - polyak) * p.data)
 
 
 class DQN:
-    def __init__(
-        self, learning_rate: float, gamma: float, tau: float, use_gpu: bool, **kwargs
-    ):
+    def __init__(self, **kwargs):
         """Deep Q-Network (DQN) algorithm
 
         A DQN implementation with soft target update.
@@ -77,17 +75,35 @@ class DQN:
             gamma (float, optional): Discount factor. Defaults to 0.995.
             tau (float, optional): Average factor. Defaults to 0.005.
         """
-        self.gamma = gamma
-        self.use_gpu = use_gpu
+        self.gamma = 0.99
+        self.use_gpu = kwargs["use_gpu"]
+        self.tau = 0.005
+        self.reward_scale = 1
 
-        self.networks = ApproxContainer(learning_rate, tau, **kwargs)
+        self.networks = ApproxContainer(**kwargs)
+
+    def set_parameters(self, param_dict):
+        for key in param_dict:
+            if hasattr(self, key):
+                setattr(self, key, param_dict[key])
+            else:
+                warning_msg = "param '" + key + "'is not defined in algorithm!"
+                warnings.warn(warning_msg)
+
+    def get_parameters(self):
+        params = dict()
+        params["gamma"] = self.gamma
+        params["tau"] = self.tau
+        params["use_gpu"] = self.use_gpu
+        params["reward_scale"] = self.reward_scale
+        return params
 
     def compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
         start_time = time.perf_counter()
         obs, act, rew, obs2, done = (
             data["obs"],
             data["act"],
-            data["rew"],
+            data["rew"]*self.reward_scale,
             data["obs2"],
             data["done"],
         )
@@ -115,7 +131,12 @@ class DQN:
             tb_tags["loss_critic"]: loss.item(),
             tb_tags["alg_time"]: (end_time - start_time) * 1000,
         }
-        return q_grad, tb_info
+
+        grad_info = dict()
+        grad_info["q_grad"] = q_grad
+        grad_info["tau"] = self.tau
+
+        return grad_info, tb_info
 
     def compute_loss(
         self,

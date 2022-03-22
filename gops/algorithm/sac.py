@@ -204,10 +204,10 @@ class SAC:
             tb_tags["loss_critic"]: loss_value.item(),
             tb_tags["loss_actor"]: loss_policy.item(),
             tb_tags["critic_avg_value"]: value.item(),
-            "Train/critic_avg_q1": q1.item(),
-            "Train/critic_avg_q2": q2.item(),
-            "Train/entropy": entropy.item(),
-            "Train/alpha": self.alpha,
+            "SAC/critic_avg_q1-RL iter": q1.item(),
+            "SAC/critic_avg_q2-RL iter": q2.item(),
+            "SAC/entropy-RL iter": entropy.item(),
+            "SAC/alpha-RL iter": self.alpha,
             tb_tags["alg_time"]: (time.time() - start_time) * 1000,
         }
 

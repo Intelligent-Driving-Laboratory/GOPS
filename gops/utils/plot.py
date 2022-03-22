@@ -9,6 +9,7 @@
 
 import os
 import string
+import re
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -42,7 +43,7 @@ def self_plot(
 
     default_cfg["fig_size"] = (8.5, 6.5)
     default_cfg["dpi"] = 300
-    default_cfg["pad"] = 0.2
+    default_cfg["pad"] = 0.5
 
     default_cfg["tick_size"] = 8
     default_cfg["tick_label_font"] = "Times New Roman"
@@ -125,12 +126,16 @@ def cm2inch(*tupl):
 
 def plot_all(path):
     data = read_tensorboard(path)
+    figure_path = os.path.join(path, "figure")
+    os.makedirs(figure_path, exist_ok=True)
     for (key, values) in data.items():
+        x_label, y_label = str_edit(key)
         self_plot(
             values,
-            os.path.join(path, str_edit(key) + ".tiff"),
-            xlabel="Iteration Steps",
-            ylabel=str_edit(key),
+            os.path.join(figure_path, x_label + "-" + y_label + ".tiff"),
+            xlabel=x_label,
+            ylabel=y_label,
+            color_list=["orange"]
         )
 
 
@@ -139,7 +144,20 @@ def str_edit(str_):
     if "/" in str_:
         str_ = str_.split("/")
         str_ = str_[-1]
-    return string.capwords(str_, "_")
+
+    str_total = str_
+    x_label = None
+    y_label = None
+    if "-" in str_:
+        str_ = str_.split("-")
+        if len(str_) == 2:
+            x_label = str_[1]
+            y_label = str_[0]
+            y_label = re.sub(r"\d\.(\s*)", "", y_label, 1)
+    if x_label is None:
+        x_label = "Iteration Steps"
+        y_label = str_total
+    return x_label, y_label
 
 
 if __name__ == "__main__":

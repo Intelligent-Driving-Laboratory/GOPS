@@ -78,8 +78,8 @@ if __name__ == "__main__":
     parser.add_argument("--policy_hidden_activation", type=str, default="relu")
     # Output Layer: linear
     parser.add_argument("--policy_output_activation", type=str, default="linear")
-    parser.add_argument("--policy_min_log_std", type=int, default=-3)  # -6
-    parser.add_argument("--policy_max_log_std", type=int, default=4)  # 3
+    parser.add_argument("--policy_min_log_std", type=int, default=-20)  # -6
+    parser.add_argument("--policy_max_log_std", type=int, default=1)  # 3
 
     ################################################
     # 3. Parameters for algorithm
@@ -93,17 +93,17 @@ if __name__ == "__main__":
     parser.add_argument("--trainer", type=str, default="on_serial_trainer")
     # Maximum iteration number
     parser.add_argument(
-        "--max_iteration", type=int, default=200, help="8000"
+        "--max_iteration", type=int, default=125, help="8000"
     )  # 1200 gradient step
     trainer_type = parser.parse_args().trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     # 4.1. Parameters for on_serial_trainer
-    parser.add_argument("--num_repeat", type=int, default=20, help="20")  # 2 repeat
+    parser.add_argument("--num_repeat", type=int, default=10, help="20")  # 2 repeat
     parser.add_argument(
         "--num_mini_batch", type=int, default=8, help="8"
     )  # 25 mini_batch
     parser.add_argument(
-        "--mini_batch_size", type=int, default=128, help="128"
+        "--mini_batch_size", type=int, default=64, help="128"
     )  # 25 mini_batch * 128 = 3200
     parser.add_argument(
         "--num_epoch",
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--sample_batch_size",
         type=int,
-        default=1024,
+        default=512,
         help="Batch size of sampler for buffer store = 1024",
     )  # 8 env * 400 step
     assert (
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=5)
+    parser.add_argument("--num_eval_episode", type=int, default=10)
     parser.add_argument("--eval_interval", type=int, default=1)
 
     ################################################
@@ -153,7 +153,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--apprfunc_save_interval",
         type=int,
-        default=20,
+        default=100,
         help="Save value/policy every N updates",
     )
     # Save key info every N updates
@@ -174,13 +174,14 @@ if __name__ == "__main__":
     alg = create_alg(**args)
     alg.set_parameters(
         {
-            "gamma": 0.95,
+            "gamma": 0.99,
             "loss_coefficient_value": 0.25,
             "loss_coefficient_entropy": 0.01,
             "schedule_adam": "None",
             "schedule_clip": "None",
             "loss_value_clip": False,
             "loss_value_norm": False,
+            "reward_scale": 0.1
         }
     )
     # Step 2: create sampler in trainer

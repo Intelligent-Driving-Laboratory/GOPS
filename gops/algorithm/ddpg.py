@@ -56,25 +56,25 @@ class ApproxContainer(nn.Module):
         iteration = grads_info["iteration"]
         q_grad = grads_info["q_grad"]
         policy_grad = grads_info["policy_grad"]
-        self.polyak = 1 - grads_info["tau"]
-        self.delay_update = grads_info["delay_update"]
+        polyak = 1 - grads_info["tau"]
+        delay_update = grads_info["delay_update"]
 
         for p, grad in zip(self.q.parameters(), q_grad):
             p._grad = grad
         for p, grad in zip(self.policy.parameters(), policy_grad):
             p._grad = grad
         self.q_optimizer.step()
-        if iteration % self.delay_update == 0:
+        if iteration % delay_update == 0:
             self.policy_optimizer.step()
         with torch.no_grad():
             for p, p_targ in zip(self.q.parameters(), self.q_target.parameters()):
-                p_targ.data.mul_(self.polyak)
-                p_targ.data.add_((1 - self.polyak) * p.data)
+                p_targ.data.mul_(polyak)
+                p_targ.data.add_((1 - polyak) * p.data)
             for p, p_targ in zip(
                 self.policy.parameters(), self.policy_target.parameters()
             ):
-                p_targ.data.mul_(self.polyak)
-                p_targ.data.add_((1 - self.polyak) * p.data)
+                p_targ.data.mul_(polyak)
+                p_targ.data.add_((1 - polyak) * p.data)
 
 
 class DDPG:

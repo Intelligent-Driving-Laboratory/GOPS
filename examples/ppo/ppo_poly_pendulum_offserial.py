@@ -70,13 +70,13 @@ if __name__ == "__main__":
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == "POLY":
         pass
-    parser.add_argument("--policy_min_log_std", type=int, default=-3)
-    parser.add_argument("--policy_max_log_std", type=int, default=4)
+    parser.add_argument("--policy_min_log_std", type=int, default=-20)
+    parser.add_argument("--policy_max_log_std", type=int, default=1)
 
     ################################################
     # 3. Parameters for RL algorithm
     parser.add_argument(
-        "--learning_rate", type=float, default=1e-3, help="3e-4 in the paper"
+        "--learning_rate", type=float, default=8e-3, help="3e-4 in the paper"
     )
 
     ################################################
@@ -84,16 +84,16 @@ if __name__ == "__main__":
     # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
     parser.add_argument("--trainer", type=str, default="on_serial_trainer")
     # Maximum iteration number
-    parser.add_argument("--max_iteration", type=int, default=300)
+    parser.add_argument("--max_iteration", type=int, default=250)
     trainer_type = parser.parse_args().trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     # 4.1. Parameters for on_serial_trainer
-    parser.add_argument("--num_repeat", type=int, default=20, help="5")  # 5 repeat
+    parser.add_argument("--num_repeat", type=int, default=10, help="5")  # 5 repeat
     parser.add_argument(
         "--num_mini_batch", type=int, default=8, help="8"
     )  # 8 mini_batch
     parser.add_argument(
-        "--mini_batch_size", type=int, default=128, help="128"
+        "--mini_batch_size", type=int, default=64, help="128"
     )  # 8 mini_batch * 128 = 1024
     parser.add_argument(
         "--num_epoch",
@@ -108,7 +108,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--sample_batch_size",
         type=int,
-        default=1024,
+        default=512,
         help="Batch size of sampler for buffer store = 1024",
     )  # 8 env * 128 step
     assert (
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=5)
+    parser.add_argument("--num_eval_episode", type=int, default=10)
     parser.add_argument("--eval_interval", type=int, default=1)
 
     ################################################
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--apprfunc_save_interval",
         type=int,
-        default=20,
+        default=200,
         help="Save value/policy every N updates",
     )
     # Save key info every N updates
