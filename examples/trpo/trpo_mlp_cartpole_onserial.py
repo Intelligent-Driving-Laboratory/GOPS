@@ -51,7 +51,7 @@ if __name__ == "__main__":
     value_func_type = parser.parse_args().value_func_type
     ### 2.1.1 MLP, CNN, RNN
     if value_func_type == "MLP":
-        parser.add_argument("--value_hidden_sizes", type=list, default=[32, 32])
+        parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
         # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
         parser.add_argument("--value_hidden_activation", type=str, default="relu")
         # Output Layer: linear
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     policy_func_type = parser.parse_args().policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == "MLP":
-        parser.add_argument("--policy_hidden_sizes", type=list, default=[32, 32])
+        parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
         # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
         parser.add_argument("--policy_hidden_activation", type=str, default="relu")
         # Output Layer: tanh
@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument("--value_learning_rate", type=float, default=1e-4)
+    parser.add_argument("--value_learning_rate", type=float, default=1e-3)
 
     parser.add_argument("--delta", type=float, default=0.001)
     parser.add_argument("--gamma", type=float, default=0.99)
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
     parser.add_argument("--trainer", type=str, default="on_serial_trainer")
     # Maximum iteration number
-    parser.add_argument("--max_iteration", type=int, default=60)
+    parser.add_argument("--max_iteration", type=int, default=100)
     trainer_type = parser.parse_args().trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     # 4.1. Parameters for on_serial_trainer
@@ -106,14 +106,14 @@ if __name__ == "__main__":
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="on_sampler")
     # Batch size of sampler for buffer store
-    parser.add_argument("--sample_batch_size", type=int, default=1024)
+    parser.add_argument("--sample_batch_size", type=int, default=512)
     # Add noise to actions for better exploration
     parser.add_argument("--noise_params", type=dict, default={"epsilon": 0.0})
 
     ################################################
     # 6. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=5)
+    parser.add_argument("--num_eval_episode", type=int, default=10)
     parser.add_argument("--eval_interval", type=int, default=1)
 
     ################################################

@@ -114,7 +114,7 @@ if __name__ == "__main__":
         "off_async_trainermix",
     )
     parser.add_argument(
-        "--max_iteration", type=int, default=5000, help="Maximum iteration number"
+        "--max_iteration", type=int, default=6400, help="Maximum iteration number"
     )
     parser.add_argument("--ini_network_dir", type=str, default=None)
     trainer_type = parser.parse_args().trainer
@@ -157,7 +157,7 @@ if __name__ == "__main__":
         parser.add_argument(
             "--replay_batch_size",
             type=int,
-            default=256,
+            default=64,
             help="Batch size of replay samples from buffer",
         )
     else:
@@ -169,7 +169,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--sample_batch_size",
         type=int,
-        default=256,
+        default=4,
         help="Batch size of sampler for buffer store",
     )
     parser.add_argument(
@@ -185,7 +185,7 @@ if __name__ == "__main__":
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=5)
+    parser.add_argument("--num_eval_episode", type=int, default=10)
     parser.add_argument("--eval_interval", type=int, default=100)
 
     ################################################
@@ -194,7 +194,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--apprfunc_save_interval",
         type=int,
-        default=5000,
+        default=2000,
         help="Save value/policy every N updates",
     )
     parser.add_argument(

@@ -71,12 +71,12 @@ if __name__ == "__main__":
     if policy_func_type == "POLY":
         pass
     parser.add_argument("--policy_min_log_std", type=int, default=-20)
-    parser.add_argument("--policy_max_log_std", type=int, default=0.5)
+    parser.add_argument("--policy_max_log_std", type=int, default=1)
 
     ################################################
     # 3. Parameters for RL algorithm
     parser.add_argument(
-        "--learning_rate", type=float, default=1e-3, help="3e-4 in the paper"
+        "--learning_rate", type=float, default=8e-3, help="3e-4 in the paper"
     )
 
     ################################################
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=5)
+    parser.add_argument("--num_eval_episode", type=int, default=10)
     parser.add_argument("--eval_interval", type=int, default=1)
 
     ################################################
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--apprfunc_save_interval",
         type=int,
-        default=20,
+        default=200,
         help="Save value/policy every N updates",
     )
     # Save key info every N updates
@@ -169,6 +169,7 @@ if __name__ == "__main__":
             "schedule_clip": "None",
             "loss_value_clip": False,
             "loss_value_norm": False,
+            "reward_scale": 0.1
         }
     )
     # Step 2: create sampler in trainer

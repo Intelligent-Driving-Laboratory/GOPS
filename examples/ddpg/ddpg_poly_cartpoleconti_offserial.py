@@ -47,10 +47,12 @@ if __name__ == "__main__":
     ################################################
     # 2.1 Parameters of value approximate function
     parser.add_argument("--value_func_name", type=str, default="ActionValue")
-    parser.add_argument("--value_func_type", type=str, default="POLY")
+    parser.add_argument("--value_func_type", type=str, default="MLP")
     value_func_type = parser.parse_args().value_func_type
-    if value_func_type == "POLY":
-        pass
+    if value_func_type == "MLP":
+        parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
+        parser.add_argument("--value_hidden_activation", type=str, default="relu")
+        parser.add_argument("--value_output_activation", type=str, default="linear")
 
     # 2.2 Parameters of policy approximate function
     parser.add_argument("--policy_func_name", type=str, default="DetermPolicy")
@@ -62,45 +64,45 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument("--value_learning_rate", type=float, default=1e-4)
-    parser.add_argument("--policy_learning_rate", type=float, default=1e-5)
+    parser.add_argument("--value_learning_rate", type=float, default=1e-3)
+    parser.add_argument("--policy_learning_rate", type=float, default=8e-3)
 
     ################################################
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
-    parser.add_argument("--max_iteration", type=int, default=500000)
+    parser.add_argument("--max_iteration", type=int, default=2*6400)
     trainer_type = parser.parse_args().trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     if trainer_type == "off_serial_trainer":
         parser.add_argument("--buffer_name", type=str, default="replay_buffer")
         parser.add_argument("--buffer_warm_size", type=int, default=1000)
         parser.add_argument("--buffer_max_size", type=int, default=100000)
-        parser.add_argument("--replay_batch_size", type=int, default=1024)
+        parser.add_argument("--replay_batch_size", type=int, default=64)
         parser.add_argument("--sampler_sync_interval", type=int, default=1)
 
     ################################################
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="off_sampler")
-    parser.add_argument("--sample_batch_size", type=int, default=16)
+    parser.add_argument("--sample_batch_size", type=int, default=8)
     parser.add_argument(
         "--noise_params",
         type=dict,
         default={
             "mean": np.array([0], dtype=np.float32),
-            "std": np.array([0.1], dtype=np.float32),
+            "std": np.array([0.2], dtype=np.float32),
         },
     )
 
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=5)
+    parser.add_argument("--num_eval_episode", type=int, default=10)
     parser.add_argument("--eval_interval", type=int, default=100)
 
     ################################################
     # 8. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
-    parser.add_argument("--apprfunc_save_interval", type=int, default=100)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=2000)
     parser.add_argument("--log_save_interval", type=int, default=100)
 
     # Get parameter dictionary
@@ -111,6 +113,9 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
+    alg.set_parameters(
+        {"reward_scale": 0.1, "gamma": 0.99, "tau": 0.2, "delay_update": 1}
+    )
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

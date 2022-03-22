@@ -78,7 +78,20 @@ if __name__ == "__main__":
     ################################################
     # 3. Parameters for algorithm
     parser.add_argument(
-        "--learning_rate", type=float, default=3e-4, help="3e-4 in the paper"
+        "--learning_rate", type=float, default=1e-3, help="3e-4 in the paper"
+    )
+    parser.add_argument("--num_repeat", type=int, default=10, help="5")  # 5 repeat
+    parser.add_argument(
+        "--num_mini_batch", type=int, default=8, help="8"
+    )  # 8 mini_batch
+    parser.add_argument(
+        "--mini_batch_size", type=int, default=64, help="128"
+    )  # 8 mini_batch * 128 = 1024
+    parser.add_argument(
+        "--num_epoch",
+        type=int,
+        default=parser.parse_args().num_repeat * parser.parse_args().num_mini_batch,
+        help="# 50 gradient step per sample",
     )
 
     ################################################
@@ -90,19 +103,6 @@ if __name__ == "__main__":
     parser.add_argument("--ini_network_dir", type=str, default=None)
     # 4.3. Parameters for sync trainer
     if trainer_type == "on_sync_trainer":
-        parser.add_argument("--num_repeat", type=int, default=10, help="5")  # 5 repeat
-        parser.add_argument(
-            "--num_mini_batch", type=int, default=8, help="8"
-        )  # 8 mini_batch
-        parser.add_argument(
-            "--mini_batch_size", type=int, default=128, help="128"
-        )  # 8 mini_batch * 128 = 1024
-        parser.add_argument(
-            "--num_epoch",
-            type=int,
-            default=parser.parse_args().num_repeat * parser.parse_args().num_mini_batch,
-            help="# 50 gradient step per sample",
-        )
         import ray
 
         ray.init()
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--sample_batch_size",
         type=int,
-        default=1024,
+        default=512,
         help="Batch size of sampler for buffer store = 1024",
     )  # 8 env * 128 step
     assert (
@@ -149,7 +149,7 @@ if __name__ == "__main__":
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=5)
+    parser.add_argument("--num_eval_episode", type=int, default=10)
     parser.add_argument("--eval_interval", type=int, default=1)
 
     ################################################
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--apprfunc_save_interval",
         type=int,
-        default=20,
+        default=100,
         help="Save value/policy every N updates",
     )
     # Save key info every N updates
@@ -187,6 +187,7 @@ if __name__ == "__main__":
             "schedule_clip": "None",
             "loss_value_clip": False,
             "loss_value_norm": False,
+            "reward_scale": 0.1
         }
     )
     # Step 2: create sampler in trainer
