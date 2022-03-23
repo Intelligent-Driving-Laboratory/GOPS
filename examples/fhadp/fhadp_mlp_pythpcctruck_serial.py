@@ -51,7 +51,7 @@ if __name__ == "__main__":
     parser.add_argument("--policy_func_name", type=str, default="DetermPolicy")
     parser.add_argument("--policy_func_type", type=str, default="MLP")
     parser.add_argument("--policy_act_distribution", type=str, default="default")
-    policy_func_type = parser.parse_args().policy_func_type
+    policy_func_type = parser.parse_known_args()[0].policy_func_type
     if policy_func_type == "MLP":
         parser.add_argument(
             "--policy_hidden_sizes", type=list, default=[256, 256, 256, 256]
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="on_serial_trainer")
     parser.add_argument("--max_iteration", type=int, default=50000)
-    trainer_type = parser.parse_args().trainer
+    trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     # 4.1. Parameters for on_serial_trainer
     parser.add_argument("--num_repeat", type=int, default=1, help="1")  # 5 repeat
@@ -80,7 +80,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num_epoch",
         type=int,
-        default=parser.parse_args().num_repeat * parser.parse_args().num_mini_batch,
+        default=parser.parse_known_args()[0].num_repeat
+        * parser.parse_known_args()[0].num_mini_batch,
         help="# 50 gradient step per sample",
     )
 

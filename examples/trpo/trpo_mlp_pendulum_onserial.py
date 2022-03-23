@@ -51,7 +51,7 @@ if __name__ == "__main__":
     parser.add_argument("--value_func_name", type=str, default="StateValue")
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument("--value_func_type", type=str, default="MLP")
-    value_func_type = parser.parse_args().value_func_type
+    value_func_type = parser.parse_known_args()[0].value_func_type
     ### 2.1.1 MLP, CNN, RNN
     if value_func_type == "MLP":
         parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument("--policy_func_type", type=str, default="MLP")
     parser.add_argument("--policy_act_distribution", type=str, default="default")
-    policy_func_type = parser.parse_args().policy_func_type
+    policy_func_type = parser.parse_known_args()[0].policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == "MLP":
         parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
@@ -81,8 +81,8 @@ if __name__ == "__main__":
     # 3. Parameters for RL algorithm
     parser.add_argument("--value_learning_rate", type=float, default=4e-3)
 
-    parser.add_argument("--delta", type=float, default=0.01)
-    parser.add_argument("--gamma", type=float, default=0.99)
+    parser.add_argument("--delta", type=float, default=0.02)
+    parser.add_argument("--gamma", type=float, default=0.95)
     parser.add_argument("--lamda", type=float, default=0.97)
     parser.add_argument("--rtol", type=float, default=1e-5)
     parser.add_argument("--atol", type=float, default=1e-8)
@@ -97,8 +97,8 @@ if __name__ == "__main__":
     # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
     parser.add_argument("--trainer", type=str, default="on_serial_trainer")
     # Maximum iteration number
-    parser.add_argument("--max_iteration", type=int, default=1250)
-    trainer_type = parser.parse_args().trainer
+    parser.add_argument("--max_iteration", type=int, default=600)
+    trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     # 4.1. Parameters for on_serial_trainer
     if trainer_type == "on_serial_trainer":
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="on_sampler")
     # Batch size of sampler for buffer store
-    parser.add_argument("--sample_batch_size", type=int, default=512)
+    parser.add_argument("--sample_batch_size", type=int, default=400)
     # Add noise to actions for better exploration
     parser.add_argument("--noise_params", type=dict, default=None)
 
@@ -137,6 +137,7 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
+    alg.set_parameters({"reward_scale": 0.1})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
