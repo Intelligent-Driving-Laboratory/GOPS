@@ -1,10 +1,9 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
-
-#  Creator: Fawang Zhang
+#
+#  Creator: iDLab
 #  Description: PCC Car CVT Model Environment
-
 #  Update Date: 2021-07-011, Fawang Zhang: Solve the problem of slow training speed
 
 import gym
@@ -16,6 +15,7 @@ import math
 import pandas as pd
 from scipy.signal import savgol_filter
 import os
+
 gym.logger.setLevel(gym.logger.ERROR)
 
 
@@ -23,6 +23,7 @@ class CarParameter(Structure):
     """
     Car Position Structure for C/C++ interface
     """
+
     _fields_ = [
         ("LX_AXLE", c_float),  # 轴距，m
         ("LX_CG_SU", c_float),  # 悬上质量质心至前轴距离，m
@@ -41,16 +42,21 @@ class CarParameter(Structure):
         ("RRE", c_float),  # 车轮有效滚动半径，m
         ("CF", c_float),  # 前轮侧偏刚度，N/rad
         ("CR", c_float),  # 后轮侧偏刚度，N/rad
-        ("ROLL_RESISTANCE", c_float)]  # 滚动阻力系数
+        ("ROLL_RESISTANCE", c_float),
+    ]  # 滚动阻力系数
+
 
 class RoadParameter(Structure):
     """
     Car Position Structure for C/C++ interface
     """
+
     _fields_ = [("slope", c_float)]
+
 
 class VehicleInfo(Structure):
     """车辆动力学参数结构体"""
+
     _fields_ = [
         ("AV_Eng", c_float),
         ("AV_Y", c_float),
@@ -70,74 +76,89 @@ class VehicleInfo(Structure):
         ("Vy", c_float),
         ("Yaw", c_float),  # 偏航角, rad
         ("Qfuel", c_float),  # rate,g/s
-        ("Mileage", c_float)]  # 里程, m
+        ("Mileage", c_float),
+    ]  # 里程, m
 
-class RoadMap():
+
+class RoadMap:
     def __init__(self):
-        self.path = os.path.join(os.path.dirname(__file__), "../resources/car_model_dll/roadmap.csv")
+        self.path = os.path.join(
+            os.path.dirname(__file__), "../resources/car_model_dll/roadmap.csv"
+        )
         self.map_road = pd.DataFrame(pd.read_csv(self.path, header=None))
-        self.x = np.array(self.map_road.iloc[0:, 0].dropna(), dtype='float32')  # x
-        self.y = np.array(self.map_road.iloc[0:, 1], dtype='float32')  # theta
-        self.z = np.array(self.map_road.iloc[0:, 2], dtype='float32')  # tan(theta)
+        self.x = np.array(self.map_road.iloc[0:, 0].dropna(), dtype="float32")  # x
+        self.y = np.array(self.map_road.iloc[0:, 1], dtype="float32")  # theta
+        self.z = np.array(self.map_road.iloc[0:, 2], dtype="float32")  # tan(theta)
 
     def load_data_cal(self):
         Theta = [0]
         for i in range(len(self.y)):
             if i > 0:
-                delta = math.atan((self.z[i] - self.z[i - 1]) / (self.y[i] - self.y[i - 1]))
+                delta = math.atan(
+                    (self.z[i] - self.z[i - 1]) / (self.y[i] - self.y[i - 1])
+                )
                 Theta.append(delta)
-        Theta_filter = savgol_filter(Theta, 35, 1, mode='nearest') #rad
+        Theta_filter = savgol_filter(Theta, 35, 1, mode="nearest")  # rad
         return self.y.tolist(), Theta_filter
 
+
 class PythPCCCarAMTModel(gym.Env):
-
-    def __init__(self, road_map=RoadMap(),Car_parameter=CarParameter(),**kwargs):
+    def __init__(self, road_map=RoadMap(), Car_parameter=CarParameter(), **kwargs):
         self.x_map, self.Theta = road_map.load_data_cal()
-        self.dll = CDLL(os.path.join(os.path.dirname(__file__), "../resources/car_model_dll/CarModel_AMT.dll"))
-        #Car_parameter
-        Car_parameter.LX_AXLE = 2.91 # 轴距，m
-        Car_parameter.LX_CG_SU = 1.015 # 悬上质量质心至前轴距离，m
-        Car_parameter.M_SU = 1270.0 # 悬上质量，kg
-        Car_parameter.IZZ_SU = 1536.7 # 转动惯量，kg*m^2
-        Car_parameter.A = 2.2 # 迎风面积，m^2
-        Car_parameter.CFx = 0.3 # 空气动力学侧偏角为零度时的纵向空气阻力系数
-        Car_parameter.AV_ENGINE_IDLE = 750 # 怠速转速，rpm
-        Car_parameter.IENG = 0.16 # 曲轴转动惯量，kg*m^2
-        Car_parameter.TAU = 0.2 # 发动机-变速箱输入轴 时间常数，s
-        Car_parameter.R_GEAR_TR1 = 3.538 # 最低档变速箱传动比
-        Car_parameter.R_GEAR_FD = 4.10 # 主减速器传动比
-        Car_parameter.BRAK_COEF = 800.0 # 液压缸变矩系数,Nm/(MPa)
-        Car_parameter.Steer_FACTOR = 14.3 # 转向传动比
-        Car_parameter.M_US = 142 # 簧下质量，kg
-        Car_parameter.RRE = 0.325 # 车轮有效滚动半径，m
-        Car_parameter.CF = -128915.5 # 前轮侧偏刚度，N/rad
-        Car_parameter.CR = -85943.6 # 后轮侧偏刚度，N/rad
-        Car_parameter.ROLL_RESISTANCE = 0.0038 # 滚动阻力系数
+        self.dll = CDLL(
+            os.path.join(
+                os.path.dirname(__file__), "../resources/car_model_dll/CarModel_AMT.dll"
+            )
+        )
+        # Car_parameter
+        Car_parameter.LX_AXLE = 2.91  # 轴距，m
+        Car_parameter.LX_CG_SU = 1.015  # 悬上质量质心至前轴距离，m
+        Car_parameter.M_SU = 1270.0  # 悬上质量，kg
+        Car_parameter.IZZ_SU = 1536.7  # 转动惯量，kg*m^2
+        Car_parameter.A = 2.2  # 迎风面积，m^2
+        Car_parameter.CFx = 0.3  # 空气动力学侧偏角为零度时的纵向空气阻力系数
+        Car_parameter.AV_ENGINE_IDLE = 750  # 怠速转速，rpm
+        Car_parameter.IENG = 0.16  # 曲轴转动惯量，kg*m^2
+        Car_parameter.TAU = 0.2  # 发动机-变速箱输入轴 时间常数，s
+        Car_parameter.R_GEAR_TR1 = 3.538  # 最低档变速箱传动比
+        Car_parameter.R_GEAR_FD = 4.10  # 主减速器传动比
+        Car_parameter.BRAK_COEF = 800.0  # 液压缸变矩系数,Nm/(MPa)
+        Car_parameter.Steer_FACTOR = 14.3  # 转向传动比
+        Car_parameter.M_US = 142  # 簧下质量，kg
+        Car_parameter.RRE = 0.325  # 车轮有效滚动半径，m
+        Car_parameter.CF = -128915.5  # 前轮侧偏刚度，N/rad
+        Car_parameter.CR = -85943.6  # 后轮侧偏刚度，N/rad
+        Car_parameter.ROLL_RESISTANCE = 0.0038  # 滚动阻力系数
 
-        #init state
-        x = 0.
+        # init state
+        x = 0.0
         self.ego_x = x
-        y = 0.
-        heading = 0.
-        v = 20.
+        y = 0.0
+        heading = 0.0
+        v = 20.0
         self.step_length = 0.05
-        self.dll.init(c_float(x), c_float(y),
-                      c_float(heading), c_float(v),
-                      c_float(self.step_length), byref(Car_parameter))
+        self.dll.init(
+            c_float(x),
+            c_float(y),
+            c_float(heading),
+            c_float(v),
+            c_float(self.step_length),
+            byref(Car_parameter),
+        )
 
-        self.v_target = 20 #target speed
-        self.Np = 50 # prediciton horizon
+        self.v_target = 20  # target speed
+        self.Np = 50  # prediciton horizon
 
         # state limit
-        slope_low = [-0.06] #[rad]
+        slope_low = [-0.06]  # [rad]
         slope_high = [0.06]
-        state_low = np.array([-10.0]+slope_low*self.Np)
-        state_high = np.array([10.0]+slope_high*self.Np)
-        #action limit
+        state_low = np.array([-10.0] + slope_low * self.Np)
+        state_high = np.array([10.0] + slope_high * self.Np)
+        # action limit
         action_high = np.array([4.0])
         action_low = np.array([-6.0])
 
-        self.action_space = spaces.Box(action_low,action_high)
+        self.action_space = spaces.Box(action_low, action_high)
         self.observation_space = spaces.Box(state_low, state_high)
 
         self.steps_beyond_done = None
@@ -170,29 +191,50 @@ class PythPCCCarAMTModel(gym.Env):
         r = c_float(0.0)  # engine speed
         i = c_float(0.0)  # gear ratio
 
-        #get and input road slope
+        # get and input road slope
         road_info = RoadParameter()
         road_info.slope = np.interp(self.ego_x, self.x_map, self.Theta)
 
-        self.dll.sim(byref(road_info), byref(AD), byref(SW),
-                     byref(x), byref(y), byref(heading), byref(acc), byref(v),
-                     byref(r), byref(i))
-        heading.value = (heading.value / math.pi * 180.0)
+        self.dll.sim(
+            byref(road_info),
+            byref(AD),
+            byref(SW),
+            byref(x),
+            byref(y),
+            byref(heading),
+            byref(acc),
+            byref(v),
+            byref(r),
+            byref(i),
+        )
+        heading.value = heading.value / math.pi * 180.0
 
-        (self.ego_x, self.ego_y, self.ego_vel, self.ego_heading, self.acc,
-         self.engine_speed, self.drive_ratio) = (x.value, y.value, v.value,
-                                                 heading.value, acc.value,
-                                                 r.value, i.value)
+        (
+            self.ego_x,
+            self.ego_y,
+            self.ego_vel,
+            self.ego_heading,
+            self.acc,
+            self.engine_speed,
+            self.drive_ratio,
+        ) = (x.value, y.value, v.value, heading.value, acc.value, r.value, i.value)
 
         self.dll.get_info(byref(self.car_info))
 
-        #compute future road slope
-        future_ds_list = [self.ego_x + self.car_info.Vx * self.step_length * i for i in range(self.Np)]
-        future_thetas_list = list(np.interp(future_ds_list,self.x_map,self.Theta))
-        #next state
-        self.state = [self.car_info.Vx-self.v_target] + future_thetas_list
+        # compute future road slope
+        future_ds_list = [
+            self.ego_x + self.car_info.Vx * self.step_length * i for i in range(self.Np)
+        ]
+        future_thetas_list = list(np.interp(future_ds_list, self.x_map, self.Theta))
+        # next state
+        self.state = [self.car_info.Vx - self.v_target] + future_thetas_list
 
-        done =self.car_info.Vx < 0 or self.ego_x <0 or self.ego_x >13000 or abs(self.car_info.Vx - self.v_target)>5
+        done = (
+            self.car_info.Vx < 0
+            or self.ego_x < 0
+            or self.ego_x > 13000
+            or abs(self.car_info.Vx - self.v_target) > 5
+        )
         done = bool(done)
 
         self.steps += 1
@@ -204,17 +246,27 @@ class PythPCCCarAMTModel(gym.Env):
         weight_control = 1e3
 
         if not done:
-            reward = -(weight_fuel * self.car_info.Qfuel + weight_tracking * ((self.ego_vel-self.v_target)**2) + weight_control * ((ades - self.ades_k)**2))
+            reward = -(
+                weight_fuel * self.car_info.Qfuel
+                + weight_tracking * ((self.ego_vel - self.v_target) ** 2)
+                + weight_control * ((ades - self.ades_k) ** 2)
+            )
         elif self.steps_beyond_done is None:
             self.steps_beyond_done = 0
-            reward  = -(weight_fuel * self.car_info.Qfuel + weight_tracking * ((self.ego_vel-self.v_target)**2) + weight_control * ((ades - self.ades_k)**2))
+            reward = -(
+                weight_fuel * self.car_info.Qfuel
+                + weight_tracking * ((self.ego_vel - self.v_target) ** 2)
+                + weight_control * ((ades - self.ades_k) ** 2)
+            )
         else:
             if self.steps_beyond_done == 0:
-                gym.logger.warn("""
+                gym.logger.warn(
+                    """
             You are calling 'step()' even though this environment has already returned
             done = True. You should always call 'reset()' once you receive 'done = True'
             Any further steps are undefined behavior.
-                """)
+                """
+                )
             self.steps_beyond_done += 1
             reward = -10000.0
         self.ades_k = ades
@@ -222,19 +274,22 @@ class PythPCCCarAMTModel(gym.Env):
         return np.array(self.state), reward, done, {}
 
     def reset(self):
-        self.state = [0.0]+[0.0]*self.Np
+        self.state = [0.0] + [0.0] * self.Np
         self.steps_beyond_done = None
         self.steps = 0
         return np.array(self.state)
 
-    def render(self, mode='human'):
+    def render(self, mode="human"):
         pass
+
 
 # def env_creator():
 #     return PythPCCCarAMTModel()
 
+
 def env_creator(**kwargs):
     return TimeLimit(PythPCCCarAMTModel(**kwargs), 20000)
+
 
 if __name__ == "__main__":
     env = PythPCCCarAMTModel()

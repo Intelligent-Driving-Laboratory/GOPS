@@ -2,9 +2,10 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Wenxuan Wang
+#  Creator: iDLab
 #  Description: Acrobat Environment
-#
+#  Update Date: 2021-05-55, Wenxuan Wang: create environment
+
 
 import warnings
 import torch
@@ -14,34 +15,36 @@ pi = torch.tensor(np.pi, dtype=torch.float32)
 
 
 class GymPendulumModel(torch.nn.Module):
-    def __init__(self,**kwargs):
+    def __init__(self, **kwargs):
         super().__init__()
         """
         you need to define parameters here
         """
         # define your custom parameters here
         self.max_speed = 8
-        self.max_torque = 2.
+        self.max_torque = 2.0
         self.g = 10.0
-        self.m = 1.
-        self.length = 1.
+        self.m = 1.0
+        self.length = 1.0
 
         # define common parameters here
         self.state_dim = 3
         self.action_dim = 1
-        lb_state = [-1., -1., -self.max_speed]
-        hb_state = [1., 1., self.max_speed]
+        lb_state = [-1.0, -1.0, -self.max_speed]
+        hb_state = [1.0, 1.0, self.max_speed]
         lb_action = [-self.max_torque]
         hb_action = [self.max_torque]
         self.dt = 0.05
 
         # do not change the following section
-        self.register_buffer('lb_state', torch.tensor(lb_state, dtype=torch.float32))
-        self.register_buffer('hb_state', torch.tensor(hb_state, dtype=torch.float32))
-        self.register_buffer('lb_action', torch.tensor(lb_action, dtype=torch.float32))
-        self.register_buffer('hb_action', torch.tensor(hb_action, dtype=torch.float32))
+        self.register_buffer("lb_state", torch.tensor(lb_state, dtype=torch.float32))
+        self.register_buffer("hb_state", torch.tensor(hb_state, dtype=torch.float32))
+        self.register_buffer("lb_action", torch.tensor(lb_action, dtype=torch.float32))
+        self.register_buffer("hb_action", torch.tensor(hb_action, dtype=torch.float32))
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)):
+    def forward(
+        self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)
+    ):
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
@@ -74,18 +77,29 @@ class GymPendulumModel(torch.nn.Module):
         m = self.m
         length = self.length
         dt = self.dt
-        newthdot = thdot + (-3 * g / (2 * length) * torch.sin(th + pi) + 3. / (m * length ** 2) * action.squeeze()) * dt
+        newthdot = (
+            thdot
+            + (
+                -3 * g / (2 * length) * torch.sin(th + pi)
+                + 3.0 / (m * length ** 2) * action.squeeze()
+            )
+            * dt
+        )
         newth = th + newthdot * dt
         newthdot = torch.clamp(newthdot, -self.max_speed, self.max_speed)
         newcosth = torch.cos(newth)
         newsinth = torch.sin(newth)
         state_next = torch.stack([newcosth, newsinth, newthdot], dim=-1)
-        reward = angle_normalize(th) ** 2 + .1 * thdot ** 2 + .001 * (action ** 2).squeeze(-1)
+        reward = (
+            angle_normalize(th) ** 2
+            + 0.1 * thdot ** 2
+            + 0.001 * (action ** 2).squeeze(-1)
+        )
         reward = -reward
         ############################################################################################
 
         # define the ending condation here the format is just like isdone = l(next_state)
-        isdone = state[:, 0].new_zeros(size=[state.size()[0]], dtype= torch.bool)
+        isdone = state[:, 0].new_zeros(size=[state.size()[0]], dtype=torch.bool)
 
         ############################################################################################
         beyond_done = beyond_done.bool()

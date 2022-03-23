@@ -1,15 +1,11 @@
-#   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Author: Sun Hao
+#  Creator: iDLab
+#  Description: Tracking Car Environment
+#  Update Date: 2021-05-55, Yuhang Zhang: create environment
 
-# env.py
-# Continuous version of Cartpole
 
 import math
 import gym
@@ -18,8 +14,9 @@ from gym.utils import seeding
 import numpy as np
 from gym.wrappers.time_limit import TimeLimit
 
+
 class _GymTrackingCar(gym.Env):
-    def __init__(self,**kwargs):
+    def __init__(self, **kwargs):
         self.a = 1.463
         self.b = 1.585
         self.m = 1818.2
@@ -48,14 +45,10 @@ class _GymTrackingCar(gym.Env):
 
         # create action space and observation_space
         self.action_space = spaces.Box(
-            low=self.min_action,
-            high=self.max_action,
-            shape=(1,)
+            low=self.min_action, high=self.max_action, shape=(1,)
         )
 
-        high = np.array([
-            self.y_threshold,
-            self.theta_threshold])
+        high = np.array([self.y_threshold, self.theta_threshold])
         self.observation_space = spaces.Box(-high, high)
 
         self.seed()
@@ -63,7 +56,7 @@ class _GymTrackingCar(gym.Env):
         self.vehicle_state = None
         self.steps_beyond_done = None  # number of step after done flag
 
-        self._max_episode_steps = kwargs.get('max_episode_steps',50)
+        self._max_episode_steps = kwargs.get("max_episode_steps", 50)
         self.steps = 0
         self.fell = False
 
@@ -102,7 +95,9 @@ class _GymTrackingCar(gym.Env):
         cmd = np.zeros((2,), dtype=np.float32)
         cmd[1] = delta
         for _ in range(self.step_count):
-            self.vehicle_state = self._update_data(x0=self.vehicle_state, u0=cmd, T=self.dynamic_tau)
+            self.vehicle_state = self._update_data(
+                x0=self.vehicle_state, u0=cmd, T=self.dynamic_tau
+            )
         return self.vehicle_state
 
     def get_vehicle_state(self):
@@ -124,10 +119,12 @@ class _GymTrackingCar(gym.Env):
 
         done = False
         fell = False
-        if y > self.y_threshold \
-                or y < -self.y_threshold \
-                or theta > self.theta_threshold \
-                or theta < -self.theta_threshold:
+        if (
+            y > self.y_threshold
+            or y < -self.y_threshold
+            or theta > self.theta_threshold
+            or theta < -self.theta_threshold
+        ):
             fell = True
         self.fell = fell
         if fell:
@@ -142,18 +139,20 @@ class _GymTrackingCar(gym.Env):
             reward = self._get_reward(delta=delta, y=y)
         else:
             if self.steps_beyond_done == 0:
-                gym.logger.warn("""
+                gym.logger.warn(
+                    """
     You are calling 'step()' even though this environment has already returned
     done = True. You should always call 'reset()' once you receive 'done = True'
     Any further steps are undefined behavior.
-                    """)
+                    """
+                )
             self.steps_beyond_done += 1
 
             reward = self._get_reward(delta=delta, y=y)
 
         return np.array(self.state), reward, done, {}
 
-    def render(self, mode='human'):
+    def render(self, mode="human"):
         print("Tracking car do not have render function!")
 
     def _get_reward(self, delta, y):
@@ -173,35 +172,44 @@ class _GymTrackingCar(gym.Env):
         kp = np.fabs(y) / self.y_threshold
         alpha = alpha_max + kp * (alpha_min - alpha_max)
 
-        reward_y_err = - alpha * r_y * r_y
-        reward_delta = -  r_d * r_d
+        reward_y_err = -alpha * r_y * r_y
+        reward_delta = -r_d * r_d
 
         reward_fell = 0
         if self.fell:
             reward_fell = -100
 
-        return (reward_y_err + reward_delta + reward_fell)
+        return reward_y_err + reward_delta + reward_fell
 
     def _update_data(self, x0, u0, T):
         x1 = np.zeros(len(x0))
         x1[0] = x0[0] + T * (x0[2] * np.cos(x0[4]) - x0[3] * np.sin(x0[4]))
         x1[1] = x0[1] + T * (x0[3] * np.cos(x0[4]) + x0[2] * np.sin(x0[4]))
         x1[2] = x0[2] + T * u0[0]  # vel.x
-        x1[3] = (-(self.a * self.kf - self.b * self.kr) * x0[5] +
-                 self.kf * u0[1] * x0[2] + self.m * x0[5] * x0[2] * x0[2] -
-                 self.m * x0[2] * x0[3] / T) / (self.kf + self.kr - self.m * x0[2] / T)
+        x1[3] = (
+            -(self.a * self.kf - self.b * self.kr) * x0[5]
+            + self.kf * u0[1] * x0[2]
+            + self.m * x0[5] * x0[2] * x0[2]
+            - self.m * x0[2] * x0[3] / T
+        ) / (self.kf + self.kr - self.m * x0[2] / T)
         x1[4] = x0[4] + T * x0[5]
-        x1[5] = (-self.Iz * x0[5] * x0[2] / T - (self.a * self.kf - self.b * self.kr) * x0[3] +
-                 self.a * self.kf * u0[1] * x0[2]) / (
-                        (self.a * self.a * self.kf + self.b * self.b * self.kr) - self.Iz * x0[2] / T)
+        x1[5] = (
+            -self.Iz * x0[5] * x0[2] / T
+            - (self.a * self.kf - self.b * self.kr) * x0[3]
+            + self.a * self.kf * u0[1] * x0[2]
+        ) / (
+            (self.a * self.a * self.kf + self.b * self.b * self.kr)
+            - self.Iz * x0[2] / T
+        )
         return x1
 
+
 def env_creator(**kwargs):
-    _max_episode_steps = kwargs.get('max_episode_steps', 50)
+    _max_episode_steps = kwargs.get("max_episode_steps", 50)
     return TimeLimit(_GymTrackingCar(**kwargs), _max_episode_steps)
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     env = env_creator()
     print(env.action_space.high)
     print(env.action_space.low)

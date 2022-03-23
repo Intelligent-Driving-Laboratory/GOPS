@@ -2,9 +2,8 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yuhang Zhang
+#  Creator: iDLab
 #  Description: Space-Invaders Environment
-#
 #  Update Date: 2021-05-55, Yuhang Zhang: create environment
 
 import gym
@@ -12,7 +11,6 @@ import gym
 
 def env_creator(**kwargs):
     try:
-        return gym.make('SpaceInvaders-v0')
+        return gym.make("SpaceInvaders-v0")
     except:
-        raise ModuleNotFoundError('Atari_py is not installed')
-
+        raise ModuleNotFoundError("Atari_py is not installed")

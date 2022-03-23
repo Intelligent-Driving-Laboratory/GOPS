@@ -1,15 +1,13 @@
-#   Copyright (c) 2020 ocp-tools Authors. All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Author: Jiaxin Gao
-# A3C algorithm need cooperate with asynchronous or synchronous trainer
+#  Creator: iDLab
+#  Description: Asynchronous Advantage Actor Critic Algorithm (A3C)
+#  Update: 2021-03-05, Jiaxin Gao: create A3C algorithm
 
-__all__ = ['ApproxContainer', 'A3C']
+
+__all__ = ["ApproxContainer", "A3C"]
 
 from copy import deepcopy
 import torch
@@ -26,31 +24,34 @@ from gops.utils.action_distributions import GaussDistribution
 class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        value_func_type = kwargs['value_func_type']
-        policy_func_type = kwargs['policy_func_type']
+        value_func_type = kwargs["value_func_type"]
+        policy_func_type = kwargs["policy_func_type"]
 
-        if kwargs['cnn_shared']:  # todo:设置默认false
-            feature_args = get_apprfunc_dict('feature', value_func_type, **kwargs)
-            kwargs['feature_net'] = create_apprfunc(**feature_args)
+        if kwargs["cnn_shared"]:  # todo:设置默认false
+            feature_args = get_apprfunc_dict("feature", value_func_type, **kwargs)
+            kwargs["feature_net"] = create_apprfunc(**feature_args)
 
-
-        value_args = get_apprfunc_dict('value', value_func_type, **kwargs)
+        value_args = get_apprfunc_dict("value", value_func_type, **kwargs)
         self.value = create_apprfunc(**value_args)
-        policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
+        policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
         self.policy = create_apprfunc(**policy_args)
 
-        self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs['policy_learning_rate'])
-        self.value_optimizer = Adam(self.value.parameters(), lr=kwargs['value_learning_rate'])
+        self.policy_optimizer = Adam(
+            self.policy.parameters(), lr=kwargs["policy_learning_rate"]
+        )
+        self.value_optimizer = Adam(
+            self.value.parameters(), lr=kwargs["value_learning_rate"]
+        )
 
     # create action_distributions
     def create_action_distributions(self, logits):
         return self.policy.get_act_dist(logits)
 
     def update(self, grads_info: dict):
-        iteration = grads_info['iteration']
-        value_grad = grads_info['value_grad']
-        policy_grad = grads_info['policy_grad']
-        self.delay_update = grads_info['delay_update']
+        iteration = grads_info["iteration"]
+        value_grad = grads_info["value_grad"]
+        policy_grad = grads_info["policy_grad"]
+        self.delay_update = grads_info["delay_update"]
         # self.polyak = 1 - grads_info['tau']
         # self.delay_update = grads_info['delay_update']
 
@@ -66,10 +67,10 @@ class ApproxContainer(nn.Module):
 class A3C:
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs)
-        self.use_gpu = kwargs['use_gpu']
+        self.use_gpu = kwargs["use_gpu"]
         self.gamma = 0.99
         self.reward_scale = 1
-        self.delay_update =  1
+        self.delay_update = 1
         self.action_distirbution_cls = GaussDistribution
 
     def set_parameters(self, param_dict):
@@ -82,10 +83,10 @@ class A3C:
 
     def get_parameters(self):
         params = dict()
-        params['gamma'] = self.gamma
-        params['use_gpu'] = self.use_gpu
-        params['reward_scale'] = self.reward_scale
-        params['delay_update'] = self.delay_update
+        params["gamma"] = self.gamma
+        params["use_gpu"] = self.use_gpu
+        params["reward_scale"] = self.reward_scale
+        params["delay_update"] = self.delay_update
         return params
 
     def compute_gradient(self, data: dict, iteration):
@@ -119,7 +120,7 @@ class A3C:
         for p in self.networks.value.parameters():
             p.requires_grad = True
 
-        #------------------------------------
+        # ------------------------------------
         # if self.use_gpu:
         #     self.networks.policy = self.networks.policy.cpu()
         #     self.networks.value = self.networks.value.cpu()
@@ -135,10 +136,10 @@ class A3C:
         tb_info[tb_tags["loss_actor"]] = loss_policy.item()
         # ------------------------------------
         grad_info = dict()
-        grad_info['value_grad'] = value_grad
-        grad_info['policy_grad'] = policy_grad
-        grad_info['iteration'] = iteration
-        grad_info['delay_update'] = self.delay_update
+        grad_info["value_grad"] = value_grad
+        grad_info["policy_grad"] = policy_grad
+        grad_info["iteration"] = iteration
+        grad_info["delay_update"] = self.delay_update
 
         return grad_info, tb_info
 
@@ -146,10 +147,10 @@ class A3C:
         self.networks.load_state_dict(state_dict)
 
     def __compute_loss_value(self, data):
-        obs = data['obs']
-        rew = data['rew']*self.reward_scale
-        done = data['done']
-        obs2 = data['obs2']
+        obs = data["obs"]
+        rew = data["rew"] * self.reward_scale
+        done = data["done"]
+        obs2 = data["obs2"]
         value = self.networks.value(obs)
         target_value = rew + self.gamma * self.networks.value(obs2)
         # target_value = torch.where(done == 1, rew, rew + self.gamma * self.networks.value(obs2))
@@ -158,15 +159,17 @@ class A3C:
 
     def __compute_loss_policy(self, data):
         # one_step advantage r + V(obs2) - V(obs)
-        obs = data['obs']
-        rew = data['rew']*self.reward_scale
-        done = data['done']
-        obs2 = data['obs2']
-        action = data['act']
+        obs = data["obs"]
+        rew = data["rew"] * self.reward_scale
+        done = data["done"]
+        obs2 = data["obs2"]
+        action = data["act"]
         logits = self.networks.policy(obs)
         action_distribution = self.action_distirbution_cls(logits)
         logp = action_distribution.log_prob(action)
-        value_policy = logp * (rew + self.gamma * self.networks.value(obs2) - self.networks.value(obs))
+        value_policy = logp * (
+            rew + self.gamma * self.networks.value(obs2) - self.networks.value(obs)
+        )
         # value_policy = torch.where(done == 1, logp * (rew - self.networks.value(obs)), logp * (rew + self.gamma * self.networks.value(obs2) - self.networks.value(obs)))
         return -value_policy.mean()
 
@@ -175,5 +178,7 @@ class A3C:
         self.networks.update(grad_info)
         return grad_info, tb_info
 
-    def state_dict(self,):
+    def state_dict(
+        self,
+    ):
         return self.networks.state_dict()

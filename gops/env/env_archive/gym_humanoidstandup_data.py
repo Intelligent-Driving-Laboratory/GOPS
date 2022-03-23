@@ -2,21 +2,24 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yuhang Zhang
+#  Creator: iDLab
 #  Description: Mujoco HumanoidStandup Environment
-#
 #  Update Date: 2021-11-22, Yuhang Zhang: create environment
+
+
 import gym
 
 
 def env_creator(**kwargs):
     try:
-        return gym.make('HumanoidStandup-v2')
+        return gym.make("HumanoidStandup-v2")
     except:
-        raise ModuleNotFoundError('Warning:  mujoco, mujoco-py and MSVC are not installed properly')
+        raise ModuleNotFoundError(
+            "Warning:  mujoco, mujoco-py and MSVC are not installed properly"
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     env = env_creator()
     env.reset()
     for i in range(100):

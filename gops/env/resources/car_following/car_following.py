@@ -1,3 +1,12 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: Car Following model
+#  Update Date: 2021-05-55, Jie Li: car following dynamics
+
+
 import torch
 import numpy as np
 from typing import Union
@@ -9,10 +18,14 @@ class CarFollowingDynamics:
     def __init__(self):
 
         dt = 0.1
-        self.A = torch.as_tensor([[1, 0.0, -0.00], [0.0, 1, 0], [-dt, dt, 1.0]], dtype=torch.float32)
+        self.A = torch.as_tensor(
+            [[1, 0.0, -0.00], [0.0, 1, 0], [-dt, dt, 1.0]], dtype=torch.float32
+        )
         self.B = torch.as_tensor([[dt], [0], [0]], dtype=torch.float32)
         self.D = torch.as_tensor([[0], [dt], [0]], dtype=torch.float32)
-        self.Q = torch.as_tensor([[0.2, 0, 0], [0, 0, 0], [0, 0, -0.1]], dtype=torch.float32)
+        self.Q = torch.as_tensor(
+            [[0.2, 0, 0], [0, 0, 0], [0, 0, -0.1]], dtype=torch.float32
+        )
         self.R = torch.as_tensor([[-0.02]], dtype=torch.float32)
 
         self.mu = 0.0
@@ -48,7 +61,12 @@ class CarFollowingDynamics:
         x_dot: [b,3]
         """
         d = torch.as_tensor(
-            np.clip(np.random.normal(self.mu, self.var, [1, u.size()[0]]), self.min_d, self.max_d), dtype=torch.float32
+            np.clip(
+                np.random.normal(self.mu, self.var, [1, u.size()[0]]),
+                self.min_d,
+                self.max_d,
+            ),
+            dtype=torch.float32,
         )
         # print(d)
         x_next = torch.mm(self.A, x.T) + torch.mm(self.B, u.T) + torch.mm(self.D, d)
@@ -80,7 +98,9 @@ class CarFollowingDynamics:
             x_next = x_next.detach().numpy().squeeze(0)
         return x_next
 
-    def compute_reward(self, x_t: array_or_torch, u_t: array_or_torch) -> array_or_torch:
+    def compute_reward(
+        self, x_t: array_or_torch, u_t: array_or_torch
+    ) -> array_or_torch:
         """
         reward in torch, batch operation
 
@@ -98,7 +118,9 @@ class CarFollowingDynamics:
             x_t = torch.as_tensor(x_t, dtype=torch.float32).unsqueeze(0)
             u_t = torch.as_tensor(u_t, dtype=torch.float32).unsqueeze(0)
             numpy_flag = True
-        reward = torch.sum(torch.mm(x_t, self.Q), 1) + torch.sum(torch.mm(u_t, self.R) * u_t, 1)
+        reward = torch.sum(torch.mm(x_t, self.Q), 1) + torch.sum(
+            torch.mm(u_t, self.R) * u_t, 1
+        )
         # print(reward.shape)
         if numpy_flag:
             reward = reward[0].item()

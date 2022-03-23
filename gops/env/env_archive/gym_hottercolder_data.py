@@ -2,27 +2,25 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yuhang Zhang
+#  Creator: iDLab
 #  Description: Hottercolder Environment
-#
 #  Update Date: 2021-05-55, Yuhang Zhang: create environment
 
 import gym
 
 
 def env_creator(**kwargs):
-    return gym.make('HotterColder-v0')
+    return gym.make("HotterColder-v0")
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     env = env_creator()
 
     env.reset()
     for i in range(100):
         a = env.action_space.sample()
         s, r, d, _ = env.step(a)
-        print('s', s)
-        print('a', a)
-        print('r', r)
-        print('d', d)
+        print("s", s)
+        print("a", a)
+        print("r", r)
+        print("d", d)

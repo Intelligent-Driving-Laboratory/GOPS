@@ -2,14 +2,12 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Yuhang Zhang
+#  Creator: iDLab
 #  Description: frozenlake-8x8 Environment
-#
 #  Update Date: 2021-05-55, Yuhang Zhang: create environment
 
 import gym
 
 
 def env_creator(**kwargs):
-    return gym.make('FrozenLake8x8-v0')
-
+    return gym.make("FrozenLake8x8-v0")

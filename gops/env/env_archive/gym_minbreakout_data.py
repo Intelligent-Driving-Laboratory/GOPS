@@ -1,3 +1,12 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: minbreakout_data Environment
+#  Update Date: 2021-05-55, Yuhang Zhang: create environment
+
+
 from gym.spaces import Discrete, Box
 from gym import Env
 from gym.wrappers.time_limit import TimeLimit
@@ -9,8 +18,8 @@ class _Minbreakout(Env):
         try:
             from minatar import Environment
         except:
-            raise NotImplementedError('MinAtar is not installed')
-        self.env = Environment('breakout')
+            raise NotImplementedError("MinAtar is not installed")
+        self.env = Environment("breakout")
         num_act = self.env.num_actions()
         obs_shape = self.env.state_shape()
 

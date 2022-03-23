@@ -2,30 +2,29 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Hao SUN
+#  Creator: iDLab
 #  Description: Create trainers
-"""
-resources:
+#  Update: 2021-03-05, Jiaxin Gao: create trainer module
 
-"""
-
-
-#  Update Date: 2020-12-01, Hao SUN:
 
 def create_trainer(alg, sampler, buffer, evaluator, **kwargs):
-    trainer_name = kwargs['trainer']
+    trainer_name = kwargs["trainer"]
     try:
         file = __import__(trainer_name)
     except NotImplementedError:
-        raise NotImplementedError('This trainer does not exist')
+        raise NotImplementedError("This trainer does not exist")
 
     trainer_name_camel = formatter(trainer_name)  #
     # get
     if hasattr(file, trainer_name_camel):
         trainer_cls = getattr(file, trainer_name_camel)
-        if trainer_name == 'off_serial_trainer' or trainer_name == 'off_async_trainer' or trainer_name == 'off_async_trainermix':
+        if (
+            trainer_name == "off_serial_trainer"
+            or trainer_name == "off_async_trainer"
+            or trainer_name == "off_async_trainermix"
+        ):
             trainer = trainer_cls(alg, sampler, buffer, evaluator, **kwargs)
-        elif trainer_name == 'on_serial_trainer' or trainer_name == 'on_sync_trainer':
+        elif trainer_name == "on_serial_trainer" or trainer_name == "on_sync_trainer":
             trainer = trainer_cls(alg, sampler, evaluator, **kwargs)
     else:
         raise NotImplementedError("This trainer is not properly defined")
@@ -34,8 +33,8 @@ def create_trainer(alg, sampler, buffer, evaluator, **kwargs):
 
 
 def formatter(src: str, firstUpper: bool = True):
-    arr = src.split('_')
-    res = ''
+    arr = src.split("_")
+    res = ""
     for i in arr:
         res = res + i[0].upper() + i[1:]
 

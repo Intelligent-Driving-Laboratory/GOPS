@@ -1,7 +1,18 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: Environment utils
+#  Update Date: 2021-03-10, Yuhang Zhang: Revise Codes
+
+
 import re
 import gym
 from gym import error
+
 env_id_re = re.compile(r"^(?:[\w:-]+\/)?([\w:.-]+)-v(\d+)$")
+
 
 def safe_make(env_id):
     registry = gym.envs.registration.registry
@@ -19,5 +30,9 @@ def safe_make(env_id):
             raise error.UnregisteredEnv("No registered env with id: {}".format(env_id))
         else:
             valid_env_id = matching_envs[-1]
-            print("Wrong env version, return a valid version: {} instead".format(valid_env_id))
+            print(
+                "Wrong env version, return a valid version: {} instead".format(
+                    valid_env_id
+                )
+            )
             return gym.make(valid_env_id)

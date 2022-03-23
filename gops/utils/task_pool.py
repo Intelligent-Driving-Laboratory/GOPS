@@ -1,3 +1,12 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Description: Task Pool Function for Ray Architecture
+#  Update Date: 2021-03-10, Yang Guan: Create codes
+
+
 import ray
 
 
@@ -17,7 +26,7 @@ class TaskPool(object):
         self._tasks[obj_id] = worker
         self._objects[obj_id] = all_obj_ids
 
-    def completed(self, blocking_wait=False):   #
+    def completed(self, blocking_wait=False):  #
         pending = list(self._tasks)
         if pending:
             ready, _ = ray.wait(pending, num_returns=len(pending), timeout=0)
