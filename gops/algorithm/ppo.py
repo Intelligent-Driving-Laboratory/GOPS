@@ -33,9 +33,9 @@ class ApproxContainer(nn.Module):
             feature_args = get_apprfunc_dict("feature", value_func_type, **kwargs)
             kwargs["feature_net"] = create_apprfunc(**feature_args)
 
-        policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
+        policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
         self.policy = create_apprfunc(**policy_args)
-        value_args = get_apprfunc_dict('value', value_func_type, **kwargs)
+        value_args = get_apprfunc_dict("value", value_func_type, **kwargs)
         self.value = create_apprfunc(**value_args)
 
     # create action_distributions

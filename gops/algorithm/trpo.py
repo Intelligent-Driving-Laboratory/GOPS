@@ -118,7 +118,7 @@ class TRPO:
         obs, act, rew, obs2, done, time_limited = (
             data["obs"],
             data["act"],
-            data["rew"]*self.reward_scale,
+            data["rew"] * self.reward_scale,
             data["obs2"],
             data["done"],
             data["time_limited"],

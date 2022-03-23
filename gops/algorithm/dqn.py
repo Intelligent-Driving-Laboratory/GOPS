@@ -103,7 +103,7 @@ class DQN:
         obs, act, rew, obs2, done = (
             data["obs"],
             data["act"],
-            data["rew"]*self.reward_scale,
+            data["rew"] * self.reward_scale,
             data["obs2"],
             data["done"],
         )
