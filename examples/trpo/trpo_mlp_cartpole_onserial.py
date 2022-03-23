@@ -133,7 +133,7 @@ if __name__ == "__main__":
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     alg.set_parameters(
-        {"reward_scale": 0.1, "gamma": 0.99, "tau": 0.2, "delay_update": 1}
+        {"reward_scale": 0.1, "gamma": 0.99}
     )
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)

@@ -12,6 +12,7 @@ __all__ = ["TRPO"]
 from copy import deepcopy
 from typing import Callable, Dict, List
 import time
+import warnings
 
 import numpy as np
 import scipy.signal
@@ -86,6 +87,31 @@ class TRPO:
         self.use_gpu = use_gpu
         self.reward_scale = 1.0
         self.networks = ApproxContainer(**kwargs)
+
+    def set_parameters(self, param_dict):
+        for key in param_dict:
+            if hasattr(self, key):
+                setattr(self, key, param_dict[key])
+            else:
+                warning_msg = "param '" + key + "'is not defined in algorithm!"
+                warnings.warn(warning_msg)
+
+    def get_parameters(self):
+        params = dict()
+        params["gamma"] = self.gamma
+        params["use_gpu"] = self.use_gpu
+        params["delta"] = self.delta
+        params["lamda"] = self.lamda
+        params["rtol"] = self.rtol
+        params["atol"] = self.atol
+        params["damping_factor"] = self.damping_factor
+        params["max_cg"] = self.max_cg
+        params["alpha"] = self.alpha
+        params["max_search"] = self.max_search
+        params["train_v_iters"] = self.train_v_iters
+        params["reward_scale"] = self.reward_scale
+
+        return params
 
     def compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
         start_time = time.time()
