@@ -180,7 +180,7 @@ tb_tags = {
     "TAR of total time": "Evaluation/2. TAR-Total time [s]",
     "TAR of collected samples": "Evaluation/3. TAR-Collected samples",
     "TAR of replay samples": "Evaluation/4. TAR-Replay samples",
-    "Buffer RAM of RL iteration": "RAM/RAM-RL iter",
+    "Buffer RAM of RL iteration": "RAM/RAM [MB]-RL iter",
     "loss_actor": "Loss/Actor loss-RL iter",
     "loss_critic": "Loss/Critic loss-RL iter",
     "alg_time": "Time/Algorithm time [ms]-RL iter",

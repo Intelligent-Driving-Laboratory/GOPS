@@ -52,7 +52,7 @@ if __name__ == "__main__":
     parser.add_argument("--value_func_name", type=str, default="StateValue")
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument("--value_func_type", type=str, default="MLP")
-    value_func_type = parser.parse_args().value_func_type
+    value_func_type = parser.parse_known_args()[0].value_func_type
     # 2.1.1 MLP, CNN, RNN
     parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
     # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument("--policy_func_type", type=str, default="POLY")
     parser.add_argument("--policy_act_distribution", type=str, default="default")
-    policy_func_type = parser.parse_args().policy_func_type
+    policy_func_type = parser.parse_known_args()[0].policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == "POLY":
         pass
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     parser.add_argument("--trainer", type=str, default="on_serial_trainer")
     # Maximum iteration number
     parser.add_argument("--max_iteration", type=int, default=250)
-    trainer_type = parser.parse_args().trainer
+    trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     # 4.1. Parameters for on_serial_trainer
     parser.add_argument("--num_repeat", type=int, default=10, help="5")  # 5 repeat
@@ -98,7 +98,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num_epoch",
         type=int,
-        default=parser.parse_args().num_repeat * parser.parse_args().num_mini_batch,
+        default=parser.parse_known_args()[0].num_repeat
+        * parser.parse_known_args()[0].num_mini_batch,
         help="# 50 gradient step per sample",
     )
     ################################################
@@ -112,8 +113,9 @@ if __name__ == "__main__":
         help="Batch size of sampler for buffer store = 1024",
     )  # 8 env * 128 step
     assert (
-        parser.parse_args().num_mini_batch * parser.parse_args().mini_batch_size
-        == parser.parse_args().sample_batch_size
+        parser.parse_known_args()[0].num_mini_batch
+        * parser.parse_known_args()[0].mini_batch_size
+        == parser.parse_known_args()[0].sample_batch_size
     ), "sample_batch_size error"
     # Add noise to actions for better exploration
     parser.add_argument(

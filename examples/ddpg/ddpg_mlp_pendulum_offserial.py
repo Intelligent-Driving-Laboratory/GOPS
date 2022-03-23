@@ -52,7 +52,7 @@ if __name__ == "__main__":
     # 2.1 Parameters of value approximate function
     parser.add_argument("--value_func_name", type=str, default="ActionValue")
     parser.add_argument("--value_func_type", type=str, default="MLP")
-    value_func_type = parser.parse_args().value_func_type
+    value_func_type = parser.parse_known_args()[0].value_func_type
     if value_func_type == "MLP":
         parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
         parser.add_argument("--value_hidden_activation", type=str, default="relu")
