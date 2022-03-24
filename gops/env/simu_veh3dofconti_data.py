@@ -31,6 +31,7 @@ class SimuVeh3dofconti(gym.Env):
             np.array(self._physics.get_param()["adva_max"]).reshape(-1),
         )
         self.adv_action_dim = self.adv_action_space.shape[0]
+        self.seed()
         self.reset()
 
     def seed(self, seed=None):
