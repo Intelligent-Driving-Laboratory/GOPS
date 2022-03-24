@@ -8,6 +8,7 @@
 
 
 import gym
+from gym.utils import seeding
 import numpy as np
 
 
@@ -54,6 +55,9 @@ class Env:  # todo:从git上找的环境设置，需要自己改一下
         self.stack.append(img_gray)
         assert len(self.stack) == self.img_stack
         return np.array(self.stack), total_reward, done, info
+
+    def seed(self, seed=None):
+        self.env.seed(seed)
 
     def render(self, *arg):
         self.env.render(*arg)

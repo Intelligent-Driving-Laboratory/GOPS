@@ -13,9 +13,7 @@ def env_creator(**kwargs):
     try:
         return gym.make("Thrower-v2")
     except:
-        raise ModuleNotFoundError(
-            "Warning:  mujoco, mujoco-py and MSVC are not installed properly"
-        )
+        raise ModuleNotFoundError("Warning:  mujoco, mujoco-py and MSVC are not installed properly")
 
 
 if __name__ == "__main__":

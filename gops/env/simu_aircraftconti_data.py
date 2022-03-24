@@ -9,6 +9,7 @@
 
 from gym import spaces
 import gym
+from gym.utils import seeding
 from gops.env.resources.simu_aircraft import aircraft
 import numpy as np
 
@@ -43,22 +44,23 @@ class SimuAircraftconti(gym.Env):
             if adv_action is None:
                 raise ValueError("Adversary training setting is wrong")
         state, isdone, reward = self._step_physics(
-            {
-                "Action": action.astype(np.float64),
-                "AdverAction": adv_action.astype(np.float64),
-            }
+            {"Action": action.astype(np.float64), "AdverAction": adv_action.astype(np.float64)}
         )
         self.cstep += 1
         info = {"TimeLimit.truncated": self.cstep > 200}
         # print(state, self.cstep)
         return state, reward, isdone, info
 
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
+
     def reset(self):
         self._physics.terminate()
         self._physics = aircraft.model_wrapper()
 
         # randomized initiate
-        state = np.random.uniform(low=-0.05, high=0.05, size=(2,))
+        state = self.np_random.uniform(low=-0.05, high=0.05, size=(2,))
         param = self._physics.get_param()
         param.update(list(zip(("x_ini"), state)))
         self._physics.set_param(param)

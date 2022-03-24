@@ -53,12 +53,7 @@ warnings.filterwarnings("ignore")
 def convert_observation_to_space(observation):
     if isinstance(observation, dict):
         space = gym.spaces.Dict(
-            OrderedDict(
-                [
-                    (key, convert_observation_to_space(value))
-                    for key, value in observation.items()
-                ]
-            )
+            OrderedDict([(key, convert_observation_to_space(value)) for key, value in observation.items()])
         )
     elif isinstance(observation, np.ndarray):
         low = np.full(observation.shape, -float("inf"))
@@ -92,9 +87,7 @@ class CrossroadEnd2endMixPiFix(gym.Env):
         self.action_number = 2
         self.exp_v = EXPECTED_V  # TODO: temp
         self.ego_l, self.ego_w = L, W
-        self.action_space = gym.spaces.Box(
-            low=-1, high=1, shape=(self.action_number,), dtype=np.float32
-        )
+        self.action_space = gym.spaces.Box(low=-1, high=1, shape=(self.action_number,), dtype=np.float32)
 
         self.seed()
         self.v_light = None
@@ -269,9 +262,7 @@ class CrossroadEnd2endMixPiFix(gym.Env):
 
         return out
 
-    def _get_all_info(
-        self, ego_dynamics
-    ):  # used to update info, must be called every timestep before _get_obs
+    def _get_all_info(self, ego_dynamics):  # used to update info, must be called every timestep before _get_obs
         # to fetch info
         self.all_vehicles = self.traffic.n_ego_vehicles["ego"]  # coordination 2
         self.ego_dynamics = ego_dynamics  # coordination 2
@@ -312,9 +303,7 @@ class CrossroadEnd2endMixPiFix(gym.Env):
             return "not_done_yet", 0
 
     def _deviate_too_much(self):
-        delta_y, delta_phi, delta_v = self.obs[
-            self.ego_info_dim : self.ego_info_dim + 3
-        ]
+        delta_y, delta_phi, delta_v = self.obs[self.ego_info_dim : self.ego_info_dim + 3]
         return True if abs(delta_y) > 15 else False
 
     def _break_road_constrain(self):
@@ -360,24 +349,12 @@ class CrossroadEnd2endMixPiFix(gym.Env):
         x = self.ego_dynamics["x"]
         y = self.ego_dynamics["y"]
         if self.training_task == "left":
-            return (
-                True
-                if x < -CROSSROAD_SIZE / 2 - 10 and 0 < y < LANE_NUMBER * LANE_WIDTH
-                else False
-            )
+            return True if x < -CROSSROAD_SIZE / 2 - 10 and 0 < y < LANE_NUMBER * LANE_WIDTH else False
         elif self.training_task == "right":
-            return (
-                True
-                if x > CROSSROAD_SIZE / 2 + 10 and -LANE_NUMBER * LANE_WIDTH < y < 0
-                else False
-            )
+            return True if x > CROSSROAD_SIZE / 2 + 10 and -LANE_NUMBER * LANE_WIDTH < y < 0 else False
         else:
             assert self.training_task == "straight"
-            return (
-                True
-                if y > CROSSROAD_SIZE / 2 + 10 and 0 < x < LANE_NUMBER * LANE_WIDTH
-                else False
-            )
+            return True if y > CROSSROAD_SIZE / 2 + 10 and 0 < x < LANE_NUMBER * LANE_WIDTH else False
 
     def _action_transformation_for_end2end(self, action):  # [-1, 1]
         action = np.clip(action, -1.05, 1.05)
@@ -480,18 +457,10 @@ class CrossroadEnd2endMixPiFix(gym.Env):
         vehs_vector = []
 
         name_settings = dict(
-            D=dict(
-                do="1o", di="1i", ro="2o", ri="2i", uo="3o", ui="3i", lo="4o", li="4i"
-            ),
-            R=dict(
-                do="2o", di="2i", ro="3o", ri="3i", uo="4o", ui="4i", lo="1o", li="1i"
-            ),
-            U=dict(
-                do="3o", di="3i", ro="4o", ri="4i", uo="1o", ui="1i", lo="2o", li="2i"
-            ),
-            L=dict(
-                do="4o", di="4i", ro="1o", ri="1i", uo="2o", ui="2i", lo="3o", li="3i"
-            ),
+            D=dict(do="1o", di="1i", ro="2o", ri="2i", uo="3o", ui="3i", lo="4o", li="4i"),
+            R=dict(do="2o", di="2i", ro="3o", ri="3i", uo="4o", ui="4i", lo="1o", li="1i"),
+            U=dict(do="3o", di="3i", ro="4o", ri="4i", uo="1o", ui="1i", lo="2o", li="2i"),
+            L=dict(do="4o", di="4i", ro="1o", ri="1i", uo="2o", ui="2i", lo="3o", li="3i"),
         )
 
         name_setting = name_settings[exit_]
@@ -651,31 +620,23 @@ class CrossroadEnd2endMixPiFix(gym.Env):
             if task == "straight":
                 du_b = list(
                     filter(
-                        lambda v: ego_y - 2 < v["y"] < CROSSROAD_SIZE / 2
-                        and v["x"] < ego_x + 8,
+                        lambda v: ego_y - 2 < v["y"] < CROSSROAD_SIZE / 2 and v["x"] < ego_x + 8,
                         du_b,
                     )
                 )
             elif task == "right":
-                du_b = list(
-                    filter(
-                        lambda v: ego_y - 2 < v["y"] < 0 and v["x"] < ego_x + 8, du_b
-                    )
-                )
+                du_b = list(filter(lambda v: ego_y - 2 < v["y"] < 0 and v["x"] < ego_x + 8, du_b))
             # dr_b = list(filter(lambda v: v['x'] < CROSSROAD_SIZE / 2 + 10 and v['y'] > ego_y - 2, dr_b))  # interest of right
             # rl_b = rl_b  # not interest in case of traffic light
             # ru_b = list(filter(lambda v: v['x'] < CROSSROAD_SIZE / 2 + 10 and v['y'] < CROSSROAD_SIZE / 2 + 10, ru_b))  # interest of straight
             ud_b = list(
                 filter(
-                    lambda v: max(ego_y - 2, -8) < v["y"] < CROSSROAD_SIZE / 2
-                    and ego_x > v["x"],
+                    lambda v: max(ego_y - 2, -8) < v["y"] < CROSSROAD_SIZE / 2 and ego_x > v["x"],
                     ud_b,
                 )
             )  # interest of left
             # ul_b = list(filter(lambda v: -CROSSROAD_SIZE / 2 - 10 < v['x'] < ego_x and v['y'] < CROSSROAD_SIZE / 2, ul_b))  # interest of left
-            lr_b = list(
-                filter(lambda v: 0 < v["x"] < CROSSROAD_SIZE / 2 + 10, lr_b)
-            )  # interest of right
+            lr_b = list(filter(lambda v: 0 < v["x"] < CROSSROAD_SIZE / 2 + 10, lr_b))  # interest of right
             # ld_b = ld_b  # not interest in case of traffic light
 
             # sort
@@ -733,15 +694,9 @@ class CrossroadEnd2endMixPiFix(gym.Env):
                 tmp_b[mode] = slice_or_fill(eval(mode), mode2fillvalue_b[mode], num)
 
             # fetch person in range
-            c1 = list(
-                filter(lambda v: v["y"] < 6 and v["x"] > ego_x - 6, c1)
-            )  # interest of right
-            c2 = list(
-                filter(lambda v: 0 < v["x"] and v["y"] > ego_y - 4, c2)
-            )  # interest of right
-            c3 = list(
-                filter(lambda v: -6 < v["y"] and v["x"] < ego_x + 6, c3)
-            )  # interest of left
+            c1 = list(filter(lambda v: v["y"] < 6 and v["x"] > ego_x - 6, c1))  # interest of right
+            c2 = list(filter(lambda v: 0 < v["x"] and v["y"] > ego_y - 4, c2))  # interest of right
+            c3 = list(filter(lambda v: -6 < v["y"] and v["x"] < ego_x + 6, c3))  # interest of left
 
             # sort
             c1 = sorted(c1, key=lambda v: (abs(v["y"] - ego_y), v["x"]))
@@ -828,63 +783,50 @@ class CrossroadEnd2endMixPiFix(gym.Env):
             )  # interest of left straight
             du = list(
                 filter(
-                    lambda v: ego_y - 2 < v["y"] < CROSSROAD_SIZE / 2 + 10
-                    and v["x"] < ego_x + 5,
+                    lambda v: ego_y - 2 < v["y"] < CROSSROAD_SIZE / 2 + 10 and v["x"] < ego_x + 5,
                     du,
                 )
             )  # interest of left straight
-            dr = list(
-                filter(
-                    lambda v: v["x"] < CROSSROAD_SIZE / 2 + 10 and v["y"] > ego_y, dr
-                )
-            )  # interest of right
+            dr = list(filter(lambda v: v["x"] < CROSSROAD_SIZE / 2 + 10 and v["y"] > ego_y, dr))  # interest of right
             rd = rd  # not interest in case of traffic light
             rl = rl  # not interest in case of traffic light
             ru = list(
                 filter(
-                    lambda v: v["x"] < CROSSROAD_SIZE / 2 + 10
-                    and v["y"] < CROSSROAD_SIZE / 2 + 10,
+                    lambda v: v["x"] < CROSSROAD_SIZE / 2 + 10 and v["y"] < CROSSROAD_SIZE / 2 + 10,
                     ru,
                 )
             )  # interest of straight
             if task == "straight":
                 ur = list(
                     filter(
-                        lambda v: v["x"] < ego_x + 7
-                        and ego_y < v["y"] < CROSSROAD_SIZE / 2 + 10,
+                        lambda v: v["x"] < ego_x + 7 and ego_y < v["y"] < CROSSROAD_SIZE / 2 + 10,
                         ur,
                     )
                 )  # interest of straight
             elif task == "right":
                 ur = list(
                     filter(
-                        lambda v: v["x"] < CROSSROAD_SIZE / 2 + 10
-                        and v["y"] < CROSSROAD_SIZE / 2,
+                        lambda v: v["x"] < CROSSROAD_SIZE / 2 + 10 and v["y"] < CROSSROAD_SIZE / 2,
                         ur,
                     )
                 )  # interest of right
             ud = list(
                 filter(
-                    lambda v: max(ego_y - 2, -CROSSROAD_SIZE / 2)
-                    < v["y"]
-                    < min(ego_y + 20, CROSSROAD_SIZE / 2)
+                    lambda v: max(ego_y - 2, -CROSSROAD_SIZE / 2) < v["y"] < min(ego_y + 20, CROSSROAD_SIZE / 2)
                     and ego_x > v["x"] - 4,
                     ud,
                 )
             )  # interest of left
             ul = list(
                 filter(
-                    lambda v: -CROSSROAD_SIZE / 2 - 10 < v["x"] < ego_x + 4
-                    and v["y"] < CROSSROAD_SIZE / 2,
+                    lambda v: -CROSSROAD_SIZE / 2 - 10 < v["x"] < ego_x + 4 and v["y"] < CROSSROAD_SIZE / 2,
                     ul,
                 )
             )  # interest of left
             lu = lu  # not interest in case of traffic light
             lr = list(
                 filter(
-                    lambda v: -CROSSROAD_SIZE / 2 - 10
-                    < v["x"]
-                    < CROSSROAD_SIZE / 2 + 10,
+                    lambda v: -CROSSROAD_SIZE / 2 - 10 < v["x"] < CROSSROAD_SIZE / 2 + 10,
                     lr,
                 )
             )  # interest of right
@@ -1003,9 +945,7 @@ class CrossroadEnd2endMixPiFix(gym.Env):
             return tmp
 
         list_of_interested_veh_dict = []
-        self.interested_vehs = filter_interested_participants(
-            self.all_vehicles, self.training_task
-        )
+        self.interested_vehs = filter_interested_participants(self.all_vehicles, self.training_task)
         for part in list(self.interested_vehs.values()):
             list_of_interested_veh_dict.extend(part)
 
@@ -1020,27 +960,24 @@ class CrossroadEnd2endMixPiFix(gym.Env):
             vehs_vector.extend([veh_x, veh_y, veh_v, veh_phi, veh_partici_type])
         return np.array(vehs_vector, dtype=np.float32)
 
-    def recover_orig_position_fn(
-        self, transformed_x, transformed_y, x, y, d
-    ):  # x, y, d are used to transform
+    def recover_orig_position_fn(self, transformed_x, transformed_y, x, y, d):  # x, y, d are used to transform
         # coordination
-        transformed_x, transformed_y, _ = rotate_coordination(
-            transformed_x, transformed_y, 0, -d
-        )
+        transformed_x, transformed_y, _ = rotate_coordination(transformed_x, transformed_y, 0, -d)
         orig_x, orig_y = shift_coordination(transformed_x, transformed_y, -x, -y)
         return orig_x, orig_y
 
     def _reset_init_state(self):
         if self.training_task == "left":
-            random_index = int(np.random.random() * (900 + 500)) + 700
+            random_index = int(self.np_random.random() * (900 + 500)) + 700
         elif self.training_task == "straight":
-            random_index = int(np.random.random() * (1200 + 500)) + 700
+            random_index = int(self.np_random.random() * (1200 + 500)) + 700
         else:
-            random_index = int(np.random.random() * (420 + 500)) + 700
+            random_index = int(self.np_random.random() * (420 + 500)) + 700
 
         x, y, phi = self.ref_path.indexs2points(random_index)
         # v = 7 + 6 * np.random.random()
-        v = EXPECTED_V * np.random.random()
+        v = EXPECTED_V * self.np_random.random()
+
         if self.training_task == "left":
             routeID = "dl"
         elif self.training_task == "straight":
@@ -1067,11 +1004,7 @@ class CrossroadEnd2endMixPiFix(gym.Env):
 
         # extract infos for each kind of participants
         start = 0
-        end = (
-            start
-            + self.ego_info_dim
-            + self.per_tracking_info_dim * (self.num_future_data + 1)
-        )
+        end = start + self.ego_info_dim + self.per_tracking_info_dim * (self.num_future_data + 1)
         obses_ego = obses[:, start:end]
         start = end
         end = start + self.per_bike_info_dim * self.bike_num
@@ -1129,9 +1062,7 @@ class CrossroadEnd2endMixPiFix(gym.Env):
                 color="darkviolet",
                 head_width=0.7,
             )
-            plt.arrow(
-                lane_width * 2.5, -square_length / 2 - 10, 0, 3, color="darkviolet"
-            )
+            plt.arrow(lane_width * 2.5, -square_length / 2 - 10, 0, 3, color="darkviolet")
             plt.arrow(
                 lane_width * 2.5,
                 -square_length / 2 - 10 + 3,
@@ -1481,12 +1412,8 @@ class CrossroadEnd2endMixPiFix(gym.Env):
 
             def is_in_plot_area(x, y, tolerance=5):
                 if (
-                    -square_length / 2 - extension + tolerance
-                    < x
-                    < square_length / 2 + extension - tolerance
-                    and -square_length / 2 - extension + tolerance
-                    < y
-                    < square_length / 2 + extension - tolerance
+                    -square_length / 2 - extension + tolerance < x < square_length / 2 + extension - tolerance
+                    and -square_length / 2 - extension + tolerance < y < square_length / 2 + extension - tolerance
                 ):
                     return True
                 else:
@@ -1530,9 +1457,7 @@ class CrossroadEnd2endMixPiFix(gym.Env):
                     line_length = 1
                 else:
                     line_length = 5
-                x_forw, y_forw = x + line_length * cos(
-                    phi * pi / 180.0
-                ), y + line_length * sin(phi * pi / 180.0)
+                x_forw, y_forw = x + line_length * cos(phi * pi / 180.0), y + line_length * sin(phi * pi / 180.0)
                 plt.plot([x, x_forw], [y, y_forw], color=color, linewidth=0.5)
 
             # plot cars
@@ -1572,9 +1497,7 @@ class CrossroadEnd2endMixPiFix(gym.Env):
                         plot_phi_line(veh_type, veh_x, veh_y, veh_phi, "black")
                         task = MODE2TASK[mode]
                         color = task2color[task]
-                        draw_rotate_rec(
-                            veh_x, veh_y, veh_phi, veh_l, veh_w, color, linestyle=":"
-                        )
+                        draw_rotate_rec(veh_x, veh_y, veh_phi, veh_l, veh_w, color, linestyle=":")
 
             # plot_interested bicycle
             for mode, num in self.bicycle_mode_dict.items():
@@ -1595,9 +1518,7 @@ class CrossroadEnd2endMixPiFix(gym.Env):
                         plot_phi_line(veh_type, veh_x, veh_y, veh_phi, "black")
                         task = MODE2TASK[mode]
                         color = task2color[task]
-                        draw_rotate_rec(
-                            veh_x, veh_y, veh_phi, veh_l, veh_w, color, linestyle=":"
-                        )
+                        draw_rotate_rec(veh_x, veh_y, veh_phi, veh_l, veh_w, color, linestyle=":")
 
             # plot_interested person
             for mode, num in self.person_mode_dict.items():
@@ -1618,9 +1539,7 @@ class CrossroadEnd2endMixPiFix(gym.Env):
                         plot_phi_line(veh_type, veh_x, veh_y, veh_phi, "black")
                         task = MODE2TASK[mode]
                         color = task2color[task]
-                        draw_rotate_rec(
-                            veh_x, veh_y, veh_phi, veh_l, veh_w, color, linestyle=":"
-                        )
+                        draw_rotate_rec(veh_x, veh_y, veh_phi, veh_l, veh_w, color, linestyle=":")
 
             # plot own car
             # dict(v_x=ego_dict['v_x'],
@@ -1655,15 +1574,12 @@ class CrossroadEnd2endMixPiFix(gym.Env):
 
             # plot future data
             tracking_info = self.obs[
-                self.ego_info_dim : self.ego_info_dim
-                + self.per_tracking_info_dim * (self.num_future_data + 1)
+                self.ego_info_dim : self.ego_info_dim + self.per_tracking_info_dim * (self.num_future_data + 1)
             ]
             future_path = tracking_info[self.per_tracking_info_dim :]
             for i in range(self.num_future_data):
                 delta_x, delta_y, delta_phi = future_path[
-                    i
-                    * self.per_tracking_info_dim : (i + 1)
-                    * self.per_tracking_info_dim
+                    i * self.per_tracking_info_dim : (i + 1) * self.per_tracking_info_dim
                 ]
                 path_x, path_y, path_phi = (
                     ego_x + delta_x,
@@ -1719,12 +1635,8 @@ class CrossroadEnd2endMixPiFix(gym.Env):
             plt.text(text_x, text_y_start - next(ge), "path_x: {:.2f}m".format(path_x))
             plt.text(text_x, text_y_start - next(ge), "path_y: {:.2f}m".format(path_y))
             plt.text(text_x, text_y_start - next(ge), "delta_: {:.2f}m".format(delta_))
-            plt.text(
-                text_x, text_y_start - next(ge), "delta_x: {:.2f}m".format(delta_x)
-            )
-            plt.text(
-                text_x, text_y_start - next(ge), "delta_y: {:.2f}m".format(delta_y)
-            )
+            plt.text(text_x, text_y_start - next(ge), "delta_x: {:.2f}m".format(delta_x))
+            plt.text(text_x, text_y_start - next(ge), "delta_y: {:.2f}m".format(delta_y))
             plt.text(
                 text_x,
                 text_y_start - next(ge),
@@ -1742,13 +1654,9 @@ class CrossroadEnd2endMixPiFix(gym.Env):
             )
 
             plt.text(text_x, text_y_start - next(ge), "v_x: {:.2f}m/s".format(ego_v_x))
-            plt.text(
-                text_x, text_y_start - next(ge), "exp_v: {:.2f}m/s".format(self.exp_v)
-            )
+            plt.text(text_x, text_y_start - next(ge), "exp_v: {:.2f}m/s".format(self.exp_v))
             plt.text(text_x, text_y_start - next(ge), "v_y: {:.2f}m/s".format(ego_v_y))
-            plt.text(
-                text_x, text_y_start - next(ge), "yaw_rate: {:.2f}rad/s".format(ego_r)
-            )
+            plt.text(text_x, text_y_start - next(ge), "yaw_rate: {:.2f}rad/s".format(ego_r))
             plt.text(
                 text_x,
                 text_y_start - next(ge),
@@ -1763,9 +1671,7 @@ class CrossroadEnd2endMixPiFix(gym.Env):
             plt.text(
                 text_x,
                 text_y_start - next(ge),
-                r"$\alpha_f$ bound: [{:.2f}, {:.2f}] ".format(
-                    -alpha_f_bound, alpha_f_bound
-                ),
+                r"$\alpha_f$ bound: [{:.2f}, {:.2f}] ".format(-alpha_f_bound, alpha_f_bound),
             )
             plt.text(
                 text_x,
@@ -1775,30 +1681,22 @@ class CrossroadEnd2endMixPiFix(gym.Env):
             plt.text(
                 text_x,
                 text_y_start - next(ge),
-                r"$\alpha_r$ bound: [{:.2f}, {:.2f}] ".format(
-                    -alpha_r_bound, alpha_r_bound
-                ),
+                r"$\alpha_r$ bound: [{:.2f}, {:.2f}] ".format(-alpha_r_bound, alpha_r_bound),
             )
             if self.action is not None:
                 steer, a_x = self.action[0], self.action[1]
                 plt.text(
                     text_x,
                     text_y_start - next(ge),
-                    r"steer: {:.2f}rad (${:.2f}\degree$)".format(
-                        steer, steer * 180 / np.pi
-                    ),
+                    r"steer: {:.2f}rad (${:.2f}\degree$)".format(steer, steer * 180 / np.pi),
                 )
-                plt.text(
-                    text_x, text_y_start - next(ge), "a_x: {:.2f}m/s^2".format(a_x)
-                )
+                plt.text(text_x, text_y_start - next(ge), "a_x: {:.2f}m/s^2".format(a_x))
 
             text_x, text_y_start = 80, 60
             ge = iter(range(0, 1000, 4))
 
             # done info
-            plt.text(
-                text_x, text_y_start - next(ge), "done info: {}".format(self.done_type)
-            )
+            plt.text(text_x, text_y_start - next(ge), "done info: {}".format(self.done_type))
 
             # reward info
             if self.reward_info is not None:
@@ -1847,11 +1745,7 @@ def t_end2end():
             obses, actions = obs[np.newaxis, :], action[np.newaxis, :]
             # extract infos for each kind of participants
             start = 0
-            end = (
-                start
-                + env.ego_info_dim
-                + env.per_tracking_info_dim * (env.num_future_data + 1)
-            )
+            end = start + env.ego_info_dim + env.per_tracking_info_dim * (env.num_future_data + 1)
             obses_ego = obses[:, start:end]
             start = end
             end = start + env.per_bike_info_dim * env.bike_num
@@ -1889,9 +1783,7 @@ def t_end2end():
                     veh2bike4real,
                     veh2person4real,
                 ) = env_model.rollout_out(np.tile(actions, (2, 1)))
-            print(
-                obses_ego.shape, obses_bike.shape, obses_person.shape, obses_veh.shape
-            )
+            print(obses_ego.shape, obses_bike.shape, obses_person.shape, obses_veh.shape)
             print(
                 obses_bike[:, -1].numpy(),
                 obses_person[:, -1].numpy(),

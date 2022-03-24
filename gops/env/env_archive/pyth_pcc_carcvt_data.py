@@ -81,9 +81,7 @@ class VehicleInfo(Structure):
 
 class RoadMap:
     def __init__(self):
-        self.path = os.path.join(
-            os.path.dirname(__file__), "../resources/car_model_dll/roadmap.csv"
-        )
+        self.path = os.path.join(os.path.dirname(__file__), "../resources/car_model_dll/roadmap.csv")
         self.map_road = pd.DataFrame(pd.read_csv(self.path, header=None))
         self.x = np.array(self.map_road.iloc[0:, 0].dropna(), dtype="float32")  # x
         self.y = np.array(self.map_road.iloc[0:, 1], dtype="float32")  # theta
@@ -93,9 +91,7 @@ class RoadMap:
         Theta = [0]
         for i in range(len(self.y)):
             if i > 0:
-                delta = math.atan(
-                    (self.z[i] - self.z[i - 1]) / (self.y[i] - self.y[i - 1])
-                )
+                delta = math.atan((self.z[i] - self.z[i - 1]) / (self.y[i] - self.y[i - 1]))
                 Theta.append(delta)
         Theta_filter = savgol_filter(Theta, 35, 1, mode="nearest")  # rad
         return self.y.tolist(), Theta_filter
@@ -104,11 +100,7 @@ class RoadMap:
 class PythPCCCarCVTModel(gym.Env):
     def __init__(self, road_map=RoadMap(), Car_parameter=CarParameter(), **kwargs):
         self.x_map, self.Theta = road_map.load_data_cal()
-        self.dll = CDLL(
-            os.path.join(
-                os.path.dirname(__file__), "../resources/car_model_dll/CarModel_CVT.dll"
-            )
-        )
+        self.dll = CDLL(os.path.join(os.path.dirname(__file__), "../resources/car_model_dll/CarModel_CVT.dll"))
         # Car_parameter
         Car_parameter.LX_AXLE = 3.16  # 轴距，m
         Car_parameter.LX_CG_SU = 1.265  # 悬上质量质心至前轴距离，m
@@ -214,19 +206,12 @@ class PythPCCCarCVTModel(gym.Env):
         ) = (x.value, y.value, v.value, heading.value, acc.value, r.value, i.value)
         self.dll.get_info(byref(self.car_info))
         # compute future road slope
-        future_ds_list = [
-            self.ego_x + self.car_info.Vx * self.step_length * i for i in range(self.Np)
-        ]
+        future_ds_list = [self.ego_x + self.car_info.Vx * self.step_length * i for i in range(self.Np)]
         future_thetas_list = list(np.interp(future_ds_list, self.x_map, self.Theta))
         # next state
         self.state = [self.car_info.Vx - self.v_target] + future_thetas_list
 
-        done = (
-            self.car_info.Vx < 0
-            or self.ego_x < 0
-            or self.ego_x > 13000
-            or abs(self.car_info.Vx - self.v_target) > 5
-        )
+        done = self.car_info.Vx < 0 or self.ego_x < 0 or self.ego_x > 13000 or abs(self.car_info.Vx - self.v_target) > 5
         done = bool(done)
 
         # -----------------
