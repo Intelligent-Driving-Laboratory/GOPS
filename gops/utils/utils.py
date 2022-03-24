@@ -12,12 +12,15 @@ import sys
 import torch
 import torch.nn as nn
 import numpy as np
+import logging
+from typing import Optional
 
 from gops.utils.tensorboard_tools import tb_tags
 from gops.utils.action_distributions import *
 import random
 import importlib
 
+logger = logging.getLogger(__name__)
 
 def get_activation_func(key: str):
     assert isinstance(key, str)
@@ -149,15 +152,20 @@ def array_to_scalar(arrayLike):
     return arrayLike if isinstance(arrayLike, (int, float)) else arrayLike.item()
 
 
-# class Timer(object):
-#     def __init__(self, writer, tag=tb_tags['time'], step=None):
-#         self.writer = writer
-#         self.tag = tag
-#         self.step = step
-#
-#     def __enter__(self):
-#         self.start = time.time()
-#
-#     def __exit__(self, exc_type, exc_val, exc_tb):
-#         # print(time.time() - self.start)
-#         self.writer.add_scalar(self.tag, time.time() - self.start, self.step)
+def seed_everything(seed: Optional[int] = None) -> int:
+    max_seed_value = np.iinfo(np.uint32).max
+    min_seed_value = np.iinfo(np.uint32).min
+
+    if seed is None:
+        seed = random.randint(min_seed_value, max_seed_value)
+
+    elif not isinstance(seed, int):
+        seed = int(seed)
+
+    print("Set random seed to {}".format(seed))
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    return seed
