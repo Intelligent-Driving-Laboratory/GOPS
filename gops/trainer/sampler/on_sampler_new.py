@@ -27,7 +27,6 @@ from gops.utils.utils import array_to_scalar
 class OnSamplerNew:
     def __init__(self, **kwargs):
         self.env = create_env(**kwargs)
-        self.env.seed(kwargs.get('seed', 0))
         alg_name = kwargs["algorithm"]
         alg_file_name = alg_name.lower()
         file = __import__(alg_file_name)
