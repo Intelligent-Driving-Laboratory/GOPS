@@ -81,10 +81,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--policy_act_distribution", type=str, default="TanhGaussDistribution"
     )
-    policy_func_type = parser.parse_known_args()[0].policy_func_type
-    ### 2.2.1 MLP, CNN, RNN
-    if policy_func_type == "POLY":
-        pass
+    parser.add_argument('--policy_degree', type=int, default=3)
     parser.add_argument("--policy_min_log_std", type=int, default=-20)
     parser.add_argument("--policy_max_log_std", type=int, default=1)
 

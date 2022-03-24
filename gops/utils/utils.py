@@ -71,7 +71,7 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
             var["hidden_activation"] = kwargs[key + "_hidden_activation"]
             var["output_activation"] = kwargs[key + "_output_activation"]
     elif type == "POLY":
-        pass
+        var["degree"] = kwargs[key + "_degree"]
     else:
         raise NotImplementedError
 
@@ -85,7 +85,7 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
 
     if kwargs["policy_act_distribution"] == "default":
         if kwargs["action_type"] == "continu":
-            if kwargs["policy_func_name"] == "StochaPolicy":
+            if kwargs["policy_func_name"] == "StochaPolicy":  # todo: add TanhGauss
                 var["action_distirbution_cls"] = GaussDistribution
             elif kwargs["policy_func_name"] == "DetermPolicy":
                 var["action_distirbution_cls"] = DiracDistribution
