@@ -5,7 +5,9 @@ __pycache__/
 
 #add by SUN-Hao
 gops/.idea/*
-gops/results/*
+.idea/
+results/
+
 .idea/*
 **/__pycache__
 *.pyc
