@@ -21,17 +21,17 @@ class GymDemocontiModel(torch.nn.Module):
         # define common parameters here
         self.state_dim = None
         self.action_dim = None
-        self.lb_state = None
-        self.hb_state = None
-        self.lb_action = None
-        self.hb_action = None
+        lb_state = None
+        hb_state = None
+        lb_action = None
+        hb_action = None
         self.dt = None  # seconds between state updates
 
         # do not change the following section
-        self.lb_state = torch.tensor(self.lb_state, dtype=torch.float32)
-        self.hb_state = torch.tensor(self.hb_state, dtype=torch.float32)
-        self.lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
-        self.hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
+        self.lb_state = torch.tensor(lb_state, dtype=torch.float32)
+        self.hb_state = torch.tensor(hb_state, dtype=torch.float32)
+        self.lb_action = torch.tensor(lb_action, dtype=torch.float32)
+        self.hb_action = torch.tensor(hb_action, dtype=torch.float32)
 
     def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=None):
         """
