@@ -232,6 +232,6 @@ if __name__ == "__main__":
     env.render_init()
     for i in range(100):
 
-        u = torch.Tensor([[0.1, 0.1]] * 10)
+        u = torch.Tensor([[0.1, 0.1]]*10)
         x, r, die, info = env.forward(x, u, die)
         env.render(x)

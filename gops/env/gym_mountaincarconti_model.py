@@ -101,7 +101,7 @@ class GymMountaincarcontiModel(torch.nn.Module):
         mask = isdone * beyond_done
         mask = torch.unsqueeze(mask, -1)
         state_next = ~mask * state_next + mask * state
-        return state_next, reward, isdone
+        return state_next, reward, isdone, {}
 
     def forward_n_step(self, func, n, state: torch.Tensor):
         reward = torch.zeros(size=[state.size()[0], n])
@@ -112,7 +112,7 @@ class GymMountaincarcontiModel(torch.nn.Module):
         isdone = torch.from_numpy(isdone)
         for step in range(n):
             action = func(state)
-            state_next, reward[:, step], isdone = self.forward(state, action, isdone)
+            state_next, reward[:, step], isdone, _ = self.forward(state, action, isdone)
             state = state_next
 
 

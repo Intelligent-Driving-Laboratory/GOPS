@@ -116,7 +116,7 @@ class PythMobilerobot:
         )
         ############################################################################################
         self.steps += 1
-        info = {"TimeLimit.truncated": self.steps > 170, "constraint": constraint.reshape(-1)}  # TODO is right
+        info = {"TimeLimit.truncated": self.steps > 170, "constraint": constraint.reshape(-1)} # TODO is right
         return state_next.reshape(-1), float(reward), isdone, info  # TODO is right
 
     # def forward_n_step(self, func, n, state: torch.Tensor):

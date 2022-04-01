@@ -3,8 +3,6 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Crossing Road Environment and Vehicle Dynamic Model
-#  Update Date: 2021-05-55, Jie Li: create environment and dynamic
 
 
 from math import pi, cos, sin
@@ -25,7 +23,7 @@ import torch
 from torch import logical_and
 
 
-from gops.env.resources.crossing.endtoend_env_utils import (
+from gops.env.resources.intersection.endtoend_env_utils import (
     rotate_coordination,
     L,
     W,
@@ -35,33 +33,15 @@ from gops.env.resources.crossing.endtoend_env_utils import (
     LANE_WIDTH,
     LANE_NUMBER,
     VEHICLE_MODE_LIST,
-    BIKE_MODE_LIST,
-    PERSON_MODE_LIST,
     VEH_NUM,
-    BIKE_NUM,
-    PERSON_NUM,
     EXPECTED_V,
-    BIKE_LANE_WIDTH,
 )
-
-# TODO torch set threading number
-# tf.config.threading.set_inter_op_parallelism_threads(1)
-# tf.config.threading.set_intra_op_parallelism_threads(1)
 
 
 class VehicleDynamics(object):
     def __init__(
         self,
     ):
-        # self.vehicle_params = dict(C_f=-128915.5,  # front wheel cornering stiffness [N/rad]
-        #                            C_r=-85943.6,  # rear wheel cornering stiffness [N/rad]
-        #                            a=1.06,  # distance from CG to front axle [m]
-        #                            b=1.85,  # distance from CG to rear axle [m]
-        #                            mass=1412.,  # mass [kg]
-        #                            I_z=1536.7,  # Polar moment of inertia at CG [kg*m^2]
-        #                            miu=1.0,  # tire-road friction coefficient
-        #                            g=9.81,  # acceleration of gravity [m/s^2]
-        #                            )
         self.vehicle_params = dict(
             C_f=-155495.0,  # front wheel cornering stiffness [N/rad]
             C_r=-155495.0,  # rear wheel cornering stiffness [N/rad]
@@ -94,14 +74,7 @@ class VehicleDynamics(object):
         -------
 
         """
-        v_x, v_y, r, x, y, phi = (
-            states[:, 0],
-            states[:, 1],
-            states[:, 2],
-            states[:, 3],
-            states[:, 4],
-            states[:, 5],
-        )
+        v_x, v_y, r, x, y, phi = states[:, 0], states[:, 1], states[:, 2], states[:, 3], states[:, 4], states[:, 5]
         phi = phi * np.pi / 180.0
         steer, a_x = actions[:, 0], actions[:, 1]
         C_f = torch.tensor(self.vehicle_params["C_f"], dtype=torch.float32)
@@ -171,79 +144,37 @@ class EnvironmentModel(object):  # all tensors
         self.exp_v = EXPECTED_V
         self.reward_info = None
         self.veh_num = VEH_NUM[self.task]
-        self.bike_num = BIKE_NUM[self.task]
-        self.person_num = PERSON_NUM[self.task]
+
         self.ego_info_dim = 6
         self.per_veh_info_dim = 5
-        self.per_bike_info_dim = 5
-        self.per_person_info_dim = 5
         self.per_tracking_info_dim = 3
-        self.obses_ego = None
-        self.obses_bike = None
-        self.obses_person = None
-        self.obses_veh = None
 
-    def reset(self, obses_ego, obses_bike, obses_person, obses_veh, ref_indexes=None):  # input are all tensors
-        self.obses_ego = obses_ego
-        self.obses_bike = obses_bike.reshape(-1, self.per_bike_info_dim * self.bike_num)
-        self.obses_person = obses_person.reshape(-1, self.per_person_info_dim * self.person_num)
-        self.obses_veh = obses_veh.reshape(-1, self.per_veh_info_dim * self.veh_num)
-        self.ref_indexes = ref_indexes
-        self.actions = None
-        self.reward_info = None
-
-    def add_traj(self, obses_ego, obses_bike, obses_person, obses_veh, path_index):
-        self.obses_ego = obses_ego
-        self.obses_bike = obses_bike.reshape(-1, self.per_bike_info_dim * self.bike_num)
-        self.obses_person = obses_person.reshape(-1, self.per_person_info_dim * self.person_num)
-        self.obses_veh = obses_veh.reshape(-1, self.per_veh_info_dim * self.veh_num)
-        self.ref_path.set_path(path_index)
-
-    def rollout_out(self, actions):  # obses and actions are tensors, think of actions are in range [-1, 1]
+    def rollout_out(self, obses_ego, obses_veh, actions):  # obses and actions are tensors, think of actions are in range [-1, 1]
         if isinstance(actions, np.ndarray):
             actions = torch.Tensor(actions)
-        self.actions = self._action_transformation_for_end2end(actions)
+
+        obses_veh = obses_veh.reshape(-1, self.per_veh_info_dim * self.veh_num)
+        actions = self._action_transformation_for_end2end(actions)
 
         (
             rewards,
             punish_term_for_training,
             real_punish_term,
             veh2veh4real,
-            veh2road4real,
-            veh2bike4real,
-            veh2person4real,
-            _,
-        ) = self.compute_rewards(
-            self.obses_ego,
-            self.obses_bike,
-            self.obses_person,
-            self.obses_veh,
-            self.actions,
-        )
-        (self.obses_ego, self.obses_bike, self.obses_person, self.obses_veh,) = self.compute_next_obses(
-            self.obses_ego,
-            self.obses_bike,
-            self.obses_person,
-            self.obses_veh,
-            self.actions,
-        )
+            reward_dict,
+        ) = self.compute_rewards(obses_ego, obses_veh, actions)
+        obses_ego, obses_veh = self.compute_next_obses(obses_ego, obses_veh, actions)
 
-        obses_bike = self.obses_bike.reshape(-1, self.per_bike_info_dim)
-        obses_person = self.obses_person.reshape(-1, self.per_person_info_dim)
-        obses_veh = self.obses_veh.reshape(-1, self.per_veh_info_dim)
+        obses_veh = obses_veh.reshape(-1, self.per_veh_info_dim)
 
         return (
-            self.obses_ego,
-            obses_bike,
-            obses_person,
+            obses_ego,
             obses_veh,
             rewards,
             punish_term_for_training,
             real_punish_term,
             veh2veh4real,
-            veh2road4real,
-            veh2bike4real,
-            veh2person4real,
+            reward_dict["constraints_vehicle"]
         )
 
     def _action_transformation_for_end2end(self, actions):  # [-1, 1]
@@ -252,87 +183,19 @@ class EnvironmentModel(object):  # all tensors
         steer_scale, a_xs_scale = 0.4 * steer_norm, 2.25 * a_xs_norm - 0.75
         return torch.stack([steer_scale, a_xs_scale], 1)
 
-    """
-    def ss(self, obses, actions, lam=0.1):
-        actions = self._action_transformation_for_end2end(actions)
-        next_obses = self.compute_next_obses(obses, actions)
-        ego_infos, veh_infos = obses[:, :self.ego_info_dim], \
-                               obses[:, self.ego_info_dim + self.per_tracking_info_dim * (
-                                       self.num_future_data + 1):]
-        next_ego_infos, next_veh_infos = next_obses[:, :self.ego_info_dim], \
-                                         next_obses[:, self.ego_info_dim + self.per_tracking_info_dim * (
-                                                   self.num_future_data + 1):]
-        ego_lws = (L - W) / 2.
-        ego_front_points = tf.cast(ego_infos[:, 3] + ego_lws * torch.cos(ego_infos[:, 5] * np.pi / 180.),
-                                   dtype=torch.float32), \
-                           tf.cast(ego_infos[:, 4] + ego_lws * torch.sin(ego_infos[:, 5] * np.pi / 180.), dtype=torch.float32)
-        ego_rear_points = tf.cast(ego_infos[:, 3] - ego_lws * torch.cos(ego_infos[:, 5] * np.pi / 180.), dtype=torch.float32), \
-                          tf.cast(ego_infos[:, 4] - ego_lws * torch.sin(ego_infos[:, 5] * np.pi / 180.), dtype=torch.float32)
-
-        next_ego_front_points = tf.cast(next_ego_infos[:, 3] + ego_lws * torch.cos(next_ego_infos[:, 5] * np.pi / 180.),
-                                   dtype=torch.float32), \
-                           tf.cast(next_ego_infos[:, 4] + ego_lws * torch.sin(next_ego_infos[:, 5] * np.pi / 180.), dtype=torch.float32)
-        next_ego_rear_points = tf.cast(next_ego_infos[:, 3] - ego_lws * torch.cos(next_ego_infos[:, 5] * np.pi / 180.), dtype=torch.float32), \
-                          tf.cast(next_ego_infos[:, 4] - ego_lws * torch.sin(next_ego_infos[:, 5] * np.pi / 180.), dtype=torch.float32)
-
-        veh2veh4real = torch.zeros_like(veh_infos[:, 0])
-        for veh_index in range(int(tf.shape(veh_infos)[1] / self.per_veh_info_dim)):
-            vehs = veh_infos[:, veh_index * self.per_veh_info_dim:(veh_index + 1) * self.per_veh_info_dim]
-            ego2veh_dist = torch.sqrt(torch.square(ego_infos[:, 3] - vehs[:, 0]) + torch.square(ego_infos[:, 4] - vehs[:, 1]))
-
-            next_vehs = next_veh_infos[:, veh_index * self.per_veh_info_dim:(veh_index + 1) * self.per_veh_info_dim]
-
-            veh_lws = (L - W) / 2.
-            veh_front_points = tf.cast(vehs[:, 0] + veh_lws * torch.cos(vehs[:, 3] * np.pi / 180.), dtype=torch.float32), \
-                               tf.cast(vehs[:, 1] + veh_lws * torch.sin(vehs[:, 3] * np.pi / 180.), dtype=torch.float32)
-            veh_rear_points = tf.cast(vehs[:, 0] - veh_lws * torch.cos(vehs[:, 3] * np.pi / 180.), dtype=torch.float32), \
-                              tf.cast(vehs[:, 1] - veh_lws * torch.sin(vehs[:, 3] * np.pi / 180.), dtype=torch.float32)
-
-            next_veh_front_points = tf.cast(next_vehs[:, 0] + veh_lws * torch.cos(next_vehs[:, 3] * np.pi / 180.), dtype=torch.float32), \
-                               tf.cast(next_vehs[:, 1] + veh_lws * torch.sin(next_vehs[:, 3] * np.pi / 180.), dtype=torch.float32)
-            next_veh_rear_points = tf.cast(next_vehs[:, 0] - veh_lws * torch.cos(next_vehs[:, 3] * np.pi / 180.), dtype=torch.float32), \
-                              tf.cast(next_vehs[:, 1] - veh_lws * torch.sin(next_vehs[:, 3] * np.pi / 180.), dtype=torch.float32)
-
-            for ego_point in [(ego_front_points, next_ego_front_points), (ego_rear_points, next_ego_rear_points)]:
-                for veh_point in [(veh_front_points, next_veh_front_points), (veh_rear_points, next_veh_rear_points)]:
-                    veh2veh_dist = torch.sqrt(
-                        torch.square(ego_point[0][0] - veh_point[0][0]) + torch.square(ego_point[0][1] - veh_point[0][1]))
-                    next_veh2veh_dist = torch.sqrt(
-                        torch.square(ego_point[1][0] - veh_point[1][0]) + torch.square(ego_point[1][1] - veh_point[1][1]))
-                    next_g = next_veh2veh_dist - 2.5
-                    g = veh2veh_dist - 2.5
-                    veh2veh4real += torch.where(logical_and(next_g - (1-lam)*g < 0, ego2veh_dist < 10), torch.square(next_g - (1-lam)*g),
-                                             torch.zeros_like(veh_infos[:, 0]))
-        return veh2veh4real
-    """
-
-    def compute_rewards(self, obses_ego, obses_bike, obses_person, obses_veh, actions):
+    def compute_rewards(self, obses_ego, obses_veh, actions):
         # obses = self.convert_vehs_to_abso(obses)
         if isinstance(obses_ego, np.ndarray):
             obses_ego = torch.tensor(obses_ego)
-        if isinstance(obses_bike, np.ndarray):
-            obses_bike = torch.tensor(obses_bike)
-        if isinstance(obses_person, np.ndarray):
-            obses_person = torch.tensor(obses_person)
-        if isinstance(obses_person, np.ndarray):
-            obses_person = torch.tensor(obses_person)
         if isinstance(obses_veh, np.ndarray):
             obses_veh = torch.tensor(obses_veh)
         if isinstance(actions, np.ndarray):
             actions = torch.tensor(actions)
 
-        ego_infos, tracking_infos = (
-            obses_ego[:, : self.ego_info_dim],
-            obses_ego[:, self.ego_info_dim :],
-        )
+        ego_infos, tracking_infos = obses_ego[:, : self.ego_info_dim], obses_ego[:, self.ego_info_dim :]
 
-        constraints_road = []
-        constraints_person = []
-        constraints_bike = []
         constraints_vehicle = []
 
-        bike_infos = obses_bike.detach()
-        person_infos = obses_person.detach()
         veh_infos = obses_veh.detach()
 
         steers, a_xs = actions[:, 0], actions[:, 1]
@@ -360,10 +223,7 @@ class EnvironmentModel(object):  # all tensors
         veh2veh4training = torch.zeros_like(veh_infos[:, 0])
 
         for veh_index in range(int(veh_infos.shape[1] / self.per_veh_info_dim)):
-            vehs = veh_infos[
-                :,
-                veh_index * self.per_veh_info_dim : (veh_index + 1) * self.per_veh_info_dim,
-            ]
+            vehs = veh_infos[:, veh_index * self.per_veh_info_dim : (veh_index + 1) * self.per_veh_info_dim]
             veh_lws = (L - W) / 2.0
             veh_front_points = vehs[:, 0] + veh_lws * torch.cos(vehs[:, 3] * np.pi / 180.0), vehs[
                 :, 1
@@ -377,149 +237,19 @@ class EnvironmentModel(object):  # all tensors
                         torch.square(ego_point[0] - veh_point[0]) + torch.square(ego_point[1] - veh_point[1])
                     )
                     veh2veh4training += torch.where(
-                        veh2veh_dist - 3.5 < 0,
-                        torch.square(veh2veh_dist - 3.5),
-                        torch.zeros_like(veh_infos[:, 0]),
+                        veh2veh_dist - 3.5 < 0, torch.square(veh2veh_dist - 3.5), torch.zeros_like(veh_infos[:, 0])
                     )
                     veh2veh4real += torch.where(
-                        veh2veh_dist - 2.5 < 0,
-                        torch.square(veh2veh_dist - 2.5),
-                        torch.zeros_like(veh_infos[:, 0]),
+                        veh2veh_dist - 2.5 < 0, torch.square(veh2veh_dist - 2.5), torch.zeros_like(veh_infos[:, 0])
                     )
 
                     constraints_vehicle.append(veh2veh_dist - 2.5)
 
-        veh2bike4real = torch.zeros_like(veh_infos[:, 0])
-        veh2bike4training = torch.zeros_like(veh_infos[:, 0])
-        for bike_index in range(int(bike_infos.shape[1] / self.per_bike_info_dim)):
-            bikes = bike_infos[
-                :,
-                bike_index * self.per_bike_info_dim : (bike_index + 1) * self.per_bike_info_dim,
-            ]
-            bike_lws = (L_BIKE - W_BIKE) / 2.0
-            bike_front_points = bikes[:, 0] + bike_lws * torch.cos(bikes[:, 3] * np.pi / 180.0), bikes[
-                :, 1
-            ] + bike_lws * torch.sin(bikes[:, 3] * np.pi / 180.0)
-            bike_rear_points = bikes[:, 0] - bike_lws * torch.cos(bikes[:, 3] * np.pi / 180.0), bikes[
-                :, 1
-            ] - bike_lws * torch.sin(bikes[:, 3] * np.pi / 180.0)
-            for ego_point in [ego_front_points, ego_rear_points]:
-                for bike_point in [bike_front_points, bike_rear_points]:
-                    veh2bike_dist = torch.sqrt(
-                        torch.square(ego_point[0] - bike_point[0]) + torch.square(ego_point[1] - bike_point[1])
-                    )
-                    veh2bike4training += torch.where(
-                        veh2bike_dist - 3.5 < 0,
-                        torch.square(veh2bike_dist - 3.5),
-                        torch.zeros_like(veh_infos[:, 0]),
-                    )
-                    veh2bike4real += torch.where(
-                        veh2bike_dist - 2.5 < 0,
-                        torch.square(veh2bike_dist - 2.5),
-                        torch.zeros_like(veh_infos[:, 0]),
-                    )
-                    constraints_bike.append(veh2bike_dist - 2.5)
-
-        veh2person4real = torch.zeros_like(veh_infos[:, 0])
-        veh2person4training = torch.zeros_like(veh_infos[:, 0])
-        for person_index in range(int(person_infos.shape[1] / self.per_person_info_dim)):
-            persons = person_infos[
-                :,
-                person_index * self.per_person_info_dim : (person_index + 1) * self.per_person_info_dim,
-            ]
-            person_point = persons[:, 0], persons[:, 1]
-            for ego_point in [ego_front_points, ego_rear_points]:
-                veh2person_dist = torch.sqrt(
-                    torch.square(ego_point[0] - person_point[0]) + torch.square(ego_point[1] - person_point[1])
-                )
-                veh2person4training += torch.where(
-                    veh2person_dist - 4.5 < 0,
-                    torch.square(veh2person_dist - 4.5),
-                    torch.zeros_like(veh_infos[:, 0]),
-                )  # todo
-                veh2person4real += torch.where(
-                    veh2person_dist - 2.5 < 0,
-                    torch.square(veh2person_dist - 2.5),
-                    torch.zeros_like(veh_infos[:, 0]),
-                )
-                constraints_person.append(veh2person_dist - 2.5)
-
-        veh2road4real = torch.zeros_like(veh_infos[:, 0])
-        veh2road4training = torch.zeros_like(veh_infos[:, 0])
-
-        if self.task == "left":
-            for ego_point in [ego_front_points, ego_rear_points]:
-                veh2road4training += torch.where(
-                    logical_and(ego_point[1] < -CROSSROAD_SIZE / 2, ego_point[0] < 1),
-                    torch.square(ego_point[0] - 1),
-                    torch.zeros_like(veh_infos[:, 0]),
-                )
-                veh2road4training += torch.where(
-                    logical_and(
-                        ego_point[1] < -CROSSROAD_SIZE / 2,
-                        LANE_WIDTH - ego_point[0] < 1,
-                    ),
-                    torch.square(LANE_WIDTH - ego_point[0] - 1),
-                    torch.zeros_like(veh_infos[:, 0]),
-                )
-                veh2road4training += torch.where(
-                    logical_and(ego_point[0] < 0, LANE_WIDTH * LANE_NUMBER - ego_point[1] < 1),
-                    torch.square(LANE_WIDTH * LANE_NUMBER - ego_point[1] - 1),
-                    torch.zeros_like(veh_infos[:, 0]),
-                )
-                veh2road4training += torch.where(
-                    logical_and(ego_point[0] < -CROSSROAD_SIZE / 2, ego_point[1] - 0 < 1),
-                    torch.square(ego_point[1] - 0 - 1),
-                    torch.zeros_like(veh_infos[:, 0]),
-                )
-
-                veh2road4real += torch.where(
-                    logical_and(ego_point[1] < -CROSSROAD_SIZE / 2, ego_point[0] < 1),
-                    torch.square(ego_point[0] - 1),
-                    torch.zeros_like(veh_infos[:, 0]),
-                )
-                veh2road4real += torch.where(
-                    logical_and(
-                        ego_point[1] < -CROSSROAD_SIZE / 2,
-                        LANE_WIDTH - ego_point[0] < 1,
-                    ),
-                    torch.square(LANE_WIDTH - ego_point[0] - 1),
-                    torch.zeros_like(veh_infos[:, 0]),
-                )
-                veh2road4real += torch.where(
-                    logical_and(
-                        ego_point[0] < -CROSSROAD_SIZE / 2,
-                        LANE_WIDTH * LANE_NUMBER - ego_point[1] < 1,
-                    ),
-                    torch.square(LANE_WIDTH * LANE_NUMBER - ego_point[1] - 1),
-                    torch.zeros_like(veh_infos[:, 0]),
-                )
-                veh2road4real += torch.where(
-                    logical_and(ego_point[0] < -CROSSROAD_SIZE / 2, ego_point[1] - 0 < 1),
-                    torch.square(ego_point[1] - 0 - 1),
-                    torch.zeros_like(veh_infos[:, 0]),
-                )
-                constraints_road.append(logical_and(ego_point[1] < -CROSSROAD_SIZE / 2, ego_point[0] < 1))
-                constraints_road.append(
-                    logical_and(
-                        ego_point[1] < -CROSSROAD_SIZE / 2,
-                        LANE_WIDTH - ego_point[0] < 1,
-                    )
-                )
-                constraints_road.append(logical_and(ego_point[0] < 0, LANE_WIDTH * LANE_NUMBER - ego_point[1] < 1))
-                constraints_road.append(logical_and(ego_point[0] < -CROSSROAD_SIZE / 2, ego_point[1] - 0 < 1))
-
-        elif self.task == "straight":
-            pass
-
-        else:
-            pass
-
         rewards = (
             0.05 * devi_v + 0.8 * devi_y + 30 * devi_phi + 0.02 * punish_yaw_rate + 5 * punish_steer + 0.05 * punish_a_x
         )
-        punish_term_for_training = veh2veh4training + veh2road4training + veh2bike4training + veh2person4training
-        real_punish_term = veh2veh4real + veh2road4real + veh2bike4real + veh2person4real
+        punish_term_for_training = veh2veh4training
+        real_punish_term = veh2veh4real
 
         reward_dict = dict(
             punish_steer=punish_steer,
@@ -535,16 +265,7 @@ class EnvironmentModel(object):  # all tensors
             scaled_devi_y=0.8 * devi_y,
             scaled_devi_phi=30 * devi_phi,
             veh2veh4training=veh2veh4training,
-            veh2road4training=veh2road4training,
-            veh2bike4training=veh2bike4training,
-            veh2person4training=veh2person4training,
             veh2veh4real=veh2veh4real,
-            veh2road4real=veh2road4real,
-            veh2bike2real=veh2bike4real,
-            veh2person2real=veh2person4real,
-            constraints_person=torch.stack(constraints_person),
-            constraints_road=torch.stack(constraints_road),
-            constraints_bike=torch.stack(constraints_bike),
             constraints_vehicle=torch.stack(constraints_vehicle),
         )
 
@@ -553,102 +274,37 @@ class EnvironmentModel(object):  # all tensors
             punish_term_for_training,
             real_punish_term,
             veh2veh4real,
-            veh2road4real,
-            veh2bike4real,
-            veh2person4real,
             reward_dict,
         )
 
-    def compute_next_obses(self, obses_ego, obses_bike, obses_person, obses_veh, actions):
+    def compute_next_obses(self, obses_ego, obses_veh, actions):
         # obses = self.convert_vehs_to_abso(obses)
         if isinstance(obses_ego, np.ndarray):
             obses_ego = torch.tensor(obses_ego)
-        if isinstance(obses_bike, np.ndarray):
-            obses_bike = torch.tensor(obses_bike)
-        if isinstance(obses_person, np.ndarray):
-            obses_person = torch.tensor(obses_person)
-        if isinstance(obses_person, np.ndarray):
-            obses_person = torch.tensor(obses_person)
         if isinstance(obses_veh, np.ndarray):
             obses_veh = torch.tensor(obses_veh)
         if isinstance(actions, np.ndarray):
             actions = torch.tensor(actions)
 
-        ego_infos, tracking_infos = (
-            obses_ego[:, : self.ego_info_dim],
-            obses_ego[:, self.ego_info_dim :],
-        )
-        bike_infos = obses_bike.detach()
-        person_infos = obses_person.detach()
+        ego_infos, tracking_infos = obses_ego[:, : self.ego_info_dim], obses_ego[:, self.ego_info_dim :]
+
         veh_infos = obses_veh.detach()
 
         next_ego_infos = self.ego_predict(ego_infos, actions)
-        # different for training and selecting
-        if self.mode != "training":
-            next_tracking_infos = self.ref_path.tracking_error_vector(
-                next_ego_infos[:, 3],
-                next_ego_infos[:, 4],
-                next_ego_infos[:, 5],
-                next_ego_infos[:, 0],
-                self.num_future_data,
-            )
-        else:
-            # next_tracking_infos = self.tracking_error_predict(ego_infos, tracking_infos, actions)
-            next_tracking_infos = torch.zeros(
-                len(next_ego_infos),
-                (self.num_future_data + 1) * self.per_tracking_info_dim,
-            )
-            ref_indexes = torch.unsqueeze(torch.Tensor(self.ref_indexes), dim=1)
-            for ref_idx, path in enumerate(self.ref_path.path_list):
-                self.ref_path.path = path
-                tracking_info_4_this_ref_idx = self.ref_path.tracking_error_vector(
-                    next_ego_infos[:, 3],
-                    next_ego_infos[:, 4],
-                    next_ego_infos[:, 5],
-                    next_ego_infos[:, 0],
-                    self.num_future_data,
-                )
-                next_tracking_infos = torch.where(
-                    ref_indexes == ref_idx,
-                    tracking_info_4_this_ref_idx,
-                    next_tracking_infos,
-                )
-        next_bike_infos = self.bike_predict(bike_infos)
-        if not person_infos.shape[1]:  # no pedestrian is considered
-            next_person_infos = person_infos
-        else:
-            next_person_infos = self.person_predict(person_infos)
-        next_veh_infos = self.veh_predict(veh_infos)
 
+
+        next_tracking_infos = self.ref_path.tracking_error_vector(
+            next_ego_infos[:, 3],
+            next_ego_infos[:, 4],
+            next_ego_infos[:, 5],
+            next_ego_infos[:, 0],
+            self.num_future_data,
+        )
+
+        next_veh_infos = self.veh_predict(veh_infos)
         next_obses_ego = torch.cat([next_ego_infos, next_tracking_infos], 1)
         # next_obses = self.convert_vehs_to_rela(next_obses)
-        return next_obses_ego, next_bike_infos, next_person_infos, next_veh_infos
-
-    # def convert_vehs_to_rela(self, obs_abso):
-    #     ego_infos, tracking_infos, veh_infos = obs_abso[:, :self.ego_info_dim], \
-    #                                            obs_abso[:, self.ego_info_dim:self.ego_info_dim + self.per_tracking_info_dim * (
-    #                                                      self.num_future_data + 1)], \
-    #                                            obs_abso[:, self.ego_info_dim + self.per_tracking_info_dim * (
-    #                                                        self.num_future_data + 1):]
-    #     ego_x, ego_y = ego_infos[:, 3], ego_infos[:, 4]
-    #     ego = tf.tile(torch.stack([ego_x, ego_y, torch.zeros_like(ego_x), torch.zeros_like(ego_x)], 1),
-    #                   (1, int(tf.shape(veh_infos)[1]/self.per_veh_info_dim)))
-    #     vehs_rela = veh_infos - ego
-    #     out = tf.concat([ego_infos, tracking_infos, vehs_rela], 1)
-    #     return out
-
-    # def convert_vehs_to_abso(self, obs_rela):
-    #     ego_infos, tracking_infos, veh_rela = obs_rela[:, :self.ego_info_dim], \
-    #                                            obs_rela[:, self.ego_info_dim:self.ego_info_dim + self.per_tracking_info_dim * (
-    #                                                    self.num_future_data + 1)], \
-    #                                            obs_rela[:, self.ego_info_dim + self.per_tracking_info_dim * (
-    #                                                    self.num_future_data + 1):]
-    #     ego_x, ego_y = ego_infos[:, 3], ego_infos[:, 4]
-    #     ego = tf.tile(torch.stack([ego_x, ego_y, torch.zeros_like(ego_x), torch.zeros_like(ego_x)], 1),
-    #                   (1, int(tf.shape(veh_rela)[1] / self.per_veh_info_dim)))
-    #     vehs_abso = veh_rela + ego
-    #     out = tf.concat([ego_infos, tracking_infos, vehs_abso], 1)
-    #     return out
+        return next_obses_ego, next_veh_infos
 
     def ego_predict(self, ego_infos, actions):
         ego_next_infos, _ = self.vehicle_dynamics.prediction(ego_infos[:, :6], actions, self.base_frequency)
@@ -664,78 +320,6 @@ class EnvironmentModel(object):  # all tensors
         ego_next_infos = torch.stack([v_xs, v_ys, rs, xs, ys, phis], 1)
         return ego_next_infos
 
-    def bike_predict(self, bike_infos):
-        bike_mode_list = BIKE_MODE_LIST[self.task]
-        predictions_to_be_concat = []
-        for bikes_index in range(len(bike_mode_list)):
-            predictions_to_be_concat.append(
-                self.predict_for_bike_mode(
-                    bike_infos[
-                        :,
-                        bikes_index * self.per_bike_info_dim : (bikes_index + 1) * self.per_bike_info_dim,
-                    ],
-                    bike_mode_list[bikes_index],
-                )
-            )
-        pred = torch.cat(predictions_to_be_concat, 1).detach()
-        return pred
-
-    def person_predict(self, person_infos):
-        person_mode_list = PERSON_MODE_LIST[self.task]
-        pred = []
-
-        for persons_index in range(len(person_mode_list)):
-            persons = person_infos[
-                :,
-                persons_index * self.per_person_info_dim : (persons_index + 1) * self.per_person_info_dim,
-            ]
-
-            person_xs, person_ys, person_vs, person_phis, person_index = (
-                persons[:, 0],
-                persons[:, 1],
-                persons[:, 2],
-                persons[:, 3],
-                persons[:, 4],
-            )
-            person_phis_rad = person_phis * np.pi / 180.0
-
-            person_xs_delta = person_vs / self.base_frequency * torch.cos(person_phis_rad)
-            person_ys_delta = person_vs / self.base_frequency * torch.sin(person_phis_rad)
-
-            next_person_xs, next_person_ys, next_person_vs, next_person_phis_rad = (
-                person_xs + person_xs_delta,
-                person_ys + person_ys_delta,
-                person_vs,
-                person_phis_rad,
-            )
-            next_person_phis_rad = torch.where(
-                next_person_phis_rad > np.pi,
-                next_person_phis_rad - 2 * np.pi,
-                next_person_phis_rad,
-            )
-            next_person_phis_rad = torch.where(
-                next_person_phis_rad <= -np.pi,
-                next_person_phis_rad + 2 * np.pi,
-                next_person_phis_rad,
-            )
-            next_person_phis = next_person_phis_rad * 180 / np.pi
-            next_person_index = person_index
-            pred.append(
-                torch.stack(
-                    [
-                        next_person_xs,
-                        next_person_ys,
-                        next_person_vs,
-                        next_person_phis,
-                        next_person_index,
-                    ],
-                    1,
-                )
-            )
-
-        pred = torch.cat(pred, 1)
-        return pred
-
     def veh_predict(self, veh_infos):
         veh_mode_list = VEHICLE_MODE_LIST[self.task]
         predictions_to_be_concat = []
@@ -743,80 +327,15 @@ class EnvironmentModel(object):  # all tensors
         for vehs_index in range(len(veh_mode_list)):
             predictions_to_be_concat.append(
                 self.predict_for_veh_mode(
-                    veh_infos[
-                        :,
-                        vehs_index * self.per_veh_info_dim : (vehs_index + 1) * self.per_veh_info_dim,
-                    ],
+                    veh_infos[:, vehs_index * self.per_veh_info_dim : (vehs_index + 1) * self.per_veh_info_dim],
                     veh_mode_list[vehs_index],
                 )
             )
         pred = torch.cat(predictions_to_be_concat, 1).detach()
         return pred
 
-    def predict_for_bike_mode(self, bikes, mode):
-        bike_xs, bike_ys, bike_vs, bike_phis, bike_index = (
-            bikes[:, 0],
-            bikes[:, 1],
-            bikes[:, 2],
-            bikes[:, 3],
-            bikes[:, 4],
-        )
-        bike_phis_rad = bike_phis * np.pi / 180.0
-
-        middle_cond = logical_and(
-            logical_and(bike_xs > -CROSSROAD_SIZE / 2, bike_xs < CROSSROAD_SIZE / 2),
-            logical_and(bike_ys > -CROSSROAD_SIZE / 2, bike_ys < CROSSROAD_SIZE / 2),
-        )
-        zeros = torch.zeros_like(bike_xs)
-
-        bike_xs_delta = bike_vs / self.base_frequency * torch.cos(bike_phis_rad)
-        bike_ys_delta = bike_vs / self.base_frequency * torch.sin(bike_phis_rad)
-
-        if mode in ["dl_b", "rd_b", "ur_b", "lu_b"]:
-            bike_phis_rad_delta = torch.where(
-                middle_cond,
-                (bike_vs / (CROSSROAD_SIZE / 2 + 3 * LANE_WIDTH + BIKE_LANE_WIDTH / 2)) / self.base_frequency,
-                zeros,
-            )
-        elif mode in ["dr_b", "ru_b", "ul_b", "ld_b"]:
-            bike_phis_rad_delta = torch.where(
-                middle_cond,
-                -(bike_vs / (CROSSROAD_SIZE / 2 - 3.0 * LANE_WIDTH - BIKE_LANE_WIDTH / 2)) / self.base_frequency,
-                zeros,
-            )  # TODO：ONLY FOR 3LANE
-        else:
-            bike_phis_rad_delta = zeros
-        next_bike_xs, next_bike_ys, next_bike_vs, next_bike_phis_rad = (
-            bike_xs + bike_xs_delta,
-            bike_ys + bike_ys_delta,
-            bike_vs,
-            bike_phis_rad + bike_phis_rad_delta,
-        )
-        next_bike_phis_rad = torch.where(
-            next_bike_phis_rad > np.pi,
-            next_bike_phis_rad - 2 * np.pi,
-            next_bike_phis_rad,
-        )
-        next_bike_phis_rad = torch.where(
-            next_bike_phis_rad <= -np.pi,
-            next_bike_phis_rad + 2 * np.pi,
-            next_bike_phis_rad,
-        )
-        next_bike_phis = next_bike_phis_rad * 180 / np.pi
-        next_bike_index = bike_index
-        return torch.stack(
-            [next_bike_xs, next_bike_ys, next_bike_vs, next_bike_phis, next_bike_index],
-            1,
-        )
-
     def predict_for_veh_mode(self, vehs, mode):
-        veh_xs, veh_ys, veh_vs, veh_phis, veh_index = (
-            vehs[:, 0],
-            vehs[:, 1],
-            vehs[:, 2],
-            vehs[:, 3],
-            vehs[:, 4],
-        )
+        veh_xs, veh_ys, veh_vs, veh_phis, veh_index = vehs[:, 0], vehs[:, 1], vehs[:, 2], vehs[:, 3], vehs[:, 4]
         veh_phis_rad = veh_phis * np.pi / 180.0
 
         middle_cond = logical_and(
@@ -830,16 +349,12 @@ class EnvironmentModel(object):  # all tensors
 
         if mode in ["dl", "rd", "ur", "lu"]:
             veh_phis_rad_delta = torch.where(
-                middle_cond,
-                (veh_vs / (CROSSROAD_SIZE / 2 + 0.5 * LANE_WIDTH)) / self.base_frequency,
-                zeros,
+                middle_cond, (veh_vs / (CROSSROAD_SIZE / 2 + 0.5 * LANE_WIDTH)) / self.base_frequency, zeros
             )
         elif mode in ["dr", "ru", "ul", "ld"]:
             veh_phis_rad_delta = torch.where(
-                middle_cond,
-                -(veh_vs / (CROSSROAD_SIZE / 2 - 2.5 * LANE_WIDTH)) / self.base_frequency,
-                zeros,
-            )  # TODO：ONLY FOR 3LANE
+                middle_cond, -(veh_vs / (CROSSROAD_SIZE / 2 - 2.5 * LANE_WIDTH)) / self.base_frequency, zeros
+            )
         else:
             veh_phis_rad_delta = zeros
         next_veh_xs, next_veh_ys, next_veh_vs, next_veh_phis_rad = (
@@ -849,11 +364,7 @@ class EnvironmentModel(object):  # all tensors
             veh_phis_rad + veh_phis_rad_delta,
         )
         next_veh_phis_rad = torch.where(next_veh_phis_rad > np.pi, next_veh_phis_rad - 2 * np.pi, next_veh_phis_rad)
-        next_veh_phis_rad = torch.where(
-            next_veh_phis_rad <= -np.pi,
-            next_veh_phis_rad + 2 * np.pi,
-            next_veh_phis_rad,
-        )
+        next_veh_phis_rad = torch.where(next_veh_phis_rad <= -np.pi, next_veh_phis_rad + 2 * np.pi, next_veh_phis_rad)
         next_veh_phis = next_veh_phis_rad * 180 / np.pi
         next_veh_index = veh_index
         return torch.stack([next_veh_xs, next_veh_ys, next_veh_vs, next_veh_phis, next_veh_index], 1)
@@ -889,16 +400,8 @@ class EnvironmentModel(object):  # all tensors
             )
 
             # ----------horizon--------------
-            plt.plot(
-                [-square_length / 2 - extension, -square_length / 2],
-                [0, 0],
-                color="black",
-            )
-            plt.plot(
-                [square_length / 2 + extension, square_length / 2],
-                [0, 0],
-                color="black",
-            )
+            plt.plot([-square_length / 2 - extension, -square_length / 2], [0, 0], color="black")
+            plt.plot([square_length / 2 + extension, square_length / 2], [0, 0], color="black")
 
             #
             for i in range(1, LANE_NUMBER + 1):
@@ -929,16 +432,8 @@ class EnvironmentModel(object):  # all tensors
                 )
 
             # ----------vertical----------------
-            plt.plot(
-                [0, 0],
-                [-square_length / 2 - extension, -square_length / 2],
-                color="black",
-            )
-            plt.plot(
-                [0, 0],
-                [square_length / 2 + extension, square_length / 2],
-                color="black",
-            )
+            plt.plot([0, 0], [-square_length / 2 - extension, -square_length / 2], color="black")
+            plt.plot([0, 0], [square_length / 2 + extension, square_length / 2], color="black")
 
             #
             for i in range(1, LANE_NUMBER + 1):
@@ -969,26 +464,10 @@ class EnvironmentModel(object):  # all tensors
                 )
 
             # ----------stop line--------------
-            plt.plot(
-                [0, LANE_NUMBER * lane_width],
-                [-square_length / 2, -square_length / 2],
-                color="black",
-            )
-            plt.plot(
-                [-LANE_NUMBER * lane_width, 0],
-                [square_length / 2, square_length / 2],
-                color="black",
-            )
-            plt.plot(
-                [-square_length / 2, -square_length / 2],
-                [0, -LANE_NUMBER * lane_width],
-                color="black",
-            )
-            plt.plot(
-                [square_length / 2, square_length / 2],
-                [LANE_NUMBER * lane_width, 0],
-                color="black",
-            )
+            plt.plot([0, LANE_NUMBER * lane_width], [-square_length / 2, -square_length / 2], color="black")
+            plt.plot([-LANE_NUMBER * lane_width, 0], [square_length / 2, square_length / 2], color="black")
+            plt.plot([-square_length / 2, -square_length / 2], [0, -LANE_NUMBER * lane_width], color="black")
+            plt.plot([square_length / 2, square_length / 2], [LANE_NUMBER * lane_width, 0], color="black")
 
             # ----------Oblique--------------
             plt.plot(
@@ -1041,13 +520,9 @@ class EnvironmentModel(object):  # all tensors
             ego_info, tracing_info, vehs_info = (
                 obses[0, : self.ego_info_dim],
                 obses[
-                    0,
-                    self.ego_info_dim : self.ego_info_dim + self.per_tracking_info_dim * (self.num_future_data + 1),
+                    0, self.ego_info_dim : self.ego_info_dim + self.per_tracking_info_dim * (self.num_future_data + 1)
                 ],
-                obses[
-                    0,
-                    self.ego_info_dim + self.per_tracking_info_dim * (self.num_future_data + 1) :,
-                ],
+                obses[0, self.ego_info_dim + self.per_tracking_info_dim * (self.num_future_data + 1) :],
             )
             # plot cars
             for veh_index in range(int(len(vehs_info) / self.per_veh_info_dim)):
@@ -1071,16 +546,8 @@ class EnvironmentModel(object):  # all tensors
             plt.text(text_x, text_y_start - next(ge), "ego_x: {:.2f}m".format(ego_x))
             plt.text(text_x, text_y_start - next(ge), "ego_y: {:.2f}m".format(ego_y))
             plt.text(text_x, text_y_start - next(ge), "delta_y: {:.2f}m".format(delta_y))
-            plt.text(
-                text_x,
-                text_y_start - next(ge),
-                r"ego_phi: ${:.2f}\degree$".format(ego_phi),
-            )
-            plt.text(
-                text_x,
-                text_y_start - next(ge),
-                r"delta_phi: ${:.2f}\degree$".format(delta_phi),
-            )
+            plt.text(text_x, text_y_start - next(ge), r"ego_phi: ${:.2f}\degree$".format(ego_phi))
+            plt.text(text_x, text_y_start - next(ge), r"delta_phi: ${:.2f}\degree$".format(delta_phi))
 
             plt.text(text_x, text_y_start - next(ge), "v_x: {:.2f}m/s".format(ego_v_x))
             plt.text(text_x, text_y_start - next(ge), "exp_v: {:.2f}m/s".format(self.exp_v))
@@ -1123,12 +590,14 @@ class ReferencePath(object):
         self.control_points = []
         self._construct_ref_path(self.task)
 
-        self.ref_index = np.random.choice(len(self.path_list)) if ref_index is None else ref_index
+        # self.ref_index = np.random.choice(len(self.path_list)) if ref_index is None else ref_index
+        self.ref_index = 1
         self.path = self.path_list[self.ref_index]
 
     def set_path(self, path_index=None):
-        self.ref_index = path_index
-        self.path = self.path_list[self.ref_index]
+        # self.ref_index = path_index
+        # self.path = self.path_list[self.ref_index]
+        pass
 
     def _construct_ref_path(self, task):
         sl = 40  # straight length
@@ -1147,26 +616,14 @@ class ReferencePath(object):
 
                     node = np.asfortranarray(
                         [
-                            [
-                                control_point1[0],
-                                control_point2[0],
-                                control_point3[0],
-                                control_point4[0],
-                            ],
-                            [
-                                control_point1[1],
-                                control_point2[1],
-                                control_point3[1],
-                                control_point4[1],
-                            ],
+                            [control_point1[0], control_point2[0], control_point3[0], control_point4[0]],
+                            [control_point1[1], control_point2[1], control_point3[1], control_point4[1]],
                         ],
                         dtype=np.float32,
                     )
                     curve = bezier.Curve(node, degree=3)
                     s_vals = np.linspace(
-                        0,
-                        1.0,
-                        int(pi / 2 * (CROSSROAD_SIZE / 2 + LANE_WIDTH / 2)) * meter_pointnum_ratio,
+                        0, 1.0, int(pi / 2 * (CROSSROAD_SIZE / 2 + LANE_WIDTH / 2)) * meter_pointnum_ratio
                     )
                     trj_data = curve.evaluate_multi(s_vals)
                     trj_data = trj_data.astype(np.float32)
@@ -1174,25 +631,15 @@ class ReferencePath(object):
                         LANE_WIDTH / 2 * np.ones(shape=(sl * meter_pointnum_ratio,), dtype=np.float32)[:-1]
                     )
                     start_straight_line_y = np.linspace(
-                        -CROSSROAD_SIZE / 2 - sl,
-                        -CROSSROAD_SIZE / 2,
-                        sl * meter_pointnum_ratio,
-                        dtype=np.float32,
+                        -CROSSROAD_SIZE / 2 - sl, -CROSSROAD_SIZE / 2, sl * meter_pointnum_ratio, dtype=np.float32
                     )[:-1]
                     end_straight_line_x = np.linspace(
-                        -CROSSROAD_SIZE / 2,
-                        -CROSSROAD_SIZE / 2 - sl,
-                        sl * meter_pointnum_ratio,
-                        dtype=np.float32,
+                        -CROSSROAD_SIZE / 2, -CROSSROAD_SIZE / 2 - sl, sl * meter_pointnum_ratio, dtype=np.float32
                     )[1:]
                     end_straight_line_y = end_offset * np.ones(shape=(sl * meter_pointnum_ratio,), dtype=np.float32)[1:]
                     planed_trj = np.append(
-                        np.append(start_straight_line_x, trj_data[0]),
-                        end_straight_line_x,
-                    ), np.append(
-                        np.append(start_straight_line_y, trj_data[1]),
-                        end_straight_line_y,
-                    )
+                        np.append(start_straight_line_x, trj_data[0]), end_straight_line_x
+                    ), np.append(np.append(start_straight_line_y, trj_data[1]), end_straight_line_y)
 
                     xs_1, ys_1 = planed_trj[0][:-1], planed_trj[1][:-1]
                     xs_2, ys_2 = planed_trj[0][1:], planed_trj[1][1:]
@@ -1214,18 +661,8 @@ class ReferencePath(object):
 
                     node = np.asfortranarray(
                         [
-                            [
-                                control_point1[0],
-                                control_point2[0],
-                                control_point3[0],
-                                control_point4[0],
-                            ],
-                            [
-                                control_point1[1],
-                                control_point2[1],
-                                control_point3[1],
-                                control_point4[1],
-                            ],
+                            [control_point1[0], control_point2[0], control_point3[0], control_point4[0]],
+                            [control_point1[1], control_point2[1], control_point3[1], control_point4[1]],
                         ],
                         dtype=np.float32,
                     )
@@ -1237,25 +674,15 @@ class ReferencePath(object):
                         start_offset * np.ones(shape=(sl * meter_pointnum_ratio,), dtype=np.float32)[:-1]
                     )
                     start_straight_line_y = np.linspace(
-                        -CROSSROAD_SIZE / 2 - sl,
-                        -CROSSROAD_SIZE / 2,
-                        sl * meter_pointnum_ratio,
-                        dtype=np.float32,
+                        -CROSSROAD_SIZE / 2 - sl, -CROSSROAD_SIZE / 2, sl * meter_pointnum_ratio, dtype=np.float32
                     )[:-1]
                     end_straight_line_x = end_offset * np.ones(shape=(sl * meter_pointnum_ratio,), dtype=np.float32)[1:]
                     end_straight_line_y = np.linspace(
-                        CROSSROAD_SIZE / 2,
-                        CROSSROAD_SIZE / 2 + sl,
-                        sl * meter_pointnum_ratio,
-                        dtype=np.float32,
+                        CROSSROAD_SIZE / 2, CROSSROAD_SIZE / 2 + sl, sl * meter_pointnum_ratio, dtype=np.float32
                     )[1:]
                     planed_trj = np.append(
-                        np.append(start_straight_line_x, trj_data[0]),
-                        end_straight_line_x,
-                    ), np.append(
-                        np.append(start_straight_line_y, trj_data[1]),
-                        end_straight_line_y,
-                    )
+                        np.append(start_straight_line_x, trj_data[0]), end_straight_line_x
+                    ), np.append(np.append(start_straight_line_y, trj_data[1]), end_straight_line_y)
                     xs_1, ys_1 = planed_trj[0][:-1], planed_trj[1][:-1]
                     xs_2, ys_2 = planed_trj[0][1:], planed_trj[1][1:]
                     phis_1 = np.arctan2(ys_2 - ys_1, xs_2 - xs_1) * 180 / pi
@@ -1279,18 +706,8 @@ class ReferencePath(object):
 
                     node = np.asfortranarray(
                         [
-                            [
-                                control_point1[0],
-                                control_point2[0],
-                                control_point3[0],
-                                control_point4[0],
-                            ],
-                            [
-                                control_point1[1],
-                                control_point2[1],
-                                control_point3[1],
-                                control_point4[1],
-                            ],
+                            [control_point1[0], control_point2[0], control_point3[0], control_point4[0]],
+                            [control_point1[1], control_point2[1], control_point3[1], control_point4[1]],
                         ],
                         dtype=np.float32,
                     )
@@ -1306,25 +723,15 @@ class ReferencePath(object):
                         start_offset * np.ones(shape=(sl * meter_pointnum_ratio,), dtype=np.float32)[:-1]
                     )
                     start_straight_line_y = np.linspace(
-                        -CROSSROAD_SIZE / 2 - sl,
-                        -CROSSROAD_SIZE / 2,
-                        sl * meter_pointnum_ratio,
-                        dtype=np.float32,
+                        -CROSSROAD_SIZE / 2 - sl, -CROSSROAD_SIZE / 2, sl * meter_pointnum_ratio, dtype=np.float32
                     )[:-1]
                     end_straight_line_x = np.linspace(
-                        CROSSROAD_SIZE / 2,
-                        CROSSROAD_SIZE / 2 + sl,
-                        sl * meter_pointnum_ratio,
-                        dtype=np.float32,
+                        CROSSROAD_SIZE / 2, CROSSROAD_SIZE / 2 + sl, sl * meter_pointnum_ratio, dtype=np.float32
                     )[1:]
                     end_straight_line_y = end_offset * np.ones(shape=(sl * meter_pointnum_ratio,), dtype=np.float32)[1:]
                     planed_trj = np.append(
-                        np.append(start_straight_line_x, trj_data[0]),
-                        end_straight_line_x,
-                    ), np.append(
-                        np.append(start_straight_line_y, trj_data[1]),
-                        end_straight_line_y,
-                    )
+                        np.append(start_straight_line_x, trj_data[0]), end_straight_line_x
+                    ), np.append(np.append(start_straight_line_y, trj_data[1]), end_straight_line_y)
                     xs_1, ys_1 = planed_trj[0][:-1], planed_trj[1][:-1]
                     xs_2, ys_2 = planed_trj[0][1:], planed_trj[1][1:]
                     phis_1 = np.arctan2(ys_2 - ys_1, xs_2 - xs_1) * 180 / pi
@@ -1340,10 +747,7 @@ class ReferencePath(object):
         path_len = len(self.path[0])
         reduced_idx = np.arange(0, path_len, ratio)
         reduced_len = len(reduced_idx)
-        reduced_path_x, reduced_path_y = (
-            self.path[0][reduced_idx],
-            self.path[1][reduced_idx],
-        )
+        reduced_path_x, reduced_path_y = self.path[0][reduced_idx], self.path[1][reduced_idx]
         reduced_path_x = torch.tensor(reduced_path_x)
         reduced_path_y = torch.tensor(reduced_path_y)
         xs_tile = xs.reshape(-1, 1).repeat(1, reduced_len)
@@ -1362,11 +766,7 @@ class ReferencePath(object):
         # current_indexs = tf.cast(current_indexs, tf.int32)
         for _ in range(n):
             current_indexs += 80
-            current_indexs = torch.where(
-                current_indexs >= len(self.path[0]) - 2,
-                len(self.path[0]) - 2,
-                current_indexs,
-            )
+            current_indexs = torch.where(current_indexs >= len(self.path[0]) - 2, len(self.path[0]) - 2, current_indexs)
             future_data_list.append(self.indexs2points(current_indexs))
         return future_data_list
 
@@ -1384,11 +784,7 @@ class ReferencePath(object):
         """
         indexs = torch.tensor(indexs)
         indexs = torch.where(torch.tensor(indexs >= 0), indexs, torch.tensor(0))
-        indexs = torch.where(
-            torch.tensor(indexs < len(self.path[0])),
-            indexs,
-            torch.tensor(len(self.path[0]) - 1),
-        )
+        indexs = torch.where(torch.tensor(indexs < len(self.path[0])), indexs, torch.tensor(len(self.path[0]) - 1))
         indexs = torch.tensor(indexs, dtype=torch.int64)
         points = (
             torch.gather(torch.Tensor(self.path[0]), 0, indexs),
@@ -1467,12 +863,7 @@ class ReferencePath(object):
             future_points = torch.cat(
                 [
                     torch.stack(
-                        [
-                            ref_point[0] - ego_xs,
-                            ref_point[1] - ego_ys,
-                            deal_with_phi_diff(ego_phis - ref_point[2]),
-                        ],
-                        1,
+                        [ref_point[0] - ego_xs, ref_point[1] - ego_ys, deal_with_phi_diff(ego_phis - ref_point[2])], 1
                     )
                     for ref_point in n_future_data
                 ],
@@ -1524,9 +915,9 @@ def t_tracking_error_vector():
 
 
 def t_model():
-    from endtoend import CrossroadEnd2endMixPiFix
+    from endtoend import CrossroadEnd2end
 
-    env = CrossroadEnd2endMixPiFix("left", 0)
+    env = CrossroadEnd2end("left", 0)
     model = EnvironmentModel("left", 0)
     obs_list = []
     obs = env.reset()
@@ -1542,7 +933,7 @@ def t_model():
     print(obses.shape)
     for rollout_step in range(100):
         actions = torch.Tensor([[0.5, 0]]).repeat(len(obses), 1)
-        obses, rewards, punish1, punish2, _, _ = model.rollout_out(actions)
+        obses, rewards, punish1, punish2, _, _, _ = model.rollout_out(actions)
         print(rewards.numpy()[0], punish1.numpy()[0])
         model.render()
 
