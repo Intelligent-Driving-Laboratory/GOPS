@@ -26,9 +26,7 @@ class GymMountaincarcontiModel(torch.nn.Module):
         self.min_position = -1.2
         self.max_position = 0.6
         self.max_speed = 0.07
-        self.goal_position = (
-            0.45  # was 0.5 in gym, 0.45 in Arnaud de Broissia's version
-        )
+        self.goal_position = 0.45  # was 0.5 in gym, 0.45 in Arnaud de Broissia's version
         self.goal_velocity = 0
         self.power = 0.0015
 

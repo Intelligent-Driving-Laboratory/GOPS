@@ -135,7 +135,7 @@ def plot_all(path):
             os.path.join(figure_path, x_label + "-" + y_label + ".tiff"),
             xlabel=x_label,
             ylabel=y_label,
-            color_list=["orange"]
+            color_list=["orange"],
         )
 
 

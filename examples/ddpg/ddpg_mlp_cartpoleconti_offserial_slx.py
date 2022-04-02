@@ -55,7 +55,7 @@ if __name__ == "__main__":
     parser.add_argument("--value_func_name", type=str, default="ActionValue")
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument("--value_func_type", type=str, default="MLP")
-    value_func_type = parser.parse_args().value_func_type
+    value_func_type = parser.parse_known_args()[0].value_func_type
     ### 2.1.1 MLP, CNN, RNN
     if value_func_type == "MLP":
         parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument("--policy_func_type", type=str, default="MLP")
     parser.add_argument("--policy_act_distribution", type=str, default="default")
-    policy_func_type = parser.parse_args().policy_func_type
+    policy_func_type = parser.parse_known_args()[0].policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == "MLP":
         parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
     # Maximum iteration number
     parser.add_argument("--max_iteration", type=int, default=6400)
-    trainer_type = parser.parse_args().trainer
+    trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     # 4.1. Parameters for on_serial_trainer
     if trainer_type == "on_serial_trainer":

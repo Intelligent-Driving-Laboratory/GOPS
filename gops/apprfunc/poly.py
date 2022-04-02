@@ -56,7 +56,7 @@ class DetermPolicy(nn.Module, Action_Distribution):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
         act_dim = kwargs["act_dim"]
-        self.degree = 2
+        self.degree = kwargs["degree"]
         self.pi = nn.Linear(get_features_dim(obs_dim, self.degree), act_dim)
         action_high_limit = kwargs["act_high_lim"]
         action_low_limit = kwargs["act_low_lim"]
@@ -81,7 +81,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
         action_low_limit = kwargs["act_low_lim"]
         self.min_log_std = kwargs["min_log_std"]
         self.max_log_std = kwargs["max_log_std"]
-        self.degree = 3
+        self.degree = kwargs["degree"]
         self.mean = nn.Linear(get_features_dim(obs_dim, self.degree), act_dim)
         self.log_std = nn.Linear(get_features_dim(obs_dim, self.degree), act_dim)
         self.register_buffer("act_high_lim", torch.from_numpy(action_high_limit))
@@ -102,7 +102,7 @@ class ActionValue(nn.Module, Action_Distribution):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
         act_dim = kwargs["act_dim"]
-        self.degree = 4
+        self.degree = kwargs["degree"]
         self.q = nn.Linear(get_features_dim(obs_dim + act_dim, self.degree), act_dim)
         self.action_distirbution_cls = kwargs["action_distirbution_cls"]
 
@@ -118,7 +118,7 @@ class ActionValueDis(nn.Module, Action_Distribution):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
         act_num = kwargs["act_num"]
-        self.degree = 4
+        self.degree = kwargs["degree"]
         self.q = nn.Linear(get_features_dim(obs_dim, self.degree), act_num)
         self.action_distirbution_cls = kwargs["action_distirbution_cls"]
 
@@ -135,7 +135,7 @@ class StateValue(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
-        self.degree = 4
+        self.degree = kwargs["degree"]
         self.v = nn.Linear(get_features_dim(obs_dim, self.degree), 1)
         self.action_distirbution_cls = kwargs["action_distirbution_cls"]
 

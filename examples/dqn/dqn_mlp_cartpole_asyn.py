@@ -56,7 +56,7 @@ if __name__ == "__main__":
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument("--value_func_type", type=str, default="MLP")
     parser.add_argument("--policy_act_distribution", type=str, default="default")
-    value_func_type = parser.parse_args().value_func_type
+    value_func_type = parser.parse_known_args()[0].value_func_type
     ### 2.1.1 MLP, CNN, RNN
     if value_func_type == "MLP":
         parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     parser.add_argument("--trainer", type=str, default="off_async_trainer")
     # Maximum iteration number
     parser.add_argument("--max_iteration", type=int, default=6400)
-    trainer_type = parser.parse_args().trainer
+    trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     # 4.3. Parameters for off_serial_trainer
     if trainer_type == "off_async_trainer":
@@ -90,9 +90,9 @@ if __name__ == "__main__":
         parser.add_argument("--num_buffers", type=int, default=1)
         cpu_core_num = multiprocessing.cpu_count()
         num_core_input = (
-            parser.parse_args().num_algs
-            + parser.parse_args().num_samplers
-            + parser.parse_args().num_buffers
+            parser.parse_known_args()[0].num_algs
+            + parser.parse_known_args()[0].num_samplers
+            + parser.parse_known_args()[0].num_buffers
             + 2
         )
         if num_core_input > cpu_core_num:
@@ -138,9 +138,7 @@ if __name__ == "__main__":
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     for alg_id in alg:
-        alg_id.set_parameters.remote(
-            {"reward_scale": 0.1, "gamma": 0.99, "tau": 0.2}
-        )
+        alg_id.set_parameters.remote({"reward_scale": 0.1, "gamma": 0.99, "tau": 0.2})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

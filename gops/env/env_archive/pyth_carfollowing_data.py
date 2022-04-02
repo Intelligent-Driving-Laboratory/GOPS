@@ -69,9 +69,7 @@ class PythCarfollowingData:
 
         isdone = state_next[2] < 2
 
-        constraint = self.dyn.compute_cost(
-            state_next, action
-        )  # TODO: next state or state
+        constraint = self.dyn.compute_cost(state_next, action)  # TODO: next state or state
         self.steps += 1
         info = {"TimeLimit.truncated": self.steps > 170, "constraint": constraint}
         return self.state, reward, isdone, info

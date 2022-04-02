@@ -48,7 +48,7 @@ if __name__ == "__main__":
     # 2.1 Parameters of value approximate function
     parser.add_argument("--value_func_name", type=str, default="ActionValue")
     parser.add_argument("--value_func_type", type=str, default="MLP")
-    value_func_type = parser.parse_args().value_func_type
+    value_func_type = parser.parse_known_args()[0].value_func_type
     if value_func_type == "MLP":
         parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
         parser.add_argument("--value_hidden_activation", type=str, default="relu")
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     parser.add_argument("--policy_func_name", type=str, default="DetermPolicy")
     parser.add_argument("--policy_func_type", type=str, default="POLY")
     parser.add_argument("--policy_act_distribution", type=str, default="default")
-    policy_func_type = parser.parse_args().policy_func_type
+    policy_func_type = parser.parse_known_args()[0].policy_func_type
     if policy_func_type == "POLY":
         pass
 
@@ -70,8 +70,8 @@ if __name__ == "__main__":
     ################################################
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
-    parser.add_argument("--max_iteration", type=int, default=2*6400)
-    trainer_type = parser.parse_args().trainer
+    parser.add_argument("--max_iteration", type=int, default=2 * 6400)
+    trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     if trainer_type == "off_serial_trainer":
         parser.add_argument("--buffer_name", type=str, default="replay_buffer")

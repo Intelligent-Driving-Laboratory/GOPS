@@ -9,6 +9,7 @@
 
 from gym import spaces
 import gym
+from gym.utils import seeding
 from gops.env.resources.simu_vehicle3dof import vehicle3dof
 import numpy as np
 
@@ -30,7 +31,13 @@ class SimuVeh3dofconti(gym.Env):
             np.array(self._physics.get_param()["adva_max"]).reshape(-1),
         )
         self.adv_action_dim = self.adv_action_space.shape[0]
+        self.seed()
         self.reset()
+
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+
+        return [seed]
 
     def step(self, action, adv_action=None):
         if self.is_adversary == False:
@@ -42,10 +49,7 @@ class SimuVeh3dofconti(gym.Env):
             if adv_action is None:
                 raise ValueError("Adversary training setting is wrong")
         state, isdone, reward = self._step_physics(
-            {
-                "Action": action.astype(np.float64),
-                "AdverAction": adv_action.astype(np.float64),
-            }
+            {"Action": action.astype(np.float64), "AdverAction": adv_action.astype(np.float64)}
         )
         self.cstep += 1
         info = {"TimeLimit.truncated": self.cstep > 200}
@@ -56,7 +60,7 @@ class SimuVeh3dofconti(gym.Env):
         self._physics = vehicle3dof.model_wrapper()
 
         # randomized initiate
-        state = np.random.uniform(low=[0, 0, 0, 0, 0, 0], high=[0, 0, 0, 0, 0, 0])
+        state = self.np_random.uniform(low=[0, 0, 0, 0, 0, 0], high=[0, 0, 0, 0, 0, 0])
         param = self._physics.get_param()
         param.update(list(zip(("x_ini"), state)))
         self._physics.set_param(param)

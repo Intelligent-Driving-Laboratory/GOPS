@@ -6,11 +6,11 @@
 #  Description: Intersection Environment
 #  Update Date: 2021-05-55, Yuhang Zhang: create environment
 
-
+import gym
 from gops.env.resources.crossing import endtoend
 
 
-class GymCrossingData:
+class GymCrossingData(gym.Env):
     def __init__(self):
         self._env = endtoend.CrossroadEnd2endMixPiFix("left")
         self.observation_space = self._env.observation_space
@@ -20,6 +20,9 @@ class GymCrossingData:
     def reset(self):
         s = self._env.reset()
         return s
+
+    def seed(self, seed=None):
+        self._env.seed(seed)
 
     def step(self, action, adv_action=None):
         return self._env.step(action)
