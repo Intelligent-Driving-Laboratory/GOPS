@@ -75,6 +75,8 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
             var["output_activation"] = kwargs[key + "_output_activation"]
     elif type == "POLY":
         var["degree"] = kwargs[key + "_degree"]
+    elif type == "GAUSS":
+        var["num_kernel"] = kwargs[key + "_num_kernel"]
     else:
         raise NotImplementedError
 
