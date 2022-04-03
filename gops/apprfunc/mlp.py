@@ -69,18 +69,36 @@ class StochaPolicy(nn.Module, Action_Distribution):
         obs_dim = kwargs["obs_dim"]
         act_dim = kwargs["act_dim"]
         hidden_sizes = kwargs["hidden_sizes"]
+        self.std_sype = kwargs["std_sype"]
 
-        pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim]
-        self.mean = mlp(
-            pi_sizes,
-            get_activation_func(kwargs["hidden_activation"]),
-            get_activation_func(kwargs["output_activation"]),
-        )
-        self.log_std = mlp(
-            pi_sizes,
-            get_activation_func(kwargs["hidden_activation"]),
-            get_activation_func(kwargs["output_activation"]),
-        )
+        if self.std_sype == "mlp_separated":
+            pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim]
+            self.mean = mlp(
+                pi_sizes,
+                get_activation_func(kwargs["hidden_activation"]),
+                get_activation_func(kwargs["output_activation"]),
+            )
+            self.log_std = mlp(
+                pi_sizes,
+                get_activation_func(kwargs["hidden_activation"]),
+                get_activation_func(kwargs["output_activation"]),
+            )
+        elif self.std_sype == "mlp_shared":
+            pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim * 2]
+            self.policy = mlp(
+                pi_sizes,
+                get_activation_func(kwargs["hidden_activation"]),
+                get_activation_func(kwargs["output_activation"]),
+            )
+        elif self.std_sype == "parameter":
+            pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim]
+            self.mean = mlp(
+                pi_sizes,
+                get_activation_func(kwargs["hidden_activation"]),
+                get_activation_func(kwargs["output_activation"]),
+            )
+            self.log_std = nn.Parameter(torch.zeros(1, act_dim))
+
         self.min_log_std = kwargs["min_log_std"]
         self.max_log_std = kwargs["max_log_std"]
         self.register_buffer("act_high_lim", torch.from_numpy(kwargs["act_high_lim"]))
@@ -88,10 +106,24 @@ class StochaPolicy(nn.Module, Action_Distribution):
         self.action_distirbution_cls = kwargs["action_distirbution_cls"]
 
     def forward(self, obs):
-        action_mean = self.mean(obs)
-        action_std = torch.clamp(
-            self.log_std(obs), self.min_log_std, self.max_log_std
-        ).exp()
+        if self.std_sype == "mlp_separated":
+            action_mean = self.mean(obs)
+            action_std = torch.clamp(
+                self.log_std(obs), self.min_log_std, self.max_log_std
+            ).exp()
+        elif self.std_sype == "mlp_shared":
+            logits = self.policy(obs)
+            action_mean, action_log_std = torch.chunk(logits, chunks=2, dim=-1)  # output the mean
+            action_std = torch.clamp(
+                action_log_std, self.min_log_std, self.max_log_std
+            ).exp()
+        elif self.std_sype == "parameter":
+            action_mean = self.mean(obs)
+            action_log_std = self.log_std + torch.zeros_like(action_mean)
+            action_std = torch.clamp(
+                action_log_std, self.min_log_std, self.max_log_std
+            ).exp()
+
         return torch.cat((action_mean, action_std), dim=-1)
 
 
