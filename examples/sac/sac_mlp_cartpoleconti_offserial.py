@@ -52,7 +52,7 @@ if __name__ == "__main__":
     ################################################
     # 2.1 Parameters of value approximate function
     # Options: StateValue/ActionValue/ActionValueDis
-    parser.add_argument("--value_func_name", type=str, default="StateValue")
+    parser.add_argument("--value_func_name", type=str, default="ActionValue")
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument("--value_func_type", type=str, default="MLP")
     value_func_type = parser.parse_known_args()[0].value_func_type
@@ -63,18 +63,6 @@ if __name__ == "__main__":
         parser.add_argument("--value_hidden_activation", type=str, default="relu")
         # Output Layer: linear
         parser.add_argument("--value_output_activation", type=str, default="linear")
-
-    parser.add_argument("--q_func_name", type=str, default="ActionValue")
-    # Options: MLP/CNN/RNN/POLY/GAUSS
-    parser.add_argument("--q_func_type", type=str, default="MLP")
-    value_func_type = parser.parse_known_args()[0].value_func_type
-    ### 2.1.1 MLP, CNN, RNN
-    if value_func_type == "MLP":
-        parser.add_argument("--q_hidden_sizes", type=list, default=[64, 64])
-        # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
-        parser.add_argument("--q_hidden_activation", type=str, default="relu")
-        # Output Layer: linear
-        parser.add_argument("--q_output_activation", type=str, default="linear")
 
     # 2.2 Parameters of policy approximate function
     # Options: None/DetermPolicy/StochaPolicy

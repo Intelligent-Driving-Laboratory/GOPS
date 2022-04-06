@@ -26,19 +26,13 @@ from gops.utils.utils import get_apprfunc_dict
 class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        # create value network
-        value_func_type = kwargs["value_func_type"]
-        value_args = get_apprfunc_dict("value", value_func_type, **kwargs)
-
         if kwargs["cnn_shared"]:  # todo:设置默认false
-            feature_args = get_apprfunc_dict("feature", value_func_type, **kwargs)
+            feature_args = get_apprfunc_dict("feature", kwargs["value_func_type"], **kwargs)
             kwargs["feature_net"] = create_apprfunc(**feature_args)
 
-        self.value = create_apprfunc(**value_args)
-
         # create q networks
-        q_func_type = kwargs["q_func_type"]
-        q_args = get_apprfunc_dict("q", q_func_type, **kwargs)
+        q_func_type = kwargs["value_func_type"]
+        q_args = get_apprfunc_dict("value", q_func_type, **kwargs)
         self.q1 = create_apprfunc(**q_args)
         self.q2 = create_apprfunc(**q_args)
 
@@ -47,17 +41,17 @@ class ApproxContainer(nn.Module):
         policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
         self.policy = create_apprfunc(**policy_args)
 
-        # create target network
-        self.value_target = deepcopy(self.value)
+        # create target networks
+        self.q1_target = deepcopy(self.q1)
+        self.q2_target = deepcopy(self.q2)
 
-        # set target network gradients
-        for p in self.value_target.parameters():
+        # set target networks gradients
+        for p in self.q1_target.parameters():
+            p.requires_grad = False
+        for p in self.q2_target.parameters():
             p.requires_grad = False
 
         # create optimizers
-        self.value_optimizer = Adam(
-            self.value.parameters(), lr=kwargs["value_learning_rate"]
-        )
         self.q1_optimizer = Adam(self.q1.parameters(), lr=kwargs["q_learning_rate"])
         self.q2_optimizer = Adam(self.q2.parameters(), lr=kwargs["q_learning_rate"])
         self.policy_optimizer = Adam(
@@ -69,16 +63,10 @@ class ApproxContainer(nn.Module):
         return self.policy.get_act_dist(logits)
 
     def update(self, grads_info):
-        value_grad = grads_info["value_grad"]
         q1_grad = grads_info["q1_grad"]
         q2_grad = grads_info["q2_grad"]
         policy_grad = grads_info["policy_grad"]
         polyak = 1 - grads_info["tau"]
-
-        # update value network
-        for p, grad in zip(self.value.parameters(), value_grad):
-            p._grad = grad
-        self.value_optimizer.step()
 
         # update q networks
         for p, grad in zip(self.q1.parameters(), q1_grad):
@@ -93,14 +81,18 @@ class ApproxContainer(nn.Module):
             p._grad = grad
         self.policy_optimizer.step()
 
-        # update target network
+        # update target networks
         with torch.no_grad():
             for p, p_targ in zip(
-                self.value.parameters(), self.value_target.parameters()
+                self.q1.parameters(), self.q1_target.parameters()
             ):
                 p_targ.data.mul_(polyak)
                 p_targ.data.add_((1 - polyak) * p.data)
-
+            for p, p_targ in zip(
+                self.q2.parameters(), self.q2_target.parameters()
+            ):
+                p_targ.data.mul_(polyak)
+                p_targ.data.add_((1 - polyak) * p.data)
 
 class SAC:
     def __init__(self, **kwargs):
@@ -153,15 +145,10 @@ class SAC:
                 data[k] = v.cuda()
 
         obs = data["obs"]
-
         logits = self.networks.policy(obs)
         act_dist = self.networks.create_action_distributions(logits)
         new_act, new_logp = act_dist.rsample()
         data.update({"new_act": new_act, "new_logp": new_logp})
-
-        self.networks.value_optimizer.zero_grad()
-        loss_value, value = self._compute_loss_value(data)
-        loss_value.backward()
 
         self.networks.q1_optimizer.zero_grad()
         self.networks.q2_optimizer.zero_grad()
@@ -193,7 +180,6 @@ class SAC:
             self.networks = self.networks.cpu()
 
         grad_info = {
-            "value_grad": [p.grad for p in self.networks.value.parameters()],
             "q1_grad": [p.grad for p in self.networks.q1.parameters()],
             "q2_grad": [p.grad for p in self.networks.q2.parameters()],
             "policy_grad": [p.grad for p in self.networks.policy.parameters()],
@@ -201,9 +187,8 @@ class SAC:
         }
 
         tb_info = {
-            tb_tags["loss_critic"]: loss_value.item(),
+            tb_tags["loss_critic"]: loss_q.item(),
             tb_tags["loss_actor"]: loss_policy.item(),
-            tb_tags["critic_avg_value"]: value.item(),
             "SAC/critic_avg_q1-RL iter": q1.item(),
             "SAC/critic_avg_q2-RL iter": q2.item(),
             "SAC/entropy-RL iter": entropy.item(),
@@ -213,29 +198,24 @@ class SAC:
 
         return grad_info, tb_info
 
-    def _compute_loss_value(self, data):
-        obs, new_act, new_logp = data["obs"], data["new_act"], data["new_logp"]
-        value = self.networks.value(obs).squeeze(-1)
-        with torch.no_grad():
-            q1 = self.networks.q1(obs, new_act)
-            q2 = self.networks.q2(obs, new_act)
-            target_value = torch.min(q1, q2) - self.alpha * new_logp
-        loss_value = ((value - target_value) ** 2).mean()
-        return loss_value, value.detach().mean()
-
     def _compute_loss_q(self, data):
         obs, act, rew, obs2, done = (
             data["obs"],
             data["act"],
             data["rew"],
             data["obs2"],
-            data["done"],
+            data["done"]
         )
         q1 = self.networks.q1(obs, act)
         q2 = self.networks.q2(obs, act)
         with torch.no_grad():
-            next_value = self.networks.value_target(obs2).squeeze(-1)
-            backup = rew + (1 - done) * self.gamma * next_value
+            next_logits = self.networks.policy(obs2)
+            next_act_dist = self.networks.create_action_distributions(next_logits)
+            next_act, next_logp = next_act_dist.rsample()
+            next_q1 = self.networks.q1_target(obs2, next_act)
+            next_q2 = self.networks.q2_target(obs2, next_act)
+            next_q = torch.min(next_q1, next_q2)
+            backup = rew + (1 - done) * self.gamma * (next_q - self.alpha * next_logp)
         loss_q1 = ((q1 - backup) ** 2).mean()
         loss_q2 = ((q2 - backup) ** 2).mean()
         return loss_q1 + loss_q2, q1.detach().mean(), q2.detach().mean()
