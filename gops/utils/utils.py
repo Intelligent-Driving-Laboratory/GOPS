@@ -55,6 +55,7 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
     var["obs_dim"] = kwargs["obsv_dim"]
     var["min_log_std"] = kwargs.get(key + "_min_log_std", float("-inf"))
     var["max_log_std"] = kwargs.get(key + "_max_log_std", float("inf"))
+    var["std_sype"] = kwargs.get(key + "_std_sype", "mlp_shared")
 
     if type == "MLP" or type == "RNN":
         var["hidden_sizes"] = kwargs[key + "_hidden_sizes"]
@@ -75,6 +76,8 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
             var["output_activation"] = kwargs[key + "_output_activation"]
     elif type == "POLY":
         var["degree"] = kwargs[key + "_degree"]
+    elif type == "GAUSS":
+        var["num_kernel"] = kwargs[key + "_num_kernel"]
     else:
         raise NotImplementedError
 

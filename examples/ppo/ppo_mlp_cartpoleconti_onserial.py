@@ -79,6 +79,7 @@ if __name__ == "__main__":
         )
         parser.add_argument("--policy_min_log_std", type=int, default=-20)  # -6
         parser.add_argument("--policy_max_log_std", type=int, default=1)  # 3
+        parser.add_argument("--policy_std_sype", type=str, default="parameter")
     ################################################
     # 3. Parameters for algorithm
     parser.add_argument(
