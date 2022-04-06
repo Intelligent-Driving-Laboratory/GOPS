@@ -228,7 +228,7 @@ class PythPccTrucklcfModel(torch.nn.Module):
         #        or d_x_next > 10000
         # isdone = bool(isdone)
         self.iteration_index += 1
-        return state_next, reward, isdone
+        return state_next, reward, isdone, {}
 
     def forward_n_step(self, state: torch.Tensor, action, step, beyond_done=torch.tensor(0)):
         self.dynamic_state = self.d_init_state
@@ -256,7 +256,7 @@ class PythPccTrucklcfModel(torch.nn.Module):
         done_list = []
         v_pi = 0.0
         for i in range(step):
-            state, reward, beyond_done = self.forward(state, action(state), beyond_done)
+            state, reward, beyond_done, _ = self.forward(state, action(state), beyond_done)
             v_pi = v_pi + reward
             next_state_list.append(state)
             done_list.append(beyond_done)

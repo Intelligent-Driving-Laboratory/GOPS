@@ -4,34 +4,40 @@
 #
 #  Creator: iDLab
 
+from gops.env.resources.intersection.dynamics_and_models import EnvironmentModel
+
 import warnings
 
 import numpy as np
 import torch
 
 
-class GymDemocontiModel(torch.nn.Module):
-    def __init__(self):
+class PythIntersectionModel(torch.nn.Module):
+    def __init__(self, **kwargs):
         super().__init__()
         """
         you need to define parameters here
         """
         # define your custom parameters here
 
+        self.dynamics = EnvironmentModel("left")
+
         # define common parameters here
-        self.state_dim = None
-        self.action_dim = None
-        lb_state = None
-        hb_state = None
-        lb_action = None
-        hb_action = None
-        self.dt = None  # seconds between state updates
+        self.state_dim = 49
+        self.action_dim = 2
+        self.constraint_dim = 32
+        self.use_constraint = kwargs.get("use_constraint", True)
+        self.lb_state = [-np.inf] * self.state_dim
+        self.hb_state = [np.inf] * self.state_dim
+        self.lb_action = [-1.0, -1.0]
+        self.hb_action = [1.0, 1.0]
+        self.dt = 0.1  # seconds between state updates
 
         # do not change the following section
-        self.lb_state = torch.tensor(lb_state, dtype=torch.float32)
-        self.hb_state = torch.tensor(hb_state, dtype=torch.float32)
-        self.lb_action = torch.tensor(lb_action, dtype=torch.float32)
-        self.hb_action = torch.tensor(hb_action, dtype=torch.float32)
+        self.lb_state = torch.tensor(self.lb_state, dtype=torch.float32)
+        self.hb_state = torch.tensor(self.hb_state, dtype=torch.float32)
+        self.lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
+        self.hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
 
     def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=None):
         """
@@ -49,9 +55,6 @@ class GymDemocontiModel(torch.nn.Module):
                 isdone:   datatype:torch.Tensor, shape:[batch_size,]
                          flag done will be set to true when the model reaches the max_iteration or the next state
                          satisfies ending condition
-
-                info: datatype: dict, any useful information for debug or training, including constraint
-                        {"constraint": None}
         """
         warning_msg = "action out of action space!"
         if not ((action <= self.hb_action).all() and (action >= self.lb_action).all()):
@@ -64,7 +67,20 @@ class GymDemocontiModel(torch.nn.Module):
             state = clip_by_tensor(state, self.lb_state, self.hb_state)
 
         #  define your forward function here: the format is just like: state_next = f(state,action)
-        state_next = (1 + action.sum(-1)) * state
+        ego_state = state[:, :9]
+        veh_state = state[:, 9:]
+
+        (
+            obses_ego,
+            obses_veh,
+            rewards,
+            punish_term_for_training,
+            real_punish_term,
+            veh2veh4real,
+            constraints
+        ) = self.dynamics.rollout_out(ego_state, veh_state, action)
+
+        state_next = torch.cat([ego_state, veh_state], 1)
 
         ############################################################################################
 
@@ -72,20 +88,9 @@ class GymDemocontiModel(torch.nn.Module):
         isdone = torch.full([state.size()[0]], False, dtype=torch.float32)
 
         ############################################################################################
+        info = {"constraint": constraints}
 
-        # define the reward function here the format is just like: reward = l(state,state_next,reward)
-        reward = (state_next - state).sum(dim=-1)
-
-        ############################################################################################
-        if beyond_done is None:
-            beyond_done = torch.full([state.size()[0]], False, dtype=torch.float32)
-
-        beyond_done = beyond_done.bool()
-        mask = isdone or beyond_done
-        mask = torch.unsqueeze(mask, -1)
-        state_next = ~mask * state_next + mask * state
-        reward = ~(beyond_done) * reward
-        return state_next, reward, mask, {"constraint": None}
+        return state_next, rewards, isdone, info
 
     def forward_n_step(self, func, n, state: torch.Tensor):
         reward = torch.zeros(size=[state.size()[0], n])
@@ -98,6 +103,10 @@ class GymDemocontiModel(torch.nn.Module):
             action = func(state)
             state_next, reward[:, step], isdone = self.forward(state, action, isdone)
             state = state_next
+
+
+def env_moedel_creator(**kwargs):
+    return PythIntersectionModel(**kwargs)
 
 
 def clip_by_tensor(t, t_min, t_max):
@@ -114,4 +123,14 @@ def clip_by_tensor(t, t_min, t_max):
 
 
 if __name__ == "__main__":
-    env = GymDemocontiModel()
+    dyn = PythIntersectionModel()
+    from gops.env.pyth_intersection_data import env_creator
+
+    env = env_creator()
+
+    state = torch.as_tensor(env.reset(), dtype=torch.float32)
+    action = torch.as_tensor(env.action_space.sample(), dtype=torch.float32)
+    state = state.reshape(1, -1)
+    action = action.reshape(1, -1)
+    data = dyn.forward(state, action)
+    env.close()

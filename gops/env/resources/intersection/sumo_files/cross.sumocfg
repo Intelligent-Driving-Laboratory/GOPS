@@ -2,7 +2,7 @@
 
     <input>
         <net-file value="a.net.xml"/>
-        <route-files value="cross.rou.xml, a_del_person.rou.xml"/>
+        <route-files value="cross.rou.xml"/>
         <additional-files value="cross.add.xml"/>
     </input>
     <time>

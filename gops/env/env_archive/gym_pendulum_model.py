@@ -95,7 +95,7 @@ class GymPendulumModel(torch.nn.Module):
         mask = isdone * beyond_done
         mask = torch.unsqueeze(mask, -1)
         state_next = ~mask * state_next + mask * state
-        return state_next, reward, isdone
+        return state_next, reward, isdone, {}
 
 
 def angle_normalize(x):

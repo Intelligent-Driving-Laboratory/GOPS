@@ -3,31 +3,30 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Carfollowing Environment model
-#  Update Date: 2021-11-22, Yuhang Zhang: create environment
 
 
 import warnings
 
 import numpy as np
 import torch
-from gops.env.resources.car_following.car_following import CarFollowingDynamics
+from gops.env.resources.car_following_2d.car_following_2d import CarFollowingDynamics2D
 
 
 class PythCarfollowingModel:
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
         """
         you need to define parameters here
         """
         # define your custom parameters here
-        self.dyn = CarFollowingDynamics()
+        self.dyn = CarFollowingDynamics2D()
         # define common parameters here
-        self.state_dim = 3
+        self.state_dim = 2
         self.action_dim = 1
         self.constraint_dim = 1
-        self.lb_state = [-np.inf, -np.inf, -np.inf]
-        self.hb_state = [np.inf, np.inf, np.inf]
+        self.use_constraint = kwargs.get('use_constraint', True)
+        self.lb_state = [-np.inf, -np.inf]
+        self.hb_state = [np.inf, np.inf]
         self.lb_action = [
             -4.0,
         ]
@@ -78,7 +77,7 @@ class PythCarfollowingModel:
         ############################################################################################
 
         # define the ending condation here the format is just like isdone = l(next_state)
-        isdone = state_next[:, 2] < 2
+        isdone = state_next[:, 1] < 2
 
         ############################################################################################
 
@@ -86,7 +85,7 @@ class PythCarfollowingModel:
         reward = self.dyn.compute_reward(state_next, action)
 
         ############################################################################################
-        info = {"constraint": 2 - state_next[:, 2]}
+        info = {"constraint": 2 - state_next[:, 1]}
         # beyond_done = beyond_done.bool()
         # mask = isdone * beyond_done
         # mask = torch.unsqueeze(mask, -1)
@@ -102,9 +101,11 @@ class PythCarfollowingModel:
         isdone = torch.from_numpy(isdone)
         for step in range(n):
             action = func(state)
-            state_next, reward[:, step], isdone = self.forward(state, action, isdone)
+            state_next, reward[:, step], isdone, _ = self.forward(state, action, isdone)
             state = state_next
 
+def env_moedel_creator(**kwargs):
+    return PythCarfollowingModel(**kwargs)
 
 def clip_by_tensor(t, t_min, t_max):
     """
@@ -120,4 +121,4 @@ def clip_by_tensor(t, t_min, t_max):
 
 
 if __name__ == "__main__":
-    env = GymDemocontiModel()
+    env = env_moedel_creator()
