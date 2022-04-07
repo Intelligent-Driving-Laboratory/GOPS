@@ -100,7 +100,7 @@ def init_args(env, **args):
     # set random seed
     seed = args.get("seed", None)
     args["seed"] = seed_everything(seed)
-
+    print("Set global seed to {}".format(args["seed"]))
     with open(args["save_folder"] + "/config.json", "w", encoding="utf-8") as f:
         json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
     return args

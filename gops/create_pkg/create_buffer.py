@@ -35,8 +35,8 @@ def create_buffer(**kwargs):
                 import ray
 
                 buffer = [
-                    ray.remote(num_cpus=1)(ReplayBuffer).remote(**kwargs)
-                    for _ in range(kwargs["num_buffers"])
+                    ray.remote(num_cpus=1)(ReplayBuffer).remote(index=idx, **kwargs)
+                    for idx in range(kwargs["num_buffers"])
                 ]
             else:
                 raise NotImplementedError("This trainer is not properly defined")

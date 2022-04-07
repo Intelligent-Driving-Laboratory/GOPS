@@ -19,7 +19,7 @@ from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.create_pkg.create_env_model import create_env_model
 from gops.utils.utils import get_apprfunc_dict
 from gops.utils.tensorboard_tools import tb_tags
-
+from gops.utils.utils import set_seed
 
 class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
@@ -77,7 +77,8 @@ class ApproxContainer(nn.Module):
 
 
 class INFADP:
-    def __init__(self, **kwargs):
+    def __init__(self, index=0, **kwargs):
+        set_seed(kwargs["trainer"], kwargs["seed"], index + 300)
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
         self.use_gpu = kwargs["use_gpu"]
@@ -163,12 +164,12 @@ class INFADP:
             for step in range(self.forward_step):
                 if step == 0:
                     a = self.networks.policy(o)
-                    o2, r, d = self.envmodel.forward(o, a, d)
+                    o2, r, d, _ = self.envmodel.forward(o, a, d)
                     backup = self.reward_scale * r
                 else:
                     o = o2
                     a = self.networks.policy(o)
-                    o2, r, d = self.envmodel.forward(o, a, d)
+                    o2, r, d, _ = self.envmodel.forward(o, a, d)
                     backup += self.reward_scale * self.gamma ** step * r
 
             backup += (
@@ -191,12 +192,12 @@ class INFADP:
         for step in range(self.forward_step):
             if step == 0:
                 a = self.networks.policy(o)
-                o2, r, d = self.envmodel.forward(o, a, d)
+                o2, r, d, _ = self.envmodel.forward(o, a, d)
                 v_pi = self.reward_scale * r
             else:
                 o = o2
                 a = self.networks.policy(o)
-                o2, r, d = self.envmodel.forward(o, a, d)
+                o2, r, d, _ = self.envmodel.forward(o, a, d)
                 v_pi += self.reward_scale * self.gamma ** step * r
         v_pi += (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
         for p in self.networks.v.parameters():

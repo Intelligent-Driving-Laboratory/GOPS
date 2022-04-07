@@ -31,8 +31,8 @@ def create_sampler(**kwargs):
             import ray
 
             sampler = [
-                ray.remote(num_cpus=1)(sampler_cls).remote(**kwargs)
-                for _ in range(kwargs["num_samplers"])
+                ray.remote(num_cpus=1)(sampler_cls).remote(index=idx, **kwargs)
+                for idx in range(kwargs["num_samplers"])
             ]
         else:
             raise NotImplementedError("This trainer is not properly defined")

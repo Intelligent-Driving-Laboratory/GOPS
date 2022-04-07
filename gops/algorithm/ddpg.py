@@ -18,7 +18,7 @@ import time
 from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.utils.utils import get_apprfunc_dict
 from gops.utils.tensorboard_tools import tb_tags
-
+from gops.utils.utils import set_seed
 
 class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
@@ -78,7 +78,8 @@ class ApproxContainer(nn.Module):
 
 
 class DDPG:
-    def __init__(self, **kwargs):
+    def __init__(self, index=0, **kwargs):
+        set_seed(kwargs["trainer"], kwargs["seed"], index + 300)
         self.networks = ApproxContainer(**kwargs)
         self.use_gpu = kwargs["use_gpu"]
         self.gamma = 0.99

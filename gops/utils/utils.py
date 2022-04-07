@@ -55,7 +55,6 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
     var["obs_dim"] = kwargs["obsv_dim"]
     var["min_log_std"] = kwargs.get(key + "_min_log_std", float("-inf"))
     var["max_log_std"] = kwargs.get(key + "_max_log_std", float("inf"))
-    var["std_sype"] = kwargs.get(key + "_std_sype", "mlp_shared")
 
     if type == "MLP" or type == "RNN":
         var["hidden_sizes"] = kwargs[key + "_hidden_sizes"]
@@ -76,8 +75,6 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
             var["output_activation"] = kwargs[key + "_output_activation"]
     elif type == "POLY":
         var["degree"] = kwargs[key + "_degree"]
-    elif type == "GAUSS":
-        var["num_kernel"] = kwargs[key + "_num_kernel"]
     else:
         raise NotImplementedError
 
@@ -165,10 +162,23 @@ def seed_everything(seed: Optional[int] = None) -> int:
     elif not isinstance(seed, int):
         seed = int(seed)
 
-    print("Set random seed to {}".format(seed))
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
     return seed
+
+
+def set_seed(trainer_name, seed, offset, env=None):
+    if trainer_name.split("_")[1] in ["async", "sync"]:
+        print("Setting seed of a subprocess to {}".format(seed + offset))
+        seed_everything(seed + offset)
+        if env is not None:
+            env.seed(seed + offset)
+        return seed + offset, env
+
+    else:
+        if env is not None:
+            env.seed(seed)
+        return None, env
