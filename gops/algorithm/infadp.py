@@ -19,7 +19,7 @@ from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.create_pkg.create_env_model import create_env_model
 from gops.utils.utils import get_apprfunc_dict
 from gops.utils.tensorboard_tools import tb_tags
-from gops.utils.utils import set_seed
+from gops.algorithm.base import AlgorithmBase
 
 class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
@@ -76,9 +76,9 @@ class ApproxContainer(nn.Module):
                     p_targ.data.add_(tau * p.data)
 
 
-class INFADP:
+class INFADP(AlgorithmBase):
     def __init__(self, index=0, **kwargs):
-        set_seed(kwargs["trainer"], kwargs["seed"], index + 300)
+        super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
         self.use_gpu = kwargs["use_gpu"]

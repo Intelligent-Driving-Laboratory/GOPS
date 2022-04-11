@@ -171,6 +171,27 @@ def seed_everything(seed: Optional[int] = None) -> int:
 
 
 def set_seed(trainer_name, seed, offset, env=None):
+    """
+    When trainer_name is `**_async_**` or `**_sync_**`, set random seed for the subprocess and gym env, 
+    else only set the subprocess for gym env
+
+    Parameters
+    ----------
+    trainer_name : str
+        trainer_name
+    seed : int
+        global seed
+    offset : int
+        the offset of random seed for the subprocess
+    env : gym.Env, optional
+        a gym env needs to set random seed, by default None
+
+    Returns
+    -------
+    (int, gym.Env)
+        the random seed for the subprocess, a gym env which the random seed is set
+    """
+
     if trainer_name.split("_")[1] in ["async", "sync"]:
         print("Setting seed of a subprocess to {}".format(seed + offset))
         seed_everything(seed + offset)
