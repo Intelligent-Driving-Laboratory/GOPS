@@ -15,6 +15,7 @@ import time
 import numpy as np
 import torch
 from gops.create_pkg.create_env import create_env
+from gops.utils.utils import set_seed
 
 from gops.utils.action_distributions import (
     GaussDistribution,
@@ -25,8 +26,11 @@ from gops.utils.action_distributions import (
 
 
 class Evaluator:
-    def __init__(self, **kwargs):
+    def __init__(self, index=0, **kwargs):
         self.env = create_env(**kwargs)
+
+        _, self.env = set_seed(kwargs["trainer"], kwargs["seed"], index + 400, self.env)
+
         alg_name = kwargs["algorithm"]
         alg_file_name = alg_name.lower()
         file = __import__(alg_file_name)

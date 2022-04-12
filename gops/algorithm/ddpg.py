@@ -18,7 +18,7 @@ import time
 from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.utils.utils import get_apprfunc_dict
 from gops.utils.tensorboard_tools import tb_tags
-
+from gops.algorithm.base import AlgorithmBase
 
 class ApproxContainer(nn.Module):
     def __init__(self, **kwargs):
@@ -77,8 +77,9 @@ class ApproxContainer(nn.Module):
                 p_targ.data.add_((1 - polyak) * p.data)
 
 
-class DDPG:
-    def __init__(self, **kwargs):
+class DDPG(AlgorithmBase):
+    def __init__(self, index=0, **kwargs):
+        super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
         self.use_gpu = kwargs["use_gpu"]
         self.gamma = 0.99

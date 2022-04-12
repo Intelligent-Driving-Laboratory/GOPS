@@ -27,7 +27,6 @@ def create_env(**kwargs):
         print("Env name: ", env_name_camel)
         raise NotImplementedError("This environment is not properly defined")
     print("Create environment successfully!")
-    env.seed(kwargs.get("seed", 111))
     return env
 
 

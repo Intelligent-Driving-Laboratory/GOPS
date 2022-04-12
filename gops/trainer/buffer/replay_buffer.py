@@ -10,7 +10,7 @@
 import numpy as np
 import sys
 import torch
-
+from gops.utils.utils import set_seed
 __all__ = ["ReplayBuffer"]
 
 
@@ -25,7 +25,8 @@ class ReplayBuffer:
     return torch.tensors
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, index=0, **kwargs):
+        set_seed(kwargs["trainer"], kwargs["seed"], index + 100)
         self.obsv_dim = kwargs["obsv_dim"]
         self.act_dim = kwargs["action_dim"]
         self.max_size = kwargs["buffer_max_size"]
