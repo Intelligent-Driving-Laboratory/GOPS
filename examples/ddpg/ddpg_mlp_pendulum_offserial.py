@@ -62,7 +62,7 @@ if __name__ == "__main__":
     parser.add_argument("--policy_func_name", type=str, default="DetermPolicy")
     parser.add_argument("--policy_func_type", type=str, default="MLP")
     parser.add_argument("--policy_act_distribution", type=str, default="default")
-    policy_func_type = parser.parse_args().policy_func_type
+    policy_func_type = parser.parse_known_args()[0].policy_func_type
     if policy_func_type == "MLP":
         parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
         parser.add_argument("--policy_hidden_activation", type=str, default="relu")
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
     parser.add_argument("--max_iteration", type=int, default=8000)
-    trainer_type = parser.parse_args().trainer
+    trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     if trainer_type == "off_serial_trainer":
         parser.add_argument("--buffer_name", type=str, default="replay_buffer")
