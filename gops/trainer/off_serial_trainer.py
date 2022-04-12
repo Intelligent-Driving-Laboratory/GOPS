@@ -31,12 +31,13 @@ class OffSerialTrainer:
         self.buffer = buffer
         self.evaluator = evaluator
 
-        # Import algorithm, appr func, sampler & buffer
-        alg_name = kwargs["algorithm"]
-        alg_file_name = alg_name.lower()
-        file = __import__(alg_file_name)
-        ApproxContainer = getattr(file, "ApproxContainer")
-        self.networks = ApproxContainer(**kwargs)
+        if kwargs["use_gpu"]:
+            self.alg.networks.cuda()
+        else:
+
+            self.sampler.networks = self.alg.networks
+            self.evaluator.networks = self.alg.networks
+
         self.iteration = 0
         self.max_iteration = kwargs.get("max_iteration")
         self.warm_size = kwargs["buffer_warm_size"]
@@ -45,7 +46,7 @@ class OffSerialTrainer:
 
         # initialize the networks
         if self.ini_network_dir is not None:
-            self.networks.load_state_dict(torch.load(self.ini_network_dir))
+            self.alg.networks.load_state_dict(torch.load(self.ini_network_dir))
 
         # Collect enough warm samples
         while self.buffer.size < self.warm_size:
@@ -54,10 +55,9 @@ class OffSerialTrainer:
 
         self.save_folder = kwargs["save_folder"]
         self.log_save_interval = kwargs["log_save_interval"]
-        self.sampler_sync_interval = kwargs["sampler_sync_interval"]
         self.apprfunc_save_interval = kwargs["apprfunc_save_interval"]
         self.eval_interval = kwargs["eval_interval"]
-        self.sample_interval = 1
+        self.sample_interval = kwargs.get("sample_interval",1)
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
         self.writer.add_scalar(tb_tags["alg_time"], 0, 0)
         self.writer.add_scalar(tb_tags["sampler_time"], 0, 0)
@@ -69,7 +69,6 @@ class OffSerialTrainer:
         # sampling
         sampler_tb_dict = {}
         if self.iteration % self.sample_interval == 0:
-            self.sampler.networks.load_state_dict(self.networks.state_dict())
             sampler_samples, sampler_tb_dict = self.sampler.sample()
             self.buffer.add_batch(sampler_samples)
 
@@ -77,11 +76,7 @@ class OffSerialTrainer:
         replay_samples = self.buffer.sample_batch(self.replay_batch_size)
 
         # learning
-        self.alg.networks.load_state_dict(self.networks.state_dict())
-        grads, alg_tb_dict = self.alg.compute_gradient(replay_samples, self.iteration)
-
-        # apply grad
-        self.networks.update(grads)
+        alg_tb_dict = self.alg.local_update(replay_samples, self.iteration)
 
         # log
         if self.iteration % self.log_save_interval == 0:
@@ -90,7 +85,6 @@ class OffSerialTrainer:
             add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
         # evaluate
         if self.iteration % self.eval_interval == 0:
-            self.evaluator.networks.load_state_dict(self.networks.state_dict())
             total_avg_return = self.evaluator.run_evaluation(self.iteration)
             self.writer.add_scalar(
                 tb_tags["Buffer RAM of RL iteration"],
@@ -119,7 +113,7 @@ class OffSerialTrainer:
         # save
         if self.iteration % self.apprfunc_save_interval == 0:
             torch.save(
-                self.networks.state_dict(),
+                self.alg.networks.state_dict(),
                 self.save_folder + "/apprfunc/apprfunc_{}.pkl".format(self.iteration),
             )
 
