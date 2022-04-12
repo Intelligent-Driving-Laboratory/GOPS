@@ -68,6 +68,7 @@ if __name__ == "__main__":
     parser.add_argument("--policy_func_name", type=str, default="StochaPolicy")
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument("--policy_func_type", type=str, default="MLP")
+    parser.add_argument("--policy_std_sype", type=str, default="parameter")
     parser.add_argument(
         "--policy_act_distribution", type=str, default="GaussDistribution"
     )

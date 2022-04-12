@@ -97,7 +97,7 @@ class MAC:
     def dynamic_model_forward(self, o, a, d):
         if self.delta is not None:
             self.delta = torch.zeros_like(o)
-        o2, r, d = self.envmodel.forward(o, a, d)
+        o2, r, d, _ = self.envmodel.forward(o, a, d)
         o2 = o2 + self.delta
         return o2, r, d
 
