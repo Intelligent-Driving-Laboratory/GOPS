@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from gym import spaces
 from gym.utils import seeding
-
+from gops.env.tools.wrapper import EnvC2U
 from gops.env.resources.car_following_2d.car_following_2d import CarFollowingDynamics2D
 
 gym.logger.setLevel(gym.logger.ERROR)
@@ -158,30 +158,14 @@ class PythCarfollowingData:
 
 
 def env_creator(**kwargs):
-    return PythCarfollowingData()
+    if kwargs.get("use_constrain", True):
+        return PythCarfollowingData()
+    else:
+        env = PythCarfollowingData()
+        print("converting a constrain env into a unconstrain one")
+        return EnvC2U(env)
 
 
 if __name__ == "__main__":
     # import cv2
-    import time
-
-    env = env_creator()
-
-    s = env.reset()
-    env.observation_space.contains(s)
-    a = env.action_space.sample()
-    s, r, d, _ = env.step(a)
-
-    print(type(d))
-    # for i in range(100):
-    #     a = env.action_space.sample()
-    #     x, r, d, info = env.step(a)
-    #     # pprint([x, r, d, info])
-    #     env.render()
-
-    # fig_array = env.render(mode="human")
-    # print(fig_array.shape)
-    # cv2.imshow("pic", fig_array)
-    # cv2.waitKey(0)
-    # cv2.destroyWindow()
-    # time.sleep(100)
+    env_creator(use_constrain=False)
