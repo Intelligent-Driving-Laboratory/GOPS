@@ -13,7 +13,6 @@ from gym import error
 
 env_id_re = re.compile(r"^(?:[\w:-]+\/)?([\w:.-]+)-v(\d+)$")
 
-
 def safe_make(env_id):
     registry = gym.envs.registration.registry
     match = env_id_re.search(env_id)

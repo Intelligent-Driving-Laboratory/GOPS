@@ -57,11 +57,7 @@ def write_text_safe(path: pathlib.Path, text: str):
     if path.exists():
         import time
 
-        path.rename(
-            path.with_name(
-                f"{path.name}_backup_{time.strftime('%H-%M-%S')}{path.suffix}"
-            )
-        )
+        path.rename(path.with_name(f"{path.name}_backup_{time.strftime('%H-%M-%S')}{path.suffix}"))
     path.write_text(text, encoding="utf-8")
 
 
@@ -140,9 +136,7 @@ cdef class {class_name}:
     return self.{convert_out}(rty)
 """
 
-    TEMPLATE_ARRAY2NP = (
-        "np.asarray(<np.{dtype}[:{size}]> {name}).copy()"  # TODO: better way?
-    )
+    TEMPLATE_ARRAY2NP = "np.asarray(<np.{dtype}[:{size}]> {name}).copy()"  # TODO: better way?
     TEMPLATE_CDEF_FIELD = "cdef {type} {name}"
 
     TEMPLATE_BUILDER = """\
@@ -346,9 +340,7 @@ class {model}Env(gym.Env):
 
     def to_string(self, indent_size=2):
         indent_unit = " " * indent_size
-        return "\n".join(
-            [(level * indent_unit + line).rstrip() for level, line in self.lines]
-        )
+        return "\n".join([(level * indent_unit + line).rstrip() for level, line in self.lines])
 
 
 class Transformer:
@@ -376,9 +368,7 @@ class Transformer:
         self.paths["builder"]["dest"].write_text(builder, encoding="utf-8")
 
         helper = self.generate_type_helper()
-        write_text_safe(
-            self.paths["helper"]["dest"], helper
-        )  # To avoid overwrite user code
+        write_text_safe(self.paths["helper"]["dest"], helper)  # To avoid overwrite user code
 
         shutil.copy(self.paths["header"]["src"], self.paths["header"]["dest"])
         shutil.copy(self.paths["source"]["src"], self.paths["source"]["dest"])
@@ -392,9 +382,7 @@ class Transformer:
         MODEL_SOURCE = self.paths["source"]["dest"]
         # MODEL_DATA = self.paths["source_data"]["dest"]
 
-        with open(MODEL_HEADER, "r+") as model_header_file, open(
-            MODEL_SOURCE, "r+"
-        ) as model_source_file:
+        with open(MODEL_HEADER, "r+") as model_header_file, open(MODEL_SOURCE, "r+") as model_source_file:
             model_source = model_source_file.readlines()
             model_header = model_header_file.readlines()
             for i, line in enumerate(model_header):
@@ -413,12 +401,8 @@ class Transformer:
 
             class_name = self.code_info["class"]["name"]
             variable_name = self.code_info["class"]["mapping"]["param"]
-            typename = self.code_info["class"]["fields"][
-                self.code_info["class"]["mapping"]["param_inst"]
-            ]["type"]
-            model_source.insert(
-                include_line + 1, MODEL_SOURCE_INJECTIONS.format(variable_name)
-            )
+            typename = self.code_info["class"]["fields"][self.code_info["class"]["mapping"]["param_inst"]]["type"]
+            model_source.insert(include_line + 1, MODEL_SOURCE_INJECTIONS.format(variable_name))
             model_header.insert(
                 private_line,
                 MODEL_HEADER_INJECTIONS.format(typename, variable_name, class_name),
@@ -481,19 +465,12 @@ class Transformer:
                         "input": "setExternalInputs",  # TODO: more generic way?
                         "output": "getExternalOutputs",
                         # "param": code_info["Parameters"][0]["Implementation"]["BaseRegion"]["Identifier"],  # difference between Identifier and ElementIdentifier
-                        "param": code_info["Parameters"][0]["Implementation"][
-                            "BaseRegion"
-                        ]["ElementIdentifier"],
-                        "param_inst": code_info["Parameters"][0]["Implementation"][
-                            "BaseRegion"
-                        ]["ElementIdentifier"]
+                        "param": code_info["Parameters"][0]["Implementation"]["BaseRegion"]["ElementIdentifier"],
+                        "param_inst": code_info["Parameters"][0]["Implementation"]["BaseRegion"]["ElementIdentifier"]
                         + "__actual",
                         # "param_type": class_type["Parameters"][0]["Implementation"]["BaseRegion"]["Type"]["Name"]
                     },
-                    "methods": {
-                        method["Name"]: parse_method(method)
-                        for method in class_type["Methods"]
-                    },
+                    "methods": {method["Name"]: parse_method(method) for method in class_type["Methods"]},
                     "fields": {
                         field["Identifier"]: parse_field(field)
                         for field in class_type["Elements"]
@@ -518,11 +495,7 @@ class Transformer:
     def generate_def(self):
         writer = WriterContext()
 
-        with writer.write_block(
-            WriterContext.TEMPLATE_EXTERN.format(
-                header=self.code_info["class"]["header"]
-            )
-        ):
+        with writer.write_block(WriterContext.TEMPLATE_EXTERN.format(header=self.code_info["class"]["header"])):
             pending_scoped_defs = {}
             for type_name, type_def in self.type_registry.items():
                 if type_def["mode"] == Types.SCALAR:
@@ -533,16 +506,10 @@ class Transformer:
                 else:
                     scope = type_def["scope"]
                     if scope is None:
-                        with writer.write_block(
-                            WriterContext.TEMPLATE_CTYPEDEF_STRUCT.format(
-                                name=type_name
-                            )
-                        ):
+                        with writer.write_block(WriterContext.TEMPLATE_CTYPEDEF_STRUCT.format(name=type_name)):
                             for el in type_def["elements"]:
                                 type_info = self.type_registry[el["type"]]
-                                writer.write_line(
-                                    type_info["repr"].format(name=el["name"])
-                                )
+                                writer.write_line(type_info["repr"].format(name=el["name"]))
                     else:
                         if scope in pending_scoped_defs:
                             pending_scoped_defs[scope].append(type_def)
@@ -551,27 +518,19 @@ class Transformer:
 
             klass = self.code_info["class"]
             class_name = klass["name"]
-            with writer.write_block(
-                WriterContext.TEMPLATE_CDEF_CLASS.format(name=class_name)
-            ):
+            with writer.write_block(WriterContext.TEMPLATE_CDEF_CLASS.format(name=class_name)):
                 if class_name in pending_scoped_defs:
                     for type_def in pending_scoped_defs[class_name]:
                         type_name = type_def["name"]
-                        with writer.write_block(
-                            WriterContext.TEMPLATE_STRUCT.format(name=type_name)
-                        ):
+                        with writer.write_block(WriterContext.TEMPLATE_STRUCT.format(name=type_name)):
                             for el in type_def["elements"]:
                                 type_info = self.type_registry[el["type"]]
-                                writer.write_line(
-                                    type_info["repr"].format(name=el["name"])
-                                )
+                                writer.write_line(type_info["repr"].format(name=el["name"]))
                     del pending_scoped_defs[class_name]
 
                 for method_name, method_def in klass["methods"].items():
                     if method_name == class_name:
-                        writer.write_line(
-                            WriterContext.TEMPLATE_CTOR.format(name=class_name, args="")
-                        )
+                        writer.write_line(WriterContext.TEMPLATE_CTOR.format(name=class_name, args=""))
                     elif method_name == klass["mapping"]["input"]:
                         # TODO: not a elegant workaround
                         writer.write_line(
@@ -591,11 +550,7 @@ class Transformer:
                         )
 
                 for field_name, field_def in klass["fields"].items():
-                    writer.write_line(
-                        WriterContext.TEMPLATE_FIELD.format(
-                            name=field_name, type=field_def["type"]
-                        )
-                    )
+                    writer.write_line(WriterContext.TEMPLATE_FIELD.format(name=field_name, type=field_def["type"]))
 
             assert not pending_scoped_defs
         return writer.to_string()
@@ -649,9 +604,7 @@ class Transformer:
 
             # writer.write_line(WriterContext.TEMPLATE_WRAPPER_STATIC)
             with writer.write_block(
-                WriterContext.TEMPLATE_WRAPPER_CDEF.format(
-                    name=convert_in, ret=input_type, args=convert_in_param
-                )
+                WriterContext.TEMPLATE_WRAPPER_CDEF.format(name=convert_in, ret=input_type, args=convert_in_param)
             ):
                 self.generate_p2c_converter(
                     writer,
@@ -721,9 +674,7 @@ class Transformer:
                     el_info = self.type_registry[el["type"]]
 
                     if el_info["mode"] == Types.SCALAR:
-                        writer.write_line(
-                            f"{el['name']}: {PY_TYPE_MAPPING[el['type']]}"
-                        )
+                        writer.write_line(f"{el['name']}: {PY_TYPE_MAPPING[el['type']]}")
                     elif el_info["mode"] == Types.ARRAY:
                         writer.write_line(f"{el['name']}: np.ndarray")
                     else:
@@ -736,21 +687,15 @@ class Transformer:
                 el_info = self.type_registry[el["type"]]
 
                 if el_info["mode"] == Types.SCALAR:
-                    writer.write_line(
-                        f"('{el['name']}', {PY_NP_TYPE_MAPPING[el['type']]}),"
-                    )
+                    writer.write_line(f"('{el['name']}', {PY_NP_TYPE_MAPPING[el['type']]}),")
                 elif el_info["mode"] == Types.ARRAY:
-                    writer.write_line(
-                        f"('{el['name']}', {PY_NP_TYPE_MAPPING[el_info['base']]}, ({el_info['size']},)),"
-                    )
+                    writer.write_line(f"('{el['name']}', {PY_NP_TYPE_MAPPING[el_info['base']]}, ({el_info['size']},)),")
                 else:
                     with writer.write_block(f"('{el['name']}', [", "]),"):
                         generate_np_structure(el_info["elements"])
 
         writer = WriterContext(presets=[WriterContext.BANNER])
-        writer.write_line(
-            f"{self.code_info['name']}_SAMPLE_TIME = {self.code_info['sample_time']}"
-        )
+        writer.write_line(f"{self.code_info['name']}_SAMPLE_TIME = {self.code_info['sample_time']}")
 
         writer.write_line("from dataclasses import dataclass")
         writer.write_line("import numpy as np")
@@ -816,9 +761,7 @@ class Transformer:
         def unroll(type_info):
             type_name = type_info["Name"]
             if "Dimensions" in type_info:
-                type_info["Dimensions"] = reduce(
-                    lambda x, y: x * y, arrayify(type_info["Dimensions"]), 1
-                )
+                type_info["Dimensions"] = reduce(lambda x, y: x * y, arrayify(type_info["Dimensions"]), 1)
                 if type_info["Dimensions"] == 1:
                     if type_name.startswith("matrix1x1x"):
                         type_name = type_name[10:]
@@ -856,9 +799,7 @@ class Transformer:
                 "name": type_name,
                 "mode": Types.STRUCT,
                 "scope": None,
-                "elements": [
-                    parse_element(el) for el in arrayify(type_info["Elements"])
-                ],
+                "elements": [parse_element(el) for el in arrayify(type_info["Elements"])],
                 "repr": "{} {};".format(type_name, "{name}"),
             }
         elif "Dimensions" in type_info:
@@ -870,9 +811,7 @@ class Transformer:
                 "base": self.register_type(type_info["BaseType"]),
                 "size": nonscalar(type_info["Dimensions"]),
             }
-            array_type["repr"] = "{} {}[{}];".format(
-                array_type["base"], "{name}", array_type["size"]
-            )
+            array_type["repr"] = "{} {}[{}];".format(array_type["base"], "{name}", array_type["size"])
             self.type_registry[type_name] = array_type
         else:
             # double(real_T)
@@ -886,11 +825,7 @@ class Transformer:
 
     def mix_types(self, types):
         for type in types:
-            if (
-                type["Name"].startswith("B_")
-                or type["Name"].startswith("DW_")
-                or type["Name"].startswith("X_")
-            ):
+            if type["Name"].startswith("B_") or type["Name"].startswith("DW_") or type["Name"].startswith("X_"):
                 continue
             id: str = type["Identifier"]
             if "::" not in id:
@@ -934,9 +869,7 @@ class Transformer:
             dtype = NP_TYPE_MAPPING[type_info["base"]]
             writer.write_line(
                 prefix
-                + WriterContext.TEMPLATE_ARRAY2NP.format(
-                    name=".".join(new_path), size=type_info["size"], dtype=dtype
-                ),
+                + WriterContext.TEMPLATE_ARRAY2NP.format(name=".".join(new_path), size=type_info["size"], dtype=dtype),
                 append=append,
             )
         else:
@@ -979,9 +912,7 @@ class Transformer:
             dtype = NP_TYPE_MAPPING[type_info["base"]]
             writer.write_line(
                 prefix
-                + WriterContext.TEMPLATE_ARRAY2NP.format(
-                    name=".".join(new_path), size=type_info["size"], dtype=dtype
-                ),
+                + WriterContext.TEMPLATE_ARRAY2NP.format(name=".".join(new_path), size=type_info["size"], dtype=dtype),
                 append=append,
             )
         else:
@@ -1007,11 +938,7 @@ class Transformer:
         # intended for structs
         type_info = self.type_registry[type]
         c_name = name + "_c"
-        writer.write_line(
-            WriterContext.TEMPLATE_CDEF_FIELD.format(
-                type=self.try_scope(type), name=c_name
-            )
-        )
+        writer.write_line(WriterContext.TEMPLATE_CDEF_FIELD.format(type=self.try_scope(type), name=c_name))
 
         base_template = c_name + ".{} = " + name + ".{}"
         pending = [(type_info["elements"], [])]
@@ -1033,9 +960,7 @@ class Transformer:
                     tmp = "']['".join(new_paths)
                     p_path_str = f"['{tmp}']"
                     tmp_name = f"__tmp_view_{counter}"
-                    writer.write_line(
-                        f"cdef {el_info['base']}[:] {tmp_name} = {name}{p_path_str}"
-                    )
+                    writer.write_line(f"cdef {el_info['base']}[:] {tmp_name} = {name}{p_path_str}")
                     writer.write_line(f"{c_name}.{c_path_str} = &{tmp_name}[0]")
                 else:
                     pending.append((el_info["elements"], new_paths))
@@ -1047,16 +972,10 @@ class Transformer:
         input_type = self.type_registry[klass["methods"][mapping["input"]]["arguments"]]
         output_type = self.type_registry[klass["methods"][mapping["output"]]["return"]]
 
-        input_compliant = (
-            len(input_type["elements"]) == 1
-            and input_type["elements"][0]["name"] == "Action"
-        )
+        input_compliant = len(input_type["elements"]) == 1 and input_type["elements"][0]["name"] == "Action"
 
         # TODO: Reward and isDone
-        output_compliant = (
-            len(output_type["elements"]) == 1
-            and output_type["elements"][0]["name"] == "State"
-        )
+        output_compliant = len(output_type["elements"]) == 1 and output_type["elements"][0]["name"] == "State"
 
         return input_compliant and output_compliant
 
@@ -1089,10 +1008,8 @@ class Transformer:
             },
             "source_data": {
                 "filename": self.code_info["class"]["source"][:-4] + "_data.cpp",
-                "src": self.context
-                / (self.code_info["class"]["source"][:-4] + "_data.cpp"),
-                "dest": self.out
-                / (self.code_info["class"]["source"][:-4] + "_data.cpp"),
+                "src": self.context / (self.code_info["class"]["source"][:-4] + "_data.cpp"),
+                "dest": self.out / (self.code_info["class"]["source"][:-4] + "_data.cpp"),
             },
             "types": {
                 "filename": "rtwtypes.h",
@@ -1106,9 +1023,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Transform simulink codegen output.")
-    parser.add_argument(
-        "context", type=str, help="The folder containing ecoder generated files."
-    )
+    parser.add_argument("context", type=str, help="The folder containing ecoder generated files.")
     parser.add_argument(
         "--out",
         type=str,

@@ -61,7 +61,7 @@ if __name__ == "__main__":
         default="MLP",
         help="Options: MLP/CNN/RNN/POLY/GAUSS",
     )
-    value_func_type = parser.parse_args().value_func_type
+    value_func_type = parser.parse_known_args()[0].value_func_type
     # 2.1.1 MLP, CNN, RNN
     if (
         value_func_type == "MLP"
@@ -84,7 +84,7 @@ if __name__ == "__main__":
         help="Options: MLP/CNN/RNN/POLY/GAUSS",
     )
     parser.add_argument("--policy_act_distribution", type=str, default="default")
-    policy_func_type = parser.parse_args().policy_func_type
+    policy_func_type = parser.parse_known_args()[0].policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if (
         policy_func_type == "MLP"
@@ -114,10 +114,10 @@ if __name__ == "__main__":
         "off_async_trainermix",
     )
     parser.add_argument(
-        "--max_iteration", type=int, default=5000, help="Maximum iteration number"
+        "--max_iteration", type=int, default=6400, help="Maximum iteration number"
     )
     parser.add_argument("--ini_network_dir", type=str, default=None)
-    trainer_type = parser.parse_args().trainer
+    trainer_type = parser.parse_known_args()[0].trainer
     # 4.4. Parameters for off_async_trainer
     if trainer_type == "off_async_trainer":
         import ray
@@ -132,9 +132,9 @@ if __name__ == "__main__":
         )
         cpu_core_num = multiprocessing.cpu_count()
         num_core_input = (
-            parser.parse_args().num_algs
-            + parser.parse_args().num_samplers
-            + parser.parse_args().num_buffers
+            parser.parse_known_args()[0].num_algs
+            + parser.parse_known_args()[0].num_samplers
+            + parser.parse_known_args()[0].num_buffers
             + 2
         )
         if num_core_input > cpu_core_num:
@@ -157,7 +157,7 @@ if __name__ == "__main__":
         parser.add_argument(
             "--replay_batch_size",
             type=int,
-            default=256,
+            default=64,
             help="Batch size of replay samples from buffer",
         )
     else:
@@ -169,7 +169,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--sample_batch_size",
         type=int,
-        default=256,
+        default=4,
         help="Batch size of sampler for buffer store",
     )
     parser.add_argument(
@@ -185,7 +185,7 @@ if __name__ == "__main__":
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=5)
+    parser.add_argument("--num_eval_episode", type=int, default=10)
     parser.add_argument("--eval_interval", type=int, default=100)
 
     ################################################
@@ -194,7 +194,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--apprfunc_save_interval",
         type=int,
-        default=5000,
+        default=2000,
         help="Save value/policy every N updates",
     )
     parser.add_argument(

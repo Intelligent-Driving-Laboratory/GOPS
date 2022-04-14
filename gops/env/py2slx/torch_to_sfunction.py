@@ -14,9 +14,7 @@ import torch
 import sys
 import os
 
-base_path = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
+base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(base_path)
 
 from gops.apprfunc.mlp import DetermPolicy, StochaPolicy

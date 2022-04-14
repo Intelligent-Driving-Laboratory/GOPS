@@ -12,12 +12,15 @@ import sys
 import torch
 import torch.nn as nn
 import numpy as np
+import logging
+from typing import Optional
 
 from gops.utils.tensorboard_tools import tb_tags
 from gops.utils.action_distributions import *
 import random
 import importlib
 
+logger = logging.getLogger(__name__)
 
 def get_activation_func(key: str):
     assert isinstance(key, str)
@@ -52,6 +55,7 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
     var["obs_dim"] = kwargs["obsv_dim"]
     var["min_log_std"] = kwargs.get(key + "_min_log_std", float("-inf"))
     var["max_log_std"] = kwargs.get(key + "_max_log_std", float("inf"))
+    var["std_sype"] = kwargs.get(key + "_std_sype", "mlp_shared")
 
     if type == "MLP" or type == "RNN":
         var["hidden_sizes"] = kwargs[key + "_hidden_sizes"]
@@ -71,7 +75,9 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
             var["hidden_activation"] = kwargs[key + "_hidden_activation"]
             var["output_activation"] = kwargs[key + "_output_activation"]
     elif type == "POLY":
-        pass
+        var["degree"] = kwargs[key + "_degree"]
+    elif type == "GAUSS":
+        var["num_kernel"] = kwargs[key + "_num_kernel"]
     else:
         raise NotImplementedError
 
@@ -85,7 +91,7 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
 
     if kwargs["policy_act_distribution"] == "default":
         if kwargs["action_type"] == "continu":
-            if kwargs["policy_func_name"] == "StochaPolicy":
+            if kwargs["policy_func_name"] == "StochaPolicy":  # todo: add TanhGauss
                 var["action_distirbution_cls"] = GaussDistribution
             elif kwargs["policy_func_name"] == "DetermPolicy":
                 var["action_distirbution_cls"] = DiracDistribution
@@ -149,15 +155,96 @@ def array_to_scalar(arrayLike):
     return arrayLike if isinstance(arrayLike, (int, float)) else arrayLike.item()
 
 
-# class Timer(object):
-#     def __init__(self, writer, tag=tb_tags['time'], step=None):
-#         self.writer = writer
-#         self.tag = tag
-#         self.step = step
-#
-#     def __enter__(self):
-#         self.start = time.time()
-#
-#     def __exit__(self, exc_type, exc_val, exc_tb):
-#         # print(time.time() - self.start)
-#         self.writer.add_scalar(self.tag, time.time() - self.start, self.step)
+def seed_everything(seed: Optional[int] = None) -> int:
+    max_seed_value = np.iinfo(np.uint32).max
+    min_seed_value = np.iinfo(np.uint32).min
+
+    if seed is None:
+        seed = random.randint(min_seed_value, max_seed_value)
+
+    elif not isinstance(seed, int):
+        seed = int(seed)
+
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    return seed
+
+
+def set_seed(trainer_name, seed, offset, env=None):
+    """
+    When trainer_name is `**_async_**` or `**_sync_**`, set random seed for the subprocess and gym env, 
+    else only set the subprocess for gym env
+
+    Parameters
+    ----------
+    trainer_name : str
+        trainer_name
+    seed : int
+        global seed
+    offset : int
+        the offset of random seed for the subprocess
+    env : gym.Env, optional
+        a gym env needs to set random seed, by default None
+
+    Returns
+    -------
+    (int, gym.Env)
+        the random seed for the subprocess, a gym env which the random seed is set
+    """
+
+    if trainer_name.split("_")[1] in ["async", "sync"]:
+        print("Setting seed of a subprocess to {}".format(seed + offset))
+        seed_everything(seed + offset)
+        if env is not None:
+            env.seed(seed + offset)
+        return seed + offset, env
+
+    else:
+        if env is not None:
+            env.seed(seed)
+        return None, env
+
+
+class FreezeParameters:
+    def __init__(self, modules):
+        """
+      Context manager to locally freeze gradients.
+      In some cases with can speed up computation because gradients aren't calculated for these listed modules.
+      example:
+      ```
+      with FreezeParameters([module]):
+          output_tensor = module(input_tensor)
+      ```
+      :param modules: iterable of modules. used to call .parameters() to freeze gradients.
+      """
+        self.modules = modules
+        self.param_states = [
+            p.requires_grad for p in get_parameters(self.modules)
+        ]
+
+    def __enter__(self):
+        for param in get_parameters(self.modules):
+            param.requires_grad = False
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for i, param in enumerate(get_parameters(self.modules)):
+            param.requires_grad = self.param_states[i]
+
+
+def get_parameters(modules):
+    """
+    Given a list of torch modules, returns a list of their parameters.
+    :param modules: iterable of modules
+    :returns: a list of parameters
+    """
+    model_parameters = []
+    for module in modules:
+        model_parameters += list(module.parameters())
+    return model_parameters
+
+
+
+

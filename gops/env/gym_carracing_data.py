@@ -8,6 +8,7 @@
 
 
 import gym
+from gym.utils import seeding
 import numpy as np
 
 
@@ -24,7 +25,7 @@ class Env:  # todo:从git上找的环境设置，需要自己改一下
         self.action_repeat = 4
         self.action_space = self.env.action_space
         self.action_space.low = np.array([0.0, 0.0, 0.0]).astype(np.float32)
-        self.observation_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(4, 96, 96))
+        self.observation_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(4, 96, 96), dtype=np.float64)
 
     def reset(self):
         self.counter = 0
@@ -54,6 +55,9 @@ class Env:  # todo:从git上找的环境设置，需要自己改一下
         self.stack.append(img_gray)
         assert len(self.stack) == self.img_stack
         return np.array(self.stack), total_reward, done, info
+
+    def seed(self, seed=None):
+        self.env.seed(seed)
 
     def render(self, *arg):
         self.env.render(*arg)

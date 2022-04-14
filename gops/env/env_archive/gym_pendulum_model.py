@@ -42,9 +42,7 @@ class GymPendulumModel(torch.nn.Module):
         self.register_buffer("lb_action", torch.tensor(lb_action, dtype=torch.float32))
         self.register_buffer("hb_action", torch.tensor(hb_action, dtype=torch.float32))
 
-    def forward(
-        self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)
-    ):
+    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)):
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
@@ -78,23 +76,14 @@ class GymPendulumModel(torch.nn.Module):
         length = self.length
         dt = self.dt
         newthdot = (
-            thdot
-            + (
-                -3 * g / (2 * length) * torch.sin(th + pi)
-                + 3.0 / (m * length ** 2) * action.squeeze()
-            )
-            * dt
+            thdot + (-3 * g / (2 * length) * torch.sin(th + pi) + 3.0 / (m * length**2) * action.squeeze()) * dt
         )
         newth = th + newthdot * dt
         newthdot = torch.clamp(newthdot, -self.max_speed, self.max_speed)
         newcosth = torch.cos(newth)
         newsinth = torch.sin(newth)
         state_next = torch.stack([newcosth, newsinth, newthdot], dim=-1)
-        reward = (
-            angle_normalize(th) ** 2
-            + 0.1 * thdot ** 2
-            + 0.001 * (action ** 2).squeeze(-1)
-        )
+        reward = angle_normalize(th) ** 2 + 0.1 * thdot**2 + 0.001 * (action**2).squeeze(-1)
         reward = -reward
         ############################################################################################
 
@@ -106,7 +95,7 @@ class GymPendulumModel(torch.nn.Module):
         mask = isdone * beyond_done
         mask = torch.unsqueeze(mask, -1)
         state_next = ~mask * state_next + mask * state
-        return state_next, reward, isdone
+        return state_next, reward, isdone, {}
 
 
 def angle_normalize(x):

@@ -33,9 +33,9 @@ class ApproxContainer(nn.Module):
             feature_args = get_apprfunc_dict("feature", value_func_type, **kwargs)
             kwargs["feature_net"] = create_apprfunc(**feature_args)
 
-        policy_args = get_apprfunc_dict('policy', policy_func_type, **kwargs)
+        policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
         self.policy = create_apprfunc(**policy_args)
-        value_args = get_apprfunc_dict('value', value_func_type, **kwargs)
+        value_args = get_apprfunc_dict("value", value_func_type, **kwargs)
         self.value = create_apprfunc(**value_args)
 
     # create action_distributions
@@ -213,7 +213,7 @@ class PPO:
         tb_info[tb_tags["loss_actor"]] = loss_surrogate.item()
         tb_info[tb_tags["loss_critic"]] = loss_value.item()
         # tb_info[tb_tags["loss_entropy"]] = loss_entropy.item()
-        tb_info["Train/kl_divergence"] = approximate_kl.item()
+        tb_info["PPO/KL_divergence-RL iter"] = approximate_kl.item()
         # tb_info[tb_tags["clip_fraction"]] = clip_fra.item()
         tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
 
@@ -372,6 +372,6 @@ class PPO:
 
 
 if __name__ == "__main__":
-    print("this is PPO algorithm!")
+    print("This is PPO algorithm!")
     print(torch.cuda.is_available())
     print(torch.cuda.device_count())

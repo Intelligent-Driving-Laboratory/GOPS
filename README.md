@@ -1,5 +1,5 @@
 # GOPS Version 1.0 (General Optimal control Problem Solver)
-@ 王文轩补充，Intelligent Driving Laboratory (iDLab) , 2022
+Copyright © 2022 Intelligent Driving Laboratory (iDLab). All rights reserved
 
 
 #### GOPS介绍

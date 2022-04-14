@@ -10,7 +10,6 @@ import multiprocessing
 import os
 
 os.environ["OMP_NUM_THREADS"] = "4"
-import numpy as np
 
 from gops.create_pkg.create_alg import create_alg
 from gops.create_pkg.create_buffer import create_buffer
@@ -51,7 +50,7 @@ if __name__ == "__main__":
     # 2.1 Parameters of value approximate function
     parser.add_argument("--value_func_name", type=str, default="StateValue")
     parser.add_argument("--value_func_type", type=str, default="MLP")
-    value_func_type = parser.parse_args().value_func_type
+    value_func_type = parser.parse_known_args()[0].value_func_type
     ### 2.1.1 MLP, CNN, RNN
     if value_func_type == "MLP":
         parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
@@ -61,7 +60,7 @@ if __name__ == "__main__":
     parser.add_argument("--q_func_name", type=str, default="ActionValueDistri")
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument("--q_func_type", type=str, default="MLP")
-    value_func_type = parser.parse_args().value_func_type
+    value_func_type = parser.parse_known_args()[0].value_func_type
     ### 2.1.1 MLP, CNN, RNN
     if value_func_type == "MLP":
         parser.add_argument("--q_hidden_sizes", type=list, default=[64, 64])
@@ -79,7 +78,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--policy_act_distribution", type=str, default="TanhGaussDistribution"
     )
-    policy_func_type = parser.parse_args().policy_func_type
+    policy_func_type = parser.parse_known_args()[0].policy_func_type
     if policy_func_type == "MLP":
         parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
         parser.add_argument("--policy_hidden_activation", type=str, default="relu")
@@ -107,8 +106,8 @@ if __name__ == "__main__":
     ################################################
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_async_trainer")
-    parser.add_argument("--max_iteration", type=int, default=5e3)
-    trainer_type = parser.parse_args().trainer
+    parser.add_argument("--max_iteration", type=int, default=6400)
+    trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     if trainer_type == "off_async_trainer":
         import ray
@@ -123,9 +122,9 @@ if __name__ == "__main__":
         )
         cpu_core_num = multiprocessing.cpu_count()
         num_core_input = (
-            parser.parse_args().num_algs
-            + parser.parse_args().num_samplers
-            + parser.parse_args().num_buffers
+            parser.parse_known_args()[0].num_algs
+            + parser.parse_known_args()[0].num_samplers
+            + parser.parse_known_args()[0].num_buffers
             + 2
         )
         if num_core_input > cpu_core_num:
@@ -138,25 +137,25 @@ if __name__ == "__main__":
         parser.add_argument("--buffer_name", type=str, default="replay_buffer")
         parser.add_argument("--buffer_warm_size", type=int, default=int(1e3))
         parser.add_argument("--buffer_max_size", type=int, default=int(1e5))
-        parser.add_argument("--replay_batch_size", type=int, default=256)
+        parser.add_argument("--replay_batch_size", type=int, default=64)
         parser.add_argument("--sampler_sync_interval", type=int, default=1)
 
     ################################################
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="off_sampler")
-    parser.add_argument("--sample_batch_size", type=int, default=32)
+    parser.add_argument("--sample_batch_size", type=int, default=4)
     parser.add_argument("--noise_params", type=dict, default=None)
 
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=5)
+    parser.add_argument("--num_eval_episode", type=int, default=10)
     parser.add_argument("--eval_interval", type=int, default=100)
 
     ################################################
     # 8. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
-    parser.add_argument("--apprfunc_save_interval", type=int, default=500)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=5000)
     parser.add_argument("--log_save_interval", type=int, default=100)
 
     # Get parameter dictionary

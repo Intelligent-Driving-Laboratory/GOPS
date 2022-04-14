@@ -52,7 +52,7 @@ if __name__ == "__main__":
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument("--value_func_type", type=str, default="MLP")
     parser.add_argument("--q_func_type", type=str, default="MLP")
-    value_func_type = parser.parse_args().value_func_type
+    value_func_type = parser.parse_known_args()[0].value_func_type
     ### 2.1.1 MLP, CNN, RNN
     if value_func_type == "MLP":
         parser.add_argument("--q_hidden_sizes", type=list, default=[64, 64])
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--policy_act_distribution", type=str, default="TanhGaussDistribution"
     )
-    policy_func_type = parser.parse_args().policy_func_type
+    policy_func_type = parser.parse_known_args()[0].policy_func_type
     if policy_func_type == "MLP":
         parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
         parser.add_argument("--policy_hidden_activation", type=str, default="relu")
@@ -97,20 +97,20 @@ if __name__ == "__main__":
     ################################################
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
-    parser.add_argument("--max_iteration", type=int, default=1e4)
-    trainer_type = parser.parse_args().trainer
+    parser.add_argument("--max_iteration", type=int, default=6400)
+    trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     if trainer_type == "off_serial_trainer":
         parser.add_argument("--buffer_name", type=str, default="replay_buffer")
         parser.add_argument("--buffer_warm_size", type=int, default=int(1e3))
         parser.add_argument("--buffer_max_size", type=int, default=int(1e5))
-        parser.add_argument("--replay_batch_size", type=int, default=256)
+        parser.add_argument("--replay_batch_size", type=int, default=64)
         parser.add_argument("--sampler_sync_interval", type=int, default=1)
 
     ################################################
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="off_sampler")
-    parser.add_argument("--sample_batch_size", type=int, default=64)
+    parser.add_argument("--sample_batch_size", type=int, default=8)
     parser.add_argument("--noise_params", type=dict, default=None)
 
     ################################################

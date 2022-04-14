@@ -14,7 +14,7 @@ import os
 import torch
 import warnings
 
-from gops.utils.utils import change_type
+from gops.utils.utils import change_type, seed_everything
 
 
 def init_args(env, **args):
@@ -91,12 +91,17 @@ def init_args(env, **args):
         args["save_folder"] = os.path.join(
             dir_path + "/results/",
             args["algorithm"],
-            datetime.datetime.now().strftime("%m%d-%H%M%S"),
+            datetime.datetime.now().strftime("%y%m%d-%H%M%S"),
         )
     os.makedirs(args["save_folder"], exist_ok=True)
     os.makedirs(args["save_folder"] + "/apprfunc", exist_ok=True)
     os.makedirs(args["save_folder"] + "/evaluator", exist_ok=True)
 
+    # set random seed
+    seed = args.get("seed", None)
+    args["seed"] = seed_everything(seed)
+    print("Set global seed to {}".format(args["seed"]))
     with open(args["save_folder"] + "/config.json", "w", encoding="utf-8") as f:
         json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
     return args
+

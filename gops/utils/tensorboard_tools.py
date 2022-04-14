@@ -166,7 +166,7 @@ def save_tb_to_csv(path):
     data_dict = read_tensorboard(path)
     for data_name in data_dict.keys():
         data_name_format = data_name.replace("\\", "/").replace("/", "_")
-        csv_dir = os.path.join(path, "csv")
+        csv_dir = os.path.join(path, "data")
         os.makedirs(csv_dir, exist_ok=True)
         save_csv(
             os.path.join(csv_dir, "{}.csv".format(data_name_format)),
@@ -176,16 +176,16 @@ def save_tb_to_csv(path):
 
 
 tb_tags = {
-    "TAR of RL iteration": "Evaluation/1. TAR-RL iteration",
+    "TAR of RL iteration": "Evaluation/1. TAR-RL iter",
     "TAR of total time": "Evaluation/2. TAR-Total time [s]",
     "TAR of collected samples": "Evaluation/3. TAR-Collected samples",
     "TAR of replay samples": "Evaluation/4. TAR-Replay samples",
-    "Buffer RAM of RL iteration": "RAM/RAM-RL iteration",
-    "loss_actor": "Loss/loss_actor",
-    "loss_critic": "Loss/loss_critic",
-    "alg_time": "Time/alg_time",
-    "sampler_time": "Time/sampler_time",
-    "critic_avg_value": "Train/critic_average_value",
+    "Buffer RAM of RL iteration": "RAM/RAM [MB]-RL iter",
+    "loss_actor": "Loss/Actor loss-RL iter",
+    "loss_critic": "Loss/Critic loss-RL iter",
+    "alg_time": "Time/Algorithm time [ms]-RL iter",
+    "sampler_time": "Time/Sampler time [ms]-RL iter",
+    "critic_avg_value": "Train/Critic avg value-RL iter",
 }
 
 if __name__ == "__main__":

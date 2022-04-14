@@ -22,11 +22,12 @@ from gops.utils.noise import GaussNoise, EpsilonGreedy
 import time
 from gops.utils.tensorboard_tools import tb_tags
 from gops.utils.utils import array_to_scalar
-
+from gops.utils.utils import set_seed
 
 class OnSamplerNew:
-    def __init__(self, **kwargs):
+    def __init__(self, index=0, **kwargs):
         self.env = create_env(**kwargs)
+        _, self.env = set_seed(kwargs["trainer"], kwargs["seed"], index + 200, self.env)
         alg_name = kwargs["algorithm"]
         alg_file_name = alg_name.lower()
         file = __import__(alg_file_name)
@@ -43,6 +44,8 @@ class OnSamplerNew:
         self.act_dim = kwargs["action_dim"]
         self.gamma = 0.99
         self.gae_lambda = 0.95
+        self.reward_scale = 1.0
+
         if "constraint_dim" in kwargs.keys():
             self.is_constrained = True
             self.con_dim = kwargs["constraint_dim"]
@@ -106,6 +109,7 @@ class OnSamplerNew:
                 action_clip = action
             next_obs, reward, self.done, info = self.env.step(action_clip)
             value = self.networks.value(obs_expand).detach().item()
+            reward *= self.reward_scale
             if "TimeLimit.truncated" not in info.keys():
                 info["TimeLimit.truncated"] = False
             if info["TimeLimit.truncated"]:
@@ -160,6 +164,7 @@ class OnSamplerNew:
             "logp": torch.from_numpy(self.mb_logp),
             "time_limited": torch.from_numpy(self.mb_tlim),
             "ret": torch.from_numpy(self.mb_ret),
+            "adv": torch.from_numpy(self.mb_adv),
         }
         return mb_data, tb_info
 
@@ -167,7 +172,7 @@ class OnSamplerNew:
         return self.total_sample_number
 
     def _finish_trajs(self, est_last_val, last_ptr, ptr):
-        path_slice = slice(last_ptr, ptr)
+        path_slice = slice(last_ptr, ptr + 1)
         value_preds_slice = np.append(self.mb_val[path_slice], est_last_val)
         rews_slice = self.mb_rew[path_slice]
         length = len(rews_slice)

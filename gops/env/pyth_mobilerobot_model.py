@@ -35,9 +35,7 @@ class PythMobilerobotModel:
             + [-30, -30, -2 * np.pi, -1, -np.pi / 2] * self.n_obstacle
         )
         self.hb_state = (
-            [30, 30, 2 * np.pi, 1, np.pi / 2]
-            + [30, np.pi, 2]
-            + [30, 30, 2 * np.pi, 1, np.pi / 2] * self.n_obstacle
+            [30, 30, 2 * np.pi, 1, np.pi / 2] + [30, np.pi, 2] + [30, 30, 2 * np.pi, 1, np.pi / 2] * self.n_obstacle
         )
         self.lb_action = [-0.4, -np.pi / 3]
         self.hb_action = [0.4, np.pi / 3]
@@ -48,9 +46,7 @@ class PythMobilerobotModel:
         self.lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
         self.hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
 
-    def forward(
-        self, state: torch.Tensor, action: torch.Tensor, beyond_done: torch.Tensor
-    ):
+    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done: torch.Tensor):
 
         warning_msg = "action out of action space!"
         if not ((action <= self.hb_action).all() and (action >= self.lb_action).all()):
@@ -79,11 +75,7 @@ class PythMobilerobotModel:
                 )
                 state_next = torch.cat((state_next, obs_state), 1)
 
-                safe_dis = (
-                    self.robot.robot_params["radius"]
-                    + self.obses[i - 1].robot_params["radius"]
-                    + 0.15
-                )  # 0.35
+                safe_dis = self.robot.robot_params["radius"] + self.obses[i - 1].robot_params["radius"] + 0.15  # 0.35
                 veh2vehdist[:, i - 1] = safe_dis - (
                     torch.sqrt(
                         torch.square(state_next[:, 3 + i * 5] - state_next[:, 0])
@@ -94,9 +86,7 @@ class PythMobilerobotModel:
         ############################################################################################
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
         r_tracking = (
-            -1.4 * torch.square(tracking_error[:, 0])
-            - 1 * tracking_error[:, 1] ** 2
-            - 16 * tracking_error[:, 2] ** 2
+            -1.4 * torch.square(tracking_error[:, 0]) - 1 * tracking_error[:, 1] ** 2 - 16 * tracking_error[:, 2] ** 2
         )
         r_action = -0.2 * action[:, 0] ** 2 - 0.5 * action[:, 1] ** 2
         reward = r_tracking + r_action
@@ -242,6 +232,6 @@ if __name__ == "__main__":
     env.render_init()
     for i in range(100):
 
-        u = torch.Tensor([[0.1, 0.1]] * 10)
+        u = torch.Tensor([[0.1, 0.1]]*10)
         x, r, die, info = env.forward(x, u, die)
         env.render(x)

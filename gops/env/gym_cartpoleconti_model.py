@@ -56,9 +56,7 @@ class GymCartpolecontiModel(torch.nn.Module):
         self.register_buffer("lb_action", torch.tensor(lb_action, dtype=torch.float32))
         self.register_buffer("hb_action", torch.tensor(hb_action, dtype=torch.float32))
 
-    def forward(
-        self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)
-    ):
+    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)):
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
@@ -90,13 +88,9 @@ class GymCartpolecontiModel(torch.nn.Module):
         costheta = torch.cos(theta)
         sintheta = torch.sin(theta)
         force = self.force_mag * action
-        temp = (
-            torch.squeeze(force)
-            + self.polemass_length * theta_dot * theta_dot * sintheta
-        ) / self.total_mass
+        temp = (torch.squeeze(force) + self.polemass_length * theta_dot * theta_dot * sintheta) / self.total_mass
         thetaacc = (self.gravity * sintheta - costheta * temp) / (
-            self.length
-            * (4.0 / 3.0 - self.masspole * costheta * costheta / self.total_mass)
+            self.length * (4.0 / 3.0 - self.masspole * costheta * costheta / self.total_mass)
         )
         xacc = temp - self.polemass_length * thetaacc * costheta / self.total_mass
         x = x + self.dt * x_dot
@@ -122,7 +116,7 @@ class GymCartpolecontiModel(torch.nn.Module):
         mask = torch.unsqueeze(mask, -1)
         state_next = ~mask * state_next + mask * state
         reward = ~(isdone * beyond_done) * reward
-        return state_next, reward, isdone
+        return state_next, reward, isdone, {}
 
     def forward_n_step(self, func, n, state: torch.Tensor):
         reward = torch.zeros(size=[state.size()[0], n])
@@ -133,7 +127,7 @@ class GymCartpolecontiModel(torch.nn.Module):
         isdone = torch.from_numpy(isdone)
         for step in range(n):
             action = func(state)
-            state_next, reward[:, step], isdone = self.forward(state, action, isdone)
+            state_next, reward[:, step], isdone, _ = self.forward(state, action, isdone)
             state = state_next
 
 

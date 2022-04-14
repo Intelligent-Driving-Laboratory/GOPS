@@ -112,9 +112,9 @@ class DSAC:
 
         self.tb_info = {
             tb_tags["loss_actor"]: 0,
-            "Train/critic_avg_q": 0,
-            "Train/entropy": 0,
-            "Train/alpha": self.alpha,
+            "DSAC/critic_avg_q-RL iter": 0,
+            "DSAC/entropy-RL iter": 0,
+            "DSAC/alpha-RL iter": self.alpha,
             tb_tags["alg_time"]: 0,
         }
 
@@ -154,8 +154,8 @@ class DSAC:
         self.networks.q_optimizer.zero_grad()
         loss_q, q, std = self._compute_loss_q(data)
         loss_q.backward()
-        self.tb_info["Train/critic_avg_q"] = q.item()
-        self.tb_info["Train/critic_avg_std"] = std.item()
+        self.tb_info["DSAC/critic_avg_q-RL iter"] = q.item()
+        self.tb_info["DSAC/critic_avg_std-RL iter"] = std.item()
         if iteration % self.delay_update == 0:
 
             obs = data["obs"]
@@ -173,10 +173,10 @@ class DSAC:
             self.networks.policy_optimizer.zero_grad()
             loss_policy, entropy = self._compute_loss_policy(data)
             loss_policy.backward()
-            self.tb_info["Train/entropy"] = entropy.item()
+            self.tb_info["DSAC/entropy-RL iter"] = entropy.item()
             self.tb_info[tb_tags["loss_actor"]] = loss_policy.item()
-            self.tb_info["Train/policy_mean"] = policy_mean
-            self.tb_info["Train/policy_std"] = policy_std
+            self.tb_info["DSAC/policy_mean-RL iter"] = policy_mean
+            self.tb_info["DSAC/policy_std-RL iter"] = policy_std
             for p in self.networks.q.parameters():
                 p.requires_grad = True
 
@@ -187,7 +187,7 @@ class DSAC:
                 self.alpha_optimizer.step()
                 self.alpha = self.log_alpha.exp().item()
 
-            self.tb_info["Train/alpha"] = self.alpha
+            self.tb_info["DSAC/alpha-RL iter"] = self.alpha
 
         grad_info = {
             "q_grad": [p.grad for p in self.networks.q.parameters()],

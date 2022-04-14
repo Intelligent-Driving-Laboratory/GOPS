@@ -26,26 +26,24 @@ class GymMountaincarcontiModel(torch.nn.Module):
         self.min_position = -1.2
         self.max_position = 0.6
         self.max_speed = 0.07
-        self.goal_position = (
-            0.45  # was 0.5 in gym, 0.45 in Arnaud de Broissia's version
-        )
+        self.goal_position = 0.45  # was 0.5 in gym, 0.45 in Arnaud de Broissia's version
         self.goal_velocity = 0
         self.power = 0.0015
 
         # define common parameters here
         self.state_dim = 2
         self.action_dim = 1
-        self.lb_state = [self.min_position, -self.max_speed]
-        self.hb_state = [self.max_position, self.max_speed]
-        self.lb_action = [self.min_action]
-        self.hb_action = [self.max_action]
+        lb_state = [self.min_position, -self.max_speed]
+        hb_state = [self.max_position, self.max_speed]
+        lb_action = [self.min_action]
+        hb_action = [self.max_action]
         self.dt = None  # seconds between state updates
 
         # do not change the following section
-        lb_state = torch.tensor(self.lb_state, dtype=torch.float32)
-        hb_state = torch.tensor(self.hb_state, dtype=torch.float32)
-        lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
-        hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
+        lb_state = torch.tensor(lb_state, dtype=torch.float32)
+        hb_state = torch.tensor(hb_state, dtype=torch.float32)
+        lb_action = torch.tensor(lb_action, dtype=torch.float32)
+        hb_action = torch.tensor(hb_action, dtype=torch.float32)
         self.register_buffer("lb_state", torch.tensor(lb_state, dtype=torch.float32))
         self.register_buffer("hb_state", torch.tensor(hb_state, dtype=torch.float32))
         self.register_buffer("lb_action", torch.tensor(lb_action, dtype=torch.float32))
@@ -103,7 +101,7 @@ class GymMountaincarcontiModel(torch.nn.Module):
         mask = isdone * beyond_done
         mask = torch.unsqueeze(mask, -1)
         state_next = ~mask * state_next + mask * state
-        return state_next, reward, isdone
+        return state_next, reward, isdone, {}
 
     def forward_n_step(self, func, n, state: torch.Tensor):
         reward = torch.zeros(size=[state.size()[0], n])
@@ -114,7 +112,7 @@ class GymMountaincarcontiModel(torch.nn.Module):
         isdone = torch.from_numpy(isdone)
         for step in range(n):
             action = func(state)
-            state_next, reward[:, step], isdone = self.forward(state, action, isdone)
+            state_next, reward[:, step], isdone, _ = self.forward(state, action, isdone)
             state = state_next
 
 

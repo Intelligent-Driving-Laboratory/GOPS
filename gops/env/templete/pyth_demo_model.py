@@ -3,10 +3,6 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: GYM Environment
-#  Update Date: 2021-05-15, Shengbo Li: create file
-#  Update Date: 2022-01-12, Shengbo Li: update codes
-
 
 import warnings
 
@@ -25,23 +21,19 @@ class GymDemocontiModel(torch.nn.Module):
         # define common parameters here
         self.state_dim = None
         self.action_dim = None
-        self.lb_state = None
-        self.hb_state = None
-        self.lb_action = None
-        self.hb_action = None
+        lb_state = None
+        hb_state = None
+        lb_action = None
+        hb_action = None
         self.dt = None  # seconds between state updates
 
         # do not change the following section
-        lb_state = torch.tensor(self.lb_state, dtype=torch.float32)
-        hb_state = torch.tensor(self.hb_state, dtype=torch.float32)
-        lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
-        hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
-        self.register_buffer("lb_state", torch.tensor(lb_state, dtype=torch.float32))
-        self.register_buffer("hb_state", torch.tensor(hb_state, dtype=torch.float32))
-        self.register_buffer("lb_action", torch.tensor(lb_action, dtype=torch.float32))
-        self.register_buffer("hb_action", torch.tensor(hb_action, dtype=torch.float32))
+        self.lb_state = torch.tensor(lb_state, dtype=torch.float32)
+        self.hb_state = torch.tensor(hb_state, dtype=torch.float32)
+        self.lb_action = torch.tensor(lb_action, dtype=torch.float32)
+        self.hb_action = torch.tensor(hb_action, dtype=torch.float32)
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done):
+    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=None):
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
@@ -53,10 +45,13 @@ class GymDemocontiModel(torch.nn.Module):
         :return:
                 next_state:  datatype:torch.Tensor, shape:[batch_size, state_dim]
                               the state will not change anymore when the corresponding flag done is set to True
-                reward:  datatype:torch.Tensor, shape:[batch_size, 1]
-                isdone:   datatype:torch.Tensor, shape:[batch_size, 1]
+                reward:  datatype:torch.Tensor, shape:[batch_size,]
+                isdone:   datatype:torch.Tensor, shape:[batch_size,]
                          flag done will be set to true when the model reaches the max_iteration or the next state
                          satisfies ending condition
+
+                info: datatype: dict, any useful information for debug or training, including constraint
+                        {"constraint": None}
         """
         warning_msg = "action out of action space!"
         if not ((action <= self.hb_action).all() and (action >= self.lb_action).all()):
@@ -74,7 +69,7 @@ class GymDemocontiModel(torch.nn.Module):
         ############################################################################################
 
         # define the ending condation here the format is just like isdone = l(next_state)
-        isdone = torch.full([state.size()[0]], False)
+        isdone = torch.full([state.size()[0]], False, dtype=torch.float32)
 
         ############################################################################################
 
@@ -82,12 +77,15 @@ class GymDemocontiModel(torch.nn.Module):
         reward = (state_next - state).sum(dim=-1)
 
         ############################################################################################
+        if beyond_done is None:
+            beyond_done = torch.full([state.size()[0]], False, dtype=torch.float32)
 
         beyond_done = beyond_done.bool()
-        mask = isdone * beyond_done
+        mask = isdone or beyond_done
         mask = torch.unsqueeze(mask, -1)
         state_next = ~mask * state_next + mask * state
-        return state_next, reward, isdone
+        reward = ~(beyond_done) * reward
+        return state_next, reward, mask, {"constraint": None}
 
     def forward_n_step(self, func, n, state: torch.Tensor):
         reward = torch.zeros(size=[state.size()[0], n])
