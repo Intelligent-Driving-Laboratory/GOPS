@@ -10,28 +10,25 @@
 __all__ = ["MAC"]
 
 from copy import deepcopy
+from typing import Tuple
+
 import torch
-import torch.nn as nn
 from torch.optim import Adam
 import time
-import warnings
 
 from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.create_pkg.create_env_model import create_env_model
 from gops.utils.utils import get_apprfunc_dict
 from gops.utils.tensorboard_tools import tb_tags
+from gops.algorithm.base import AlgorithmBase, ApprBase
 import numpy as np
 
 
-class ApproxContainer(nn.Module):
+class ApproxContainer(ApprBase):
     def __init__(self, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
         value_func_type = kwargs["value_func_type"]
         policy_func_type = kwargs["policy_func_type"]
-
-        if kwargs["cnn_shared"]:  # todo:设置默认false
-            feature_args = get_apprfunc_dict("feature", value_func_type, **kwargs)
-            kwargs["feature_net"] = create_apprfunc(**feature_args)
 
         v_args = get_apprfunc_dict("value", value_func_type, **kwargs)
         policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
@@ -78,8 +75,9 @@ class ApproxContainer(nn.Module):
                     p_targ.data.add_(tau * p.data)
 
 
-class MAC:
-    def __init__(self, **kwargs):
+class MAC(AlgorithmBase):
+    def __init__(self, index=0, **kwargs):
+        super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
         self.use_gpu = kwargs["use_gpu"]
@@ -93,6 +91,43 @@ class MAC:
         self.reward_scale = 0.1
         self.tb_info = dict()
         self.delta = None
+
+    @property
+    def adjustable_parameters(self):
+        para_tuple = ("gamma", "tau", "pev_step", "pim_step", "forward_step", "reward_scale")
+        return para_tuple
+
+    def local_update(self, data: dict, iteration: int) -> dict:
+        update_list = self.__compute_gradient(data, iteration)
+        self.__update(update_list)
+        return self.tb_info
+
+    def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
+        update_list = self.__compute_gradient(data, iteration)
+        update_info = dict()
+        for net_name in update_list:
+            update_info[net_name] = [p.grad for p in self.networks.net_dict[net_name].parameters()]
+        return self.tb_info, update_info
+
+    def remote_update(self, update_info: dict):
+        for net_name, grads in update_info.items():
+            for p, grad in zip(self.networks.net_dict[net_name].parameters(), grads):
+                p.grad = grad
+        self.__update(list(update_info.keys()))
+
+    def __update(self, update_list):
+        tau = self.tau
+        for net_name in update_list:
+            self.networks.optimizer_dict[net_name].step()
+
+        with torch.no_grad():
+            for net_name in update_list:
+                for p, p_targ in zip(
+                        self.networks.net_dict[net_name].parameters(),
+                        self.networks.target_net_dict[net_name].parameters(),
+                ):
+                    p_targ.data.mul_(1 - tau)
+                    p_targ.data.add_(tau * p.data)
 
     def dynamic_model_forward(self, o, a, d):
         if self.delta is not None:
@@ -134,63 +169,30 @@ class MAC:
             sample = sample.cuda()
         return sample
 
-    def set_parameters(self, param_dict):
-        for key in param_dict:
-            if hasattr(self, key):
-                setattr(self, key, param_dict[key])
-            else:
-                warning_msg = "param '" + key + "'is not defined in algorithm!"
-                warnings.warn(warning_msg)
-
-    def get_parameters(self):
-        params = dict()
-        params["use_gpu"] = self.use_gpu
-        params["gamma"] = self.gamma
-        params["tau"] = self.tau
-        params["pev_step"] = self.pev_step
-        params["pim_step"] = self.pim_step
-        params["reward_scale"] = self.reward_scale
-        params["forward_step"] = self.forward_step
-        return params
-
-    def compute_gradient(self, data, iteration):
-        grad_info = dict()
-        grads_dict = dict()
+    def __compute_gradient(self, data, iteration):
+        update_list = []
 
         start_time = time.perf_counter()
-        if self.use_gpu:
-            self.networks = self.networks.cuda()
-            for key, value in data.items():
-                data[key] = value.cuda()
 
         if iteration % (self.pev_step + self.pim_step) < self.pev_step:
             self.networks.v.zero_grad()
             loss_v, v = self.compute_loss_v(deepcopy(data))
             loss_v.backward()
-            v_grad = [p.grad for p in self.networks.v.parameters()]
             self.tb_info[tb_tags["loss_critic"]] = loss_v.item()
             self.tb_info[tb_tags["critic_avg_value"]] = v.item()
-            grads_dict["v"] = v_grad
+            update_list.append("v")
         else:
             self.networks.policy.zero_grad()
             loss_policy = self.compute_loss_policy(deepcopy(data))
             loss_policy.backward()
-            policy_grad = [p.grad for p in self.networks.policy.parameters()]
             self.tb_info[tb_tags["loss_actor"]] = loss_policy.item()
-            grads_dict["policy"] = policy_grad
-
-        if self.use_gpu:
-            self.networks = self.networks.cpu()
-            for key, value in data.items():
-                data[key] = value.cpu()
+            update_list.append("policy")
 
         end_time = time.perf_counter()
 
         self.tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
 
-        grad_info["tau"] = self.tau
-        grad_info["grads_dict"] = grads_dict
-        return grad_info, self.tb_info
+        return update_list
 
     def compute_loss_v(self, data):
         o, a, r, o2, d = (
@@ -247,8 +249,6 @@ class MAC:
             p.requires_grad = True
         return -v_pi.mean()
 
-    def load_state_dict(self, state_dict):
-        self.networks.load_state_dict(state_dict)
 
 
 if __name__ == "__main__":
