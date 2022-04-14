@@ -112,7 +112,7 @@ class OffAsyncTrainer:
                 buffer.sample_batch.remote(self.replay_batch_size)
             )  # 得到buffer的采样结果
             self.learn_tasks.add(
-                alg, alg.compute_gradient.remote(data, self.iteration)
+                alg, alg.get_remote_update_info.remote(data, self.iteration)
             )  # 用采样结果给learner添加计算梯度的任务
 
     def step(self):
@@ -130,16 +130,17 @@ class OffAsyncTrainer:
 
         # learning
         for alg, objID in self.learn_tasks.completed():
-            grads, alg_tb_dict = ray.get(objID)
+            alg_tb_dict, update_info = ray.get(objID)
+            # replay
             data = random.choice(self.buffers).sample_batch.remote(
                 self.replay_batch_size
             )
             weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
             alg.load_state_dict.remote(weights)  # 更新learner参数
             self.learn_tasks.add(
-                alg, alg.compute_gradient.remote(data, self.iteration)
+                alg, alg.get_remote_update_info.remote(data, self.iteration)
             )  # 将完成了的learner重新算梯度
-            self.networks.update(grads)
+            self.networks.remote_update(update_info)
             self.iteration += 1
             # log
             if self.iteration % self.log_save_interval == 0:
@@ -157,11 +158,7 @@ class OffAsyncTrainer:
                 # get ram for buffer
                 self.writer.add_scalar(
                     tb_tags["Buffer RAM of RL iteration"],
-                    sum(
-                        ray.get(
-                            [buffer.__get_RAM__.remote() for buffer in self.buffers]
-                        )
-                    ),
+                    sum(ray.get([buffer.__get_RAM__.remote() for buffer in self.buffers])),
                     self.iteration,
                 )
                 self.writer.add_scalar(

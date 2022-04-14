@@ -4,9 +4,8 @@
 #
 #  Creator: iDLab
 #  Description: Serial trainer for RL algorithms
-#  Update Date: 2021-03-10, Wenhan CAO: Revise Codes
 #  Update Date: 2021-05-21, Shengbo LI: Format Revise
-
+#  Update Date: 2022-04-14, Jiaxin Gao: decrease parameters copy times
 
 __all__ = ["OffSerialTrainer"]
 
@@ -26,7 +25,6 @@ from gops.utils.tensorboard_tools import tb_tags
 class OffSerialTrainer:
     def __init__(self, alg, sampler, buffer, evaluator, **kwargs):
         self.alg = alg
-
         self.sampler = sampler
         self.buffer = buffer
         self.evaluator = evaluator
@@ -34,7 +32,6 @@ class OffSerialTrainer:
         if kwargs["use_gpu"]:
             self.alg.networks.cuda()
         else:
-
             self.sampler.networks = self.alg.networks
             self.evaluator.networks = self.alg.networks
 
@@ -57,7 +54,7 @@ class OffSerialTrainer:
         self.log_save_interval = kwargs["log_save_interval"]
         self.apprfunc_save_interval = kwargs["apprfunc_save_interval"]
         self.eval_interval = kwargs["eval_interval"]
-        self.sample_interval = kwargs.get("sample_interval",1)
+        self.sample_interval = kwargs.get("sample_interval", 1)
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
         self.writer.add_scalar(tb_tags["alg_time"], 0, 0)
         self.writer.add_scalar(tb_tags["sampler_time"], 0, 0)
