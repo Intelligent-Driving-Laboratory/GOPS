@@ -81,7 +81,6 @@ if __name__ == "__main__":
         "--max_iteration", type=int, default=8000, help="Maximum iteration number"
     )
     parser.add_argument("--ini_network_dir", type=str, default=None)
-    parser.add_argument("--seed", type=int, default=888, help="random seed")
     trainer_type = parser.parse_known_args()[0].trainer
     if trainer_type == "off_serial_trainer":
         parser.add_argument("--buffer_name", type=str, default="replay_buffer")

@@ -19,7 +19,7 @@ class ApprBase(ABC, torch.nn.Module):
 
 class AlgorithmBase(metaclass=ABCMeta):
     def __init__(self, index, **kwargs):
-        self.networks = ApprBase(**kwargs)
+        self.networks = None
         set_seed(kwargs["trainer"], kwargs["seed"], index + 300)
 
     @property
@@ -50,7 +50,7 @@ class AlgorithmBase(metaclass=ABCMeta):
     def local_update(self, data: dict, iteration: int) -> dict:
         pass
 
-    def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[Type[dict], Type[dict]]:
+    def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
         raise NotImplemented
 
     def remote_update(self, update_info: dict):

@@ -11,7 +11,7 @@ import gym
 
 
 def env_creator(**kwargs):
-    return gym.make("Pendulum-v1")
+    return gym.make("Pendulum-v0")
 
 
 if __name__ == "__main__":
