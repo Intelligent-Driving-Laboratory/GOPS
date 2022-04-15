@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 from gops.utils.tensorboard_tools import tb_tags
 import warnings
+import importlib
 
 warnings.filterwarnings("ignore")
 
@@ -59,9 +60,17 @@ class OffAsyncTrainermix:
         # create center network
         alg_name = kwargs["algorithm"]
         alg_file_name = alg_name.lower()
-        file = __import__(alg_file_name)
-        ApproxContainer = getattr(file, "ApproxContainer")
-        self.networks = ApproxContainer(**kwargs)
+        try:
+            module = importlib.import_module("gops.algorithm." + alg_file_name)
+        except NotImplementedError:
+            raise NotImplementedError("This algorithm does not exist")
+        if hasattr(module, alg_name):
+            alg_cls = getattr(module, alg_name)
+            alg_net = alg_cls(**kwargs)
+        else:
+            raise NotImplementedError("This algorithm is not properly defined")
+
+        self.networks = alg_net
 
         self.ini_network_dir = kwargs["ini_network_dir"]
 
@@ -112,30 +121,33 @@ class OffAsyncTrainermix:
                 buffer.sample_batch.remote(self.replay_batch_size)
             )  # 得到buffer的采样结果
             self.learn_tasks.add(
-                alg, alg.update_policy.remote(data, self.iteration)
+                alg, alg.get_remote_update_info.remote(data, self.iteration)
             )  # 用采样结果给learner添加计算梯度的任务
 
     def step(self):
         # sampling
         sampler_tb_dict = {}
         if self.iteration % self.sample_interval == 0:
-            for sampler, objID in self.sample_tasks.completed():  # 对每个完成的sampler，
-                batch_data, sampler_tb_dict = ray.get(objID)  # 获得sample的batch
-                random.choice(self.buffers).add_batch.remote(
-                    batch_data
-                )  # 随机选择buffer，加入batch
-                # weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
-                # sampler.load_state_dict.remote(weights)  # 同步sampler的参数
-                self.sample_tasks.add(sampler, sampler.sample.remote())
+            if self.sample_tasks.completed() is not None:
+                weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
+                for sampler, objID in self.sample_tasks.completed():  # 对每个完成的sampler，
+                    batch_data, sampler_tb_dict = ray.get(objID)  # 获得sample的batch
+                    random.choice(self.buffers).add_batch.remote(
+                        batch_data
+                    )  # 随机选择buffer，加入batch
+                    sampler.load_state_dict.remote(weights)  # 同步sampler的参数
+                    self.sample_tasks.add(sampler, sampler.sample.remote())
 
         # learning
         for alg, objID in self.learn_tasks.completed():
-            grads, alg_tb_dict = ray.get(objID)
+            alg_tb_dict, update_info = ray.get(objID)
+            # replay
             data = random.choice(self.buffers).sample_batch.remote(
                 self.replay_batch_size
             )
+            alg.remote_update.remote(update_info)  # 更新learner参数
             self.learn_tasks.add(
-                alg, alg.update_policy.remote(data, self.iteration)
+                alg, alg.get_remote_update_info.remote(data, self.iteration)
             )  # 将完成了的learner重新算梯度
             self.iteration += 1
             # log
@@ -204,6 +216,7 @@ class OffAsyncTrainermix:
             if i == 1:
                 weights = ray.get(self.algs[0].state_dict.remote())
                 self.networks.load_state_dict(weights)
+
             elif i > 1:
                 if self.iteration % 50 == 0:
                     weights_last_time = None
@@ -227,9 +240,6 @@ class OffAsyncTrainermix:
 
                     self.networks.load_state_dict(weights_last_time)  # load para
                     weights = ray.put(self.networks.state_dict())
-
-                    for sampler in self.samplers:
-                        sampler.load_state_dict.remote(weights)
 
                     for alg in self.algs:
                         alg.load_state_dict.remote(weights)
