@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 from gops.utils.tensorboard_tools import tb_tags
 import warnings
+import importlib
 
 warnings.filterwarnings("ignore")
 
@@ -45,7 +46,6 @@ class OffAsyncTrainer:
         self.save_folder = kwargs["save_folder"]
         self.log_save_interval = kwargs["log_save_interval"]
         self.apprfunc_save_interval = kwargs["apprfunc_save_interval"]
-        self.iteration = 0
         self.save_folder = kwargs["save_folder"]
         self.log_save_interval = kwargs["log_save_interval"]
         self.apprfunc_save_interval = kwargs["apprfunc_save_interval"]
@@ -59,9 +59,17 @@ class OffAsyncTrainer:
         # create center network
         alg_name = kwargs["algorithm"]
         alg_file_name = alg_name.lower()
-        file = __import__(alg_file_name)
-        ApproxContainer = getattr(file, "ApproxContainer")
-        self.networks = ApproxContainer(**kwargs)
+        try:
+            module = importlib.import_module("gops.algorithm." + alg_file_name)
+        except NotImplementedError:
+            raise NotImplementedError("This algorithm does not exist")
+        if hasattr(module, alg_name):
+            alg_cls = getattr(module, alg_name)
+            alg_net = alg_cls(**kwargs)
+        else:
+            raise NotImplementedError("This algorithm is not properly defined")
+
+        self.networks = alg_net
 
         self.ini_network_dir = kwargs["ini_network_dir"]
 
@@ -97,6 +105,7 @@ class OffAsyncTrainer:
 
         self.start_time = time.time()
 
+
     def _set_samplers(self):
         weights = self.networks.state_dict()  # 得到中心网络参数
         for sampler in self.samplers:  # 对每个sampler进行参数同步
@@ -119,14 +128,15 @@ class OffAsyncTrainer:
         # sampling
         sampler_tb_dict = {}
         if self.iteration % self.sample_interval == 0:
-            for sampler, objID in self.sample_tasks.completed():  # 对每个完成的sampler，
-                batch_data, sampler_tb_dict = ray.get(objID)  # 获得sample的batch
-                random.choice(self.buffers).add_batch.remote(
-                    batch_data
-                )  # 随机选择buffer，加入batch
+            if self.sample_tasks.completed() is not None:
                 weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
-                sampler.load_state_dict.remote(weights)  # 同步sampler的参数
-                self.sample_tasks.add(sampler, sampler.sample.remote())
+                for sampler, objID in self.sample_tasks.completed():  # 对每个完成的sampler，
+                    batch_data, sampler_tb_dict = ray.get(objID)  # 获得sample的batch
+                    random.choice(self.buffers).add_batch.remote(
+                        batch_data
+                    )  # 随机选择buffer，加入batch
+                    sampler.load_state_dict.remote(weights)  # 同步sampler的参数
+                    self.sample_tasks.add(sampler, sampler.sample.remote())
 
         # learning
         for alg, objID in self.learn_tasks.completed():

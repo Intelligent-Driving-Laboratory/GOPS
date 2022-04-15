@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 from gops.utils.tensorboard_tools import tb_tags
 import warnings
+import importlib
 
 warnings.filterwarnings("ignore")
 
@@ -39,7 +40,6 @@ class OnSyncTrainer:
         self.log_save_interval = kwargs["log_save_interval"]
         self.apprfunc_save_interval = kwargs["apprfunc_save_interval"]
         self.iteration = 0
-
         self.save_folder = kwargs["save_folder"]
         self.log_save_interval = kwargs["log_save_interval"]
         self.apprfunc_save_interval = kwargs["apprfunc_save_interval"]
@@ -53,9 +53,17 @@ class OnSyncTrainer:
         # create center network
         alg_name = kwargs["algorithm"]
         alg_file_name = alg_name.lower()
-        file = __import__(alg_file_name)
-        ApproxContainer = getattr(file, "ApproxContainer")
-        self.networks = ApproxContainer(**kwargs)
+        try:
+            module = importlib.import_module("gops.algorithm." + alg_file_name)
+        except NotImplementedError:
+            raise NotImplementedError("This algorithm does not exist")
+        if hasattr(module, alg_name):
+            alg_cls = getattr(module, alg_name)
+            alg_net = alg_cls(**kwargs)
+        else:
+            raise NotImplementedError("This algorithm is not properly defined")
+
+        self.networks = alg_net
 
         self.ini_network_dir = kwargs["ini_network_dir"]
 
@@ -82,9 +90,8 @@ class OnSyncTrainer:
         all_samples = concate(samples)
 
         # learning
-        self.alg.load_state_dict(self.networks.state_dict())  # 更新learner参数
-        grads, alg_tb_dict = self.alg.compute_gradient(all_samples, self.iteration)
-        self.networks.update(grads)
+        alg_tb_dict = self.alg.local_update(all_samples, self.iteration)  # 更新learner参数
+        self.networks.load_state_dict(self.alg.state_dict())
 
         # log
         if self.iteration % self.log_save_interval == 0:
