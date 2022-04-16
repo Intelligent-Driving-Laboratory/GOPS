@@ -13,25 +13,20 @@ __all__ = ["ApproxContainer", "PPO"]
 from typing import Dict
 import numpy as np
 import torch
-import torch.nn as nn
 from torch.optim import Adam
 import time
-import warnings
 
+from gops.algorithm.base import AlgorithmBase, ApprBase
 from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.utils.utils import get_apprfunc_dict
 from gops.utils.tensorboard_tools import tb_tags
 
 
-class ApproxContainer(nn.Module):
+class ApproxContainer(ApprBase):
     def __init__(self, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
         value_func_type = kwargs["value_func_type"]
         policy_func_type = kwargs["policy_func_type"]
-
-        if kwargs["cnn_shared"]:  # todo:设置默认false
-            feature_args = get_apprfunc_dict("feature", value_func_type, **kwargs)
-            kwargs["feature_net"] = create_apprfunc(**feature_args)
 
         policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
         self.policy = create_apprfunc(**policy_args)
@@ -42,19 +37,10 @@ class ApproxContainer(nn.Module):
     def create_action_distributions(self, logits):
         return self.policy.get_act_dist(logits)
 
-    def update(self, info: dict):
-        value_weights = info["value_weights"]
-        policy_weights = info["policy_weights"]
 
-        for p, weight in zip(self.value.parameters(), value_weights):
-            p.data = torch.from_numpy(weight)
-
-        for p, weight in zip(self.policy.parameters(), policy_weights):
-            p.data = torch.from_numpy(weight)
-
-
-class PPO:
-    def __init__(self, **kwargs):
+class PPO(AlgorithmBase):
+    def __init__(self, index=0, **kwargs):
+        super().__init__(index, **kwargs)
         self.trainer_type = kwargs["trainer"]
         self.max_iteration = kwargs["max_iteration"]
         self.num_epoch = kwargs["num_epoch"]
@@ -65,8 +51,6 @@ class PPO:
         self.indices = np.arange(self.sample_batch_size)
 
         # Parameters for algorithm
-        self.gamma = 0.99
-        self.lamb = 0.95  # applied in GAE, making a compromise between bias & var
         self.clip = 0.2
         self.clip_now = self.clip
         self.EPS = 1e-8
@@ -80,7 +64,6 @@ class PPO:
         self.loss_value_clip = True
         self.value_clip = 10.0
         self.loss_value_norm = False
-        self.reward_scale = 1.0
 
         self.networks = ApproxContainer(**kwargs)
         self.learning_rate = kwargs["learning_rate"]
@@ -92,85 +75,24 @@ class PPO:
             self.networks.value = self.networks.value.cuda()
             self.networks.policy = self.networks.policy.cuda()
 
-    def set_parameters(self, param_dict):
-        for key in param_dict:
-            if hasattr(self, key):
-                setattr(self, key, param_dict[key])
-            else:
-                warning_msg = "param '" + key + "'is not defined in algorithm!"
-                warnings.warn(warning_msg)
-        print("--------------------------------")
-        print("| Proximal Policy Optimization |")
-        print("| {:<16}".format("gamma") + " | " + "{:<9} |".format(self.gamma))
-        print("| {:<16}".format("lambda") + " | " + "{:<9} |".format(self.lamb))
-        print("| {:<16}".format("clip") + " | " + "{:<9} |".format(str(self.clip)))
-        print(
-            "| {:<16}".format("factor_value")
-            + " | "
-            + "{:<9} |".format(str(self.loss_coefficient_value))
+    @property
+    def adjustable_parameters(self):
+        return (
+            "clip", "loss_value_clip", "value_clip",
+            "loss_value_norm", "advantage_norm",
+            "loss_coefficient_kl", "loss_coefficient_value",
+            "loss_coefficient_entropy", 
+            "schedule_adam", "schedule_clip", 
         )
-        print(
-            "| {:<16}".format("factor_entropy")
-            + " | "
-            + "{:<9} |".format(str(self.loss_coefficient_entropy))
-        )
-        print(
-            "| {:<16}".format("factor_kl")
-            + " | "
-            + "{:<9} |".format(str(self.loss_coefficient_kl))
-        )
-        print(
-            "| {:<16}".format("schedule_adam")
-            + " | "
-            + "{:<9} |".format(self.schedule_adam)
-        )
-        print(
-            "| {:<16}".format("schedule_clip")
-            + " | "
-            + "{:<9} |".format(self.schedule_clip)
-        )
-        print(
-            "| {:<16}".format("advantage_norm")
-            + " | "
-            + "{:<9} |".format(str(self.advantage_norm))
-        )
-        print(
-            "| {:<16}".format("loss_value_clip")
-            + " | "
-            + "{:<9} |".format(str(self.loss_value_clip))
-        )
-        print(
-            "| {:<16}".format("loss_value_norm")
-            + " | "
-            + "{:<9} |".format(str(self.loss_value_norm))
-        )
-        print("--------------------------------")
 
-    def get_parameters(self):
-        params = dict()
-        params["is_gpu"] = self.use_gpu
-        params["gamma"] = self.gamma
-        params["lamb"] = self.lamb
-        params["clip"] = self.clip
-        params["clip_now"] = self.clip_now
-        params["EPS"] = self.EPS
-        params["loss_coefficient_kl"] = self.loss_coefficient_kl
-        params["loss_coefficient_value"] = self.loss_coefficient_value
-        params["loss_coefficient_entropy"] = self.loss_coefficient_entropy
-
-        params["schedule_adam"] = self.schedule_adam
-        params["schedule_clip"] = self.schedule_clip
-        params["advantage_norm"] = self.advantage_norm
-        params["loss_value_clip"] = self.loss_value_clip
-        params["value_clip"] = self.value_clip
-        params["loss_value_norm"] = self.loss_value_norm
-
-        return params
-
-    def compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
+    def local_update(self, data: Dict[str, torch.Tensor], iteration: int) -> dict:
         start_time = time.perf_counter()
-        data["rew"] = self.reward_scale * data["rew"]
-        data_gae = self.__generalization_advantage_estimate(data)  # 1/10 of total time
+        data["adv"] = (data["adv"] - data["adv"].mean()) / (
+            data["adv"].std() + self.EPS
+        )
+        with torch.no_grad():
+            data["val"] = self.networks.value(data["obs"])
+            data["logits"] = self.networks.policy(data["obs"]) 
 
         for _ in range(self.num_repeat):
             np.random.shuffle(self.indices)
@@ -179,7 +101,7 @@ class PPO:
                 mb_start = self.mini_batch_size * n
                 mb_end = self.mini_batch_size * (n + 1)
                 mb_indices = self.indices[mb_start:mb_end]
-                mb_sample = {k: v[mb_indices] for k, v in data_gae.items()}
+                mb_sample = {k: v[mb_indices] for k, v in data.items()}
                 (
                     loss_total,
                     loss_surrogate,
@@ -199,13 +121,6 @@ class PPO:
                     for g in self.approximate_optimizer.param_groups:
                         g["lr"] = lr_now
 
-        value_weights = [
-            p.detach().cpu().numpy() for p in self.networks.value.parameters()
-        ]
-        policy_weights = [
-            p.detach().cpu().numpy() for p in self.networks.policy.parameters()
-        ]
-
         end_time = time.perf_counter()
 
         tb_info = dict()
@@ -217,16 +132,11 @@ class PPO:
         # tb_info[tb_tags["clip_fraction"]] = clip_fra.item()
         tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
 
-        grad_info = dict()
-        grad_info["value_weights"] = value_weights
-        grad_info["policy_weights"] = policy_weights
-        grad_info["iteration"] = iteration
-
-        return grad_info, tb_info
+        return tb_info
 
     def __compute_loss(self, data: Dict[str, torch.Tensor], iteration: int):
-        obs, act, rew, obs2 = data["obs"], data["act"], data["rew"], data["obs2"]
-        mask, pro = data["mask"], data["pro"]
+        obs, act = data["obs"], data["act"]
+        pro = data["logp"]
         returns, advantages, values = data["ret"], data["adv"], data["val"]
         logits = data["logits"]
 
@@ -252,9 +162,7 @@ class PPO:
         sur2 = ratio.clamp(1 - self.clip_now, 1 + self.clip_now) * mb_advantage
         loss_surrogate = -torch.mean(torch.min(sur1, sur2))
 
-        if (
-            self.loss_value_clip
-        ):  # reduce variability during critic training, but increase the loss_critic
+        if self.loss_value_clip:
             # unclipped value
             value_losses1 = torch.pow(mb_new_value - mb_return, 2)
             # clipped value
@@ -300,75 +208,6 @@ class PPO:
             loss_kl,
             clip_fraction,
         )
-
-    @torch.no_grad()
-    def __generalization_advantage_estimate(self, data: Dict[str, torch.Tensor]):
-        if self.use_gpu:
-            obs, act, rew, obs2, done = (
-                data["obs"].cuda(),
-                data["act"].cuda(),
-                data["rew"].cuda(),
-                data["obs2"].cuda(),
-                data["done"].cuda(),
-            )
-            logp, time_limited = data["logp"].cuda(), data["time_limited"].cuda()
-        else:
-            obs, act, rew, obs2, done = (
-                data["obs"],
-                data["act"],
-                data["rew"],
-                data["obs2"],
-                data["done"],
-            )
-            logp, time_limited = data["logp"], data["time_limited"]
-        with torch.no_grad():
-            pro = logp
-            logits = self.networks.policy(obs)
-            values = self.networks.value(obs)
-            prev_value = self.networks.value(obs2[-1].unsqueeze(0))
-
-        mask = (~done.to(torch.bool) | time_limited.to(torch.bool)).to(
-            torch.int
-        )  # useless?
-        deltas = torch.zeros_like(done)
-        advantages = torch.zeros_like(done)
-
-        prev_advantage = prev_value = 0
-        for i in reversed(range(self.sample_batch_size)):
-            # generalization advantage estimate, ref: https://arxiv.org/pdf/1506.02438.pdf
-            if time_limited[i]:
-                # Trajectory truncated, need bootstrap
-                prev_value = self.networks.value(obs2[i].unsqueeze(0))
-                prev_advantage = 0
-            deltas[i] = rew[i] + self.gamma * prev_value * (1 - done[i]) - values[i]
-            advantages[i] = deltas[i] + self.gamma * self.lamb * prev_advantage * (
-                1 - done[i]
-            )
-
-            prev_value = values[i]
-            prev_advantage = advantages[i]
-        returns = advantages + values
-
-        if self.advantage_norm:
-            advantages = (advantages - advantages.mean()) / (
-                advantages.std() + self.EPS
-            )  # standardization
-
-        return dict(
-            obs=obs,
-            act=act,
-            rew=rew,
-            obs2=obs2,
-            logits=logits,
-            mask=mask,
-            pro=pro,
-            ret=returns,
-            adv=advantages,
-            val=values,
-        )
-
-    def load_state_dict(self, state_dict):
-        self.networks.load_state_dict(state_dict)
 
 
 if __name__ == "__main__":
