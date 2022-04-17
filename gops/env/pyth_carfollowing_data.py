@@ -22,7 +22,7 @@ Y_RANGE = [(-10, +10), (0, 10), (-4, 3)]
 COLOR = ["b", "r", "y", "g"]
 
 
-class PythCarfollowingData:
+class PythCarfollowingData(gym.Env):
     def __init__(self, **kwargs):
         self.dyn = CarFollowingDynamics2D()
         self.mode = "training"
@@ -145,7 +145,10 @@ class PythCarfollowingData:
             ax.draw_artist(line)
             self.fig.canvas.blit(ax.bbox)
 
-        self.fig.canvas.update()
+        try:
+            self.fig.canvas.update()
+        except Exception as e:
+            self.fig.canvas.draw()
         self.fig.canvas.flush_events()
         if mode == "rgb_array":
             image_from_plot = np.frombuffer(self.fig.canvas.tostring_rgb(), dtype=np.uint8)
@@ -168,4 +171,10 @@ def env_creator(**kwargs):
 
 if __name__ == "__main__":
     # import cv2
-    env_creator(use_constrain=False)
+    env = env_creator(use_constrain=False)
+
+    env.reset()
+    for _ in range(10):
+        a = env.action_space.sample()
+        env.step(a)
+        env.render()
