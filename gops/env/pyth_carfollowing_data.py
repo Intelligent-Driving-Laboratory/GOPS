@@ -145,10 +145,12 @@ class PythCarfollowingData(gym.Env):
             ax.draw_artist(line)
             self.fig.canvas.blit(ax.bbox)
 
-        try:
+        if hasattr(self.fig.canvas, "update"):
             self.fig.canvas.update()
-        except Exception as e:
+        elif hasattr(self.fig.canvas, "draw"):
             self.fig.canvas.draw()
+        else:
+            raise RuntimeError("In current matplotlib backend, canva has no attr update or draw, cannot rend")
         self.fig.canvas.flush_events()
         if mode == "rgb_array":
             image_from_plot = np.frombuffer(self.fig.canvas.tostring_rgb(), dtype=np.uint8)
