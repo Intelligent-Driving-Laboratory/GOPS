@@ -114,6 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("--sampler_name", type=str, default="off_sampler")
     # Batch size of sampler for buffer store
     parser.add_argument("--sample_batch_size", type=int, default=8)
+    parser.add_argument("--sample_interval", type=int, default=1)
     # Add noise to actions for better exploration
     parser.add_argument("--noise_params", type=dict, default=None)
 
