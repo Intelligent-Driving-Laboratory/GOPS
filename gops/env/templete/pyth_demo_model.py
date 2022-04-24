@@ -96,7 +96,7 @@ class GymDemocontiModel(torch.nn.Module):
         isdone = torch.from_numpy(isdone)
         for step in range(n):
             action = func(state)
-            state_next, reward[:, step], isdone = self.forward(state, action, isdone)
+            state_next, reward[:, step], isdone, constraint = self.forward(state, action, isdone)
             state = state_next
 
 
