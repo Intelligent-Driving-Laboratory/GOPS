@@ -16,6 +16,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from gops.utils.tensorboard_tools import add_scalars
+from gops.utils.utils import ModuleOnDevice
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -29,11 +30,9 @@ class OnSerialTrainer:
         self.sampler = sampler
         self.evaluator = evaluator
 
-        if kwargs["use_gpu"]:
-            self.alg.networks.cuda()
-        else:
-            self.sampler.networks = self.alg.networks
-            self.evaluator.networks = self.alg.networks
+        self.networks = self.alg.networks
+        self.sampler.networks = self.networks
+        self.evaluator.networks = self.networks
 
         # Import algorithm, appr func, sampler & buffer
         self.iteration = 0
@@ -42,7 +41,7 @@ class OnSerialTrainer:
 
         # initialize the networks
         if self.ini_network_dir is not None:
-            self.alg.networks.load_state_dict(torch.load(self.ini_network_dir))
+            self.networks.load_state_dict(torch.load(self.ini_network_dir))
 
         self.save_folder = kwargs["save_folder"]
         self.log_save_interval = kwargs["log_save_interval"]
@@ -56,12 +55,18 @@ class OnSerialTrainer:
         self.start_time = time.time()
         # setattr(self.alg, "writer", self.evaluator.writer)
 
+        self.use_gpu = kwargs["use_gpu"]
+
     def step(self):
         # sampling
         (samples_with_replay_format, sampler_tb_dict,) = self.sampler.sample_with_replay_format()
 
         # learning
-        alg_tb_dict = self.alg.local_update(samples_with_replay_format, self.iteration)
+        if self.use_gpu:
+            for k, v in samples_with_replay_format.items():
+                samples_with_replay_format[k] = v.cuda()
+        with ModuleOnDevice(self.networks, 'cuda' if self.use_gpu else 'cpu'):
+            alg_tb_dict = self.alg.local_update(samples_with_replay_format, self.iteration)
 
         # log
         if self.iteration % self.log_save_interval == 0:
@@ -70,7 +75,6 @@ class OnSerialTrainer:
             add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
         # evaluate
         if self.iteration % self.eval_interval == 0:
-            self.evaluator.networks.load_state_dict(self.alg.networks.state_dict())
             self.sampler.env.close()
             total_avg_return = self.evaluator.run_evaluation(self.iteration)
             self.evaluator.env.close()
@@ -91,7 +95,7 @@ class OnSerialTrainer:
         # save
         if self.iteration % self.apprfunc_save_interval == 0:
             torch.save(
-                self.alg.networks.state_dict(),
+                self.networks.state_dict(),
                 self.save_folder + "/apprfunc/apprfunc_{}.pkl".format(self.iteration),
             )
 
