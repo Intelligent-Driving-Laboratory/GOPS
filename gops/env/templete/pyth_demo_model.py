@@ -81,7 +81,7 @@ class GymDemocontiModel(torch.nn.Module):
             beyond_done = torch.full([state.size()[0]], False, dtype=torch.float32)
 
         beyond_done = beyond_done.bool()
-        mask = isdone or beyond_done
+        mask = isdone | beyond_done
         mask = torch.unsqueeze(mask, -1)
         state_next = ~mask * state_next + mask * state
         reward = ~(beyond_done) * reward
