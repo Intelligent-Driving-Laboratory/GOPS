@@ -18,6 +18,12 @@ import copy
 import time
 import torch
 import matplotlib.pyplot as plt
+import argparse
+import importlib
+from gops.utils.init_args import init_args
+import sys
+import json
+import os
 
 
 class SimuVeh3dofconti(gym.Env,):
@@ -79,17 +85,17 @@ class SimuVeh3dofconti(gym.Env,):
         return np.stack(lists_to_stack, axis=1)
 
     def reset(self, **kwargs):
-        if 'init_obs' in kwargs.keys():
-            self.obs = kwargs.get('init_obs')
-            self.veh_state = self._get_state(self.obs)
-            init_x = self.veh_state[:, -1]
-            path_y, path_phi = self.vehicle_dynamics.path.compute_path_y(init_x), \
-                               self.vehicle_dynamics.path.compute_path_phi(init_x)
-            self.veh_full_state = self.veh_state.copy()
-            self.veh_full_state[:, 4] = self.veh_state[:, 4] + path_phi
-            self.veh_full_state[:, 3] = self.veh_state[:, 3] + path_y
-
-            return self.obs
+        # if 'init_obs' in kwargs.keys():
+        #     self.obs = kwargs.get('init_obs')
+        #     self.veh_state = self._get_state(self.obs)
+        #     init_x = self.veh_state[:, -1]
+        #     path_y, path_phi = self.vehicle_dynamics.path.compute_path_y(init_x), \
+        #                        self.vehicle_dynamics.path.compute_path_phi(init_x)
+        #     self.veh_full_state = self.veh_state.copy()
+        #     self.veh_full_state[:, 4] = self.veh_state[:, 4] + path_phi
+        #     self.veh_full_state[:, 3] = self.veh_state[:, 3] + path_y
+        #
+        #     return self.obs
 
         self.simulation_time = 0
         init_x = np.random.uniform(0, 600, (self.num_agent,)).astype(np.float32)
@@ -99,19 +105,18 @@ class SimuVeh3dofconti(gym.Env,):
 
         init_delta_phi = np.random.normal(0, np.pi / 9, (self.num_agent,)).astype(np.float32)
         init_phi = self.vehicle_dynamics.path.compute_phi(init_x, init_delta_phi)
-
-        init_v_x = np.random.uniform(15, 25, (self.num_agent,)).astype(np.float32)
+        init_v_x = [20.]
+        # init_v_x = np.random.uniform(15, 25, (self.num_agent,)).astype(np.float32)
         beta = np.random.normal(0, 0.15, (self.num_agent,)).astype(np.float32)
         init_v_y = init_v_x * np.tan(beta)
         init_r = np.random.normal(0, 0.3, (self.num_agent,)).astype(np.float32)
-
         init_veh_full_state = np.stack([init_v_x, init_v_y, init_r, init_y, init_phi, init_x], 1)
-        if self.veh_full_state is None:
-            self.veh_full_state = init_veh_full_state
-        else:
-            # for i, done in enumerate(self.done):
-            #     self.veh_full_state[i, :] = np.where(done == 1, init_veh_full_state[i, :], self.veh_full_state[i, :])
-            self.veh_full_state = np.where(self.done.reshape((-1, 1)) == 1, init_veh_full_state, self.veh_full_state)
+        # if self.veh_full_state is None:
+        self.veh_full_state = init_veh_full_state
+        # else:
+        #     # for i, done in enumerate(self.done):
+        #     #     self.veh_full_state[i, :] = np.where(done == 1, init_veh_full_state[i, :], self.veh_full_state[i, :])
+        #     self.veh_full_state = np.where(self.done.reshape((-1, 1)) == 1, init_veh_full_state, self.veh_full_state)
         self.veh_state = self.veh_full_state.copy()
         path_y, path_phi = self.vehicle_dynamics.path.compute_path_y(self.veh_full_state[:, -1]), \
                            self.vehicle_dynamics.path.compute_path_phi(self.veh_full_state[:, -1])
@@ -133,7 +138,8 @@ class SimuVeh3dofconti(gym.Env,):
         self.veh_state, self.veh_full_state, stability_related = \
             self.vehicle_dynamics.simulation(self.veh_state, self.veh_full_state, self.action,
                                              base_freq=self.base_frequency, simu_times=self.interval_times)
-        self.done = self.judge_done(self.veh_state, stability_related)
+        # self.done = self.judge_done(self.veh_state, stability_related)
+        self.done = torch.zeros(1)
         self.obs = self._get_obs(self.veh_state, self.veh_full_state)
         info = {}
         return self.obs, reward, self.done, info
@@ -234,3 +240,125 @@ class SimuVeh3dofconti(gym.Env,):
 
 def env_creator(**kwargs):
     return SimuVeh3dofconti(**kwargs)
+
+
+if __name__=="__main__":
+    sys.path.append(r"G:\项目文档\gops开发相关\gops\gops\algorithm")
+    base_dir = r"G:\项目文档\gops开发相关\gops\results\FHADP\220425-101644"
+    net_dir = os.path.join(base_dir, r"apprfunc\apprfunc_{}.pkl".format(500))
+    parser = argparse.ArgumentParser()
+    ################################################
+    # Key Parameters for users
+    parser.add_argument("--env_id", type=str, default="pyth_veh3dofconti")
+    parser.add_argument("--algorithm", type=str, default="FHADP")
+    parser.add_argument("--pre_horizon", type=int, default=60)
+    parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
+    ################################################
+    # 1. Parameters for environment
+    parser.add_argument("--obsv_dim", type=int, default=6, help="dim(State)")
+    parser.add_argument("--action_dim", type=int, default=2, help="dim(Action)")
+    parser.add_argument("--action_high_limit", type=list, default=None)
+    parser.add_argument("--action_low_limit", type=list, default=None)
+    parser.add_argument(
+        "--action_type", type=str, default="continu", help="Options: continu/discret"
+    )
+    parser.add_argument(
+        "--is_render", type=bool, default=False, help="Draw environment animation"
+    )
+    parser.add_argument(
+        "--is_adversary", type=bool, default=False, help="Adversary training"
+    )
+    ################################################
+    # 2.1 Parameters of value approximate function
+    # parser.add_argument("--value_func_name", type=str, default="ActionValue")
+    parser.add_argument("--value_func_type", type=str, default="MLP")
+    # value_func_type = parser.parse_known_args()[0].value_func_type
+    # if value_func_type == "MLP":
+    #     parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
+    #     parser.add_argument("--value_hidden_activation", type=str, default="relu")
+    #     parser.add_argument("--value_output_activation", type=str, default="linear")
+
+    # 2.2 Parameters of policy approximate function
+    parser.add_argument("--policy_func_name", type=str, default="DetermPolicy")
+    parser.add_argument("--policy_func_type", type=str, default="MLP")
+    parser.add_argument("--policy_act_distribution", type=str, default="default")
+    policy_func_type = parser.parse_known_args()[0].policy_func_type
+    if policy_func_type == "MLP":
+        parser.add_argument("--policy_hidden_sizes", type=list, default=[256, 256])
+        parser.add_argument("--policy_hidden_activation", type=str, default="elu")
+        parser.add_argument("--policy_output_activation", type=str, default="tanh")
+
+    ################################################
+    # 3. Parameters for RL algorithm
+    # parser.add_argument("--value_learning_rate", type=float, default=1e-3)
+    parser.add_argument("--policy_learning_rate", type=float, default=3e-4)
+
+    ################################################
+    # 4. Parameters for trainer
+    parser.add_argument("--trainer", type=str, default="on_serial_trainer")
+    parser.add_argument("--max_iteration", type=int, default=1000)
+    trainer_type = parser.parse_known_args()[0].trainer
+    parser.add_argument("--ini_network_dir", type=str, default=None)
+
+    ################################################
+    # 5. Parameters for sampler
+    parser.add_argument("--sampler_name", type=str, default="on_sampler")
+    parser.add_argument("--sample_batch_size", type=int, default=1024)
+    parser.add_argument(
+        "--noise_params",
+        type=dict,
+        default={
+            "mean": np.array([0], dtype=np.float32),
+            "std": np.array([0.2], dtype=np.float32),
+        },
+    )
+
+    ################################################
+    # 7. Parameters for evaluator
+    parser.add_argument("--evaluator_name", type=str, default="evaluator")
+    parser.add_argument("--num_eval_episode", type=int, default=10)
+    parser.add_argument("--eval_interval", type=int, default=100)
+
+    ################################################
+    # 8. Data savings
+    parser.add_argument("--save_folder", type=str, default=None)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=500)
+    parser.add_argument("--log_save_interval", type=int, default=100)
+    env = SimuVeh3dofconti()
+    obs = env.reset()
+    obs_scale = [1., 1., 2., 1., 2.4, 1 / 1200]
+    v_xs, v_ys, rs, delta_ys, delta_phis, xs = obs[:, 0], obs[:, 1], obs[:, 2], \
+                                               obs[:, 3], obs[:, 4], obs[:, 5]
+    lists_to_stack = [v_xs * obs_scale[0], v_ys * obs_scale[1], rs * obs_scale[2],
+                      delta_ys * obs_scale[3], delta_phis * obs_scale[4], xs * obs_scale[5]]
+    state = torch.stack(lists_to_stack, 1)
+    args = vars(parser.parse_args())
+    args = init_args(env, **args)
+    alg_name = args["algorithm"]
+    alg_file_name = alg_name.lower()
+    file = __import__(alg_file_name)
+    ApproxContainer = getattr(file, "ApproxContainer")
+    networks = ApproxContainer(**args)
+    networks.load_state_dict(torch.load(net_dir))
+    v_x = []
+    x = []
+    y = []
+    for _ in range(20):
+        batch_obs = torch.from_numpy(
+            np.expand_dims(obs, axis=0).astype("float32")
+        )
+        logits = networks.policy(batch_obs)
+        # action_distribution = networks.create_action_distributions(logits)
+        # action, _ = action_distribution.sample()
+        # action = action.detach()[0].numpy()
+        # action = np.array(action)  # ensure action is an array
+        # action_clip = action.clip(
+        #     env.action_space.low, env.action_space.high
+        # )
+        obs, reward, _, info = env.step(logits)
+        v_x.append(obs[0, 0])
+        x.append(obs[0, -1])
+        y.append(obs[0, 3])
+
+    plt.plot(x, y)
+    plt.show()

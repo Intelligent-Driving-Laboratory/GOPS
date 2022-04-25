@@ -31,7 +31,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument("--env_id", type=str, default="pyth_veh3dofconti")
     parser.add_argument("--algorithm", type=str, default="FHADP")
-    parser.add_argument("--pre_horizon", type=int, default="20")
+    parser.add_argument("--pre_horizon", type=int, default=2)
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     ################################################
     # 1. Parameters for environment
@@ -71,25 +71,19 @@ if __name__ == "__main__":
     ################################################
     # 3. Parameters for RL algorithm
     # parser.add_argument("--value_learning_rate", type=float, default=1e-3)
-    parser.add_argument("--policy_learning_rate", type=float, default=3e-5)
+    parser.add_argument("--policy_learning_rate", type=float, default=3e-4)
 
     ################################################
     # 4. Parameters for trainer
-    parser.add_argument("--trainer", type=str, default="off_serial_trainer")
+    parser.add_argument("--trainer", type=str, default="on_serial_trainer")
     parser.add_argument("--max_iteration", type=int, default=10000)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
-    if trainer_type == "off_serial_trainer":
-        parser.add_argument("--buffer_name", type=str, default="replay_buffer")
-        parser.add_argument("--buffer_warm_size", type=int, default=100)
-        parser.add_argument("--buffer_max_size", type=int, default=1000)
-        parser.add_argument("--replay_batch_size", type=int, default=32)
-        parser.add_argument("--sampler_sync_interval", type=int, default=1)
 
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument("--sampler_name", type=str, default="off_sampler")
-    parser.add_argument("--sample_batch_size", type=int, default=8)
+    parser.add_argument("--sampler_name", type=str, default="on_sampler")
+    parser.add_argument("--sample_batch_size", type=int, default=1)
     parser.add_argument(
         "--noise_params",
         type=dict,
@@ -108,14 +102,14 @@ if __name__ == "__main__":
     ################################################
     # 8. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
-    parser.add_argument("--apprfunc_save_interval", type=int, default=5000)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=500)
     parser.add_argument("--log_save_interval", type=int, default=100)
 
     # Get parameter dictionary
     args = vars(parser.parse_args())
     env = create_env_model(**args)
     args = init_args(env, **args)
-    start_tensorboard(args["save_folder"])
+    # start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     alg.set_parameters(
@@ -124,16 +118,18 @@ if __name__ == "__main__":
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
-    buffer = create_buffer(**args)
+    # buffer = create_buffer(**args)
+    buffer = None
     # Step 4: create evaluator in trainer
     evaluator = create_evaluator(**args)
     # Step 5: create trainer
     trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
 
     # Start training ... ...
+    # trainer.train()
     trainer.train()
     print("Training is finished!")
 
     # Plot and save training figures
-    plot_all(args["save_folder"])
+    # plot_all(args["save_folder"])
     save_tb_to_csv(args["save_folder"])
