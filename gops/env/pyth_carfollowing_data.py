@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from gym import spaces
 from gym.utils import seeding
-
+from gops.env.tools.wrapper import EnvC2U
 from gops.env.resources.car_following_2d.car_following_2d import CarFollowingDynamics2D
 
 gym.logger.setLevel(gym.logger.ERROR)
@@ -22,7 +22,7 @@ Y_RANGE = [(-10, +10), (0, 10), (-4, 3)]
 COLOR = ["b", "r", "y", "g"]
 
 
-class PythCarfollowingData:
+class PythCarfollowingData(gym.Env):
     def __init__(self, **kwargs):
         self.dyn = CarFollowingDynamics2D()
         self.mode = "training"
@@ -145,7 +145,12 @@ class PythCarfollowingData:
             ax.draw_artist(line)
             self.fig.canvas.blit(ax.bbox)
 
-        self.fig.canvas.update()
+        if hasattr(self.fig.canvas, "update"):
+            self.fig.canvas.update()
+        elif hasattr(self.fig.canvas, "draw"):
+            self.fig.canvas.draw()
+        else:
+            raise RuntimeError("In current matplotlib backend, canva has no attr update or draw, cannot rend")
         self.fig.canvas.flush_events()
         if mode == "rgb_array":
             image_from_plot = np.frombuffer(self.fig.canvas.tostring_rgb(), dtype=np.uint8)
@@ -158,30 +163,20 @@ class PythCarfollowingData:
 
 
 def env_creator(**kwargs):
-    return PythCarfollowingData()
+    if kwargs.get("use_constrain", True):
+        return PythCarfollowingData()
+    else:
+        env = PythCarfollowingData()
+        print("converting a constrain env into a unconstrain one")
+        return EnvC2U(env)
 
 
 if __name__ == "__main__":
     # import cv2
-    import time
+    env = env_creator(use_constrain=False)
 
-    env = env_creator()
-
-    s = env.reset()
-    env.observation_space.contains(s)
-    a = env.action_space.sample()
-    s, r, d, _ = env.step(a)
-
-    print(type(d))
-    # for i in range(100):
-    #     a = env.action_space.sample()
-    #     x, r, d, info = env.step(a)
-    #     # pprint([x, r, d, info])
-    #     env.render()
-
-    # fig_array = env.render(mode="human")
-    # print(fig_array.shape)
-    # cv2.imshow("pic", fig_array)
-    # cv2.waitKey(0)
-    # cv2.destroyWindow()
-    # time.sleep(100)
+    env.reset()
+    for _ in range(10):
+        a = env.action_space.sample()
+        env.step(a)
+        env.render()

@@ -22,6 +22,7 @@ import torch.nn.functional as F
 from torch.optim import Adam
 import torch.autograd
 
+from gops.algorithm.base import AlgorithmBase, ApprBase
 from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.utils.action_distributions import GaussDistribution, CategoricalDistribution
 from gops.utils.utils import get_apprfunc_dict
@@ -30,19 +31,15 @@ from gops.utils.tensorboard_tools import tb_tags
 EPSILON = 1e-8
 
 
-class ApproxContainer(nn.Module):
+class ApproxContainer(ApprBase):
     def __init__(self, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
         value_func_type = kwargs["value_func_type"]
         policy_func_type = kwargs["policy_func_type"]
 
-        if kwargs["cnn_shared"]:  # todo:设置默认false
-            feature_args = get_apprfunc_dict("feature", value_func_type, **kwargs)
-            kwargs["feature_net"] = create_apprfunc(**feature_args)
-
         v_args = get_apprfunc_dict("value", value_func_type, **kwargs)
-        self.v: nn.Module = create_apprfunc(**v_args)
-        self.v_optimizer = Adam(self.v.parameters(), lr=kwargs["value_learning_rate"])
+        self.value: nn.Module = create_apprfunc(**v_args)
+        self.v_optimizer = Adam(self.value.parameters(), lr=kwargs["value_learning_rate"])
 
         policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
         self.policy: nn.Module = create_apprfunc(**policy_args)
@@ -50,20 +47,11 @@ class ApproxContainer(nn.Module):
     def create_action_distributions(self, logits):
         return self.policy.get_act_dist(logits)
 
-    def update(self, grads: List[np.ndarray]):
-        policy_weight, v_weight = grads[0], grads[1]
-        nn.utils.convert_parameters.vector_to_parameters(
-            policy_weight, self.policy.parameters()
-        )
-        nn.utils.convert_parameters.vector_to_parameters(v_weight, self.v.parameters())
 
-
-class TRPO:
+class TRPO(AlgorithmBase):
     def __init__(
         self,
         delta: float,
-        gamma: float,
-        lamda: float,
         rtol: float,
         atol: float,
         damping_factor: float,
@@ -71,12 +59,11 @@ class TRPO:
         alpha: float,
         max_search: int,
         train_v_iters: int,
-        use_gpu: bool,
+        index=0,
         **kwargs,
     ):
+        super().__init__(index, **kwargs)
         self.delta = delta
-        self.gamma = gamma
-        self.lamda = lamda
         self.rtol = rtol
         self.atol = atol
         self.damping_factor = damping_factor
@@ -84,55 +71,20 @@ class TRPO:
         self.alpha = alpha
         self.max_search = max_search
         self.train_v_iters = train_v_iters
-        self.use_gpu = use_gpu
-        self.reward_scale = 1.0
         self.networks = ApproxContainer(**kwargs)
 
-    def set_parameters(self, param_dict):
-        for key in param_dict:
-            if hasattr(self, key):
-                setattr(self, key, param_dict[key])
-            else:
-                warning_msg = "param '" + key + "'is not defined in algorithm!"
-                warnings.warn(warning_msg)
-
-    def get_parameters(self):
-        params = dict()
-        params["gamma"] = self.gamma
-        params["use_gpu"] = self.use_gpu
-        params["delta"] = self.delta
-        params["lamda"] = self.lamda
-        params["rtol"] = self.rtol
-        params["atol"] = self.atol
-        params["damping_factor"] = self.damping_factor
-        params["max_cg"] = self.max_cg
-        params["alpha"] = self.alpha
-        params["max_search"] = self.max_search
-        params["train_v_iters"] = self.train_v_iters
-        params["reward_scale"] = self.reward_scale
-
-        return params
-
-    def compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
-        start_time = time.time()
-        obs, act, rew, obs2, done, time_limited = (
-            data["obs"],
-            data["act"],
-            data["rew"] * self.reward_scale,
-            data["obs2"],
-            data["done"],
-            data["time_limited"],
+    @property
+    def adjustable_parameters(self):
+        return (
+            "delta", "train_v_iters",
+            "rtol", "atol", "damping_factor",
+            "max_cg", "alpha", "max_search",
         )
-        done = torch.logical_or(
-            done, time_limited
-        )  # Current workaround: avoid self-bootstrap
-        val: torch.Tensor = self.networks.v(obs)
-        # Run _estimate_advantage on gpu may not be benificial
-        # Or make _estimate_advantage work better with cuda
-        adv, ret = self._estimate_advantage(obs, obs2, rew, done, val.detach())
-        if self.use_gpu:
-            self.networks.cuda()
-            obs, act, adv, ret = obs.cuda(), act.cuda(), adv.cuda(), ret.cuda()
+
+    def local_update(self, data: Dict[str, torch.Tensor], iteration: int) -> dict:
+        start_time = time.time()
+        obs, act = data["obs"], data["act"]
+        adv, ret = data["adv"], data["ret"]
 
         # pi
         with torch.no_grad():
@@ -207,34 +159,21 @@ class TRPO:
                 get_surrogate_advantage(logp_new) > 0
                 and pi_new.kl_divergence(pi_old).mean() < self.delta
             ):
+                self.networks.policy.load_state_dict(new_policy.state_dict())
                 break
         else:
             print("fail to improve policy!")
-            new_policy = self.networks.policy
 
         # v loss
         for i in range(self.train_v_iters):
-            val = self.networks.v(obs)
+            val = self.networks.value(obs)
             self.networks.v_optimizer.zero_grad()
             v_loss = F.mse_loss(val, ret)
             v_loss.backward()
             self.networks.v_optimizer.step()
         v_loss = v_loss.item()
         val_avg = val.detach().mean().item()
-
-        if self.use_gpu:
-            new_policy.cpu()
-            self.networks.cpu()
-
-        with torch.no_grad():
-            weight_list = (
-                nn.utils.convert_parameters.parameters_to_vector(
-                    new_policy.parameters()
-                ),
-                nn.utils.convert_parameters.parameters_to_vector(
-                    self.networks.v.parameters()
-                ),
-            )
+        
         end_time = time.time()
 
         tb_info = {}
@@ -242,7 +181,7 @@ class TRPO:
         tb_info[tb_tags["critic_avg_value"]] = val_avg
         tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
         tb_info[tb_tags["loss_actor"]] = -surrogate_advantage.item()
-        return weight_list, tb_info
+        return tb_info
 
     def _create_new_policy(self):
         new_policy = deepcopy(self.networks.policy)
@@ -300,58 +239,3 @@ class TRPO:
         # print(f'mode2: max_cg {r.norm(2)}, {b.norm(2)}, {r.norm(2) / b.norm(2)}')
         return x, r
         # raise ValueError("_conjugate_gradient failed to converge within max_cg iterations")
-
-    def _estimate_advantage(
-        self,
-        obs: torch.Tensor,
-        obs2: torch.Tensor,
-        rew: torch.Tensor,
-        done: torch.Tensor,
-        val: torch.Tensor,
-    ):
-        gamma, lamda = self.gamma, self.lamda
-
-        def discounted_cumsum(vec: torch.Tensor, gamma: float):
-            cumsum: np.ndarray = scipy.signal.lfilter(
-                [1], [1, -gamma], vec.numpy()[::-1]
-            )[::-1]
-            return torch.from_numpy(cumsum.copy()).float()
-
-        def cal_traj(rew: torch.Tensor, value: torch.Tensor):
-            delta = rew + gamma * value[1:] - value[:-1]
-            advantage = discounted_cumsum(delta, lamda * gamma)
-            ret = discounted_cumsum(rew, gamma)
-            return advantage, ret
-
-        batch_size = obs.size(0)
-        done_index = done.nonzero(as_tuple=False)[:, 0].tolist()
-        if done[batch_size - 1] == 0:
-            done_index.append(batch_size - 1)
-        traj_num = len(done_index)
-
-        adv_buf = torch.empty(batch_size)
-        ret_buf = torch.empty(batch_size)
-
-        start = 0
-        for i in range(traj_num):
-            end = done_index[i] + 1
-
-            traj_len = end - start
-            traj_value = torch.empty(traj_len + 1)
-            traj_value[:-1] = val[start:end]
-            if done[end - 1] == 1:
-                traj_value[-1] = 0
-            else:
-                with torch.no_grad():
-                    traj_value[-1] = self.networks.v(obs2[end - 1 : end])
-            adv_buf[start:end], ret_buf[start:end] = cal_traj(
-                rew[start:end], traj_value
-            )
-            start = end
-
-        adv_buf_std, adv_buf_mean = torch.std_mean(adv_buf)
-        adv_buf = adv_buf.sub_(adv_buf_mean).div_(adv_buf_std)
-        return adv_buf, ret_buf
-
-    def load_state_dict(self, state_dict: Dict[str, torch.Tensor]):
-        self.networks.load_state_dict(state_dict)
