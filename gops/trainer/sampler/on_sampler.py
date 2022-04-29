@@ -5,7 +5,7 @@
 #  Creator: iDLab
 #  Description: Monte Carlo Sampler
 #  Update Date: 2021-03-10, Wenhan CAO: Revise Codes
-#  Update Date: 2021-03-05, Wenxuan Wang: add action clip
+#  Update: 2021-03-05, Wenxuan Wang: add action clip
 
 
 import numpy as np
@@ -24,7 +24,7 @@ from gops.utils.tensorboard_tools import tb_tags
 from gops.utils.utils import array_to_scalar
 from gops.utils.utils import set_seed
 
-class OnSampler:
+class OnSamplerNew:
     def __init__(self, index=0, **kwargs):
         self.env = create_env(**kwargs)
         _, self.env = set_seed(kwargs["trainer"], kwargs["seed"], index + 200, self.env)
@@ -42,6 +42,10 @@ class OnSampler:
         self.total_sample_number = 0
         self.obsv_dim = kwargs["obsv_dim"]
         self.act_dim = kwargs["action_dim"]
+        self.gamma = 0.99
+        self.gae_lambda = 0.95
+        self.reward_scale = 1.0
+
         if "constraint_dim" in kwargs.keys():
             self.is_constrained = True
             self.con_dim = kwargs["constraint_dim"]
@@ -52,6 +56,24 @@ class OnSampler:
             self.advers_dim = kwargs["adversary_dim"]
         else:
             self.is_adversary = False
+        self.obs_dim = self.obsv_dim
+        if isinstance(self.obs_dim, int):
+            self.obs_dim = (self.obs_dim,)
+        self.mb_obs = np.zeros(
+            (self.sample_batch_size,) + self.obs_dim, dtype=np.float32
+        )
+        self.mb_act = np.zeros((self.sample_batch_size, self.act_dim), dtype=np.float32)
+        self.mb_rew = np.zeros(self.sample_batch_size, dtype=np.float32)
+        self.mb_done = np.zeros(self.sample_batch_size, dtype=np.bool_)
+        self.mb_tlim = np.zeros(self.sample_batch_size, dtype=np.bool_)
+        self.mb_logp = np.zeros(self.sample_batch_size, dtype=np.float32)
+        self.mb_val = np.zeros(self.sample_batch_size, dtype=np.float32)
+        self.mb_adv = np.zeros(self.sample_batch_size, dtype=np.float32)
+        self.mb_ret = np.zeros(self.sample_batch_size, dtype=np.float32)
+        if self.is_constrained:
+            self.mb_con = np.zeros((self.sample_batch_size, self.con_dim))
+        if self.is_adversary:
+            self.mb_avs = np.zeros((self.sample_batch_size, self.advers_dim))
         if self.noise_params is not None:
             if self.action_type == "continu":
                 self.noise_processor = GaussNoise(**self.noise_params)
@@ -61,16 +83,16 @@ class OnSampler:
     def load_state_dict(self, state_dict):
         self.networks.load_state_dict(state_dict)
 
-    def sample(self):
+    def sample_with_replay_format(self):
         self.total_sample_number += self.sample_batch_size
         tb_info = dict()
         start_time = time.perf_counter()
-        batch_data = []
-        for _ in range(self.sample_batch_size):
-            batch_obs = torch.from_numpy(
+        last_ptr, ptr = 0, 0
+        for t in range(self.sample_batch_size):
+            obs_expand = torch.from_numpy(
                 np.expand_dims(self.obs, axis=0).astype("float32")
             )
-            logits = self.networks.policy(batch_obs)
+            logits = self.networks.policy(obs_expand)
 
             action_distribution = self.networks.create_action_distributions(logits)
             action, logp = action_distribution.sample()
@@ -86,87 +108,85 @@ class OnSampler:
             else:
                 action_clip = action
             next_obs, reward, self.done, info = self.env.step(action_clip)
+            value = self.networks.value(obs_expand).detach().item()
+            reward *= self.reward_scale
             if "TimeLimit.truncated" not in info.keys():
                 info["TimeLimit.truncated"] = False
             if info["TimeLimit.truncated"]:
                 self.done = False
-            data = [
+            if self.is_constrained:
+                constraint = info["constraint"]
+                self.mb_con[t] = constraint
+            if self.is_adversary:
+                sth_about_adversary = np.zeros(self.advers_dim)
+                self.mb_avs[t] = sth_about_adversary
+            (
+                self.mb_obs[t],
+                self.mb_act[t],
+                self.mb_rew[t],
+                self.mb_done[t],
+                self.mb_tlim[t],
+                self.mb_logp[t],
+                self.mb_val[t],
+            ) = (
                 self.obs.copy(),
                 action,
                 reward,
-                next_obs.copy(),
                 self.done,
-                logp,
                 info["TimeLimit.truncated"],
-            ]
-            if self.is_constrained:
-                constraint = info["constraint"]
-            else:
-                constraint = None
-            if self.is_adversary:
-                sth_about_adversary = np.zeros(self.advers_dim)
-            else:
-                sth_about_adversary = None
-            data.append(constraint)
-            data.append(sth_about_adversary)
-            batch_data.append(tuple(data))
+                logp,
+                value,
+            )
             self.obs = next_obs
             if self.done or info["TimeLimit.truncated"]:
                 self.obs = self.env.reset()
-
+            if (
+                self.done
+                or info["TimeLimit.truncated"]
+                or t == self.sample_batch_size - 1
+            ):
+                last_obs_expand = torch.from_numpy(
+                    np.expand_dims(next_obs, axis=0).astype("float32")
+                )
+                est_last_value = self.networks.value(
+                    last_obs_expand
+                ).detach().item() * (1 - self.done)
+                ptr = t
+                self._finish_trajs(est_last_value, last_ptr, ptr)
+                last_ptr = t
         end_time = time.perf_counter()
         tb_info[tb_tags["sampler_time"]] = (end_time - start_time) * 1000
-
-        return batch_data, tb_info
+        mb_data = {
+            "obs": torch.from_numpy(self.mb_obs),
+            "act": torch.from_numpy(self.mb_act),
+            "rew": torch.from_numpy(self.mb_rew),
+            "done": torch.from_numpy(self.mb_done),
+            "logp": torch.from_numpy(self.mb_logp),
+            "time_limited": torch.from_numpy(self.mb_tlim),
+            "ret": torch.from_numpy(self.mb_ret),
+            "adv": torch.from_numpy(self.mb_adv),
+        }
+        return mb_data, tb_info
 
     def get_total_sample_number(self):
         return self.total_sample_number
 
-    def samples_conversion(self, samples):
-        obs_dim = self.obsv_dim
-        if isinstance(obs_dim, int):
-            obs_dim = (obs_dim,)
-        tensor_dict = {
-            "obs": torch.zeros((self.sample_batch_size,) + obs_dim),
-            "act": torch.zeros(self.sample_batch_size, self.act_dim),
-            "obs2": torch.zeros((self.sample_batch_size,) + obs_dim),
-            "rew": torch.zeros(
-                self.sample_batch_size,
-            ),
-            "done": torch.zeros(
-                self.sample_batch_size,
-            ),
-            "logp": torch.zeros(
-                self.sample_batch_size,
-            ),
-            "time_limited": torch.zeros(
-                self.sample_batch_size,
-            ),
-        }
-        if self.is_constrained:
-            tensor_dict["con"] = torch.zeros(self.sample_batch_size, self.con_dim)
-        if self.is_adversary:
-            tensor_dict["advers"] = torch.zeros(self.sample_batch_size, self.advers_dim)
-        idx = 0
-        for sample in samples:
-            obs, act, rew, next_obs, done, logp, time_limited = sample[:7]
-            tensor_dict["obs"][idx] = torch.from_numpy(obs)
-            tensor_dict["act"][idx] = torch.from_numpy(act)
-            tensor_dict["rew"][idx] = torch.tensor(array_to_scalar(rew))
-            tensor_dict["obs2"][idx] = torch.from_numpy(next_obs)
-            tensor_dict["done"][idx] = torch.tensor(array_to_scalar(done))
-            tensor_dict["logp"][idx] = torch.tensor(logp)
-            tensor_dict["time_limited"][idx] = torch.tensor(time_limited)
-            if self.is_constrained:
-                con = sample[7]
-                tensor_dict["con"][idx] = torch.from_numpy(con)
-            if self.is_adversary:
-                advers = sample[-1]
-                tensor_dict["advers"][idx] = torch.from_numpy(advers)
-            idx += 1
-        tensor_dict["time_limited"][-1] = True
-        return tensor_dict
-
-    def sample_with_replay_format(self):
-        samples, sampler_tb_dict = self.sample()
-        return self.samples_conversion(samples), sampler_tb_dict
+    def _finish_trajs(self, est_last_val, last_ptr, ptr):
+        path_slice = slice(last_ptr, ptr + 1)
+        value_preds_slice = np.append(self.mb_val[path_slice], est_last_val)
+        rews_slice = self.mb_rew[path_slice]
+        length = len(rews_slice)
+        ret = np.zeros(length)
+        adv = np.zeros(length)
+        gae = 0.0
+        for i in reversed(range(length)):
+            delta = (
+                rews_slice[i]
+                + self.gamma * value_preds_slice[i + 1]
+                - value_preds_slice[i]
+            )
+            gae = delta + self.gamma * self.gae_lambda * gae
+            ret[i] = gae + value_preds_slice[i]
+            adv[i] = gae
+        self.mb_ret[path_slice] = ret
+        self.mb_adv[path_slice] = adv
