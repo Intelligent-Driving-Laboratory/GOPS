@@ -24,7 +24,7 @@ from gops.utils.tensorboard_tools import tb_tags
 from gops.utils.utils import array_to_scalar
 from gops.utils.utils import set_seed
 
-class OnSamplerNew:
+class OnSampler:
     def __init__(self, index=0, **kwargs):
         self.env = create_env(**kwargs)
         _, self.env = set_seed(kwargs["trainer"], kwargs["seed"], index + 200, self.env)
