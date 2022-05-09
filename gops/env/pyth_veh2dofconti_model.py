@@ -49,6 +49,8 @@ class Veh2dofcontiModel(torch.nn.Module):
         steer_norm = actions
         actions = steer_norm * 1.2 * np.pi / 9
         self.actions = actions
+        print(self.veh_states)
+        exit()
         rewards = self.vehicle_dynamics.compute_rewards(self.veh_states, actions)
         self.veh_states = self.vehicle_dynamics.prediction(self.veh_states, actions, self.base_frequency)
         v_ys, rs, delta_ys, delta_phis = self.veh_states[:, 0], self.veh_states[:, 1], self.veh_states[:, 2], self.veh_states[:, 3]
@@ -67,7 +69,7 @@ class Veh2dofcontiModel(torch.nn.Module):
         return torch.stack(lists_to_stack, 1)
 
 
-    def forward_n_step(self, obs: torch.Tensor, func, n):
+    def forward_n_step(self, obs: torch.Tensor, func, n, done):
         done_list = []
         next_obs_list = []
         v_pi = torch.zeros((obs.shape[0],))
@@ -132,8 +134,8 @@ class VehicleDynamics(object):
         return x_next
 
     def simulation(self, states, actions, base_freq):
-        steer_norm = actions
-        actions = steer_norm * 1.2 * np.pi / 9
+        # steer_norm = actions
+        # actions = steer_norm * 1.2 * np.pi / 9
         # self.actions = actions
         next_states = self.prediction(states, actions, base_freq)
         v_ys, rs, delta_ys, delta_phis = next_states[:, 0], next_states[:, 1], next_states[:, 2], next_states[:, 3]

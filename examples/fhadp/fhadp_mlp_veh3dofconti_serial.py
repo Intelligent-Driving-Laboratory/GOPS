@@ -14,7 +14,7 @@ import argparse
 import numpy as np
 from gops.create_pkg.create_alg import create_alg
 from gops.create_pkg.create_buffer import create_buffer
-from gops.create_pkg.create_env_model import create_env_model
+from gops.create_pkg.create_env import create_env
 from gops.create_pkg.create_evaluator import create_evaluator
 from gops.create_pkg.create_sampler import create_sampler
 from gops.create_pkg.create_trainer import create_trainer
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument("--env_id", type=str, default="pyth_veh3dofconti")
     parser.add_argument("--algorithm", type=str, default="FHADP")
-    parser.add_argument("--pre_horizon", type=int, default=2)
+    parser.add_argument("--pre_horizon", type=int, default=30)
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     ################################################
     # 1. Parameters for environment
@@ -52,11 +52,6 @@ if __name__ == "__main__":
     # 2.1 Parameters of value approximate function
     # parser.add_argument("--value_func_name", type=str, default="ActionValue")
     parser.add_argument("--value_func_type", type=str, default="MLP")
-    # value_func_type = parser.parse_known_args()[0].value_func_type
-    # if value_func_type == "MLP":
-    #     parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
-    #     parser.add_argument("--value_hidden_activation", type=str, default="relu")
-    #     parser.add_argument("--value_output_activation", type=str, default="linear")
 
     # 2.2 Parameters of policy approximate function
     parser.add_argument("--policy_func_name", type=str, default="DetermPolicy")
@@ -66,24 +61,24 @@ if __name__ == "__main__":
     if policy_func_type == "MLP":
         parser.add_argument("--policy_hidden_sizes", type=list, default=[256, 256])
         parser.add_argument("--policy_hidden_activation", type=str, default="elu")
-        parser.add_argument("--policy_output_activation", type=str, default="tanh")
+        parser.add_argument("--policy_output_activation", type=str, default="linear")
 
     ################################################
     # 3. Parameters for RL algorithm
     # parser.add_argument("--value_learning_rate", type=float, default=1e-3)
-    parser.add_argument("--policy_learning_rate", type=float, default=3e-4)
+    parser.add_argument("--policy_learning_rate", type=float, default=3e-5)
 
     ################################################
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="on_serial_trainer")
-    parser.add_argument("--max_iteration", type=int, default=10000)
+    parser.add_argument("--max_iteration", type=int, default=500)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
 
     ################################################
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="on_sampler")
-    parser.add_argument("--sample_batch_size", type=int, default=1)
+    parser.add_argument("--sample_batch_size", type=int, default=200)
     parser.add_argument(
         "--noise_params",
         type=dict,
@@ -96,18 +91,18 @@ if __name__ == "__main__":
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=10)
+    parser.add_argument("--num_eval_episode", type=int, default=100)
     parser.add_argument("--eval_interval", type=int, default=100)
 
     ################################################
     # 8. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
-    parser.add_argument("--apprfunc_save_interval", type=int, default=500)
-    parser.add_argument("--log_save_interval", type=int, default=100)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=50)
+    parser.add_argument("--log_save_interval", type=int, default=10)
 
     # Get parameter dictionary
     args = vars(parser.parse_args())
-    env = create_env_model(**args)
+    env = create_env(**args)
     args = init_args(env, **args)
     # start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function

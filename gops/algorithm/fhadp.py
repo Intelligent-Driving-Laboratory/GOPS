@@ -94,7 +94,7 @@ class FHADP(AlgorithmBase):
             data["done"],
         )  # TODO  解耦字典
         next_state_list, v_pi, done_list = self.envmodel.forward_n_step(
-            o, self.networks.policy, self.forward_step)
+            o, self.networks.policy, self.forward_step, d)
 
         return -(v_pi * self.reward_scale).mean()
 
