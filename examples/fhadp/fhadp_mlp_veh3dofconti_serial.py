@@ -70,15 +70,20 @@ if __name__ == "__main__":
 
     ################################################
     # 4. Parameters for trainer
-    parser.add_argument("--trainer", type=str, default="on_serial_trainer")
+    parser.add_argument("--trainer", type=str, default="off_serial_trainer")
     parser.add_argument("--max_iteration", type=int, default=2000)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
-
+    if trainer_type == "off_serial_trainer":
+        parser.add_argument("--buffer_name", type=str, default="replay_buffer")
+        parser.add_argument("--buffer_warm_size", type=int, default=1000)
+        parser.add_argument("--buffer_max_size", type=int, default=100000)
+        parser.add_argument("--replay_batch_size", type=int, default=64)
+        parser.add_argument("--sampler_sync_interval", type=int, default=1)
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument("--sampler_name", type=str, default="on_sampler")
-    parser.add_argument("--sample_batch_size", type=int, default=200)
+    parser.add_argument("--sampler_name", type=str, default="off_sampler")
+    parser.add_argument("--sample_batch_size", type=int, default=256)
     parser.add_argument(
         "--noise_params",
         type=dict,
@@ -104,7 +109,7 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
     env = create_env(**args)
     args = init_args(env, **args)
-    start_tensorboard(args["save_folder"])
+    # start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     alg.set_parameters(
@@ -114,7 +119,7 @@ if __name__ == "__main__":
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
     # buffer = create_buffer(**args)
-    buffer = None
+    buffer = create_buffer(**args)
     # Step 4: create evaluator in trainer
     evaluator = create_evaluator(**args)
     # Step 5: create trainer

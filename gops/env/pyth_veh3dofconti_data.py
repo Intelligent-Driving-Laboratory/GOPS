@@ -148,7 +148,7 @@ def scale_obs(obs):
 
 if __name__=="__main__":
     sys.path.append(r"E:\gops\gops\gops\algorithm")
-    base_dir = r"E:\gops\gops\results\FHADP\220509-114221"
+    base_dir = r"E:\gops\gops\results\FHADP\220511-192102"
     net_dir = os.path.join(base_dir, r"apprfunc\apprfunc_{}.pkl".format(1999))
     parser = argparse.ArgumentParser()
     ################################################
@@ -190,15 +190,15 @@ if __name__=="__main__":
 
     ################################################
     # 4. Parameters for trainer
-    parser.add_argument("--trainer", type=str, default="on_serial_trainer")
+    parser.add_argument("--trainer", type=str, default="off_serial_trainer")
     parser.add_argument("--max_iteration", type=int, default=2000)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
 
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument("--sampler_name", type=str, default="on_sampler")
-    parser.add_argument("--sample_batch_size", type=int, default=200)
+    parser.add_argument("--sampler_name", type=str, default="off_sampler")
+    parser.add_argument("--sample_batch_size", type=int, default=256)
     parser.add_argument(
         "--noise_params",
         type=dict,
@@ -211,7 +211,7 @@ if __name__=="__main__":
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=10)
+    parser.add_argument("--num_eval_episode", type=int, default=100)
     parser.add_argument("--eval_interval", type=int, default=100)
 
     ################################################
