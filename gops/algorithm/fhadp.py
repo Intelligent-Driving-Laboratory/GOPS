@@ -62,7 +62,10 @@ class FHADP(AlgorithmBase):
 
     def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
         self.__compute_gradient(data)
-        update_info = {'grad': [p.grads for p in self.networks.policy.parameters()]}
+        policy_grad = [p._grad for p in self.networks.policy.parameters()]
+        update_info = dict()
+        update_info["grad"] = policy_grad
+        # update_info = {'grad': [p.grads for p in self.networks.policy.parameters()]}
         return self.tb_info, update_info
 
     def remote_update(self, update_info: dict):

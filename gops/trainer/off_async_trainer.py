@@ -217,6 +217,14 @@ class OffAsyncTrainer:
                     + "/apprfunc/apprfunc_{}.pkl".format(self.iteration),
                 )
 
+            if self.iteration == self.max_iteration - 1:
+                torch.save(
+                    self.networks.state_dict(),
+                    self.save_folder
+                    + "/apprfunc/apprfunc_{}.pkl".format(self.iteration),
+                )
+
+
     def train(self):
         while self.iteration < self.max_iteration:
             self.step()

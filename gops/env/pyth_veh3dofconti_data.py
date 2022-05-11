@@ -148,8 +148,8 @@ def scale_obs(obs):
 
 if __name__=="__main__":
     sys.path.append(r"E:\gops\gops\gops\algorithm")
-    base_dir = r"E:\gops\gops\results\FHADP\220511-192102"
-    net_dir = os.path.join(base_dir, r"apprfunc\apprfunc_{}.pkl".format(1999))
+    base_dir = r"E:\gops\gops\results\FHADP\220511-214956"
+    net_dir = os.path.join(base_dir, r"apprfunc\apprfunc_{}.pkl".format(2000))
     parser = argparse.ArgumentParser()
     ################################################
     # Key Parameters for users
