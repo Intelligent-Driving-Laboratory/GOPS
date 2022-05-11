@@ -112,8 +112,8 @@ def self_plot(
     else:
         plt.savefig(fname)
 
-    if display:
-        plt.show()
+    # if display:
+    #     plt.show()
 
 
 def cm2inch(*tupl):
@@ -137,6 +137,7 @@ def plot_all(path):
             ylabel=y_label,
             color_list=["orange"],
         )
+    plt.show()
 
 
 def str_edit(str_):
