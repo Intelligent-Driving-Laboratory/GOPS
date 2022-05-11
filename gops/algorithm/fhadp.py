@@ -56,10 +56,9 @@ class FHADP(AlgorithmBase):
         return para_tuple
 
     def local_update(self, data, iteration: int):
-        loss = self.__compute_gradient(data)
-        # self.__compute_gradient(data)
+        self.__compute_gradient(data)
         self.networks.policy_optimizer.step()
-        return loss, self.tb_info
+        return self.tb_info
 
     def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
         self.__compute_gradient(data)
@@ -75,6 +74,7 @@ class FHADP(AlgorithmBase):
         start_time = time.time()
         self.networks.policy.zero_grad()
         loss_policy = self.__compute_loss_policy(deepcopy(data))
+        print("loss = ", loss_policy)
         loss_policy.backward()
 
         self.tb_info[tb_tags["loss_actor"]] = loss_policy.item()

@@ -82,43 +82,48 @@ class OffSerialTrainer:
                 replay_samples[k] = v.cuda()
         alg_tb_dict = self.alg.local_update(replay_samples, self.iteration)
 
-        # log
-        if self.iteration % self.log_save_interval == 0:
-            print("Iter = ", self.iteration)
-            add_scalars(alg_tb_dict, self.writer, step=self.iteration)
-            add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
-        # evaluate
-        if self.iteration % self.eval_interval == 0:
-            with ModuleOnDevice(self.networks, 'cpu'):
-                total_avg_return = self.evaluator.run_evaluation(self.iteration)
-            self.writer.add_scalar(
-                tb_tags["Buffer RAM of RL iteration"],
-                self.buffer.__get_RAM__(),
-                self.iteration,
-            )
-            self.writer.add_scalar(
-                tb_tags["TAR of RL iteration"], total_avg_return, self.iteration
-            )
-            self.writer.add_scalar(
-                tb_tags["TAR of replay samples"],
-                total_avg_return,
-                self.iteration * self.replay_batch_size,
-            )
-            self.writer.add_scalar(
-                tb_tags["TAR of total time"],
-                total_avg_return,
-                int(time.time() - self.start_time),
-            )
-            self.writer.add_scalar(
-                tb_tags["TAR of collected samples"],
-                total_avg_return,
-                self.sampler.get_total_sample_number(),
-            )
+        # # log
+        # if self.iteration % self.log_save_interval == 0:
+        #     print("Iter = ", self.iteration)
+        #     add_scalars(alg_tb_dict, self.writer, step=self.iteration)
+        #     add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
+        # # evaluate
+        # if self.iteration % self.eval_interval == 0:
+        #     with ModuleOnDevice(self.networks, 'cpu'):
+        #         total_avg_return = self.evaluator.run_evaluation(self.iteration)
+        #     self.writer.add_scalar(
+        #         tb_tags["Buffer RAM of RL iteration"],
+        #         self.buffer.__get_RAM__(),
+        #         self.iteration,
+        #     )
+        #     self.writer.add_scalar(
+        #         tb_tags["TAR of RL iteration"], total_avg_return, self.iteration
+        #     )
+        #     self.writer.add_scalar(
+        #         tb_tags["TAR of replay samples"],
+        #         total_avg_return,
+        #         self.iteration * self.replay_batch_size,
+        #     )
+        #     self.writer.add_scalar(
+        #         tb_tags["TAR of total time"],
+        #         total_avg_return,
+        #         int(time.time() - self.start_time),
+        #     )
+        #     self.writer.add_scalar(
+        #         tb_tags["TAR of collected samples"],
+        #         total_avg_return,
+        #         self.sampler.get_total_sample_number(),
+        #     )
 
         # save
         if self.iteration % self.apprfunc_save_interval == 0:
             torch.save(
                 self.networks.state_dict(),
+                self.save_folder + "/apprfunc/apprfunc_{}.pkl".format(self.iteration),
+            )
+        if self.iteration == self.max_iteration - 1:
+            torch.save(
+                self.alg.networks.state_dict(),
                 self.save_folder + "/apprfunc/apprfunc_{}.pkl".format(self.iteration),
             )
 

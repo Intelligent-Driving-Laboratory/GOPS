@@ -49,8 +49,6 @@ class Veh2dofcontiModel(torch.nn.Module):
         steer_norm = actions
         actions = steer_norm * 1.2 * np.pi / 9
         self.actions = actions
-        print(self.veh_states)
-        exit()
         rewards = self.vehicle_dynamics.compute_rewards(self.veh_states, actions)
         self.veh_states = self.vehicle_dynamics.prediction(self.veh_states, actions, self.base_frequency)
         v_ys, rs, delta_ys, delta_phis = self.veh_states[:, 0], self.veh_states[:, 1], self.veh_states[:, 2], self.veh_states[:, 3]
