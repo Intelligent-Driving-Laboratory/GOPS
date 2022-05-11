@@ -18,15 +18,17 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Adam
+from typing import Tuple
 
+from gops.algorithm.base import AlgorithmBase, ApprBase
 from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.utils.utils import get_apprfunc_dict
 from gops.utils.tensorboard_tools import tb_tags
 
 
-class ApproxContainer(nn.Module):
+class ApproxContainer(ApprBase):
     def __init__(self, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
 
         value_func_type = kwargs["value_func_type"]
         Q_network_dict = get_apprfunc_dict("value", value_func_type, **kwargs)
@@ -61,8 +63,8 @@ class ApproxContainer(nn.Module):
                 p_targ.data.add_((1 - polyak) * p.data)
 
 
-class DQN:
-    def __init__(self, **kwargs):
+class DQN(AlgorithmBase):
+    def __init__(self, index=0, **kwargs):
         """Deep Q-Network (DQN) algorithm
 
         A DQN implementation with soft target update.
@@ -75,12 +77,17 @@ class DQN:
             gamma (float, optional): Discount factor. Defaults to 0.995.
             tau (float, optional): Average factor. Defaults to 0.005.
         """
+        super().__init__(index, **kwargs)
         self.gamma = 0.99
         self.use_gpu = kwargs["use_gpu"]
         self.tau = 0.005
         self.reward_scale = 1
-
         self.networks = ApproxContainer(**kwargs)
+
+    @property
+    def adjustable_parameters(self):
+        para_tuple = ("gamma", "tau", "reward_scale")
+        return para_tuple
 
     def set_parameters(self, param_dict):
         for key in param_dict:
@@ -98,7 +105,7 @@ class DQN:
         params["reward_scale"] = self.reward_scale
         return params
 
-    def compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
+    def __compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
         start_time = time.perf_counter()
         obs, act, rew, obs2, done = (
             data["obs"],
@@ -126,17 +133,50 @@ class DQN:
 
         end_time = time.perf_counter()
 
-        q_grad = [p._grad for p in self.networks.q.parameters()]
+        # q_grad = [p._grad for p in self.networks.q.parameters()]
         tb_info = {
             tb_tags["loss_critic"]: loss.item(),
             tb_tags["alg_time"]: (end_time - start_time) * 1000,
         }
 
-        grad_info = dict()
-        grad_info["q_grad"] = q_grad
-        grad_info["tau"] = self.tau
+        # grad_info = dict()
+        # grad_info["q_grad"] = q_grad
+        # grad_info["tau"] = self.tau
 
-        return grad_info, tb_info
+        return tb_info
+
+    def __update(self, iteration):
+        self.networks.q_optimizer.step()
+
+        with torch.no_grad():
+            polyak = 1 - self.tau
+            for p, p_targ in zip(self.networks.q.parameters(), self.networks.target.parameters()):
+                p_targ.data.mul_(polyak)
+                p_targ.data.add_((1 - polyak) * p.data)
+
+    def local_update(self, data: dict, iteration: int):
+        tb_info = self.__compute_gradient(data, iteration)
+        self.__update(iteration)
+        return tb_info
+
+    def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
+        tb_info = self.__compute_gradient(data, iteration)
+
+        update_info = {
+            "q_grad": [p._grad for p in self.networks.q.parameters()],
+            "iteration": iteration,
+        }
+
+        return tb_info, update_info
+
+    def remote_update(self, update_info: dict):
+        iteration = update_info["iteration"]
+        q_grad = update_info["q_grad"]
+
+        for p, grad in zip(self.networks.q.parameters(), q_grad):
+            p._grad = grad
+
+        self.__update(iteration)
 
     def compute_loss(
         self,

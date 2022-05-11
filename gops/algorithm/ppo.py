@@ -70,10 +70,6 @@ class PPO(AlgorithmBase):
         self.approximate_optimizer = Adam(
             self.networks.parameters(), lr=self.learning_rate
         )
-        self.use_gpu = kwargs["use_gpu"]
-        if self.use_gpu:
-            self.networks.value = self.networks.value.cuda()
-            self.networks.policy = self.networks.policy.cuda()
 
     @property
     def adjustable_parameters(self):

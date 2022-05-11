@@ -246,5 +246,17 @@ def get_parameters(modules):
     return model_parameters
 
 
+class ModuleOnDevice:
+    def __init__(self, module, device):
+        self.module = module
+        self.prev_device = next(module.parameters()).device.type
+        self.new_device = device
+        self.different_device = self.prev_device != self.new_device
 
+    def __enter__(self):
+        if self.different_device:
+            self.module.to(self.new_device)
 
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.different_device:
+            self.module.to(self.prev_device)

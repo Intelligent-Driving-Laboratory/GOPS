@@ -71,6 +71,10 @@ class OnSyncTrainer:
         if self.ini_network_dir is not None:
             self.networks.load_state_dict(torch.load(self.ini_network_dir))
 
+        self.use_gpu = kwargs["use_gpu"]
+        if self.use_gpu:
+            self.alg.networks.cuda()
+
         self.start_time = time.time()
 
     def step(self):
@@ -90,6 +94,9 @@ class OnSyncTrainer:
         all_samples = concate(samples)
 
         # learning
+        if self.use_gpu:
+            for k, v in all_samples.items():
+                all_samples[k] = v.cuda()
         alg_tb_dict = self.alg.local_update(all_samples, self.iteration)  # 更新learner参数
         self.networks.load_state_dict(self.alg.state_dict())
 

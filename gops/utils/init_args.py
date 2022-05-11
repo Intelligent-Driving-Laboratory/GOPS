@@ -68,7 +68,7 @@ def init_args(env, **args):
     if hasattr(env, "constraint_dim"):  # get the dimension of constrain
         args["constraint_dim"] = env.constraint_dim
 
-    if args["value_func_type"] == "CNN_SHARED":
+    if hasattr(args, "value_func_type") and args["value_func_type"] == "CNN_SHARED":
         if hasattr(args, "policy_func_type"):
             assert (
                 args["value_func_type"] == args["policy_func_type"]

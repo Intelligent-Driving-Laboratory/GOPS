@@ -103,8 +103,12 @@ class OffAsyncTrainer:
         self.learn_tasks = TaskPool()  # 创建learner的任务管理的类
         self._set_algs()
 
-        self.start_time = time.time()
+        self.use_gpu = kwargs["use_gpu"]
+        if self.use_gpu:
+            for alg in self.algs:
+                alg.to.remote('cuda')
 
+        self.start_time = time.time()
 
     def _set_samplers(self):
         weights = self.networks.state_dict()  # 得到中心网络参数
@@ -142,14 +146,22 @@ class OffAsyncTrainer:
         for alg, objID in self.learn_tasks.completed():
             alg_tb_dict, update_info = ray.get(objID)
             # replay
-            data = random.choice(self.buffers).sample_batch.remote(
+            data = ray.get(random.choice(self.buffers).sample_batch.remote(
                 self.replay_batch_size
-            )
+            ))
+            if self.use_gpu:
+                for k, v in data.items():
+                    data[k] = v.cuda()
             weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
             alg.load_state_dict.remote(weights)  # 更新learner参数
             self.learn_tasks.add(
                 alg, alg.get_remote_update_info.remote(data, self.iteration)
             )  # 将完成了的learner重新算梯度
+            if self.use_gpu:
+                for k, v in update_info.items():
+                    if isinstance(v, list):
+                        for i in range(len(v)):
+                            update_info[k][i] = v[i].cpu()
             self.networks.remote_update(update_info)
             self.iteration += 1
             # log

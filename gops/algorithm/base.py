@@ -55,3 +55,6 @@ class AlgorithmBase(metaclass=ABCMeta):
 
     def remote_update(self, update_info: dict):
         raise NotImplemented
+
+    def to(self, device):
+        self.networks.to(device)

@@ -67,7 +67,6 @@ class ApproxContainer(nn.Module):
 class A3C:
     def __init__(self, **kwargs):
         self.networks = ApproxContainer(**kwargs)
-        self.use_gpu = kwargs["use_gpu"]
         self.gamma = 0.99
         self.reward_scale = 1
         self.delay_update = 1
@@ -84,23 +83,11 @@ class A3C:
     def get_parameters(self):
         params = dict()
         params["gamma"] = self.gamma
-        params["use_gpu"] = self.use_gpu
         params["reward_scale"] = self.reward_scale
         params["delay_update"] = self.delay_update
         return params
 
     def compute_gradient(self, data: dict, iteration):
-        # o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
-        # ------------------------------------
-        # if self.use_gpu:
-        #     self.networks.policy = self.networks.policy.cuda()
-        #     self.networks.value = self.networks.value.cuda()
-        #     o = o.cuda()
-        #     a = a.cuda()
-        #     r = r.cuda()
-        #     o2 = o2.cuda()
-        #     d = d.cuda()
-        # ------------------------------------
         tb_info = dict()
         start_time = time.time()
 
@@ -120,11 +107,6 @@ class A3C:
         for p in self.networks.value.parameters():
             p.requires_grad = True
 
-        # ------------------------------------
-        # if self.use_gpu:
-        #     self.networks.policy = self.networks.policy.cpu()
-        #     self.networks.value = self.networks.value.cpu()
-        # ------------------------------------
         value_grad = [p._grad for p in self.networks.value.parameters()]
         policy_grad = [p._grad for p in self.networks.policy.parameters()]
 
