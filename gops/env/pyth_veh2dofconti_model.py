@@ -49,8 +49,6 @@ class Veh2dofcontiModel(torch.nn.Module):
         steer_norm = actions
         actions = steer_norm * 1.2 * np.pi / 9
         self.actions = actions
-        print(self.veh_states)
-        exit()
         rewards = self.vehicle_dynamics.compute_rewards(self.veh_states, actions)
         self.veh_states = self.vehicle_dynamics.prediction(self.veh_states, actions, self.base_frequency)
         v_ys, rs, delta_ys, delta_phis = self.veh_states[:, 0], self.veh_states[:, 1], self.veh_states[:, 2], self.veh_states[:, 3]
@@ -134,15 +132,11 @@ class VehicleDynamics(object):
         return x_next
 
     def simulation(self, states, actions, base_freq):
-        # steer_norm = actions
-        # actions = steer_norm * 1.2 * np.pi / 9
-        # self.actions = actions
         next_states = self.prediction(states, actions, base_freq)
         v_ys, rs, delta_ys, delta_phis = next_states[:, 0], next_states[:, 1], next_states[:, 2], next_states[:, 3]
         delta_phis = torch.where(delta_phis > np.pi, delta_phis - 2 * np.pi, delta_phis)
         delta_phis = torch.where(delta_phis <= -np.pi, delta_phis + 2 * np.pi, delta_phis)
         next_states = torch.stack([v_ys, rs, delta_ys, delta_phis], 1)
-        # self.obses = self._get_obs(next_states)
         return next_states
 
     def compute_rewards(self, states, actions):  # obses and actions are tensors
