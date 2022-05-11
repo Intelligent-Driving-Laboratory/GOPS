@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 from gops.utils.tensorboard_tools import tb_tags
 import time
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 class OnSerialTrainer:
@@ -60,7 +62,6 @@ class OnSerialTrainer:
     def step(self):
         # sampling
         (samples_with_replay_format, sampler_tb_dict,) = self.sampler.sample_with_replay_format()
-
         # learning
         if self.use_gpu:
             for k, v in samples_with_replay_format.items():
@@ -98,8 +99,45 @@ class OnSerialTrainer:
                 self.networks.state_dict(),
                 self.save_folder + "/apprfunc/apprfunc_{}.pkl".format(self.iteration),
             )
+        if self.iteration == self.max_iteration - 1:
+            torch.save(
+                self.alg.networks.state_dict(),
+                self.save_folder + "/apprfunc/apprfunc_{}.pkl".format(self.iteration),
+            )
+            # A = np.array([[0.4411, -0.6398, 0, 0],
+            #               [0.0242, 0.2188, 0, 0],
+            #               [0.0703, 0.0171, 1, 2],
+            #               [0.0018, 0.0523, 0, 1]])
+            # B = np.array([[2.0350], [4.8124], [0.4046], [0.2952]])
+            # A = torch.from_numpy(A.astype("float32"))
+            # B = torch.from_numpy(B.astype("float32"))
+            # obs = torch.Tensor(samples_with_replay_format["obs"])
+            # delta_yss = []
+            # delta_phiss = []
+            # for i in range(100):
+            #     delta_yss.append(obs.detach().numpy()[2])
+            #     delta_phiss.append(obs.detach().numpy()[3])
+            #     v_y, r, delta_y, delta_phi = obs[:, 0], obs[:, 1], obs[:, 2], obs[:, 3]
+            #     lists_to_stack = [v_y * 1, r * 2, delta_y * 1, delta_phi * 2.4]
+            #     scale_obs = torch.stack(lists_to_stack, 1)
+            #     steer_norm = self.alg.networks.policy(scale_obs)
+            #     actions = steer_norm * 1.2 * np.pi / 9
+            #     next_state = [
+            #         v_y * A[0, 0] + r * A[0, 1] + delta_y * A[0, 2] + delta_phi * A[0, 3] + B[0, 0] * actions[:, 0],
+            #         v_y * A[1, 0] + r * A[1, 1] + delta_y * A[1, 2] + delta_phi * A[1, 3] + B[1, 0] * actions[:, 0],
+            #         v_y * A[2, 0] + r * A[2, 1] + delta_y * A[2, 2] + delta_phi * A[2, 3] + B[2, 0] * actions[:, 0],
+            #         v_y * A[3, 0] + r * A[3, 1] + delta_y * A[3, 2] + delta_phi * A[3, 3] + B[3, 0] * actions[:, 0]]
+            #     next_state = torch.stack(next_state, 1)
+            #     v_ys, rs, delta_ys, delta_phis = next_state[:, 0], next_state[:, 1], next_state[:, 2], next_state[:, 3]
+            #     delta_phis = torch.where(delta_phis > np.pi, delta_phis - 2 * np.pi, delta_phis)
+            #     delta_phis = torch.where(delta_phis <= -np.pi, delta_phis + 2 * np.pi, delta_phis)
+            #     obs = torch.stack([v_ys, rs, delta_ys, delta_phis], 1)
+            # plt.plot(delta_yss)
+            # plt.plot(delta_phiss)
+            # plt.show()
 
     def train(self):
+
         while self.iteration < self.max_iteration:
             self.step()
             self.iteration += 1

@@ -16,8 +16,8 @@ def create_env_model(**kwargs):
 
     env_name_camel = formatter(env_model_name)
 
-    if hasattr(file, "env_moedel_creator"):
-        y = getattr(file, "env_moedel_creator")
+    if hasattr(file, "env_model_creator"):
+        y = getattr(file, "env_model_creator")
         env_model = y(**kwargs)
     elif hasattr(file, env_name_camel):
         y = getattr(file, env_name_camel)

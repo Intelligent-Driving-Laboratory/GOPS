@@ -11,7 +11,7 @@ __all__ = ["FHADP"]
 
 from copy import deepcopy
 from typing import Tuple
-
+import torch
 import torch.nn as nn
 from torch.optim import Adam
 import time
@@ -55,10 +55,11 @@ class FHADP(AlgorithmBase):
         para_tuple = "reward_scale"
         return para_tuple
 
-    def local_update(self, data: dict, iteration: int) -> dict:
-        self.__compute_gradient(data)
+    def local_update(self, data, iteration: int):
+        loss = self.__compute_gradient(data)
+        # self.__compute_gradient(data)
         self.networks.policy_optimizer.step()
-        return self.tb_info
+        return loss, self.tb_info
 
     def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
         self.__compute_gradient(data)
@@ -92,10 +93,9 @@ class FHADP(AlgorithmBase):
             data["obs2"],
             data["done"],
         )  # TODO  解耦字典
-
         next_state_list, v_pi, done_list = self.envmodel.forward_n_step(
-            o, self.networks.policy, self.forward_step, d
-        )
+            o, self.networks.policy, self.forward_step, d)
+
         return -(v_pi * self.reward_scale).mean()
 
 
