@@ -65,7 +65,6 @@ class FHADP(AlgorithmBase):
         policy_grad = [p._grad for p in self.networks.policy.parameters()]
         update_info = dict()
         update_info["grad"] = policy_grad
-        # update_info = {'grad': [p.grads for p in self.networks.policy.parameters()]}
         return self.tb_info, update_info
 
     def remote_update(self, update_info: dict):
@@ -77,7 +76,6 @@ class FHADP(AlgorithmBase):
         start_time = time.time()
         self.networks.policy.zero_grad()
         loss_policy = self.__compute_loss_policy(deepcopy(data))
-        print("loss = ", loss_policy)
         loss_policy.backward()
 
         self.tb_info[tb_tags["loss_actor"]] = loss_policy.item()
@@ -95,7 +93,7 @@ class FHADP(AlgorithmBase):
             data["rew"],
             data["obs2"],
             data["done"],
-        )  # TODO  解耦字典
+        )
         next_state_list, v_pi, done_list = self.envmodel.forward_n_step(
             o, self.networks.policy, self.forward_step, d)
 
