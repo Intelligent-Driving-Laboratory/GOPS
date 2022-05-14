@@ -9,7 +9,6 @@
 import os
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
-os.environ["OMP_NUM_THREADS"] = "1"
 import argparse
 import multiprocessing
 import numpy as np
@@ -23,7 +22,10 @@ from gops.utils.init_args import init_args
 from gops.utils.plot import plot_all
 from gops.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
 from gops.utils.utils import seed_everything
-
+import torch
+os.environ["OMP_NUM_THREADS"] = "1"
+torch.set_num_threads(1)
+import time
 if __name__ == "__main__":
     # Parameters Setup
     parser = argparse.ArgumentParser()
@@ -80,7 +82,7 @@ if __name__ == "__main__":
         import ray
 
         ray.init()
-        parser.add_argument("--num_algs", type=int, default=2, help="number of algs")
+        parser.add_argument("--num_algs", type=int, default=3, help="number of algs")
         parser.add_argument(
             "--num_samplers", type=int, default=1, help="number of samplers"
         )
@@ -141,8 +143,8 @@ if __name__ == "__main__":
     ################################################
     # 8. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
-    parser.add_argument("--apprfunc_save_interval", type=int, default=50)
-    parser.add_argument("--log_save_interval", type=int, default=10)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=100)
+    parser.add_argument("--log_save_interval", type=int, default=100)
 
     # Get parameter dictionary
     args = vars(parser.parse_args())
@@ -163,10 +165,13 @@ if __name__ == "__main__":
     evaluator = create_evaluator(**args)
     # Step 5: create trainer
     trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
+    start_time = time.time()
 
     # Start training ... ...
     # trainer.train()
     trainer.train()
+    end_time = time.time()
+    print('time = ', end_time - start_time)
     print("Training is finished!")
 
     # Plot and save training figures
