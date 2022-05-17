@@ -10,7 +10,7 @@
 from gym import spaces
 import gym
 from gym.utils import seeding
-from gops.env.pyth_veh3dofconti_model import VehicleDynamics, Veh3dofcontiModel
+from gops.env.pyth_veh3dofconti_model import Veh3dofcontiModel
 from gym.wrappers.time_limit import TimeLimit
 from typing import Callable, Dict, List
 import numpy as np
@@ -24,6 +24,160 @@ from gops.utils.init_args import init_args
 import sys
 import json
 import os
+
+class VehicleDynamics(object):
+    def __init__(self):
+        self.vehicle_params = dict(C_f=-128915.5,  # front wheel cornering stiffness [N/rad]
+                                   C_r=-85943.6,  # rear wheel cornering stiffness [N/rad]
+                                   a=1.06,  # distance from CG to front axle [m]
+                                   b=1.85,  # distance from CG to rear axle [m]
+                                   mass=1412.,  # mass [kg]
+                                   I_z=1536.7,  # Polar moment of inertia at CG [kg*m^2]
+                                   miu=1.0,  # tire-road friction coefficient
+                                   g=9.81,  # acceleration of gravity [m/s^2]
+                                   u=20
+                                   )
+        a, b, mass, g = self.vehicle_params['a'], self.vehicle_params['b'], \
+                        self.vehicle_params['mass'], self.vehicle_params['g']
+        F_zf, F_zr = b * mass * g / (a + b), a * mass * g / (a + b)
+        self.vehicle_params.update(dict(F_zf=F_zf,
+                                        F_zr=F_zr))
+        self.expected_vs = 20.
+        self.path = ReferencePath()
+
+    def f_xu(self, states, actions, tau):
+        v_x, v_y, r, delta_y, delta_phi, x = states[0], states[1], states[2], \
+                                             states[3], states[4], states[5]
+        steer, a_x = actions[0], actions[1]
+        C_f = torch.tensor(self.vehicle_params['C_f'], dtype=torch.float32)
+        C_r = torch.tensor(self.vehicle_params['C_r'], dtype=torch.float32)
+        a = torch.tensor(self.vehicle_params['a'], dtype=torch.float32)
+        b = torch.tensor(self.vehicle_params['b'], dtype=torch.float32)
+        mass = torch.tensor(self.vehicle_params['mass'], dtype=torch.float32)
+        I_z = torch.tensor(self.vehicle_params['I_z'], dtype=torch.float32)
+        miu = torch.tensor(self.vehicle_params['miu'], dtype=torch.float32)
+        g = torch.tensor(self.vehicle_params['g'], dtype=torch.float32)
+        F_zf, F_zr = b * mass * g / (a + b), a * mass * g / (a + b)
+        F_xf = torch.where(a_x < 0, mass * a_x / 2, torch.zeros_like(a_x))
+        F_xr = torch.where(a_x < 0, mass * a_x / 2, mass * a_x)
+        miu_f = torch.sqrt(torch.square(miu * F_zf) - torch.square(F_xf)) / F_zf
+        miu_r = torch.sqrt(torch.square(miu * F_zr) - torch.square(F_xr)) / F_zr
+        alpha_f = torch.atan((v_y + a * r) / v_x) - steer
+        alpha_r = torch.atan((v_y - b * r) / v_x)
+        next_state = [v_x + tau * (a_x + v_y * r),
+                      (mass * v_y * v_x + tau * (
+                                  a * C_f - b * C_r) * r - tau * C_f * steer * v_x - tau * mass * torch.square(
+                          v_x) * r) / (mass * v_x - tau * (C_f + C_r)),
+                      (-I_z * r * v_x - tau * (a * C_f - b * C_r) * v_y + tau * a * C_f * steer * v_x) / (
+                                  tau * (torch.square(a) * C_f + torch.square(b) * C_r) - I_z * v_x),
+                      delta_y + tau * (v_x * torch.sin(delta_phi) + v_y * torch.cos(delta_phi)),
+                      delta_phi + tau * r,
+                      x + tau * (v_x * torch.cos(delta_phi) - v_y * torch.sin(delta_phi)),
+                      ]
+        alpha_f_bounds, alpha_r_bounds = 3 * miu_f * F_zf / C_f, 3 * miu_r * F_zr / C_r
+        r_bounds = miu_r * g / torch.abs(v_x)
+        return torch.stack(next_state, 0), \
+               torch.stack([alpha_f, alpha_r, next_state[2], alpha_f_bounds, alpha_r_bounds, r_bounds], 0)
+
+    def prediction(self, x_1, u_1, frequency):
+        x_next, next_params = self.f_xu(x_1, u_1, 1 / frequency)
+        return x_next, next_params
+
+    def simulation(self, states, full_states, actions, base_freq):
+        # veh_state = obs: v_xs, v_ys, rs, delta_ys, delta_phis, xs
+        # veh_full_state: v_xs, v_ys, rs, ys, phis, xs
+        # others: alpha_f, alpha_r, r, alpha_f_bounds, alpha_r_bounds, r_bounds
+        # states = torch.from_numpy(states.copy())
+        # actions = torch.tensor(actions)
+        states, others = self.prediction(states, actions, base_freq)
+        states = states.numpy()
+        others = others.numpy()
+        states[0] = np.clip(states[0], 1, 35)
+        v_xs, v_ys, rs, phis = full_states[0], full_states[1], full_states[2], full_states[4]
+        full_states[4] += rs / base_freq
+        full_states[3] += (v_xs * np.sin(phis) + v_ys * np.cos(phis)) / base_freq
+        full_states[-1] += (v_xs * np.cos(phis) - v_ys * np.sin(phis)) / base_freq
+        full_states[0:3] = states[0:3].copy()
+        path_y, path_phi = self.path.compute_path_y(full_states[-1]), \
+                           self.path.compute_path_phi(full_states[-1])
+        states[4] = full_states[4] - path_phi
+        states[3] = full_states[3] - path_y
+        if full_states[4] > np.pi:
+            full_states[4] = full_states[4] - 2 * np.pi
+        if full_states[4] <= -np.pi:
+            full_states[4] = full_states[4] + 2 * np.pi
+        if full_states[-1] > self.path.period:
+            full_states[-1] = full_states[-1] - self.path.period
+        if full_states[-1] <= 0:
+            full_states[-1] = full_states[-1] + self.path.period
+        states[-1] = full_states[-1]
+        if states[4] > np.pi:
+            states[4] = states[4] - 2 * np.pi
+        if states[4] <= -np.pi:
+            states[4] = states[4] + 2 * np.pi
+
+        return states, full_states, others
+
+    def compute_rewards(self, states, actions):  # obses and actions are tensors
+        # veh_state = obs: v_xs, v_ys, rs, delta_ys, delta_phis, xs
+        # veh_full_state: v_xs, v_ys, rs, ys, phis, xs
+        v_xs, v_ys, rs, delta_ys, delta_phis, xs = states[0], states[1], states[2], \
+                                                   states[3], states[4], states[5]
+        steers, a_xs = actions[0], actions[1]
+        devi_v = -torch.square(v_xs - self.expected_vs)
+        devi_y = -torch.square(delta_ys)
+        devi_phi = -torch.square(delta_phis)
+        punish_yaw_rate = -torch.square(rs)
+        punish_steer = -torch.square(steers)
+        punish_a_x = -torch.square(a_xs)
+
+        rewards = 0.1 * devi_v + 0.4 * devi_y + 1 * devi_phi + 0.2 * punish_yaw_rate + \
+                  0.5 * punish_steer + 0.5 * punish_a_x
+
+        return rewards
+
+
+class ReferencePath(object):
+    def __init__(self):
+        self.curve_list = [(7.5, 200, 0.), (2.5, 300., 0.), (-5., 400., 0.)]
+        self.period = 1200.
+
+    def compute_path_y(self, x):
+        y = np.zeros_like(x, dtype=np.float32)
+        for curve in self.curve_list:
+            magnitude, T, shift = curve
+            y += magnitude * np.sin((x - shift) * 2 * np.pi / T)
+        return y
+
+    def compute_path_phi(self, x):
+        deriv = np.zeros_like(x, dtype=np.float32)
+        for curve in self.curve_list:
+            magnitude, T, shift = curve
+            deriv += magnitude * 2 * np.pi / T * np.cos(
+                (x - shift) * 2 * np.pi / T)
+        return np.arctan(deriv)
+
+    def compute_y(self, x, delta_y):
+        y_ref = self.compute_path_y(x)
+        return delta_y + y_ref
+
+    def compute_delta_y(self, x, y):
+        y_ref = self.compute_path_y(x)
+        return y - y_ref
+
+    def compute_phi(self, x, delta_phi):
+        phi_ref = self.compute_path_phi(x)
+        phi = delta_phi + phi_ref
+        phi[phi > np.pi] -= 2 * np.pi
+        phi[phi <= -np.pi] += 2 * np.pi
+        return phi
+
+    def compute_delta_phi(self, x, phi):
+        phi_ref = self.compute_path_phi(x)
+        delta_phi = phi - phi_ref
+        delta_phi[delta_phi > np.pi] -= 2 * np.pi
+        delta_phi[delta_phi <= -np.pi] += 2 * np.pi
+        return delta_phi
 
 
 class SimuVeh3dofconti(gym.Env,):
@@ -58,21 +212,21 @@ class SimuVeh3dofconti(gym.Env,):
         return [seed]
 
     def _get_obs(self, veh_state, veh_full_state):
-        v_xs, v_ys, rs, delta_ys, delta_phis, xs = veh_state[:, 0], veh_state[:, 1], veh_state[:, 2], \
-                                                   veh_state[:, 3], veh_state[:, 4], veh_state[:, 5]
+        v_xs, v_ys, rs, delta_ys, delta_phis, xs = veh_state[0], veh_state[1], veh_state[2], \
+                                                   veh_state[3], veh_state[4], veh_state[5]
 
-        v_xs, v_ys, rs, ys, phis, xs = veh_full_state[:, 0], veh_full_state[:, 1], veh_full_state[:, 2], \
-                                       veh_full_state[:, 3], veh_full_state[:, 4], veh_full_state[:, 5]
+        v_xs, v_ys, rs, ys, phis, xs = veh_full_state[0], veh_full_state[1], veh_full_state[2], \
+                                       veh_full_state[3], veh_full_state[4], veh_full_state[5]
 
         lists_to_stack = [v_xs - self.expected_vs, v_ys, rs, delta_ys, delta_phis, xs]
 
-        return np.stack(lists_to_stack, axis=1)
+        return np.stack(lists_to_stack, axis=0)
 
     def _get_state(self, obses):
-        delta_v_xs, v_ys, rs, delta_ys, delta_phis, xs = obses[:, 0], obses[:, 1], obses[:, 2], \
-                                                         obses[:, 3], obses[:, 4], obses[:, 5]
+        delta_v_xs, v_ys, rs, delta_ys, delta_phis, xs = obses[0], obses[1], obses[2], \
+                                                         obses[3], obses[4], obses[5]
         lists_to_stack = [delta_v_xs + self.expected_vs, v_ys, rs, delta_ys, delta_phis, xs]
-        return np.stack(lists_to_stack, axis=1)
+        return np.stack(lists_to_stack, axis=0)
 
     def reset(self, **kwargs):
         init_x = np.random.uniform(0, 600, (self.num_agent,)).astype(np.float32)
@@ -85,19 +239,19 @@ class SimuVeh3dofconti(gym.Env,):
         init_v_y = init_v_x * np.tan(beta)
         init_r = np.random.normal(0, 0.3, (self.num_agent,)).astype(np.float32)
         init_veh_full_state = np.stack([init_v_x, init_v_y, init_r, init_y, init_phi, init_x], 1)
-        self.veh_full_state = init_veh_full_state
+        self.veh_full_state = init_veh_full_state[0]
         self.veh_state = self.veh_full_state.copy()
-        path_y, path_phi = self.vehicle_dynamics.path.compute_path_y(self.veh_full_state[:, -1]), \
-                           self.vehicle_dynamics.path.compute_path_phi(self.veh_full_state[:, -1])
-        self.veh_state[:, 4] = self.veh_full_state[:, 4] - path_phi
-        self.veh_state[:, 3] = self.veh_full_state[:, 3] - path_y
+        path_y, path_phi = self.vehicle_dynamics.path.compute_path_y(self.veh_full_state[-1]), \
+                           self.vehicle_dynamics.path.compute_path_phi(self.veh_full_state[-1])
+        self.veh_state[4] = self.veh_full_state[4] - path_phi
+        self.veh_state[3] = self.veh_full_state[3] - path_y
         self.obs = self._get_obs(self.veh_state, self.veh_full_state)
 
         return self.obs
 
     def step(self, action):  # think of action is in range [-1, 1]
-        steer_norm, a_x_norm = action[:, 0], action[:, 1]
-        action = np.stack([steer_norm * 1.2 * np.pi / 9, a_x_norm*3], 1)
+        steer_norm, a_x_norm = action[0], action[1]
+        action = np.stack([steer_norm * 1.2 * np.pi / 9, a_x_norm*3], 0)
         action = np.clip(action, self.action_space.low, self.action_space.high)
         self.action = action
         veh_state_tensor = torch.from_numpy(self.veh_state)
@@ -112,14 +266,14 @@ class SimuVeh3dofconti(gym.Env,):
         return self.obs, reward, self.done, info
 
     def judge_done(self, veh_state, stability_related):
-        v_xs, v_ys, rs, delta_ys, delta_phis, xs = veh_state[:, 0], veh_state[:, 1], veh_state[:, 2], \
-                                                   veh_state[:, 3], veh_state[:, 4], veh_state[:, 5]
-        alpha_f, alpha_r, r, alpha_f_bounds, alpha_r_bounds, r_bounds = stability_related[:, 0], \
-                                                                        stability_related[:, 1], \
-                                                                        stability_related[:, 2], \
-                                                                        stability_related[:, 3], \
-                                                                        stability_related[:, 4], \
-                                                                        stability_related[:, 5]
+        v_xs, v_ys, rs, delta_ys, delta_phis, xs = veh_state[0], veh_state[1], veh_state[2], \
+                                                   veh_state[3], veh_state[4], veh_state[5]
+        alpha_f, alpha_r, r, alpha_f_bounds, alpha_r_bounds, r_bounds = stability_related[0], \
+                                                                        stability_related[1], \
+                                                                        stability_related[2], \
+                                                                        stability_related[3], \
+                                                                        stability_related[4], \
+                                                                        stability_related[5]
         done = (np.abs(delta_ys) > 3) | (np.abs(delta_phis) > np.pi / 4.) | (v_xs < 2) | \
                (alpha_f < -alpha_f_bounds) | (alpha_f > alpha_f_bounds) | \
                (alpha_r < -alpha_r_bounds) | (alpha_r > alpha_r_bounds) | \
@@ -148,8 +302,8 @@ def scale_obs(obs):
 
 if __name__=="__main__":
     sys.path.append(r"E:\gops\gops\gops\algorithm")
-    base_dir = r"E:\gops\gops\results\FHADP\220511-214956"
-    net_dir = os.path.join(base_dir, r"apprfunc\apprfunc_{}.pkl".format(2000))
+    base_dir = r"E:\gops\gops\results\FHADP\220517-170103"
+    net_dir = os.path.join(base_dir, r"apprfunc\apprfunc_{}.pkl".format(1999))
     parser = argparse.ArgumentParser()
     ################################################
     # Key Parameters for users
@@ -222,6 +376,7 @@ if __name__=="__main__":
     env = SimuVeh3dofconti()
     model = Veh3dofcontiModel()
     obs = env.reset()
+    obs = torch.from_numpy(np.expand_dims(obs, axis=0).astype("float32"))
     args = vars(parser.parse_args())
     args = init_args(env, **args)
     alg_name = args["algorithm"]
@@ -236,22 +391,20 @@ if __name__=="__main__":
     y_ref = []
     phi = []
     reward_total = []
-    obs = torch.from_numpy(obs.astype("float32"))
     model.reset(obs)
     for _ in range(3000):
         batch_obs = scale_obs(obs)
         action = networks.policy(batch_obs)
-        action = action.detach().numpy()
+        action = action.detach()[0].numpy()
         obs, reward, done, info = env.step(action)
-        obs = torch.from_numpy(obs.astype("float32"))
-        # obs, reward, done, constraint = model.forward(action)
+        obs = torch.from_numpy(np.expand_dims(obs, axis=0).astype("float32"))
         # reward_total.append(reward)
-        x.append(env.veh_full_state[0, -1])
-        path_y = env.vehicle_dynamics.path.compute_path_y(env.veh_full_state[0, -1])
+        x.append(env.veh_full_state[-1])
+        path_y = env.vehicle_dynamics.path.compute_path_y(env.veh_full_state[-1])
         y_ref.append(path_y)
-        # v_x.append(env.veh_full_state[0, 0])
-        y.append(env.veh_full_state[0, 3])
-        # phi.append(env.veh_full_state[0, 4])
+        # v_x.append(env.veh_full_state[0])
+        y.append(env.veh_full_state[3])
+        # phi.append(env.veh_full_state[4])
 
     plt.plot(x, y)
     plt.plot(x, y_ref, color='red')
