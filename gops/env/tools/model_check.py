@@ -24,23 +24,8 @@ def check_env_model_file_structures(env_file_name):
         raise RuntimeError(f"the environment `{env_file_name}` is not implemented properly")
     return env_class
 
+def check_model0(env, env_model):
 
-def check_model(env_name):
-    print(f"checking `{env_name}_model` ...")
-    try:
-        env_cls = check_env_file_structures(env_name + "_data")
-        env = env_cls()
-
-    except:
-        print(
-            f"can not create `{env_name}`, "
-            f"it may because some modules are not installed, "
-            f"or the environment is not implemented correctly"
-        )
-        return None
-
-    env_model_cls = check_env_model_file_structures(env_name + "_model")
-    env_model = env_model_cls()
 
     assert hasattr(env_model, "lb_state"), "env model must have lb_state"
     assert hasattr(env_model, "hb_state"), "env model must have hb_state"
@@ -77,6 +62,27 @@ def check_model(env_name):
 
     if hasattr(env, "constraint_dim") and env.constraint_dim is not None:
         assert "constraint" in info.keys(), "constraint function must be implemented in info"
+
+
+def check_model(env_name):
+    print(f"checking `{env_name}_model` ...")
+    try:
+        env_cls = check_env_file_structures(env_name + "_data")
+        env = env_cls()
+
+    except:
+        print(
+            f"can not create `{env_name}`, "
+            f"it may because some modules are not installed, "
+            f"or the environment is not implemented correctly"
+        )
+        return None
+
+    env_model_cls = check_env_model_file_structures(env_name + "_model")
+    env_model = env_model_cls()
+
+    check_model0(env, env_model)
+
 
 
 if __name__ == "__main__":

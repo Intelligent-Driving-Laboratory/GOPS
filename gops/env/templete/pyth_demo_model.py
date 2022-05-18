@@ -69,7 +69,7 @@ class GymDemocontiModel(torch.nn.Module):
         ############################################################################################
 
         # define the ending condation here the format is just like isdone = l(next_state)
-        isdone = torch.full([state.size()[0]], False, dtype=torch.float32)
+        isdone = torch.full([state.size()[0]], False, dtype=torch.bool)
 
         ############################################################################################
 
@@ -78,7 +78,7 @@ class GymDemocontiModel(torch.nn.Module):
 
         ############################################################################################
         if beyond_done is None:
-            beyond_done = torch.full([state.size()[0]], False, dtype=torch.float32)
+            beyond_done = torch.full([state.size()[0]], False, dtype=torch.bool)
 
         beyond_done = beyond_done.bool()
         mask = isdone | beyond_done
