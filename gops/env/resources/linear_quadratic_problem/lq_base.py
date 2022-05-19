@@ -309,7 +309,7 @@ class LqModel(torch.nn.Module):
         ############################################################################################
 
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
-        reward = self.dynamics.compute_reward(state, action).reshape(-1)
+        reward = self.dynamics.compute_reward(state_next, action).reshape(-1)
 
         ############################################################################################
         if beyond_done is None:
