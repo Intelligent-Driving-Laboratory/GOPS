@@ -57,19 +57,7 @@ def check_env_file_structures(env_file_name):
         raise RuntimeError(f"the environment `{env_file_name}` is not implemented properly")
     return env_class
 
-
-def check_env(env_name):
-    print(f"checking `{env_name}_data` ...")
-    try:
-        env_cls = check_env_file_structures(env_name + "_data")
-        env = env_cls()
-    except:
-        print(
-            f"can not create `{env_name}`, "
-            f"it may because some modules are not installed, "
-            f"or the environment is not implemented correctly"
-        )
-        return None
+def check_env0(env):
     _check_all_spaces(env)
     observation_space = env.observation_space
     action_space = env.action_space
@@ -94,6 +82,23 @@ def check_env(env_name):
     else:
         pass
         # print(f"\033[0;31;40mThis env `{env}` does not specify an constraint_dim, please check if it is correct\033[0m")
+
+
+def check_env(env_name):
+    print(f"checking `{env_name}_data` ...")
+    try:
+        env_cls = check_env_file_structures(env_name + "_data")
+        env = env_cls()
+    except:
+        print(
+            f"can not create `{env_name}`, "
+            f"it may because some modules are not installed, "
+            f"or the environment is not implemented correctly"
+        )
+        return None
+
+    check_env0(env)
+
 
 
 if __name__ == "__main__":

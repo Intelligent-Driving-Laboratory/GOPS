@@ -105,7 +105,7 @@ class PythIntersectionModel(torch.nn.Module):
             state = state_next
 
 
-def env_moedel_creator(**kwargs):
+def env_model_creator(**kwargs):
     return PythIntersectionModel(**kwargs)
 
 

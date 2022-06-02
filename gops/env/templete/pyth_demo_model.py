@@ -69,7 +69,7 @@ class GymDemocontiModel(torch.nn.Module):
         ############################################################################################
 
         # define the ending condation here the format is just like isdone = l(next_state)
-        isdone = torch.full([state.size()[0]], False, dtype=torch.float32)
+        isdone = torch.full([state.size()[0]], False, dtype=torch.bool)
 
         ############################################################################################
 
@@ -78,14 +78,14 @@ class GymDemocontiModel(torch.nn.Module):
 
         ############################################################################################
         if beyond_done is None:
-            beyond_done = torch.full([state.size()[0]], False, dtype=torch.float32)
+            beyond_done = torch.full([state.size()[0]], False, dtype=torch.bool)
 
         beyond_done = beyond_done.bool()
         mask = isdone | beyond_done
         mask = torch.unsqueeze(mask, -1)
         state_next = ~mask * state_next + mask * state
         reward = ~(beyond_done) * reward
-        return state_next, reward, mask, {"constraint": None}
+        return state_next, reward, mask.squeeze(), {"constraint": None}
 
     def forward_n_step(self, func, n, state: torch.Tensor):
         reward = torch.zeros(size=[state.size()[0], n])
