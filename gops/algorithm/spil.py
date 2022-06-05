@@ -24,11 +24,6 @@ from gops.utils.utils import get_apprfunc_dict
 from gops.utils.tensorboard_tools import tb_tags
 from gops.algorithm.base import AlgorithmBase, ApprBase
 
-# 需要修改的地方。
-# 1.环境中定义好一个constrained dim
-# 2.buffer，sampler，evaluator做判断，如果存在这个维度需要能够接受算法返回的con
-
-
 class ApproxContainer(ApprBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

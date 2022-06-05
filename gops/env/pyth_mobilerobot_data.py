@@ -225,7 +225,7 @@ class Robot:
         v_max = self.robot_params["v_max"]
         w_max = self.robot_params["w_max"]
         w_delta_max = self.robot_params["w_delta_max"]
-        std_type = {"ego": [0.08, 0.05], "obs": [0.07, 0.03], "none": [0, 0], "explore": [0.3, 0.3]}
+        std_type = {"ego": [0.03, 0.02], "obs": [0.03, 0.02], "none": [0, 0], "explore": [0.3, 0.3]}
         stds = std_type[type]
 
         x, y, theta, v, w = states[:, 0], states[:, 1], states[:, 2], states[:, 3], states[:, 4]

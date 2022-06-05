@@ -134,8 +134,8 @@ class Robot:
         w_max = self.robot_params["w_max"]
         w_delta_max = self.robot_params["w_delta_max"]
         std_type = {
-            "ego": [0.08, 0.05],
-            "obs": [0.07, 0.03],
+            "ego": [0.03, 0.02],
+            "obs": [0.03, 0.02],
             "none": [0, 0],
             "explore": [0.3, 0.3],
         }
