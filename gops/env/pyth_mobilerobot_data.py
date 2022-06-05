@@ -3,12 +3,11 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Acrobat Environment
-#  Update Date: 2021-05-55, Yuhang Zhang: create environment
+#  Description: Mobile Robot Environment
+#  Paper: https://ieeexplore.ieee.org/document/9785377
+#  Update Date: 2022-06-05, Baiyu Peng: create environment
 
 
-import math
-import warnings
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -22,17 +21,11 @@ gym.logger.setLevel(gym.logger.ERROR)
 
 class PythMobilerobot:
     def __init__(self, **kwargs):
-        """
-        you need to define parameters here
-        """
-        self.n_obstacle = 2
+        self.n_obstacle = 1
 
         self.robot = Robot()
         self.obses = [Robot() for _ in range(self.n_obstacle)]
-
-        # define common parameters here
         self.dt = 0.4  # seconds between state updates
-
         self.state_dim = (1 + self.n_obstacle) * 5 + 3
         self.action_dim = 2
         self.use_constraint = kwargs.get("use_constraint", True)
@@ -49,8 +42,8 @@ class PythMobilerobot:
         lb_action = np.array([-0.4, -np.pi / 3])
         hb_action = np.array([0.4, np.pi / 3])
 
-        self.action_space = spaces.Box(low=lb_action, high=hb_action, dtype=np.float64)
-        self.observation_space = spaces.Box(lb_state, hb_state, dtype=np.float64)
+        self.action_space = spaces.Box(low=lb_action, high=hb_action)
+        self.observation_space = spaces.Box(lb_state, hb_state)
 
         self.seed()
         self.state = self.reset()
@@ -61,7 +54,7 @@ class PythMobilerobot:
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def step(self, action):
+    def step(self, action: np.ndarray):
         ################################################################################################################
         #  define your forward function here: the format is just like: state_next = f(state,action)
         veh2vehdist = np.zeros((self.state.shape[0], self.n_obstacle))
@@ -117,7 +110,7 @@ class PythMobilerobot:
         ############################################################################################
         self.steps += 1
         info = {"TimeLimit.truncated": self.steps > 170, "constraint": constraint.reshape(-1)} # TODO is right
-        return state_next.reshape(-1), float(reward), isdone, info  # TODO is right
+        return np.array(self.state.reshape(-1), dtype=np.float32), float(reward), isdone, info  # TODO is right
 
     # def forward_n_step(self, func, n, state: torch.Tensor):
     #     reward = torch.zeros(size=[state.size()[0], n])
@@ -159,7 +152,7 @@ class PythMobilerobot:
         self.steps = 0
         self.state = state
 
-        return state.reshape(-1)  # TODO is right
+        return np.array(self.state.reshape(-1), dtype=np.float32)  # TODO is right
 
     def render(self, n_window=1):
 
