@@ -123,7 +123,7 @@ class MPG(AlgorithmBase):
             self.networks.q2_model_optimizer.zero_grad()
 
         start_time = time.time()
-        q_info, backup_info = self.__compute_loss_q(o, a, r, o2, d)
+        q_info = self.__compute_loss_q(data, iteration)
         loss_q = q_info['MPG/loss_q-RL iter']
         loss_q.backward()
         if self.pge_method == "mixed_state":
@@ -140,7 +140,7 @@ class MPG(AlgorithmBase):
             for p in self.networks.q2_model.parameters():
                 p.requires_grad = False
 
-        loss_pi, pi_tb_info = self.__compute_loss_pi(data, iteration, backup_info)
+        loss_pi, pi_tb_info = self.__compute_loss_pi(data, iteration)
         loss_pi.backward()
 
         for p in self.networks.q1.parameters():
@@ -160,17 +160,19 @@ class MPG(AlgorithmBase):
         tb_info.update(pi_tb_info)
         return tb_info
 
-    def __compute_value_backup(self, o, a, r, o2, d):
+    def __compute_value_backup_one_step_data(self, data):
+        o, a, r, o2, d = data["obs"], data["act"], data["rew"], data["obs2"], data["done"]
         with torch.no_grad():
             pi_targ = self.networks.policy_target(o2)
             # Target Q-values
             q1_pi_targ = self.networks.q1_target(o2, pi_targ)
             q2_pi_targ = self.networks.q2_target(o2, pi_targ)
             q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
-            backup = r + self.gamma * (1 - d) * q_pi_targ
-        return backup
+            backup_data = r + self.gamma * (1 - d) * q_pi_targ
+        return backup_data
 
-    def __compute_value_backup_model(self, o, a, r, o2, d):
+    def __compute_value_backup_one_step_model(self, data):
+        o, a, r, o2, d = data["obs"], data["act"], data["rew"], data["obs2"], data["done"]
         with torch.no_grad():
             pi_targ = self.networks.policy_target(o2)
             # Target Q-values of model
@@ -180,17 +182,32 @@ class MPG(AlgorithmBase):
             backup_model = r + self.gamma * (1 - d) * q_model_pi_targ
         return backup_model
 
-    def __compute_loss_q(self, o, a, r, o2, d):
+    def __compute_loss_q(self, data, iteration):
+        o, a, r, o2, d = data["obs"], data["act"], data["rew"], data["obs2"], data["done"]
         q1 = self.networks.q1(o, a)
         q2 = self.networks.q2(o, a)
 
+        with torch.no_grad():
+            backup_n_step_model = self.__compute_model_return(data)
+
         # Bellman backup for Q functions
-        backup_data = self.__compute_value_backup(o, a, r, o2, d)
-        backup_info = {'backup_data': backup_data}
+        backup_one_step_data = self.__compute_value_backup_one_step_data(data)
+        if self.pge_method == "mixed_weight":
+            with torch.no_grad():
+                ws = self.__compute_weights(iteration)
+            data_w, model_w = ws[0], ws[1]
+            backup1 = data_w * backup_one_step_data + model_w * backup_n_step_model
+        else:
+            assert self.pge_method == "mixed_state", "the pge_method entry should be mixed_state or mixed_weight"
+            backup_one_step_model = self.__compute_value_backup_one_step_model(data)
+            with torch.no_grad():
+                model_condi =\
+                    torch.abs_(backup_one_step_data - backup_one_step_model) < self.kappa * backup_one_step_data.std()
+            backup1 = torch.where(model_condi, backup_n_step_model, backup_one_step_data).mean()
 
         # MSE loss against Bellman backup
-        loss_q1 = ((q1 - backup_data) ** 2).mean()
-        loss_q2 = ((q2 - backup_data) ** 2).mean()
+        loss_q1 = ((q1 - backup1) ** 2).mean()
+        loss_q2 = ((q2 - backup1) ** 2).mean()
         loss_q = loss_q1 + loss_q2
 
         q_info = {"MPG/loss_q1-RL iter": loss_q1,
@@ -203,13 +220,12 @@ class MPG(AlgorithmBase):
         if self.pge_method == "mixed_state":
             q1_model = self.networks.q1_model(o, a)
             q2_model = self.networks.q2_model(o, a)
+            backup2 = torch.where(model_condi, backup_n_step_model, backup_one_step_model).mean()
 
             # Bellman backup for Q functions
-            backup_model = self.__compute_value_backup_model(o, a, r, o2, d)
-            backup_info.update({'backup_model': backup_model})
             # MSE loss against Bellman backup
-            loss_q1_model = ((q1_model - backup_model) ** 2).mean()
-            loss_q2_model = ((q2_model - backup_model) ** 2).mean()
+            loss_q1_model = ((q1_model - backup2) ** 2).mean()
+            loss_q2_model = ((q2_model - backup2) ** 2).mean()
             loss_q_model = loss_q1_model + loss_q2_model
             q_info.update({"MPG/loss_q1_model-RL iter": loss_q1_model,
                            "MPG/loss_q2_model-RL iter": loss_q2_model,
@@ -217,7 +233,7 @@ class MPG(AlgorithmBase):
                            "MPG/q1_model_mean-RL iter": q1_model.mean(),
                            "MPG/q2_model_mean-RL iter": q2_model.mean(),
                            })
-        return q_info, backup_info
+        return q_info
 
     def __compute_weights(self, iteration):
         start = 1. - self.eta
@@ -233,27 +249,26 @@ class MPG(AlgorithmBase):
         ws = torch.softmax(torch.tensor(bias_inverses), dim=0)
         return ws
 
-    def __compute_loss_pi(self, data, iteration, backup_info):
-        o, a, r, o2, d = (
-            data["obs"],
-            data["act"],
-            data["rew"],
-            data["obs2"],
-            data["done"],
-        )
-        data_return = self.networks.q1(o, self.networks.policy(o))
+    def __compute_model_return(self, data):
+        o, a, r, o2, d = data["obs"], data["act"], data["rew"], data["obs2"], data["done"]
         model_return = torch.zeros(1)
         for step in range(self.forward_step):
             if step == 0:
                 a = self.networks.policy(o)
-                o2, r, _, _ = self.envmodel.forward(o, a, torch.tensor(0))
+                o2, r, d, _ = self.envmodel.forward(o, a, d)
                 model_return = self.reward_scale * r
             else:
                 o = o2
                 a = self.networks.policy4rollout(o)
-                o2, r, _, _ = self.envmodel.forward(o, a, torch.tensor(0))
+                o2, r, d, _ = self.envmodel.forward(o, a, d)
                 model_return += self.reward_scale * self.gamma ** step * r
-        model_return += self.gamma ** self.forward_step * self.networks.q1_target(o2, self.networks.policy(o2))
+        model_return += (~d) * self.gamma ** self.forward_step * self.networks.q1_target(o2, self.networks.policy(o2))
+        return model_return
+
+    def __compute_loss_pi(self, data, iteration):
+        o, a, r, o2, d = data["obs"], data["act"], data["rew"], data["obs2"], data["done"]
+        data_return = self.networks.q1(o, self.networks.policy(o))
+        model_return = self.__compute_model_return(data)
         if self.pge_method == "mixed_weight":
             with torch.no_grad():
                 ws = self.__compute_weights(iteration)
@@ -269,9 +284,11 @@ class MPG(AlgorithmBase):
                 "MPG/loss_pi-RL iter": loss.item()}
         else:
             assert self.pge_method == "mixed_state", "the pge_method entry should be mixed_state or mixed_weight"
-            backup_data, backup_model = backup_info['backup_data'], backup_info['backup_model']
+            backup_one_step_data = self.__compute_value_backup_one_step_data(data)
+            backup_one_step_model = self.__compute_value_backup_one_step_model(data)
             with torch.no_grad():
-                model_condi = torch.abs_(backup_data - backup_model) < self.kappa * backup_data.std()
+                model_condi =\
+                    torch.abs_(backup_one_step_data - backup_one_step_model) < self.kappa * backup_one_step_data.std()
             loss = torch.where(model_condi, -model_return, -data_return).mean()
             model_ratio = model_condi.float().mean()
             pi_tb_info = {
