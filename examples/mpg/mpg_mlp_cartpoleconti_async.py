@@ -66,8 +66,8 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument("--value_learning_rate", type=float, default=8e-4)
-    parser.add_argument("--policy_learning_rate", type=float, default=3e-4)
+    parser.add_argument("--value_learning_rate", type=float, default=1e-3)
+    parser.add_argument("--policy_learning_rate", type=float, default=5e-4)
     # special parameter
     parser.add_argument("--pge_method", type=str, default='mixed_weight', help='mixed_weight/mixed_state')
     pge_method = parser.parse_known_args()[0].pge_method
@@ -79,7 +79,7 @@ if __name__ == "__main__":
         parser.add_argument("--kappa", type=float, default=0.5)
     parser.add_argument("--forward_step", type=int, default=10)
     parser.add_argument("--gamma", type=float, default=0.99)
-    parser.add_argument("--tau", type=float, default=0.005)
+    parser.add_argument("--tau", type=float, default=0.1)
     parser.add_argument("--delay_update", type=int, default=1, help="")
     # Reward = reward_scale * environment.Reward
     parser.add_argument("--reward_scale", type=float, default=0.1)

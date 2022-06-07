@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="gym_cartpoleconti")
+    parser.add_argument("--env_id", type=str, default="gym_pendulum")
     parser.add_argument("--algorithm", type=str, default="MPG")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     ################################################
@@ -80,9 +80,9 @@ if __name__ == "__main__":
     else:
         assert pge_method == 'mixed_state'
         parser.add_argument("--kappa", type=float, default=0.5)
-    parser.add_argument("--forward_step", type=int, default=10)
+    parser.add_argument("--forward_step", type=int, default=15)
     parser.add_argument("--gamma", type=float, default=0.99)
-    parser.add_argument("--tau", type=float, default=0.1)
+    parser.add_argument("--tau", type=float, default=0.01)
     parser.add_argument("--delay_update", type=int, default=1, help="")
     # Reward = reward_scale * environment.Reward
     parser.add_argument("--reward_scale", type=float, default=0.1)

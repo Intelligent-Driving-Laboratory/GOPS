@@ -7,9 +7,7 @@
 
 import argparse
 import numpy as np
-import os
-
-os.environ["OMP_NUM_THREADS"] = "4"
+import multiprocessing
 
 from gops.create_pkg.create_alg import create_alg
 from gops.create_pkg.create_buffer import create_buffer
@@ -21,14 +19,13 @@ from gops.utils.init_args import init_args
 from gops.utils.plot import plot_all
 from gops.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
 
-
 if __name__ == "__main__":
     # Parameters Setup
     parser = argparse.ArgumentParser()
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="gym_cartpoleconti")
+    parser.add_argument("--env_id", type=str, default="gym_pendulum")
     parser.add_argument("--algorithm", type=str, default="MPG")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     ################################################
@@ -80,20 +77,43 @@ if __name__ == "__main__":
     else:
         assert pge_method == 'mixed_state'
         parser.add_argument("--kappa", type=float, default=0.5)
-    parser.add_argument("--forward_step", type=int, default=10)
+    parser.add_argument("--forward_step", type=int, default=15)
     parser.add_argument("--gamma", type=float, default=0.99)
-    parser.add_argument("--tau", type=float, default=0.1)
+    parser.add_argument("--tau", type=float, default=0.01)
     parser.add_argument("--delay_update", type=int, default=1, help="")
     # Reward = reward_scale * environment.Reward
     parser.add_argument("--reward_scale", type=float, default=0.1)
 
     ################################################
     # 4. Parameters for trainer
-    parser.add_argument("--trainer", type=str, default="off_serial_trainer")
+    parser.add_argument("--trainer", type=str, default="off_async_trainer")
     parser.add_argument("--max_iteration", type=int, default=5000)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
-    if trainer_type == "off_serial_trainer":
+    if trainer_type == "off_async_trainer":
+        import ray
+        ray.init()
+        parser.add_argument("--num_algs", type=int, default=1, help="number of algs")
+        parser.add_argument(
+            "--num_samplers", type=int, default=2, help="number of samplers"
+        )
+        parser.add_argument(
+            "--num_buffers", type=int, default=1, help="number of buffers"
+        )
+        cpu_core_num = multiprocessing.cpu_count()
+        num_core_input = (
+            parser.parse_known_args()[0].num_algs
+            + parser.parse_known_args()[0].num_samplers
+            + parser.parse_known_args()[0].num_buffers
+            + 2
+        )
+        if num_core_input > cpu_core_num:
+            raise ValueError(
+                "The number of core is {}, but you want {}!".format(
+                    cpu_core_num, num_core_input
+                )
+            )
+
         parser.add_argument("--buffer_name", type=str, default="replay_buffer")
         parser.add_argument("--buffer_warm_size", type=int, default=int(1e3))
         parser.add_argument("--buffer_max_size", type=int, default=int(1e5))
