@@ -3,23 +3,23 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Acrobat Environment
-#  Update Date: 2021-05-55, Yuhang Zhang: create environment
+#  Description: Mobile Robot Environment
+#  Update Date: 2022-06-05, Baiyu Peng: create environment
 
 
-import math
 import warnings
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 
 
-class PythMobilerobotModel:
+
+class PythMobilerobotModel(torch.nn.Module):
     def __init__(self, **kwargs):
+        super().__init__()
         """
         you need to define parameters here
         """
-        self.n_obstacle = 2
+        self.n_obstacle = 1
 
         self.robot = Robot()
         self.obses = [Robot() for _ in range(self.n_obstacle)]
@@ -29,22 +29,22 @@ class PythMobilerobotModel:
 
         self.state_dim = (1 + self.n_obstacle) * 5 + 3
         self.action_dim = 2
-        self.lb_state = (
+        lb_state = (
             [-30, -30, -2 * np.pi, -1, -np.pi / 2]
             + [-30, -np.pi, -2]
             + [-30, -30, -2 * np.pi, -1, -np.pi / 2] * self.n_obstacle
         )
-        self.hb_state = (
+        hb_state = (
             [30, 30, 2 * np.pi, 1, np.pi / 2] + [30, np.pi, 2] + [30, 30, 2 * np.pi, 1, np.pi / 2] * self.n_obstacle
         )
-        self.lb_action = [-0.4, -np.pi / 3]
-        self.hb_action = [0.4, np.pi / 3]
+        lb_action = [-0.4, -np.pi / 3]
+        hb_action = [0.4, np.pi / 3]
 
         # do not change the following section
-        self.lb_state = torch.tensor(self.lb_state, dtype=torch.float32)
-        self.hb_state = torch.tensor(self.hb_state, dtype=torch.float32)
-        self.lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
-        self.hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
+        self.register_buffer("lb_state", torch.tensor(lb_state, dtype=torch.float32))
+        self.register_buffer("hb_state", torch.tensor(hb_state, dtype=torch.float32))
+        self.register_buffer("lb_action", torch.tensor(lb_action, dtype=torch.float32))
+        self.register_buffer("hb_action", torch.tensor(hb_action, dtype=torch.float32))
 
     def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done: torch.Tensor):
 
@@ -134,8 +134,8 @@ class Robot:
         w_max = self.robot_params["w_max"]
         w_delta_max = self.robot_params["w_delta_max"]
         std_type = {
-            "ego": [0.08, 0.05],
-            "obs": [0.07, 0.03],
+            "ego": [0.03, 0.02],
+            "obs": [0.03, 0.02],
             "none": [0, 0],
             "explore": [0.3, 0.3],
         }
