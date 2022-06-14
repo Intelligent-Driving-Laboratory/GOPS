@@ -3,8 +3,9 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Infinite ADP algorithm in continute version of Cartpole Enviroment
-#  Update Date: 2020-11-10, Wenxuan Wang: adjust parameters
+#  Description: Separated Proportional-Integral Lagrangian Algorithm
+#  Paper: https://ieeexplore.ieee.org/document/9785377
+#  Update: 2021-03-05, Baiyu Peng: create SPIL algorithm
 
 
 import argparse
@@ -82,7 +83,7 @@ if __name__ == "__main__":
         "--max_iteration", type=int, default=1000, help="Maximum iteration number"
     )
     parser.add_argument(
-        "--ini_network_dir", type=str, default=None
+        "--ini_network_dir", type=str, default='D:/Seafile/Research/SafeRL-dev/results/SPIL/220605-192144/apprfunc/apprfunc_999.pkl'
     )  # 'D:/Seafile/Research/GOPS/gops/gops/results/SPIL/0927-112733/apprfunc/apprfunc_4000.pkl'
     trainer_type = parser.parse_known_args()[0].trainer
     if trainer_type == "off_serial_trainer":

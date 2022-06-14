@@ -4,39 +4,32 @@
 #
 #  Creator: iDLab
 #  Description: Separated Proportional-Integral Lagrangian Algorithm
+#  Paper: https://ieeexplore.ieee.org/document/9785377
 #  Update: 2021-03-05, Baiyu Peng: create SPIL algorithm
 
 
 __all__ = ["SPIL"]
 
 from copy import deepcopy
+from typing import Tuple
+
 import torch
-import torch.nn as nn
 from torch.optim import Adam
-import numpy as np
 import time
-import warnings
+import numpy as np
 
 from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.create_pkg.create_env_model import create_env_model
 from gops.utils.utils import get_apprfunc_dict
 from gops.utils.tensorboard_tools import tb_tags
+from gops.algorithm.base import AlgorithmBase, ApprBase
 
-# 需要修改的地方。
-# 1.环境中定义好一个constrained dim
-# 2.buffer，sampler，evaluator做判断，如果存在这个维度需要能够接受算法返回的con
-
-
-class ApproxContainer(nn.Module):
+class ApproxContainer(ApprBase):
     def __init__(self, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
         # self.polyak = 1 - kwargs['tau']
         value_func_type = kwargs["value_func_type"]
         policy_func_type = kwargs["policy_func_type"]
-
-        if kwargs["cnn_shared"]:  # todo:设置默认false
-            feature_args = get_apprfunc_dict("feature", value_func_type, **kwargs)
-            kwargs["feature_net"] = create_apprfunc(**feature_args)
 
         v_args = get_apprfunc_dict("value", value_func_type, **kwargs)
         policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
@@ -65,23 +58,6 @@ class ApproxContainer(nn.Module):
     def create_action_distributions(self, logits):
         return self.policy.get_act_dist(logits)
 
-    def update(self, grad_info):
-        tau = grad_info["tau"]
-        grads_dict = grad_info["grads_dict"]
-        for net_name, grads in grads_dict.items():
-            for p, grad in zip(self.net_dict[net_name].parameters(), grads):
-                p.grad = grad
-            self.optimizer_dict[net_name].step()
-
-        with torch.no_grad():
-            for net_name in grads_dict.keys():
-                for p, p_targ in zip(
-                    self.net_dict[net_name].parameters(),
-                    self.target_net_dict[net_name].parameters(),
-                ):
-                    p_targ.data.mul_(1 - tau)
-                    p_targ.data.add_(tau * p.data)
-
 
 class SPIL:
     def __init__(self, **kwargs):
@@ -109,50 +85,59 @@ class SPIL:
         self.safe_prob_pre = np.array([0.0] * kwargs["constraint_dim"])
         self.chance_thre = np.array([0.99] * kwargs["constraint_dim"])
 
-    def set_parameters(self, param_dict):
-        for key in param_dict:
-            if hasattr(self, key):
-                setattr(self, key, param_dict[key])
-            else:
-                warning_msg = "param '" + key + "'is not defined in algorithm!"
-                warnings.warn(warning_msg)
+    @property
+    def adjustable_parameters(self):
+        para_tuple = ("gamma", "tau", "pev_step", "pim_step", "forward_step", "reward_scale")
+        return para_tuple
 
-    def get_parameters(self):
-        params = dict()
-        params["use_gpu"] = self.use_gpu
-        params["gamma"] = self.gamma
-        params["tau"] = self.tau
-        params["pev_step"] = self.pev_step
-        params["pim_step"] = self.pim_step
-        params["reward_scale"] = self.reward_scale
-        params["forward_step"] = self.forward_step
-        return params
+    def local_update(self, data: dict, iteration: int) -> dict:
+        update_list = self.__compute_gradient(data, iteration)
+        self.__update(update_list)
+        return self.tb_info
 
-    def compute_gradient(self, data, iteration):
-        grad_info = dict()
-        grads_dict = dict()
+    def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
+        update_list = self.__compute_gradient(data, iteration)
+        update_info = dict()
+        for net_name in update_list:
+            update_info[net_name] = [p.grad for p in self.networks.net_dict[net_name].parameters()]
+        return self.tb_info, update_info
+
+    def remote_update(self, update_info: dict):
+        for net_name, grads in update_info.items():
+            for p, grad in zip(self.networks.net_dict[net_name].parameters(), grads):
+                p.grad = grad
+        self.__update(list(update_info.keys()))
+
+    def __update(self, update_list):
+        tau = self.tau
+        for net_name in update_list:
+            self.networks.optimizer_dict[net_name].step()
+
+        with torch.no_grad():
+            for net_name in update_list:
+                for p, p_targ in zip(
+                        self.networks.net_dict[net_name].parameters(),
+                        self.networks.target_net_dict[net_name].parameters(),
+                ):
+                    p_targ.data.mul_(1 - tau)
+                    p_targ.data.add_(tau * p.data)
+
+    def __compute_gradient(self, data, iteration):
+        update_list = []
 
         start_time = time.time()
-        if self.use_gpu:
-            self.networks = self.networks.cuda()
-            for key, value in data.items():
-                data[key] = value.cuda()
-
-        # if iteration % (self.pev_step + self.pim_step) < self.pev_step: ##TODO: 这里改成了每个iteration都包含pev和pim
         self.networks.v.zero_grad()
-        loss_v, v = self.compute_loss_v(deepcopy(data))
+        loss_v, v = self.__compute_loss_v(deepcopy(data))
         loss_v.backward()
-        v_grad = [p.grad for p in self.networks.v.parameters()]
         self.tb_info[tb_tags["loss_critic"]] = loss_v.item()
         self.tb_info[tb_tags["critic_avg_value"]] = v.item()
-        grads_dict["v"] = v_grad
+        update_list.append('v')
         # else:
         self.networks.policy.zero_grad()
-        loss_policy = self.compute_loss_policy(deepcopy(data))
+        loss_policy = self.__compute_loss_policy(deepcopy(data))
         loss_policy.backward()
-        policy_grad = [p.grad for p in self.networks.policy.parameters()]
         self.tb_info[tb_tags["loss_actor"]] = loss_policy.item()
-        grads_dict["policy"] = policy_grad
+        update_list.append('policy')
 
         if self.use_gpu:
             self.networks = self.networks.cpu()
@@ -170,9 +155,7 @@ class SPIL:
         # writer.add_scalar(tb_tags['Lambda'], self.lam, iter)
         # writer.add_scalar(tb_tags['Safe_prob'], self.safe_prob, iter)
 
-        grad_info["tau"] = self.tau
-        grad_info["grads_dict"] = grads_dict
-        return grad_info, self.tb_info
+        return update_list
 
         # tb_info[tb_tags["loss_critic"]] = loss_v.item()
         # tb_info[tb_tags["critic_avg_value"]] = v.item()
@@ -180,7 +163,7 @@ class SPIL:
         # tb_info[tb_tags["loss_actor"]] = loss_policy.item()
         # return v_grad + policy_grad, tb_info
 
-    def compute_loss_v(self, data):
+    def __compute_loss_v(self, data):
         o, a, r, c, o2, d = (
             data["obs"],
             data["act"],
@@ -213,7 +196,7 @@ class SPIL:
         print(r_sum.mean(), self.safe_prob)
         return loss_v, torch.mean(v)
 
-    def compute_loss_policy(self, data):
+    def __compute_loss_policy(self, data):
         o, a, r, c, o2, d = (
             data["obs"],
             data["act"],
@@ -222,12 +205,32 @@ class SPIL:
             data["obs2"],
             data["done"],
         )  # TODO  解耦字典
+
+        def Phi(y):
+            # Transfer constraint to cost
+            m1 = 1
+            m2 = m1 / (1 + m1) * 0.9
+            tau = 0.07
+            sig = (1 + tau * m1) / (
+                    1 + m2 * tau * torch.exp(torch.clamp(y / tau, min=-10, max=5))
+            )
+            # c = torch.relu(-y)
+
+
+            # The following is for max
+            # m1 = 3/2
+            # m2 = m1 / (1 + m1) * 1
+            # m2 = 3/2
+            # tau = 0.2
+            # sig = (1 + tau * m1) / (1 + m2 * tau * torch.exp(torch.clamp(y / tau, min=-5, max=5)))
+            return sig
+
         for step in range(self.forward_step):
             if step == 0:
                 a = self.networks.policy(o)
                 o2, r, d, info = self.envmodel.forward(o, a, d)
                 c = info["constraint"]
-                c = self.Phi(c)
+                c = Phi(c)
                 r_sum = self.reward_scale * r
                 c_sum = c
                 c_mul = c
@@ -236,34 +239,18 @@ class SPIL:
                 a = self.networks.policy(o)
                 o2, r, d, info = self.envmodel.forward(o, a, d)
                 c = info["constraint"]
-                c = self.Phi(c)
+                c = Phi(c)
                 r_sum = r_sum + self.reward_scale * self.gamma ** step * r
                 c_sum = c_sum + c
                 c_mul = c_mul * c
         # r_sum += self.gamma ** self.forward_step * self.networks.v_target(o2)
-        w_r, w_c = self.spil_get_weight()
+        w_r, w_c = self.__spil_get_weight()
         loss_pi = (w_r * r_sum + (c_mul * torch.Tensor(w_c)).sum(1)).mean()
         return -loss_pi
 
-    def Phi(self, y):
-        # Transfer constraint to cost
-        m1 = 1
-        m2 = m1 / (1 + m1) * 0.9
-        tau = 0.07
-        sig = (1 + tau * m1) / (
-            1 + m2 * tau * torch.exp(torch.clamp(y / tau, min=-10, max=5))
-        )
-        # c = torch.relu(-y)
-        return sig
 
-        # The following is for max
-        # m1 = 3/2
-        # m2 = m1 / (1 + m1) * 1
-        # m2 = 3/2
-        # tau = 0.2
-        # sig = (1 + tau * m1) / (1 + m2 * tau * torch.exp(torch.clamp(y / tau, min=-5, max=5)))
 
-    def spil_get_weight(self):
+    def __spil_get_weight(self):
         delta_p = self.chance_thre - self.safe_prob
         # integral separation
         delta_p_sepa = np.where(np.abs(delta_p) > 0.1, delta_p * 0.7, delta_p)
@@ -280,10 +267,6 @@ class SPIL:
         # self.tb_info[tb_tags["I2"]] = self.delta_i[1].item()
         return 1 / (1 + lam.sum()), lam / (1 + lam.sum())
         # return 1, lam / (1 + lam.sum())
-
-    def load_state_dict(self, state_dict):
-        self.networks.load_state_dict(state_dict)
-
 
 if __name__ == "__main__":
     print("11111")
