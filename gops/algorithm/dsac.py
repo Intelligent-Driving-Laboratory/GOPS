@@ -72,10 +72,10 @@ class DSAC(AlgorithmBase):
         self.reward_scale = kwargs["reward_scale"]
         self.target_entropy = -kwargs["action_dim"]
         self.auto_alpha = kwargs["auto_alpha"]
+        self.alpha = kwargs.get("alpha", 0.2)
         self.TD_bound = kwargs["TD_bound"]
         self.bound = kwargs["bound"]
         self.delay_update = kwargs["delay_update"]
-        self.alpha = 0.2
 
     def get_alpha(self, requires_grad=False):
         if self.auto_alpha:
@@ -119,6 +119,11 @@ class DSAC(AlgorithmBase):
 
         for p in self.networks.q.parameters():
             p.requires_grad = True
+
+        if self.auto_alpha:
+            self.networks.alpha_optimizer.zero_grad()
+            loss_alpha = self.__compute_loss_alpha(data)
+            loss_alpha.backward()
 
         tb_info = {
             "DSAC/critic_avg_q-RL iter": q.item(),
@@ -192,7 +197,7 @@ class DSAC(AlgorithmBase):
     def __compute_loss_policy(self, data):
         obs, new_act, new_log_prob = data["obs"], data["new_act"], data["new_log_prob"]
         q, _, _ = self.__q_evaluate(obs, new_act, self.networks.q, min=False)
-        loss_policy = (self.alpha * new_log_prob - q).mean()
+        loss_policy = (self.get_alpha() * new_log_prob - q).mean()
         entropy = -new_log_prob.detach().mean()
         return loss_policy, entropy
 
