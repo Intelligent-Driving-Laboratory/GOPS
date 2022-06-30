@@ -76,6 +76,7 @@ class Veh2dofcontiModel(torch.nn.Module):
         for step in range(n):
             scale_obs = self.scale_obs(obs)
             action = func(scale_obs)
+            # print(action)
             obs, reward, done, constraint = self.forward(action)
             v_pi = v_pi + reward
             next_obs_list.append(obs)
@@ -94,7 +95,7 @@ class VehicleDynamics(object):
                                    I_z=1536.7,  # Polar moment of inertia at CG [kg*m^2]
                                    miu=1.0,  # tire-road friction coefficient
                                    g=9.81,  # acceleration of gravity [m/s^2]
-                                   )
+                                   v_x=20.)
         a, b, mass, g = self.vehicle_params['a'], self.vehicle_params['b'], \
                         self.vehicle_params['mass'], self.vehicle_params['g']
         F_zf, F_zr = b * mass * g / (a + b), a * mass * g / (a + b)
@@ -103,18 +104,24 @@ class VehicleDynamics(object):
         self.path = ReferencePath()
 
     def f_xu(self, states, actions, tau):
-        A = np.array([[0.4411, -0.6398, 0, 0],
-                      [0.0242, 0.2188, 0, 0],
-                      [0.0703, 0.0171, 1, 2],
-                      [0.0018, 0.0523, 0, 1]])
-        B = np.array([[2.0350], [4.8124], [0.4046], [0.2952]])
-        A = torch.from_numpy(A.astype("float32"))
-        B = torch.from_numpy(B.astype("float32"))
-        v_y, r, delta_y, delta_phi = states[:, 0], states[:, 1], states[:, 2], states[:, 3]
-        next_state = [v_y * A[0, 0] + r * A[0, 1] + delta_y * A[0, 2] + delta_phi * A[0, 3] + B[0, 0] * actions[:, 0],
-                      v_y * A[1, 0] + r * A[1, 1] + delta_y * A[1, 2] + delta_phi * A[1, 3] + B[1, 0] * actions[:, 0],
-                      v_y * A[2, 0] + r * A[2, 1] + delta_y * A[2, 2] + delta_phi * A[2, 3] + B[2, 0] * actions[:, 0],
-                      v_y * A[3, 0] + r * A[3, 1] + delta_y * A[3, 2] + delta_phi * A[3, 3] + B[3, 0] * actions[:, 0]]
+        v_y, r, delta_y, delta_phi = states[:, 0], states[:, 1], states[:, 2], \
+                                             states[:, 3]
+        v_x = torch.tensor(self.vehicle_params['v_x'], dtype=torch.float32)
+        steer = actions[:, 0]
+        C_f = torch.tensor(self.vehicle_params['C_f'], dtype=torch.float32)
+        C_r = torch.tensor(self.vehicle_params['C_r'], dtype=torch.float32)
+        a = torch.tensor(self.vehicle_params['a'], dtype=torch.float32)
+        b = torch.tensor(self.vehicle_params['b'], dtype=torch.float32)
+        mass = torch.tensor(self.vehicle_params['mass'], dtype=torch.float32)
+        I_z = torch.tensor(self.vehicle_params['I_z'], dtype=torch.float32)
+        next_state = [(mass * v_y * v_x + tau * (
+                              a * C_f - b * C_r) * r - tau * C_f * steer * v_x - tau * mass * torch.square(
+                          v_x) * r) / (mass * v_x - tau * (C_f + C_r)),
+                      (-I_z * r * v_x - tau * (a * C_f - b * C_r) * v_y + tau * a * C_f * steer * v_x) / (
+                              tau * (torch.square(a) * C_f + torch.square(b) * C_r) - I_z * v_x),
+                      delta_y + tau * (v_x * torch.sin(delta_phi) + v_y * torch.cos(delta_phi)),
+                      delta_phi + tau * r
+                      ]
         return torch.stack(next_state, 1)
 
     def _get_obs(self, veh_states):
@@ -131,13 +138,28 @@ class VehicleDynamics(object):
         x_next = self.f_xu(x_1, u_1, 1 / frequency)
         return x_next
 
-    def simulation(self, states, actions, base_freq):
-        next_states = self.prediction(states, actions, base_freq)
-        v_ys, rs, delta_ys, delta_phis = next_states[:, 0], next_states[:, 1], next_states[:, 2], next_states[:, 3]
-        delta_phis = torch.where(delta_phis > np.pi, delta_phis - 2 * np.pi, delta_phis)
-        delta_phis = torch.where(delta_phis <= -np.pi, delta_phis + 2 * np.pi, delta_phis)
-        next_states = torch.stack([v_ys, rs, delta_ys, delta_phis], 1)
-        return next_states
+    def simulation(self, states, full_states, actions, base_freq):
+        states = self.prediction(states, actions, base_freq)
+        states = states.numpy()
+        # v_ys, rs, delta_ys, delta_phis = states[:, 0], states[:, 1], states[:, 2], states[:, 3]
+        states[:, 3][states[:, 3] > np.pi] -= 2 * np.pi
+        states[:, 3][states[:, 3] <= -np.pi] += 2 * np.pi
+        v_ys, rs, phis = full_states[:, 0], full_states[:, 1], full_states[:, 3]
+        v_xs = 20.
+        full_states[:, 3] += rs / base_freq
+        full_states[:, 2] += (v_xs * np.sin(phis) + v_ys * np.cos(phis)) / base_freq
+        full_states[:, -1] += (v_xs * np.cos(phis) - v_ys * np.sin(phis)) / base_freq
+        full_states[:, 0:2] = states[:, 0:2].copy()
+        path_y, path_phi = self.path.compute_path_y(full_states[:, -1]), \
+                           self.path.compute_path_phi(full_states[:, -1])
+        states[:, 3] = full_states[:, 3] - path_phi
+        states[:, 2] = full_states[:, 2] - path_y
+        full_states[:, 3][full_states[:, 3] > np.pi] -= 2 * np.pi
+        full_states[:, 3][full_states[:, 3] <= -np.pi] += 2 * np.pi
+        full_states[:, -1][full_states[:, -1] > self.path.period] -= self.path.period
+        full_states[:, -1][full_states[:, -1] <= 0] += self.path.period
+
+        return states, full_states
 
     def compute_rewards(self, states, actions):  # obses and actions are tensors
         # veh_state = obs: v_xs, v_ys, rs, delta_ys, delta_phis, xs
