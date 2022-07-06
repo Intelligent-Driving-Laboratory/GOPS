@@ -1,5 +1,6 @@
 import math
 import warnings
+import copy
 from typing import Union
 
 import gym
@@ -21,10 +22,19 @@ class LQDynamics:
         self.B = torch.as_tensor(config["B"], dtype=torch.float32)
         self.Q = torch.as_tensor(config["Q"], dtype=torch.float32)  # diag vector
         self.R = torch.as_tensor(config["R"], dtype=torch.float32)  # diag vector
+        self.reward_scale = config["reward_scale"]
+        self.reward_shift = config["reward_shift"]
+        self.state_dim = self.A.shape[0]
 
         self.time_step = config["dt"]
+        # IA = (1 - A * dt)
+        with torch.no_grad():
+            IA = torch.eye(self.state_dim) - self.A * self.time_step
+            IA = IA.numpy()
+        self.inv_IA = torch.as_tensor(np.linalg.pinv(IA), dtype=torch.float32)
 
-    def f_xu(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
+
+    def f_xu_old(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         """
         x' = f(x, u)
 
@@ -40,7 +50,7 @@ class LQDynamics:
         f_dot = torch.mm(self.A, x.T) + torch.mm(self.B, u.T)
         return f_dot.T
 
-    def prediction(
+    def prediction_old(
             self, x_t: Union[torch.Tensor, np.ndarray], u_t: Union[torch.Tensor, np.ndarray]
     ) -> Union[torch.Tensor, np.ndarray]:
         """
@@ -69,6 +79,23 @@ class LQDynamics:
             x_next = x_next.detach().numpy().squeeze(0)
         return x_next
 
+    def prediction(self,
+                   x_t: Union[torch.Tensor, np.ndarray], u_t: Union[torch.Tensor, np.ndarray]
+    ) -> Union[torch.Tensor, np.ndarray]:
+        numpy_flag = False
+        if isinstance(x_t, np.ndarray):
+            x_t = torch.as_tensor(x_t, dtype=torch.float32).unsqueeze(0)
+            u_t = torch.as_tensor(u_t, dtype=torch.float32).unsqueeze(0)
+            numpy_flag = True
+
+        tmp = torch.mm(self.B, u_t.T) * self.time_step + x_t.T
+
+        x_next = torch.mm(self.inv_IA, tmp).T
+
+        if numpy_flag:
+            x_next = x_next.detach().numpy().squeeze(0)
+        return x_next
+
     def compute_reward(
             self, x_t: Union[torch.Tensor, np.ndarray], u_t: Union[torch.Tensor, np.ndarray]
     ) -> Union[torch.Tensor, np.ndarray]:
@@ -91,7 +118,7 @@ class LQDynamics:
             numpy_flag = True
         reward_state = torch.sum(torch.pow(x_t, 2) * self.Q, dim=-1)
         reward_action = torch.sum(torch.pow(u_t, 2) * self.R, dim=-1)
-        reward = reward_state + reward_action
+        reward = self.reward_scale * (self.reward_shift - 1.0 * (reward_state + reward_action) )
         if numpy_flag:
             reward = reward[0].item()
         return reward
@@ -136,16 +163,15 @@ class LqEnv(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def reset(self, init_state=None):
+    def reset(self, init_obs=None):
         self.step_counter = 0
 
-        if init_state is None:
+        if init_obs is None:
             init_mean = np.array(self.config["init_mean"])
             init_std = np.array(self.config["init_std"])
-            self.obs = self.np_random.randn() * init_std + init_mean
-
+            self.obs = self.np_random.randn(self.observation_dim) * init_std + init_mean
         else:
-            self.obs = init_state
+            self.obs = init_obs
 
         self.state_buffer[self.step_counter, :] = self.obs
 
@@ -162,16 +188,23 @@ class LqEnv(gym.Env):
         """
 
         # define environment transition, reward,  done signal  and constraint function here
+
         self.action_buffer[self.step_counter] = action
         self.obs = self.dynamics.prediction(self.obs, action)
         reward = self.dynamics.compute_reward(self.obs, action)
 
-        done = False  # TODO
+        done = self.is_done(self.obs)
+        if done:
+            reward -= 100
         info = {}
         self.step_counter += 1
         self.state_buffer[self.step_counter, :] = self.obs
-
         return self.obs, reward, done, info
+
+    def is_done(self, obs):
+        high = self.observation_space.high
+        low = self.observation_space.low
+        return bool(np.any(obs > high) or np.any(obs < low))
 
     def render(self, mode="human_mode"):
         """

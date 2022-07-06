@@ -18,11 +18,13 @@ config_s3a1 = dict(
     dt=0.05,
     init_mean=[0, 0, 0],
     init_std=[0.1, 0.2, 0.2],
-    state_high=[np.inf, np.inf, np.inf],
-    state_low=[-np.inf, -np.inf, -np.inf],
+    state_high=[2, 2, 2],
+    state_low=[-2, -2, -2],
     action_high=[1.0],
     action_low=[-1.0],
-    max_step=200,
+    max_step=100,
+    reward_scale=1.0,
+    reward_shift=0,
 )
 
 
@@ -57,6 +59,8 @@ config_s4a1 = dict(
     action_high=[1.0],
     action_low=[-1.0],
     max_step=200,
+    reward_scale=1.0,
+    reward_shift=0,
 )
 
 config_s5a1 = dict(
@@ -84,12 +88,14 @@ config_s5a1 = dict(
     action_high=[1.0],
     action_low=[-1.0],
     max_step=200,
+    reward_scale=1.0,
+    reward_shift=0,
 )
 
 config_s4a2 = dict(
     A=[
         [0, 1, 0, 0],
-        [-76.6, 0, 0, 0],
+        [76.6, 0, 0, 0],
         [0, 0.0, 0, 1],
         [-0.09, 0, 0, 0]
     ],
@@ -101,14 +107,16 @@ config_s4a2 = dict(
     ],
     Q=[200, 200, 50, 50],
     R=[1.0, 1.0],
-    dt=0.05,
+    dt=0.01,
     init_mean=[0, 0, 0, 0],
-    init_std=[0.1, 0.1, 0.1, 0.1],
-    state_high=[np.inf, np.inf, np.inf, np.inf],
-    state_low=[-np.inf, -np.inf, -np.inf, -np.inf],
-    action_high=[1.0, 1.0],
-    action_low=[-1.0, -1.0],
-    max_step=200,
+    init_std=[0.7, 0.3, 0.7, 0.3],
+    state_high=[4.0 for _ in range(4)],
+    state_low=[-4.0 for _ in range(4)],
+    action_high=[3.0, 3.0],
+    action_low=[-3.0, -3.0],
+    max_step=2000,
+    reward_scale=0.001,
+    reward_shift=200.0,
 )
 
 config_s6a3 = dict(
@@ -138,6 +146,8 @@ config_s6a3 = dict(
     action_high=[1.0, 1.0, 1.0],
     action_low=[-1.0, -1.0, -1.0],
     max_step=200,
+    reward_scale=1.0,
+    reward_shift=0,
 )
 
 
