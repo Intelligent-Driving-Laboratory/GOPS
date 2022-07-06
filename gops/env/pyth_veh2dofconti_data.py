@@ -4,13 +4,13 @@
 #
 #  Creator: iDLab
 #  Description: Vehicle 3DOF Model
-#  Update Date: 2021-05-55, Jiaxin Gao: create environment
+#  Update Date: 2021-05-55, Congsheng Zhang: create environment
 
 
 from gym import spaces
 import gym
 from gym.utils import seeding
-from gops.env.pyth_veh2dofconti_model import Veh2dofcontiModel
+from gops.env.pyth_veh2dofconti_model import VehicleDynamics, Veh2dofcontiModel
 from gym.wrappers.time_limit import TimeLimit
 from typing import Callable, Dict, List
 import numpy as np
@@ -25,117 +25,6 @@ import sys
 import json
 import os
 
-class VehicleDynamics(object):
-    def __init__(self):
-        self.vehicle_params = dict(C_f=-128915.5,  # front wheel cornering stiffness [N/rad]
-                                   C_r=-85943.6,  # rear wheel cornering stiffness [N/rad]
-                                   a=1.06,  # distance from CG to front axle [m]
-                                   b=1.85,  # distance from CG to rear axle [m]
-                                   mass=1412.,  # mass [kg]
-                                   I_z=1536.7,  # Polar moment of inertia at CG [kg*m^2]
-                                   miu=1.0,  # tire-road friction coefficient
-                                   g=9.81,  # acceleration of gravity [m/s^2]
-                                   )
-        a, b, mass, g = self.vehicle_params['a'], self.vehicle_params['b'], \
-                        self.vehicle_params['mass'], self.vehicle_params['g']
-        F_zf, F_zr = b * mass * g / (a + b), a * mass * g / (a + b)
-        self.vehicle_params.update(dict(F_zf=F_zf,
-                                        F_zr=F_zr))
-        self.path = ReferencePath()
-
-    def f_xu(self, states, actions, tau):
-        A = np.array([[0.4411, -0.6398, 0, 0],
-                      [0.0242, 0.2188, 0, 0],
-                      [0.0703, 0.0171, 1, 2],
-                      [0.0018, 0.0523, 0, 1]])
-        B = np.array([[2.0350], [4.8124], [0.4046], [0.2952]])
-        A = torch.from_numpy(A.astype("float32"))
-        B = torch.from_numpy(B.astype("float32"))
-        v_y, r, delta_y, delta_phi = states[:, 0], states[:, 1], states[:, 2], states[:, 3]
-        next_state = [v_y * A[0, 0] + r * A[0, 1] + delta_y * A[0, 2] + delta_phi * A[0, 3] + B[0, 0] * actions,
-                      v_y * A[1, 0] + r * A[1, 1] + delta_y * A[1, 2] + delta_phi * A[1, 3] + B[1, 0] * actions,
-                      v_y * A[2, 0] + r * A[2, 1] + delta_y * A[2, 2] + delta_phi * A[2, 3] + B[2, 0] * actions,
-                      v_y * A[3, 0] + r * A[3, 1] + delta_y * A[3, 2] + delta_phi * A[3, 3] + B[3, 0] * actions]
-        return torch.stack(next_state, 1)
-
-    def _get_obs(self, veh_states):
-        v_ys, rs, delta_ys, delta_phis = veh_states[:, 0], veh_states[:, 1], veh_states[:, 2], veh_states[:, 3]
-        lists_to_stack = [v_ys, rs, delta_ys, delta_phis]
-        return torch.stack(lists_to_stack, 1)
-
-    def _get_state(self, obses):
-        v_ys, rs, delta_ys, delta_phis = obses[:, 0], obses[:, 1], obses[:, 2], obses[:, 3]
-        lists_to_stack = [v_ys, rs, delta_ys, delta_phis]
-        return torch.stack(lists_to_stack, 1)
-
-    def prediction(self, x_1, u_1, frequency):
-        x_next = self.f_xu(x_1, u_1, 1 / frequency)
-        return x_next
-
-    def simulation(self, states, actions, base_freq):
-        next_states = self.prediction(states, actions, base_freq)
-        v_ys, rs, delta_ys, delta_phis = next_states[:, 0], next_states[:, 1], next_states[:, 2], next_states[:, 3]
-        delta_phis = torch.where(delta_phis > np.pi, delta_phis - 2 * np.pi, delta_phis)
-        delta_phis = torch.where(delta_phis <= -np.pi, delta_phis + 2 * np.pi, delta_phis)
-        next_states = torch.stack([v_ys, rs, delta_ys, delta_phis], 1)
-        return next_states
-
-    def compute_rewards(self, states, actions):  # obses and actions are tensors
-        # veh_state = obs: v_xs, v_ys, rs, delta_ys, delta_phis, xs
-        # veh_full_state: v_xs, v_ys, rs, ys, phis, xs
-        v_ys, rs, delta_ys, delta_phis = states[:, 0], states[:, 1], states[:, 2], \
-                                                   states[:, 3]
-        steers = actions
-        devi_y = -torch.square(delta_ys)
-        devi_phi = -torch.square(delta_phis)
-        punish_yaw_rate = -torch.square(rs)
-        punish_steer = -torch.square(steers)
-        rewards = 0.4 * devi_y + 0.1 * devi_phi + 0.2 * punish_yaw_rate + 0.5 * punish_steer
-        return rewards
-
-class ReferencePath(object):
-    def __init__(self):
-        self.curve_list = [(7.5, 200., 0.), (2.5, 300., 0.), (-5., 400., 0.)]
-        self.period = 1200.
-
-    def compute_path_y(self, x):
-        y = np.zeros_like(x, dtype=np.float32)
-        for curve in self.curve_list:
-            # 正弦的振幅，周期，平移
-            # 这里是对3种正弦曲线进行了叠加。
-            magnitude, T, shift = curve
-            y += magnitude * np.sin((x - shift) * 2 * np.pi / T)
-        return y
-
-    def compute_path_phi(self, x):
-        deriv = np.zeros_like(x, dtype=np.float32)
-        for curve in self.curve_list:
-            magnitude, T, shift = curve
-            deriv += magnitude * 2 * np.pi / T * np.cos(
-                (x - shift) * 2 * np.pi / T)
-        return np.arctan(deriv)
-
-    def compute_y(self, x, delta_y):
-        y_ref = self.compute_path_y(x)
-        return delta_y + y_ref
-
-    def compute_delta_y(self, x, y):
-        y_ref = self.compute_path_y(x)
-        return y - y_ref
-
-    def compute_phi(self, x, delta_phi):
-        phi_ref = self.compute_path_phi(x)
-        phi = delta_phi + phi_ref
-        phi[phi > np.pi] -= 2 * np.pi
-        phi[phi <= -np.pi] += 2 * np.pi
-        return phi
-
-    def compute_delta_phi(self, x, phi):
-        phi_ref = self.compute_path_phi(x)
-        delta_phi = phi - phi_ref
-        delta_phi[delta_phi > np.pi] -= 2 * np.pi
-        delta_phi[delta_phi <= -np.pi] += 2 * np.pi
-        return delta_phi
 
 class SimuVeh2dofconti(gym.Env,):
     def __init__(self, num_future_data=0, num_agent=1, **kwargs):
@@ -182,14 +71,14 @@ class SimuVeh2dofconti(gym.Env,):
         init_v_y = init_v_x * np.tan(beta)
         init_r = np.random.normal(0, 0.3, (self.num_agent,)).astype(np.float32)
         init_veh_full_state = np.stack([init_v_y, init_r, init_y, init_phi], 1)
-        self.veh_full_state = init_veh_full_state
-        self.veh_state = self.veh_full_state.copy()
+        self.veh_full_state = np.stack([init_v_y, init_r, init_y, init_phi, init_x], 1)
+        self.veh_state = init_veh_full_state.copy()
         path_y, path_phi = self.vehicle_dynamics.path.compute_path_y(init_x), \
                            self.vehicle_dynamics.path.compute_path_phi(init_x)
         self.veh_state[:, 3] = self.veh_full_state[:, 3] - path_phi
         self.veh_state[:, 2] = self.veh_full_state[:, 2] - path_y
         self.obs = self._get_obs(self.veh_state)
-        return self.obs[0]
+        return self.obs
 
     def step(self, action):  # think of action is in range [-1, 1]
         steer_norm = action
@@ -199,12 +88,12 @@ class SimuVeh2dofconti(gym.Env,):
         veh_state_tensor = torch.Tensor(self.veh_state)
         action_tensor = torch.from_numpy(self.action.astype("float32"))
         reward = self.vehicle_dynamics.compute_rewards(veh_state_tensor, action_tensor).numpy()
-        self.veh_state = self.vehicle_dynamics.simulation(veh_state_tensor, action_tensor,
+        self.veh_state, self.veh_full_state = self.vehicle_dynamics.simulation(veh_state_tensor, self.veh_full_state, action_tensor,
                                              base_freq=self.base_frequency)
         self.done = self.judge_done(self.veh_state)
         self.obs = self._get_obs(self.veh_state)
         info = {}
-        return self.obs[0], reward, self.done, info
+        return self.obs, reward, self.done, info
 
     def judge_done(self, veh_state):
         v_ys, rs, delta_ys, delta_phis = veh_state[:, 0], veh_state[:, 1], veh_state[:, 2], \
@@ -230,8 +119,9 @@ def scale_obs(obs):
     return torch.stack(lists_to_stack, 1)
 
 if __name__=="__main__":
-    sys.path.append(r"E:\gops\gops\gops\algorithm")
-    base_dir = r"E:\gops\gops\results\FHADP\220517-125614"
+    sys.path.append(r"G:\项目文档\gops开发相关\gops\gops\algorithm")
+    base_dir = r"G:\项目文档\gops开发相关\gops\results\FHADP\220630-185721"
+    # base_dir = r"E:\gops_更新基相关\gops_poly_modify_PG\results\FHADP\220620-065834-10A"
     net_dir = os.path.join(base_dir, r"apprfunc\apprfunc_{}.pkl".format(1999))
     parser = argparse.ArgumentParser()
     ################################################
@@ -257,27 +147,35 @@ if __name__=="__main__":
     )
     ################################################
     # 2.1 Parameters of value approximate function
-    parser.add_argument("--value_func_type", type=str, default="MLP")
+    parser.add_argument("--value_func_type", type=str, default="POLY")
     # 2.2 Parameters of policy approximate function
     parser.add_argument("--policy_func_name", type=str, default="DetermPolicy")
     parser.add_argument("--policy_func_type", type=str, default="MLP")
+    parser.add_argument('--policy_degree', type=int, default=2)
     parser.add_argument("--policy_act_distribution", type=str, default="default")
     policy_func_type = parser.parse_known_args()[0].policy_func_type
+    if policy_func_type == "POLY":
+        pass
     if policy_func_type == "MLP":
         parser.add_argument("--policy_hidden_sizes", type=list, default=[256, 256])
         parser.add_argument("--policy_hidden_activation", type=str, default="elu")
-        parser.add_argument("--policy_output_activation", type=str, default="tanh")
-    ################################################
+        parser.add_argument("--policy_output_activation", type=str, default="linear")
     # 3. Parameters for RL algorithm
-    parser.add_argument("--policy_learning_rate", type=float, default=3e-5)
+    parser.add_argument("--policy_learning_rate", type=float, default=1e-5)
 
     ################################################
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
-    parser.add_argument("--max_iteration", type=int, default=2000)
+    parser.add_argument("--max_iteration", type=int, default=5000)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
 
+    if trainer_type == "off_serial_trainer":
+        parser.add_argument("--buffer_name", type=str, default="replay_buffer")
+        parser.add_argument("--buffer_warm_size", type=int, default=1000)
+        parser.add_argument("--buffer_max_size", type=int, default=100000)
+        parser.add_argument("--replay_batch_size", type=int, default=500)
+        parser.add_argument("--sampler_sync_interval", type=int, default=1)
     ################################################
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="off_sampler")
@@ -305,7 +203,7 @@ if __name__=="__main__":
     env = SimuVeh2dofconti()
     model = Veh2dofcontiModel()
     obs = env.reset()
-    obs = torch.from_numpy(np.expand_dims(obs, axis=0).astype("float32"))
+    env.obs = copy.deepcopy(obs)
     args = vars(parser.parse_args())
     args = init_args(env, **args)
     alg_name = args["algorithm"]
@@ -317,16 +215,26 @@ if __name__=="__main__":
     v_x = []
     delta_phi = []
     delta_y = []
+    x = []
+    y_ref = []
+    y = []
+    phi = []
     reward_total = []
+
+    obs = torch.from_numpy(obs.astype("float32"))
     model.reset(obs)
     for _ in range(200):
         batch_obs = scale_obs(obs)
         action = networks.policy(batch_obs)
-        obs, reward, done, constraint = model.forward(action)
-        reward_total.append(reward)
-        delta_phi.append(obs[0, -1])
-        delta_y.append(obs[0, 2])
+        action = action.detach().numpy()
+        obs, reward, done, info = env.step(action)
+        obs = torch.from_numpy(obs.astype("float32"))
+        x.append(env.veh_full_state[0, -1])
+        path_y = env.vehicle_dynamics.path.compute_path_y(env.veh_full_state[0, -1])
+        y_ref.append(path_y)
+        y.append(env.veh_full_state[0, 2])
 
-    plt.plot(delta_phi)
-    plt.plot(delta_y)
+    plt.plot(x, y)
+    plt.plot(x, y_ref, color='red')
+
     plt.show()
