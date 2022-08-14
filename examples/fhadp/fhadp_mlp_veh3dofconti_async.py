@@ -73,12 +73,12 @@ if __name__ == "__main__":
 
     ################################################
     # 4. Parameters for trainer
-    parser.add_argument("--trainer", type=str, default="off_async_trainer")
+    parser.add_argument("--trainer", type=str, default="off_sync_trainer")
     parser.add_argument("--max_iteration", type=int, default=2000)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     # 4.1. Parameters for off_async_trainer
-    if trainer_type == "off_async_trainer":
+    if trainer_type == "off_sync_trainer":
         import ray
 
         ray.init()

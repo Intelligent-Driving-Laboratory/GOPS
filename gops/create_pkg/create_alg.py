@@ -28,9 +28,8 @@ def create_alg(**kwargs):
             or trainer == "on_sync_trainer"
         ):
             alg = alg_cls(**kwargs)
-        elif trainer == "off_async_trainer" or trainer == "off_async_trainermix":
+        elif trainer == "off_async_trainer" or trainer == "off_async_trainermix" or trainer == "off_sync_trainer":
             import ray
-
             alg = [
                 ray.remote(num_cpus=1)(alg_cls).remote(index=idx, **kwargs)
                 for idx in range(kwargs["num_algs"])

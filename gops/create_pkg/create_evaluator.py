@@ -26,6 +26,7 @@ def create_evaluator(**kwargs):
         elif (
             trainer == "off_async_trainer"
             or trainer == "on_sync_trainer"
+            or trainer == "off_sync_trainer"
             or trainer == "off_async_trainermix"
         ):
             import ray

@@ -21,6 +21,7 @@ def create_trainer(alg, sampler, buffer, evaluator, **kwargs):
         if (
             trainer_name == "off_serial_trainer"
             or trainer_name == "off_async_trainer"
+            or trainer_name == "off_sync_trainer"
             or trainer_name == "off_async_trainermix"
         ):
             trainer = trainer_cls(alg, sampler, buffer, evaluator, **kwargs)

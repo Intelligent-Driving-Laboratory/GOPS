@@ -27,6 +27,7 @@ def create_sampler(**kwargs):
             trainer == "off_async_trainer"
             or trainer == "on_sync_trainer"
             or trainer == "off_async_trainermix"
+            or trainer == "off_sync_trainer"
         ):
             import ray
 
