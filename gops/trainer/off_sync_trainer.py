@@ -142,6 +142,7 @@ class OffSyncTrainer:
         weights = ray.put(self.networks.state_dict())
         tb_dict=[]
         update_info = []
+        alg_tb_dict = {}
         for alg in self.algs:
             alg.load_state_dict.remote(weights)
             # replay
@@ -173,10 +174,10 @@ class OffSyncTrainer:
         self.networks.remote_update(update_info)
         self.iteration += 1
         # log
-        # if self.iteration % self.log_save_interval == 0:
-        #     print("Iter = ", self.iteration)
-        #     add_scalars(alg_tb_dict, self.writer, step=self.iteration)
-        #     add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
+        if self.iteration % self.log_save_interval == 0:
+            print("Iter = ", self.iteration)
+            add_scalars(alg_tb_dict, self.writer, step=self.iteration)
+            add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
 
         # evaluate
         if self.iteration % self.eval_interval == 0:
