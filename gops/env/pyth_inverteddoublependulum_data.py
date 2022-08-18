@@ -106,8 +106,9 @@ class PythInverteddoublependulum(gym.Env):
             theta2
         ), point1y + self.dynamics.l_rod2 * np.cos(theta2)
 
-        plt.title("Demo_model")
+        plt.title("Inverted Double Pendulum")
         ax = plt.gca() # plt.axes(xlim=(-2.5, 2.5), ylim=(-2.5, 2.5))
+        fig = plt.gcf()
         ax.set_xlim((-2.5, 2.5))
         ax.set_ylim((-2.5, 2.5))
         ax.add_patch(
@@ -121,45 +122,20 @@ class PythInverteddoublependulum(gym.Env):
         ax.plot([-1, -1], [-2.5, 2.5], "k")
         ax.plot([1, 1], [-2.5, 2.5], "k")
         ax.plot(point0x, point0y, "b.")
-        ax.plot([point0x, point1x], [point0y, point1y], color="b")
+        ax.plot([point0x, point1x], [point0y, point1y], color="b", linewidth=3.0)
         ax.plot(point1x, point1y, "y.")
-        ax.plot([point1x, point2x], [point1y, point2y], color="y")
+        ax.plot([point1x, point2x], [point1y, point2y], color="y", linewidth=3.0)
         ax.plot(point2x, point2y, "r.")
-        # text_x, text_y_start = -4, 2
-        # ge = iter(range(0, 1000, 1))
-        # scale = 0.3
-        # plt.text(text_x, text_y_start - scale * next(ge), "position: {:.2f}".format(p))
-        # plt.text(
-        #     text_x,
-        #     text_y_start - scale * next(ge),
-        #     r"theta1: {:.2f}rad (${:.2f}\degree$)".format(theta1, theta1 * 180 / np.pi),
-        # )
-        # plt.text(
-        #     text_x,
-        #     text_y_start - scale * next(ge),
-        #     r"theta2: {:.2f}rad (${:.2f}\degree$)".format(theta2, theta2 * 180 / np.pi),
-        # )
-        # plt.text(
-        #     text_x,
-        #     text_y_start - scale * next(ge),
-        #     "theta1dot: {:.2f}rad/s".format(theta1dot),
-        # )
-        # plt.text(
-        #     text_x,
-        #     text_y_start - scale * next(ge),
-        #     "theta2dot: {:.2f}rad/s".format(theta2dot),
-        # )
-        # if self.actions is not None:
-        #     actions = self.actions.numpy()
-        #     plt.text(
-        #         text_x,
-        #         text_y_start - scale * next(ge),
-        #         "action: {:.2f}N".format(actions[0, 0]),
-        #     )
 
-        plt.pause(0.001)
-        plt.show()
-
+        if mode == "rgb_array":
+            plt.show()
+            image_from_plot = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+            image_from_plot = image_from_plot.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+            plt.pause(0.01)
+            return image_from_plot
+        elif mode == "human":
+            plt.pause(0.01)
+            plt.show()
     def close(self):
         plt.cla()
         plt.clf()

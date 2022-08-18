@@ -9,6 +9,7 @@
 
 import time
 import sys
+import os
 import torch
 import torch.nn as nn
 import numpy as np
@@ -260,3 +261,34 @@ class ModuleOnDevice:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.different_device:
             self.module.to(self.prev_device)
+
+
+def get_args_from_json(json_file_path, args_dict):
+    import json
+
+    summary_filename = json_file_path
+    with open(summary_filename) as f:
+        summary_dict = json.load(fp=f)
+
+    for key in summary_dict.keys():
+        args_dict[key] = summary_dict[key]
+
+    return args_dict
+
+
+def mp4togif(path):
+    try:
+        import moviepy.editor as mp
+    except:
+        print("If you want to convert mp4 to gif, install package `moviepy`")
+        return None
+
+    if os.path.exists(path):
+        clip = mp.VideoFileClip(path)
+        if path.endswith(".mp4"):
+            out_path = path[:-4] + ".gif"
+        else:
+            out_path = path + ".gif"
+        clip.write_gif(out_path)
+    else:
+        print(f"`{path}` dose not exist")
