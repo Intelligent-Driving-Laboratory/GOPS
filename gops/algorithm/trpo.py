@@ -29,7 +29,7 @@ EPSILON = 1e-8
 
 
 class ApproxContainer(ApprBase):
-    """Approximate function container for PPO.
+    """Approximate function container for TRPO.
 
     Contains a policy and a state value.
     """
@@ -225,18 +225,16 @@ class TRPO(AlgorithmBase):
         zero = x.new_zeros(())
         r = b - Ax(x)
         if torch.allclose(r, zero, rtol=rtol, atol=atol):
-            print(f"mode0: {r.norm(2)} ?")
             return x, r
 
         r_dot = torch.dot(r, r)
         p = r.clone()
-        for i in range(max_cg):
+        for _ in range(max_cg):
             Ap = Ax(p)
             alpha = r_dot / (torch.dot(p, Ap) + EPSILON)
             x = x.add_(p, alpha=alpha)
             r = r.add_(Ap, alpha=-alpha)
             if torch.allclose(r, zero, rtol=rtol, atol=atol):
-                print(f"mode1: {i} converged {r.norm(2)}")
                 return x, r
             r_dot, r_dot_old = torch.dot(r, r), r_dot
             beta = r_dot / r_dot_old
