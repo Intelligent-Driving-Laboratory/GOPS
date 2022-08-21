@@ -155,11 +155,13 @@ class OffSyncTrainer:
             alg_tb_dict, update_informaction = ray.get(alg.get_remote_update_info.remote(data, self.iteration))
             tb_dict.append(alg_tb_dict)
             update_info.append(update_informaction)
+            self.iteration += 1
             if self.use_gpu:
                 for k, v in update_informaction.items():
                     if isinstance(v, list):
                         for i in range(len(v)):
                             update_informaction[k][i] = v[i].cpu()
+
         num = np.shape(update_info)[0]
         values_last_time = None
         for _ in range(num):
@@ -172,15 +174,15 @@ class OffSyncTrainer:
         keys = update_info[0].keys()
         update_info = dict(zip(keys, values_last_time))
         self.networks.remote_update(update_info)
-        self.iteration += 1
+
         # log
-        if self.iteration % self.log_save_interval == 0:
+        if self.iteration % (self.log_save_interval*num) == 0:
             print("Iter = ", self.iteration)
             add_scalars(alg_tb_dict, self.writer, step=self.iteration)
             add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
 
         # evaluate
-        if self.iteration % self.eval_interval == 0:
+        if self.iteration % (self.eval_interval*num) == 0:
             # calculate total sample number
             self.evaluator.load_state_dict.remote(self.networks.state_dict())
             total_avg_return = ray.get(
@@ -219,7 +221,7 @@ class OffSyncTrainer:
             )
 
         # save
-        if self.iteration % self.apprfunc_save_interval == 0:
+        if self.iteration % (self.apprfunc_save_interval*num) == 0:
             torch.save(
                 self.networks.state_dict(),
                 self.save_folder
