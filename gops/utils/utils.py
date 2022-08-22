@@ -48,7 +48,7 @@ def get_activation_func(key: str):
     return activation_func
 
 
-def get_apprfunc_dict(key: str, type: str, **kwargs):
+def get_apprfunc_dict(key: str, type=None, **kwargs):
     var = dict()
     var["apprfunc"] = kwargs[key + "_func_type"]
     var["name"] = kwargs[key + "_func_name"]
