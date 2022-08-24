@@ -10,12 +10,9 @@
 __all__ = ["TRPO"]
 
 from copy import deepcopy
-from typing import Callable, Dict, List
+from typing import Callable, Tuple
 import time
-import warnings
 
-import numpy as np
-import scipy.signal
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -24,7 +21,7 @@ import torch.autograd
 
 from gops.algorithm.base import AlgorithmBase, ApprBase
 from gops.create_pkg.create_apprfunc import create_apprfunc
-from gops.utils.action_distributions import GaussDistribution, CategoricalDistribution
+from gops.utils.typing import DataDict
 from gops.utils.utils import get_apprfunc_dict
 from gops.utils.tensorboard_tools import tb_tags
 
@@ -32,25 +29,26 @@ EPSILON = 1e-8
 
 
 class ApproxContainer(ApprBase):
+    """Approximate function container for TRPO.
+
+    Contains a policy and a state value.
+    """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        value_func_type = kwargs["value_func_type"]
-        policy_func_type = kwargs["policy_func_type"]
 
-        v_args = get_apprfunc_dict("value", value_func_type, **kwargs)
-        self.value: nn.Module = create_apprfunc(**v_args)
-        self.v_optimizer = Adam(self.value.parameters(), lr=kwargs["value_learning_rate"])
-
-        policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
+        policy_args = get_apprfunc_dict("policy", kwargs["policy_func_type"], **kwargs)
         self.policy: nn.Module = create_apprfunc(**policy_args)
+        value_args = get_apprfunc_dict("value", kwargs["value_func_type"], **kwargs)
+        self.value: nn.Module = create_apprfunc(**value_args)
 
     def create_action_distributions(self, logits):
         return self.policy.get_act_dist(logits)
 
 
 class TRPO(AlgorithmBase):
+    """TRPO algorithm"""
     def __init__(
-        self,
+        self, *,
         delta: float,
         rtol: float,
         atol: float,
@@ -59,9 +57,22 @@ class TRPO(AlgorithmBase):
         alpha: float,
         max_search: int,
         train_v_iters: int,
-        index=0,
-        **kwargs,
+        value_learning_rate: float,
+        index=0, **kwargs,
     ):
+        """TRPO algorithm
+
+        Args:
+            delta: KL constraint
+            rtol: CG's relative tolerance
+            atol: CG's absolute tolerance
+            damping_factor: Add $\lambda I$ damping to Hessian to improve CG solution.
+            max_cg: CG's maximum iterations if failing to converge.
+            alpha: Backtrack search factor.
+            max_search: Backtrack search maximum iterations.
+            train_v_iters: State value training iterations each policy update.
+            value_learning_rate: State value learning rate.
+        """
         super().__init__(index, **kwargs)
         self.delta = delta
         self.rtol = rtol
@@ -72,16 +83,17 @@ class TRPO(AlgorithmBase):
         self.max_search = max_search
         self.train_v_iters = train_v_iters
         self.networks = ApproxContainer(**kwargs)
+        self.value_optimizer = Adam(self.networks.value.parameters(), lr=value_learning_rate)
 
     @property
     def adjustable_parameters(self):
         return (
-            "delta", "train_v_iters",
+            "delta", "train_v_iters", "value_learning_rate",
             "rtol", "atol", "damping_factor",
             "max_cg", "alpha", "max_search",
         )
 
-    def local_update(self, data: Dict[str, torch.Tensor], iteration: int) -> dict:
+    def local_update(self, data: DataDict, iteration: int) -> dict:
         start_time = time.time()
         obs, act = data["obs"], data["act"]
         adv, ret = data["adv"], data["ret"]
@@ -89,7 +101,6 @@ class TRPO(AlgorithmBase):
         # pi
         with torch.no_grad():
             logits_old = self.networks.policy(obs)
-            # print('std:', logits_old[...,1].mean().item())
         pi_old = self.networks.create_action_distributions(logits=logits_old)
         logp_old = pi_old.log_prob(act)
 
@@ -104,14 +115,13 @@ class TRPO(AlgorithmBase):
         )
         # FIXME: CNN layer's g would be non-contiguous, needing further investigation
         # Current workaround is making sure it's contiguous
+        # See also: Two more `contiguous` in `hvp`
         g_params = [g_param.contiguous() for g_param in g_params]
         g_vec = nn.utils.convert_parameters.parameters_to_vector(g_params)
         x0_vec = torch.zeros_like(g_vec)
         d_kl = pi.kl_divergence(pi_old).mean()
 
         def hvp(f: torch.Tensor, x: torch.Tensor):
-            # FIXME: CNN layer's g would be non-contiguous, needing further investigation
-            # Current workaround is making sure it's contiguous
             g_params = torch.autograd.grad(
                 f, self.networks.policy.parameters(), create_graph=True
             )
@@ -122,8 +132,6 @@ class TRPO(AlgorithmBase):
                 self.networks.policy.parameters(),
                 retain_graph=True,
             )
-            # FIXME: CNN layer's hvp would be non-contiguous, e.g. with stride of (9, 144, 3, 1), needing further investigation
-            # Current workaround is making sure it's contiguous
             hvp_params = [hvp_param.contiguous() for hvp_param in hvp_params]
             return nn.utils.convert_parameters.parameters_to_vector(hvp_params)
 
@@ -167,10 +175,10 @@ class TRPO(AlgorithmBase):
         # v loss
         for i in range(self.train_v_iters):
             val = self.networks.value(obs)
-            self.networks.v_optimizer.zero_grad()
+            self.value_optimizer.zero_grad()
             v_loss = F.mse_loss(val, ret)
             v_loss.backward()
-            self.networks.v_optimizer.step()
+            self.value_optimizer.step()
         v_loss = v_loss.item()
         val_avg = val.detach().mean().item()
         
@@ -197,45 +205,38 @@ class TRPO(AlgorithmBase):
         rtol: float,
         atol: float,
         max_cg: int,
-    ):
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Conjugate gradient method
 
         Solve $Ax=b$ where $A$ is a positive definite matrix.
         Refer to https://en.wikipedia.org/wiki/Conjugate_gradient_method.
 
         Args:
-            Ax (Callable[[torch.Tensor], torch.Tensor]): Function to calculate $Ax$, return value shape (S,)
-            b (torch.Tensor): b, shape (S,)
-            x (torch.Tensor): Initial x value, shape (S,)
-            rtol (float): Relative tolerance
-            atol (float): Absolute tolerance
-            max_cg (int): Maximum conjugate gradient iterations
-
-        Raises:
-            ValueError: When failed to converge within max_cg iterations
+            Ax: Function to calculate $Ax$, return value shape (S,)
+            b: b, shape (S,)
+            x: Initial x value, shape (S,)
+            rtol: Relative tolerance
+            atol: Absolute tolerance
+            max_cg: Maximum conjugate gradient iterations
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: Solution of $Ax=b$, residue
+            A tuple of (solution of $Ax=b$, residue)
         """
         zero = x.new_zeros(())
         r = b - Ax(x)
         if torch.allclose(r, zero, rtol=rtol, atol=atol):
-            print(f"mode0: {r.norm(2)} ?")
             return x, r
 
         r_dot = torch.dot(r, r)
         p = r.clone()
-        for i in range(max_cg):
+        for _ in range(max_cg):
             Ap = Ax(p)
             alpha = r_dot / (torch.dot(p, Ap) + EPSILON)
             x = x.add_(p, alpha=alpha)
             r = r.add_(Ap, alpha=-alpha)
             if torch.allclose(r, zero, rtol=rtol, atol=atol):
-                print(f"mode1: {i} converged {r.norm(2)}")
                 return x, r
             r_dot, r_dot_old = torch.dot(r, r), r_dot
             beta = r_dot / r_dot_old
             p = r.add(p, alpha=beta)
-        # print(f'mode2: max_cg {r.norm(2)}, {b.norm(2)}, {r.norm(2) / b.norm(2)}')
         return x, r
-        # raise ValueError("_conjugate_gradient failed to converge within max_cg iterations")

@@ -4,50 +4,67 @@
 #
 #  Creator: iDLab
 #  Description: Proximal Policy Optimization Algorithm (PPO)
-#  Update: 2021-03-05, Yujie Yang: create PPO algorithm
+#  Update: 2021-03-05, Yuxuan Jiang: create PPO algorithm
 
 
 __all__ = ["ApproxContainer", "PPO"]
 
 
-from typing import Dict
 import numpy as np
 import torch
+import torch.nn as nn
 from torch.optim import Adam
 import time
 
 from gops.algorithm.base import AlgorithmBase, ApprBase
 from gops.create_pkg.create_apprfunc import create_apprfunc
+from gops.utils.typing import DataDict
 from gops.utils.utils import get_apprfunc_dict
 from gops.utils.tensorboard_tools import tb_tags
 
 
 class ApproxContainer(ApprBase):
+    """Approximate function container for PPO.
+
+    Contains a policy and a state value.
+    """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        value_func_type = kwargs["value_func_type"]
-        policy_func_type = kwargs["policy_func_type"]
 
-        policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
-        self.policy = create_apprfunc(**policy_args)
-        value_args = get_apprfunc_dict("value", value_func_type, **kwargs)
-        self.value = create_apprfunc(**value_args)
+        policy_args = get_apprfunc_dict("policy", kwargs["policy_func_type"], **kwargs)
+        self.policy: nn.Module = create_apprfunc(**policy_args)
+        value_args = get_apprfunc_dict("value", kwargs["value_func_type"], **kwargs)
+        self.value: nn.Module = create_apprfunc(**value_args)
 
-    # create action_distributions
     def create_action_distributions(self, logits):
         return self.policy.get_act_dist(logits)
 
 
 class PPO(AlgorithmBase):
-    def __init__(self, index=0, **kwargs):
+    """PPO algorithm"""
+    def __init__(self, *,
+        max_iteration: int,
+        num_repeat: int,
+        num_mini_batch: int,
+        mini_batch_size: int,
+        sample_batch_size: int,
+        index=0, **kwargs
+    ):
+        """PPO algorithm
+
+        Args:
+            max_iteration: Maximum iterations for learning rate schedule.
+            num_repeat: Number of repeats (to reuse sample batch).
+            num_mini_batch: Number of minibatches to divide sample batch.
+            mini_batch_size: Minibatch size.
+            sample_batch_size: Sample batch size.
+        """
         super().__init__(index, **kwargs)
-        self.trainer_type = kwargs["trainer"]
-        self.max_iteration = kwargs["max_iteration"]
-        self.num_epoch = kwargs["num_epoch"]
-        self.num_repeat = kwargs["num_repeat"]
-        self.num_mini_batch = kwargs["num_mini_batch"]
-        self.mini_batch_size = kwargs["mini_batch_size"]
-        self.sample_batch_size = kwargs["sample_batch_size"]
+        self.max_iteration = max_iteration
+        self.num_repeat = num_repeat
+        self.num_mini_batch = num_mini_batch
+        self.mini_batch_size = mini_batch_size
+        self.sample_batch_size = sample_batch_size
         self.indices = np.arange(self.sample_batch_size)
 
         # Parameters for algorithm
@@ -81,7 +98,7 @@ class PPO(AlgorithmBase):
             "schedule_adam", "schedule_clip", 
         )
 
-    def local_update(self, data: Dict[str, torch.Tensor], iteration: int) -> dict:
+    def local_update(self, data: DataDict, iteration: int) -> dict:
         start_time = time.perf_counter()
         data["adv"] = (data["adv"] - data["adv"].mean()) / (
             data["adv"].std() + self.EPS
@@ -130,7 +147,7 @@ class PPO(AlgorithmBase):
 
         return tb_info
 
-    def __compute_loss(self, data: Dict[str, torch.Tensor], iteration: int):
+    def __compute_loss(self, data: DataDict, iteration: int):
         obs, act = data["obs"], data["act"]
         pro = data["logp"]
         returns, advantages, values = data["ret"], data["adv"], data["val"]
@@ -204,9 +221,3 @@ class PPO(AlgorithmBase):
             loss_kl,
             clip_fraction,
         )
-
-
-if __name__ == "__main__":
-    print("This is PPO algorithm!")
-    print(torch.cuda.is_available())
-    print(torch.cuda.device_count())
