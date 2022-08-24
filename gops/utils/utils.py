@@ -49,7 +49,7 @@ def get_activation_func(key: str):
     return activation_func
 
 
-def get_apprfunc_dict(key: str, type: str, **kwargs):
+def get_apprfunc_dict(key: str, type=None, **kwargs):
     var = dict()
     var["apprfunc"] = kwargs[key + "_func_type"]
     var["name"] = kwargs[key + "_func_name"]
@@ -58,26 +58,27 @@ def get_apprfunc_dict(key: str, type: str, **kwargs):
     var["max_log_std"] = kwargs.get(key + "_max_log_std", float("inf"))
     var["std_sype"] = kwargs.get(key + "_std_sype", "mlp_shared")
 
-    if type == "MLP" or type == "RNN":
+    apprfunc_type = kwargs[key + "_func_type"]
+    if apprfunc_type == "MLP" or apprfunc_type == "RNN":
         var["hidden_sizes"] = kwargs[key + "_hidden_sizes"]
         var["hidden_activation"] = kwargs[key + "_hidden_activation"]
         var["output_activation"] = kwargs[key + "_output_activation"]
-    elif type == "GAUSS":
+    elif apprfunc_type == "GAUSS":
         var["num_kernel"] = kwargs[key + "_num_kernel"]
-    elif type == "CNN":
+    elif apprfunc_type == "CNN":
         var["hidden_activation"] = kwargs[key + "_hidden_activation"]
         var["output_activation"] = kwargs[key + "_output_activation"]
         var["conv_type"] = kwargs[key + "_conv_type"]
-    elif type == "CNN_SHARED":
+    elif apprfunc_type == "CNN_SHARED":
         if key == "feature":
             var["conv_type"] = kwargs["conv_type"]
         else:
             var["feature_net"] = kwargs["feature_net"]
             var["hidden_activation"] = kwargs[key + "_hidden_activation"]
             var["output_activation"] = kwargs[key + "_output_activation"]
-    elif type == "POLY":
+    elif apprfunc_type == "POLY":
         var["degree"] = kwargs[key + "_degree"]
-    elif type == "GAUSS":
+    elif apprfunc_type == "GAUSS":
         var["num_kernel"] = kwargs[key + "_num_kernel"]
     else:
         raise NotImplementedError
