@@ -18,6 +18,7 @@ def create_buffer(**kwargs):
         trainer == "off_serial_trainer"
         or trainer == "off_async_trainer"
         or trainer == "off_async_trainermix"
+        or trainer == "off_sync_trainer"
     ):
         buffer_file_name = kwargs["buffer_name"].lower()
         try:
@@ -31,7 +32,7 @@ def create_buffer(**kwargs):
             buffer_cls = getattr(file, buffer_name)  # 返回
             if trainer == "off_serial_trainer":
                 buffer = buffer_cls(**kwargs)
-            elif trainer == "off_async_trainer" or trainer == "off_async_trainermix":
+            elif trainer == "off_async_trainer" or trainer == "off_async_trainermix" or trainer == "off_sync_trainer":
                 import ray
 
                 buffer = [
