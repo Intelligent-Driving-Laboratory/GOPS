@@ -18,7 +18,7 @@ class Env:  # todo:从git上找的环境设置，需要自己改一下
     """
 
     def __init__(self):
-        self.env = gym.make("CarRacing-v0")
+        self.env = gym.make("CarRacing-v1")
         self.env.seed(0)
         self.reward_threshold = self.env.spec.reward_threshold
         self.img_stack = 4
