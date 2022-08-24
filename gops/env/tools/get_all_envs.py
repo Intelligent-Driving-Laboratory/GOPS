@@ -10,9 +10,7 @@ MUJOCO = [
     "gym_invertedpendulum",
     "gym_pusher",
     "gym_reacher",
-    "gym_striker",
     "gym_swimmer",
-    "gym_thrower",
     "gym_walker2d",
 ]
 
