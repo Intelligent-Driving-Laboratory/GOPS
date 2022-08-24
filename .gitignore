@@ -18,6 +18,8 @@ results/
 .idea/
 *.pkl
 
+policy_result/
+
 # Distribution / packaging
 .Python
 build/

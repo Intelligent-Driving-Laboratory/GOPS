@@ -46,7 +46,10 @@ def _check_constraint(env):
 
 
 def check_env_file_structures(env_file_name):
-    file_obj = importlib.import_module("gops.env." + env_file_name)
+    try:
+        file_obj = importlib.import_module("gops.env." + env_file_name)
+    except:
+        file_obj = importlib.import_module("gops.env.env_archive." + env_file_name)
     env_name_camel = ce.formatter(env_file_name)
     if hasattr(file_obj, "env_creator"):
         env_class = getattr(file_obj, "env_creator")
@@ -99,6 +102,15 @@ def check_env(env_name):
 
     check_env0(env)
 
+
+def simple_check_env(env_name):
+    print(f"checking `{env_name}_data` ...")
+    env_cls = check_env_file_structures(env_name + "_data")
+    env = env_cls()
+    env.reset()
+    a = env.action_space.sample()
+    env.step(a)
+    print(f"check `{env_name}_data` success")
 
 
 if __name__ == "__main__":
