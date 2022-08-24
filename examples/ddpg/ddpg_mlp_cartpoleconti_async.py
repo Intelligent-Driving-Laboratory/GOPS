@@ -106,7 +106,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--trainer",
         type=str,
-        default="off_sync_trainer",
+        default="off_async_trainer",
         help="on_serial_trainer"
         "on_sync_trainer"
         "off_serial_trainer"
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     parser.add_argument("--ini_network_dir", type=str, default=None)
     trainer_type = parser.parse_known_args()[0].trainer
     # 4.4. Parameters for off_async_trainer
-    if trainer_type == "off_sync_trainer":
+    if trainer_type == "off_async_trainer":
         import ray
 
         ray.init()
@@ -231,5 +231,5 @@ if __name__ == "__main__":
     print("Training is finished!")
 
     # Plot and save training figures
-    # plot_all(args["save_folder"])
+    plot_all(args["save_folder"])
     save_tb_to_csv(args["save_folder"])
