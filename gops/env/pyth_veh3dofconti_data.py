@@ -205,6 +205,9 @@ class SimuVeh3dofconti(gym.Env,):
         self.action_space = gym.spaces.Box(low=np.array([-1.2 * np.pi / 9, -3]),
                                            high=np.array([1.2 * np.pi / 9, 3]),
                                            dtype=np.float32)
+        self.Max_step = 10
+        self.cstep = 0
+
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -246,7 +249,7 @@ class SimuVeh3dofconti(gym.Env,):
         self.veh_state[4] = self.veh_full_state[4] - path_phi
         self.veh_state[3] = self.veh_full_state[3] - path_y
         self.obs = self._get_obs(self.veh_state, self.veh_full_state)
-
+        self.cstep = 0
         return self.obs
 
     def step(self, action):  # think of action is in range [-1, 1]
@@ -261,8 +264,13 @@ class SimuVeh3dofconti(gym.Env,):
             self.vehicle_dynamics.simulation(veh_state_tensor, self.veh_full_state, action_tensor,
                                              base_freq=self.base_frequency)
         self.done = self.judge_done(self.veh_state, stability_related)
+        if self.done:
+            reward = reward - 10
+        else:
+            reward = reward + 1
         self.obs = self._get_obs(self.veh_state, self.veh_full_state)
-        info = {}
+        info = {"TimeLimit.truncated": self.cstep > self.Max_step}
+        self.cstep = self.cstep + 1
         return self.obs, reward, self.done, info
 
     def judge_done(self, veh_state, stability_related):
