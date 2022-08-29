@@ -36,12 +36,12 @@ class ApproxContainer(ApprBase):
         super().__init__(**kwargs)
         # create q networks
         q_args = get_apprfunc_dict("q", kwargs["value_func_type"], **kwargs)
-        self.q = create_apprfunc(**q_args)
+        self.q: nn.Module = create_apprfunc(**q_args)
         self.q_target = deepcopy(self.q)
 
         # create policy network
         policy_args = get_apprfunc_dict("policy", kwargs["policy_func_type"], **kwargs)
-        self.policy = create_apprfunc(**policy_args)
+        self.policy: nn.Module = create_apprfunc(**policy_args)
         self.policy_target = deepcopy(self.policy)
 
         # set target network gradients
