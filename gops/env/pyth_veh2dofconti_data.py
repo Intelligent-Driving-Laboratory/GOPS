@@ -183,7 +183,7 @@ class SimuVeh2dofconti(gym.Env,):
         self.action_space = gym.spaces.Box(low=np.array([-1.2 * np.pi / 9]),
                                            high=np.array([1.2 * np.pi / 9]),
                                            dtype=np.float32)
-        self.Max_step = 10
+        self.Max_step = 100
         self.cstep = 0
 
     def seed(self, seed=None):
@@ -233,7 +233,8 @@ class SimuVeh2dofconti(gym.Env,):
                                              base_freq=self.base_frequency)
         self.done = self.judge_done(self.veh_state)
         if self.done:
-            reward = reward - 10
+            pass
+            # reward = reward - 10
         else:
             reward = reward + 1
         self.obs = self._get_obs(self.veh_state)
