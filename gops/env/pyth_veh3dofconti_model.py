@@ -51,12 +51,8 @@ class Veh3dofcontiModel(torch.nn.Module):
         steer_norm, a_xs_norm = actions[:, 0], actions[:, 1]
         actions = torch.stack([steer_norm * 1.2 * np.pi / 9, a_xs_norm * 3.], 1)
         self.actions = actions
-        # print(self.veh_states)
-        # print("#####################")
         self.veh_states, _ = self.vehicle_dynamics.prediction(self.veh_states, actions,
                                                               self.base_frequency)
-        # print(self.veh_states)
-        # exit()
         rewards = self.vehicle_dynamics.compute_rewards(self.veh_states, actions)
         v_xs, v_ys, rs, delta_ys, delta_phis, xs = self.veh_states[:, 0], self.veh_states[:, 1], self.veh_states[:, 2], \
                                                    self.veh_states[:, 3], self.veh_states[:, 4], self.veh_states[:, 5]
@@ -90,7 +86,6 @@ class Veh3dofcontiModel(torch.nn.Module):
         v_pi = torch.zeros((obs.shape[0],))
         self.reset(self.unscale_obs(obs))
         for step in range(n):
-            # scale_obs = self.scale_obs(obs)
             action = func(obs)
             obs, reward, done, constraint = self.forward(action)
             v_pi = v_pi + reward

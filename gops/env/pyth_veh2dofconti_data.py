@@ -174,7 +174,6 @@ class SimuVeh2dofconti(gym.Env,):
         self.num_agent = num_agent
         self.done = np.zeros((self.num_agent,), dtype=np.int)
         self.base_frequency = 10
-        self.interval_times = 200
         self.expected_vs = 20.
         self.observation_space = gym.spaces.Box(
             low=np.array([-np.inf] * (4)),
@@ -219,7 +218,14 @@ class SimuVeh2dofconti(gym.Env,):
         self.veh_state[2] = self.veh_full_state[2] - path_y
         self.obs = self._get_obs(self.veh_state)
         self.cstep = 0
-        return self.obs
+        return self.scale_obs(self.obs)
+
+    def scale_obs(self, obs):
+        obs_scale = [1., 2., 1., 2.4]
+        v_ys, rs, delta_ys, delta_phis = obs[0], obs[1], obs[2], obs[3]
+        lists_to_stack = [v_ys * obs_scale[0], rs * obs_scale[1],
+                          delta_ys * obs_scale[2], delta_phis * obs_scale[3]]
+        return lists_to_stack
 
     def step(self, action):  # think of action is in range [-1, 1]
         steer_norm = action
@@ -234,13 +240,12 @@ class SimuVeh2dofconti(gym.Env,):
         self.done = self.judge_done(self.veh_state)
         if self.done:
             pass
-            # reward = reward - 10
         else:
             reward = reward + 1
         self.obs = self._get_obs(self.veh_state)
         info = {"TimeLimit.truncated": self.cstep > self.Max_step}
         self.cstep = self.cstep + 1
-        return self.obs, reward, self.done, info
+        return self.scale_obs(self.obs), reward, self.done, info
 
     def judge_done(self, veh_state):
         v_ys, rs, delta_ys, delta_phis = veh_state[0], veh_state[1], veh_state[2], \
@@ -258,17 +263,17 @@ class SimuVeh2dofconti(gym.Env,):
 def env_creator(**kwargs):
     return SimuVeh2dofconti(**kwargs)
 
-def scale_obs(obs):
+def unscale_obs(obs):
     obs_scale = [1., 2., 1., 2.4]
     v_ys, rs, delta_ys, delta_phis = obs[:, 0], obs[:, 1], obs[:, 2], obs[:, 3]
-    lists_to_stack = [v_ys * obs_scale[0], rs * obs_scale[1],
-                      delta_ys * obs_scale[2], delta_phis * obs_scale[3]]
+    lists_to_stack = [v_ys / obs_scale[0], rs / obs_scale[1],
+                      delta_ys / obs_scale[2], delta_phis / obs_scale[3]]
     return torch.stack(lists_to_stack, 1)
 
 if __name__=="__main__":
     sys.path.append(r"G:\项目文档\gops开发相关\gops\gops\algorithm")
-    base_dir = r"G:\项目文档\gops开发相关\gops\results\FHADP\220825-161049"
-    net_dir = os.path.join(base_dir, r"apprfunc\apprfunc_{}.pkl".format(499))
+    base_dir = r"G:\项目文档\gops开发相关\gops\results\FHADP\220907-162002"
+    net_dir = os.path.join(base_dir, r"apprfunc\apprfunc_{}.pkl".format(1999))
     parser = argparse.ArgumentParser()
     ################################################
     # Key Parameters for users
@@ -303,7 +308,7 @@ if __name__=="__main__":
     if policy_func_type == "POLY":
         pass
     if policy_func_type == "MLP":
-        parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
+        parser.add_argument("--policy_hidden_sizes", type=list, default=[256, 256])
         parser.add_argument("--policy_hidden_activation", type=str, default="elu")
         parser.add_argument("--policy_output_activation", type=str, default="linear")
     # 3. Parameters for RL algorithm
@@ -348,7 +353,6 @@ if __name__=="__main__":
     model = Veh2dofcontiModel()
     obs = env.reset()
     obs = torch.from_numpy(np.expand_dims(obs, axis=0).astype("float32"))
-    env.obs = copy.deepcopy(obs)
     args = vars(parser.parse_args())
     args = init_args(env, **args)
     alg_name = args["algorithm"]
@@ -366,10 +370,9 @@ if __name__=="__main__":
     phi = []
     reward_total = []
     # obs = torch.from_numpy(obs.astype("float32"))
-    model.reset(obs)
+    model.reset(unscale_obs(obs))
     for _ in range(200):
-        batch_obs = scale_obs(obs)
-        action = networks.policy(batch_obs)
+        action = networks.policy(obs)
         action = action.detach()[0].numpy()
         obs, reward, done, info = env.step(action)
         obs = torch.from_numpy(np.expand_dims(obs, axis=0).astype("float32"))

@@ -306,12 +306,18 @@ def env_creator(**kwargs):
     return SimuVeh3dofconti(**kwargs)
 
 
-
+def unscale_obs(obs):
+    obs_scale = [1., 1., 2., 1., 2.4, 1 / 1200]
+    v_xs, v_ys, rs, delta_ys, delta_phis, xs = obs[:, 0], obs[:, 1], obs[:, 2], \
+                                               obs[:, 3], obs[:, 4], obs[:, 5]
+    lists_to_stack = [v_xs / obs_scale[0], v_ys / obs_scale[1], rs / obs_scale[2],
+                      delta_ys / obs_scale[3], delta_phis / obs_scale[4], xs / obs_scale[5]]
+    return torch.stack(lists_to_stack, 1)
 
 
 if __name__=="__main__":
-    sys.path.append(r"E:\gops\gops\gops\algorithm")
-    base_dir = r"E:\gops\gops\results\FHADP\220517-170103"
+    sys.path.append(r"G:\项目文档\gops开发相关\gops\gops\algorithm")
+    base_dir = r"G:\项目文档\gops开发相关\gops\results\FHADP\220907-151803"
     net_dir = os.path.join(base_dir, r"apprfunc\apprfunc_{}.pkl".format(1999))
     parser = argparse.ArgumentParser()
     ################################################
@@ -400,8 +406,8 @@ if __name__=="__main__":
     y_ref = []
     phi = []
     reward_total = []
-    model.reset(obs)
-    for _ in range(3000):
+    model.reset(unscale_obs(obs))
+    for _ in range(300):
         action = networks.policy(obs)
         action = action.detach()[0].numpy()
         obs, reward, done, info = env.step(action)
