@@ -196,8 +196,7 @@ class SimuVeh3dofconti(gym.Env,):
         self.num_agent = num_agent
         self.expected_vs = 20.
         self.done = np.zeros((self.num_agent,), dtype=np.int)
-        self.base_frequency = 100
-        self.interval_times = 20
+        self.base_frequency = 10
         self.observation_space = gym.spaces.Box(
             low=np.array([-np.inf] * (6 + self.num_future_data)),
             high=np.array([np.inf] * (6 + self.num_future_data)),
@@ -205,7 +204,7 @@ class SimuVeh3dofconti(gym.Env,):
         self.action_space = gym.spaces.Box(low=np.array([-1.2 * np.pi / 9, -3]),
                                            high=np.array([1.2 * np.pi / 9, 3]),
                                            dtype=np.float32)
-        self.Max_step = 10
+        self.Max_step = 100
         self.cstep = 0
 
 
@@ -231,6 +230,14 @@ class SimuVeh3dofconti(gym.Env,):
         lists_to_stack = [delta_v_xs + self.expected_vs, v_ys, rs, delta_ys, delta_phis, xs]
         return np.stack(lists_to_stack, axis=0)
 
+    def scale_obs(self, obs):
+        obs_scale = [1., 1., 2., 1., 2.4, 1 / 1200]
+        v_xs, v_ys, rs, delta_ys, delta_phis, xs = obs[0], obs[1], obs[2], \
+                                                   obs[3], obs[4], obs[5]
+        lists_to_stack = [v_xs * obs_scale[0], v_ys * obs_scale[1], rs * obs_scale[2],
+                          delta_ys * obs_scale[3], delta_phis * obs_scale[4], xs * obs_scale[5]]
+        return lists_to_stack
+
     def reset(self, **kwargs):
         init_x = np.random.uniform(0, 600, (self.num_agent,)).astype(np.float32)
         init_delta_y = np.random.normal(0, 1, (self.num_agent,)).astype(np.float32)
@@ -250,7 +257,7 @@ class SimuVeh3dofconti(gym.Env,):
         self.veh_state[3] = self.veh_full_state[3] - path_y
         self.obs = self._get_obs(self.veh_state, self.veh_full_state)
         self.cstep = 0
-        return self.obs
+        return self.scale_obs(self.obs)
 
     def step(self, action):  # think of action is in range [-1, 1]
         steer_norm, a_x_norm = action[0], action[1]
@@ -265,13 +272,13 @@ class SimuVeh3dofconti(gym.Env,):
                                              base_freq=self.base_frequency)
         self.done = self.judge_done(self.veh_state, stability_related)
         if self.done:
-            reward = reward - 10
+            pass
         else:
             reward = reward + 1
         self.obs = self._get_obs(self.veh_state, self.veh_full_state)
         info = {"TimeLimit.truncated": self.cstep > self.Max_step}
         self.cstep = self.cstep + 1
-        return self.obs, reward, self.done, info
+        return self.scale_obs(self.obs), reward, self.done, info
 
     def judge_done(self, veh_state, stability_related):
         v_xs, v_ys, rs, delta_ys, delta_phis, xs = veh_state[0], veh_state[1], veh_state[2], \
@@ -299,13 +306,7 @@ def env_creator(**kwargs):
     return SimuVeh3dofconti(**kwargs)
 
 
-def scale_obs(obs):
-    obs_scale = [1., 1., 2., 1., 2.4, 1 / 1200]
-    v_xs, v_ys, rs, delta_ys, delta_phis, xs = obs[:, 0], obs[:, 1], obs[:, 2], \
-                                               obs[:, 3], obs[:, 4], obs[:, 5]
-    lists_to_stack = [v_xs * obs_scale[0], v_ys * obs_scale[1], rs * obs_scale[2],
-                      delta_ys * obs_scale[3], delta_phis * obs_scale[4], xs * obs_scale[5]]
-    return torch.stack(lists_to_stack, 1)
+
 
 
 if __name__=="__main__":
@@ -401,22 +402,15 @@ if __name__=="__main__":
     reward_total = []
     model.reset(obs)
     for _ in range(3000):
-        batch_obs = scale_obs(obs)
-        action = networks.policy(batch_obs)
+        action = networks.policy(obs)
         action = action.detach()[0].numpy()
         obs, reward, done, info = env.step(action)
         obs = torch.from_numpy(np.expand_dims(obs, axis=0).astype("float32"))
-        # reward_total.append(reward)
         x.append(env.veh_full_state[-1])
         path_y = env.vehicle_dynamics.path.compute_path_y(env.veh_full_state[-1])
         y_ref.append(path_y)
-        # v_x.append(env.veh_full_state[0])
         y.append(env.veh_full_state[3])
-        # phi.append(env.veh_full_state[4])
 
     plt.plot(x, y)
     plt.plot(x, y_ref, color='red')
-    # plt.plot(x, phi)
-    # plt.plot(x, v_x)
-    # plt.plot(reward_total)
     plt.show()
