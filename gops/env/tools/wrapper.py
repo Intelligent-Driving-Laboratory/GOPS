@@ -3,6 +3,10 @@ import numpy as np
 import torch
 
 class EnvC2U(gym.Wrapper):
+    """
+    transform an env with constraints to env without constraint by punishing
+    the constraint function in the reward function
+    """
     def __init__(self, env, punish_factor=10):
         super().__init__(env)
         self.punish_factor = punish_factor
@@ -16,6 +20,10 @@ class EnvC2U(gym.Wrapper):
 
 
 class ModelC2U:
+    """
+    transform an env model with constraints to env model without constraint by punishing
+    the constraint function in the reward function
+    """
     def __init__(self, dyn, punish_factor=10):
         self.dyn = dyn
         self.punish_factor = punish_factor

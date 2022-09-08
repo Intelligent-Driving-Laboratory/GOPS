@@ -24,6 +24,8 @@ class PythDemo(gym.Env):
 
         # define your custom parameters here
 
+        # self.example_variable = 0
+
         # define observation space here
         lb_observation = [-np.inf, -np.inf, -np.inf]
         hb_observation = [np.inf, np.inf, np.inf]
@@ -50,6 +52,9 @@ class PythDemo(gym.Env):
         self.obs = None
 
     def seed(self, seed=None):
+        """
+        set random seed
+        """
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
