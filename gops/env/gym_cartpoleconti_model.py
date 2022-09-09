@@ -143,6 +143,3 @@ def clip_by_tensor(t, t_min, t_max):
     result = (result <= t_max) * result + (result > t_max) * t_max
     return result
 
-
-if __name__ == "__main__":
-    pass

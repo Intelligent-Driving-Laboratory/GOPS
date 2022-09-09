@@ -39,10 +39,7 @@ class PythCarfollowingModel:
         self.hb_state = torch.tensor(self.hb_state, dtype=torch.float32)
         self.lb_action = torch.tensor(self.lb_action, dtype=torch.float32)
         self.hb_action = torch.tensor(self.hb_action, dtype=torch.float32)
-        # self.register_buffer('lb_state', torch.tensor(lb_state, dtype=torch.float32))
-        # self.register_buffer('hb_state', torch.tensor(hb_state, dtype=torch.float32))
-        # self.register_buffer('lb_action', torch.tensor(lb_action, dtype=torch.float32))
-        # self.register_buffer('hb_action', torch.tensor(hb_action, dtype=torch.float32))
+
 
     def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done):
         """
@@ -86,10 +83,7 @@ class PythCarfollowingModel:
 
         ############################################################################################
         info = {"constraint": 2 - state_next[:, 1]}
-        # beyond_done = beyond_done.bool()
-        # mask = isdone * beyond_done
-        # mask = torch.unsqueeze(mask, -1)
-        # state_next = ~mask * state_next + mask * state
+
         return state_next, reward, isdone, info
 
     def forward_n_step(self, func, n, state: torch.Tensor):
@@ -104,7 +98,11 @@ class PythCarfollowingModel:
             state_next, reward[:, step], isdone, _ = self.forward(state, action, isdone)
             state = state_next
 
-def env_moedel_creator(**kwargs):
+
+def env_model_creator(**kwargs):
+    """
+    make env model `pyth_carfollowing`
+    """
     return PythCarfollowingModel(**kwargs)
 
 def clip_by_tensor(t, t_min, t_max):
@@ -118,7 +116,3 @@ def clip_by_tensor(t, t_min, t_max):
     result = (t >= t_min) * t + (t < t_min) * t_min
     result = (result <= t_max) * result + (result > t_max) * t_max
     return result
-
-
-if __name__ == "__main__":
-    env = env_moedel_creator()

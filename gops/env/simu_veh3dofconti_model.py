@@ -194,25 +194,3 @@ def clip_by_tensor(t, t_min, t_max):
     result = (t >= t_min) * t + (t < t_min) * t_min
     result = (result <= t_max) * result + (result > t_max) * t_max
     return result
-
-
-if __name__ == "__main__":
-    e = SimuVehicle3dofcontiModel()
-    state = torch.tensor([[0.0, 0.0, 0.0001, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0001, 0.0, 0.0, 0.0]])
-    reward = torch.zeros(size=[state.size()[0], 1000])
-
-    def func(action):
-        return action
-
-    res = []
-    for step in range(1000):
-        # steer = np.pi*10 / 180 * math.sin(step * 0.005 * math.pi)
-        # acc = 1000
-        steer = np.pi * 5 / 180
-        acc = 1000 * math.sin(step * 0.005 * math.pi) + 1000
-
-        action = torch.tensor([[steer, 0.0, acc, 0.0, 0.0], [steer, 0.0, acc, 0.0, 0.0]])
-        state_next, reward[:, step], isdone = e.forward(state, action)
-        res.append(copy.deepcopy(state_next.numpy()[0]))
-        state = state_next
-    np.savetxt("accuracy_compare/sin_force_1000_step_5deg_rear.csv", res)

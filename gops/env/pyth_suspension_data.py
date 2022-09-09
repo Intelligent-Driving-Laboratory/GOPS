@@ -41,10 +41,7 @@ class _GymSuspension(gym.Env):
         self.Q[1, 1] = 3.
         self.Q[2, 2] = 100.
         self.Q[3, 3] = 0.1
-        # self.Q[0, 0] = 1000.
-        # self.Q[1, 1] = 10.
-        # self.Q[2, 2] = 1000.
-        # self.Q[3, 3] = 0.1
+
         self.R = np.eye(self.action_dim)
         # self.R[0, 0] = 0.2
         self.gamma = 1
@@ -72,10 +69,7 @@ class _GymSuspension(gym.Env):
                                                            self.pos_wheel_threshold, self.vel_wheel_threshold]),
                                             shape=(4,)
                                             )
-        # self.action_space = spaces.Box(low=np.array(self.min_action + self.min_adv_action),
-        #                                high=np.array(self.max_action + self.max_adv_action),
-        #                                shape=(2,)
-        #                                )
+
         self.action_space = spaces.Box(low=np.array(self.min_action),
                                        high=np.array(self.max_action),
                                        shape=(1,)
@@ -123,8 +117,7 @@ class _GymSuspension(gym.Env):
 
     def step(self, inputs):
         action = inputs[:self.action_dim]
-        # adv_action = inputs[self.action_dim:]
-        # adv_action = np.random.normal(loc=0, scale=0.0001, size=(1,))
+
         adv_action = [0]
         if adv_action is None:
             adv_action = 0
@@ -145,23 +138,17 @@ class _GymSuspension(gym.Env):
         # ---------------
 
         if not done:
-            # reward = self.Q[0][0] * pos_body ** 2 + self.Q[1][1] * vel_body ** 2 \
-            #          + self.Q[2][2] * pos_wheel ** 2 + self.Q[3][3] * vel_wheel ** 2 \
-            #          + self.R[0][0] * action ** 2 - self.gamma_atte ** 2 * adv_action ** 2
+
             reward = self.Q[0][0] * pos_body ** 2 + self.Q[1][1] * vel_body ** 2 \
                      + self.Q[2][2] * pos_wheel ** 2 + self.Q[3][3] * vel_wheel ** 2 \
                      + self.R[0][0] * action ** 2
 
 
-            # reward = - self.Q[0][0] * pos_body ** 2 - self.Q[1][1] * vel_body ** 2 \
-            #          - self.Q[2][2] * (pos_body - pos_wheel) ** 2 - self.R[0][0] * action ** 2
             reward = -reward
         elif self.steps_beyond_done is None:
             # Pole just fell!
             self.steps_beyond_done = 0
-            # reward = self.Q[0][0] * pos_body ** 2 + self.Q[1][1] * vel_body ** 2 \
-            #          + self.Q[2][2] * pos_wheel ** 2 + self.Q[3][3] * vel_wheel ** 2 \
-            #          + self.R[0][0] * action ** 2 - self.gamma_atte ** 2 * adv_action ** 2
+
 
             reward = self.Q[0][0] * pos_body ** 2 + self.Q[1][1] * vel_body ** 2 \
                      + self.Q[2][2] * pos_wheel ** 2 + self.Q[3][3] * vel_wheel ** 2 \
@@ -213,11 +200,8 @@ Any further steps are undefined behavior.
 
 
 def env_creator(**kwargs):
+    """
+    make env `pyth_suspension`
+    """
     return TimeLimit(_GymSuspension(**kwargs), 1000)
 
-
-if __name__ == '__main__':
-    # obs = np.array([1, 2, 3, 4])
-    # obs_1 = obs * [10, 1, 10, 0.5]
-    # print(obs_1)
-    pass

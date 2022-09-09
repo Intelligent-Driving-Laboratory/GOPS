@@ -49,7 +49,7 @@ class SimuAircraftconti(gym.Env):
         )
         self.cstep += 1
         info = {"TimeLimit.truncated": self.cstep > 200}
-        # print(state, self.cstep)
+
         return state, reward, isdone, info
 
     def seed(self, seed=None):
@@ -78,15 +78,3 @@ class SimuAircraftconti(gym.Env):
     def _step_physics(self, action):
         return self._physics.step(action)
 
-
-if __name__ == "__main__":
-    import gym
-    import numpy as np
-
-    env = SimuAircraftconti()
-    s = env.reset()
-    for i in range(50):
-        a = np.ones([1]) * 5
-        sp, r, d, _ = env.step(a)
-        print(s, a, r, d)
-        s = sp

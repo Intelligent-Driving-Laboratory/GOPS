@@ -12,7 +12,6 @@ import numpy as np
 import torch
 
 
-
 class PythMobilerobotModel(torch.nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
@@ -103,17 +102,6 @@ class PythMobilerobotModel(torch.nn.Module):
 
         return state_next, reward, isdone, info
 
-    # def forward_n_step(self, func, n, state: torch.Tensor):
-    #     reward = torch.zeros(size=[state.size()[0], n])
-    #     isdone = state.numpy() <= self.hb_state | state.numpy() >= self.lb_state
-    #     if np.sum(isdone) > 0:
-    #         warning_msg = "state out of state space!"
-    #         warnings.warn(warning_msg)
-    #     isdone = torch.from_numpy(isdone)
-    #     for step in range(n):
-    #         action = func(state)
-    #         state_next, reward[:, step], isdone = self.forward(state, action, isdone)
-    #         state = state_next
 
 
 class Robot:
@@ -173,8 +161,7 @@ class Robot:
     def tracking_error(self, x):
         error_position = x[:, 1]
         error_head = x[:, 2]
-        # error_head = torch.where(error_head > np.pi, error_head - np.pi * 2, error_head)
-        # error_head = torch.where(error_head < -np.pi, error_head + np.pi * 2, error_head)
+
 
         error_v = x[:, 3] - self.robot_params["v_desired"]
         tracking = torch.cat(
@@ -201,37 +188,3 @@ def clip_by_tensor(t, t_min, t_max):
     return result
 
 
-if __name__ == "__main__":
-    env = GymMobilerobotModel()
-    x = torch.Tensor(
-        [
-            [
-                0.5297,
-                1.1331,
-                -0.0566,
-                0.0000,
-                0.0000,
-                3.5000,
-                -1.0000,
-                -1.5708,
-                0.0000,
-                0.0000,
-                -0.2669,
-                -0.0566,
-                -0.3000,
-                1.000,
-                1.0000,
-                -0.2669,
-                -0.0566,
-                -0.3000,
-            ]
-        ]
-        * 10
-    )
-    die = torch.zeros([10, 2])
-    env.render_init()
-    for i in range(100):
-
-        u = torch.Tensor([[0.1, 0.1]]*10)
-        x, r, die, info = env.forward(x, u, die)
-        env.render(x)
