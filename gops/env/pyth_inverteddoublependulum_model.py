@@ -46,29 +46,29 @@ class Dynamics(object):
         M = torch.stack(
             [
                 (m + m1 + m2) * ones,
-                l1 * (m1 + m2) * torch.cos(theta1),
-                m2 * l2 * torch.cos(theta2),
-                l1 * (m1 + m2) * torch.cos(theta1),
-                l1 * l1 * (m1 + m2) * ones,
-                l1 * l2 * m2 * torch.cos(theta1 - theta2),
-                l2 * m2 * torch.cos(theta2),
-                l1 * l2 * m2 * torch.cos(theta1 - theta2),
-                l2 * l2 * m2 * ones,
+                l1 * (0.5 * m1 + m2) * torch.cos(theta1),
+                0.5 * m2 * l2 * torch.cos(theta2),
+                l1 * (0.5 * m1 + m2) * torch.cos(theta1),
+                l1 * l1 * (0.3333 * m1 + m2) * ones,
+                0.5 * l1 * l2 * m2 * torch.cos(theta1 - theta2),
+                0.5 * l2 * m2 * torch.cos(theta2),
+                0.5 * l1 * l2 * m2 * torch.cos(theta1 - theta2),
+                0.3333 * l2 * l2 * m2 * ones,
             ],
             dim=1,
         ).reshape(-1, 3, 3)
 
         f = torch.stack(
             [
-                l1 * (m1 + m2) * torch.square(theta1dot) * torch.sin(theta1)
-                + m2 * l2 * torch.square(theta2dot) * torch.sin(theta2)
+                l1 * (0.5 * m1 + m2) * torch.square(theta1dot) * torch.sin(theta1)
+                + 0.5 * m2 * l2 * torch.square(theta2dot) * torch.sin(theta2)
                 - d1 * pdot
                 + u,
-                -l1 * l2 * m2 * torch.square(theta2dot) * torch.sin(theta1 - theta2)
-                + g * (m1 + m2) * l1 * torch.sin(theta1)
+                -0.5 * l1 * l2 * m2 * torch.square(theta2dot) * torch.sin(theta1 - theta2)
+                + g * (0.5 * m1 + m2) * l1 * torch.sin(theta1)
                 - d2 * theta1dot,
-                l1 * l2 * m2 * torch.square(theta1dot) * torch.sin(theta1 - theta2)
-                + g * l2 * m2 * torch.sin(theta2),
+                0.5 * l1 * l2 * m2 * torch.square(theta1dot) * torch.sin(theta1 - theta2)
+                + g * 0.5 * l2 * m2 * torch.sin(theta2),
             ],
             dim=1,
         ).reshape(-1, 3, 1)
