@@ -114,9 +114,9 @@ class _GymCartpoleconti(gym.Env):
             if self.steps_beyond_done == 0:
                 gym.logger.warn(
                     """
-You are calling 'step()' even though this environment has already returned
-done = True. You should always call 'reset()' once you receive 'done = True'
-Any further steps are undefined behavior.
+                    You are calling 'step()' even though this environment has already returned
+                    done = True. You should always call 'reset()' once you receive 'done = True'
+                    Any further steps are undefined behavior.
                 """
                 )
             self.steps_beyond_done += 1
@@ -184,8 +184,7 @@ Any further steps are undefined behavior.
 
 
 def env_creator(**kwargs):
+    """
+    make env `` from ``
+    """
     return TimeLimit(_GymCartpoleconti(**kwargs), 200)
-
-
-if __name__ == "__main__":
-    pass

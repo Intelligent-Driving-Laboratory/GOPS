@@ -7,23 +7,17 @@
 #  Update Date: 2021-05-55, Congsheng Zhang: create environment
 
 
-from gym import spaces
 import gym
 from gym.utils import seeding
 from gops.env.pyth_veh2dofconti_model import Veh2dofcontiModel
-from gym.wrappers.time_limit import TimeLimit
-from typing import Callable, Dict, List
 import numpy as np
-import copy
-import time
 import torch
 import matplotlib.pyplot as plt
 import argparse
-import importlib
 from gops.utils.init_args import init_args
 import sys
-import json
 import os
+
 
 class VehicleDynamics(object):
     def __init__(self):
@@ -62,16 +56,6 @@ class VehicleDynamics(object):
                       delta_phi + tau * r
                       ]
         return torch.stack(next_state, 0)
-
-    # def _get_obs(self, veh_states):
-    #     v_ys, rs, delta_ys, delta_phis = veh_states[:, 0], veh_states[:, 1], veh_states[:, 2], veh_states[:, 3]
-    #     lists_to_stack = [v_ys, rs, delta_ys, delta_phis]
-    #     return torch.stack(lists_to_stack, 1)
-    #
-    # def _get_state(self, obses):
-    #     v_ys, rs, delta_ys, delta_phis = obses[:, 0], obses[:, 1], obses[:, 2], obses[:, 3]
-    #     lists_to_stack = [v_ys, rs, delta_ys, delta_phis]
-    #     return torch.stack(lists_to_stack, 1)
 
     def prediction(self, x_1, u_1, frequency):
         x_next = self.f_xu(x_1, u_1, 1 / frequency)
@@ -230,7 +214,6 @@ class SimuVeh2dofconti(gym.Env,):
     def step(self, action):  # think of action is in range [-1, 1]
         steer_norm = action
         action = steer_norm * 1.2 * np.pi / 9
-        # action = np.clip(action, self.action_space.low, self.action_space.high)
         self.action = action
         veh_state_tensor = torch.Tensor(self.veh_state)
         action_tensor = torch.from_numpy(self.action.astype("float32"))
@@ -260,8 +243,13 @@ class SimuVeh2dofconti(gym.Env,):
     def render(self, mode='human'):
         pass
 
+
 def env_creator(**kwargs):
+    """
+    make env `pyth_veh2dofconti`
+    """
     return SimuVeh2dofconti(**kwargs)
+
 
 def unscale_obs(obs):
     obs_scale = [1., 2., 1., 2.4]
@@ -269,6 +257,7 @@ def unscale_obs(obs):
     lists_to_stack = [v_ys / obs_scale[0], rs / obs_scale[1],
                       delta_ys / obs_scale[2], delta_phis / obs_scale[3]]
     return torch.stack(lists_to_stack, 1)
+
 
 if __name__=="__main__":
     sys.path.append(r"G:\项目文档\gops开发相关\gops\gops\algorithm")

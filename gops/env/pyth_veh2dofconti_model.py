@@ -167,8 +167,7 @@ class VehicleDynamics(object):
         return states, full_states
 
     def compute_rewards(self, states, actions):  # obses and actions are tensors
-        # veh_state = obs: v_xs, v_ys, rs, delta_ys, delta_phis, xs
-        # veh_full_state: v_xs, v_ys, rs, ys, phis, xs
+
         v_ys, rs, delta_ys, delta_phis = states[:, 0], states[:, 1], states[:, 2], \
                                                    states[:, 3]
         steers = actions[:, 0]
@@ -226,6 +225,9 @@ class ReferencePath(object):
 
 
 def env_model_creator(**kwargs):
+    """
+    make env model `pyth_veh2dofconti`
+    """
     return Veh2dofcontiModel()
 
 

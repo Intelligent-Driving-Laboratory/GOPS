@@ -46,29 +46,29 @@ class Dynamics(object):
         M = torch.stack(
             [
                 (m + m1 + m2) * ones,
-                l1 * (m1 + m2) * torch.cos(theta1),
-                m2 * l2 * torch.cos(theta2),
-                l1 * (m1 + m2) * torch.cos(theta1),
-                l1 * l1 * (m1 + m2) * ones,
-                l1 * l2 * m2 * torch.cos(theta1 - theta2),
-                l2 * m2 * torch.cos(theta2),
-                l1 * l2 * m2 * torch.cos(theta1 - theta2),
-                l2 * l2 * m2 * ones,
+                l1 * (0.5 * m1 + m2) * torch.cos(theta1),
+                0.5 * m2 * l2 * torch.cos(theta2),
+                l1 * (0.5 * m1 + m2) * torch.cos(theta1),
+                l1 * l1 * (0.3333 * m1 + m2) * ones,
+                0.5 * l1 * l2 * m2 * torch.cos(theta1 - theta2),
+                0.5 * l2 * m2 * torch.cos(theta2),
+                0.5 * l1 * l2 * m2 * torch.cos(theta1 - theta2),
+                0.3333 * l2 * l2 * m2 * ones,
             ],
             dim=1,
         ).reshape(-1, 3, 3)
 
         f = torch.stack(
             [
-                l1 * (m1 + m2) * torch.square(theta1dot) * torch.sin(theta1)
-                + m2 * l2 * torch.square(theta2dot) * torch.sin(theta2)
+                l1 * (0.5 * m1 + m2) * torch.square(theta1dot) * torch.sin(theta1)
+                + 0.5 * m2 * l2 * torch.square(theta2dot) * torch.sin(theta2)
                 - d1 * pdot
                 + u,
-                -l1 * l2 * m2 * torch.square(theta2dot) * torch.sin(theta1 - theta2)
-                + g * (m1 + m2) * l1 * torch.sin(theta1)
+                -0.5 * l1 * l2 * m2 * torch.square(theta2dot) * torch.sin(theta1 - theta2)
+                + g * (0.5 * m1 + m2) * l1 * torch.sin(theta1)
                 - d2 * theta1dot,
-                l1 * l2 * m2 * torch.square(theta1dot) * torch.sin(theta1 - theta2)
-                + g * l2 * m2 * torch.sin(theta2),
+                0.5 * l1 * l2 * m2 * torch.square(theta1dot) * torch.sin(theta1 - theta2)
+                + g * 0.5 * l2 * m2 * torch.sin(theta2),
             ],
             dim=1,
         ).reshape(-1, 3, 1)
@@ -96,7 +96,7 @@ class Dynamics(object):
         dist_penalty = 0.01 * torch.square(tip_x) + torch.square(tip_y - 2)
         v1, v2 = theta1dot, theta2dot
         vel_penalty = 1e-3 * torch.square(v1) + 5e-3 * torch.square(v2)
-        rewards = -dist_penalty - vel_penalty
+        rewards = 10 - dist_penalty - vel_penalty
 
         return rewards
 
@@ -214,15 +214,10 @@ def clip_by_tensor(t, t_min, t_max):
 
 
 def env_model_creator(**kwargs):
+    """
+    make env model `pyth_invertedpendulum`
+    """
     return PythInvertedpendulum(**kwargs)
 
-
-
-if __name__ == "__main__":
-    # testModel()
-    env = env_model_creator()
-    states = torch.randn([10, 6])
-    actions = torch.randn([10, 1])
-    state_next, reward, d, info = env.forward(states, actions)
 
 

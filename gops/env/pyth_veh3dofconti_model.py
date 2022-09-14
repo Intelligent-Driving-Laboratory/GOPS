@@ -154,11 +154,7 @@ class VehicleDynamics(object):
         return x_next, next_params
 
     def simulation(self, states, full_states, actions, base_freq):
-        # veh_state = obs: v_xs, v_ys, rs, delta_ys, delta_phis, xs
-        # veh_full_state: v_xs, v_ys, rs, ys, phis, xs
-        # others: alpha_f, alpha_r, r, alpha_f_bounds, alpha_r_bounds, r_bounds
-        # states = torch.from_numpy(states.copy())
-        # actions = torch.tensor(actions)
+
         states, others = self.prediction(states, actions, base_freq)
         states = states.numpy()
         others = others.numpy()
@@ -183,8 +179,7 @@ class VehicleDynamics(object):
         return states, full_states, others
 
     def compute_rewards(self, states, actions):  # obses and actions are tensors
-        # veh_state = obs: v_xs, v_ys, rs, delta_ys, delta_phis, xs
-        # veh_full_state: v_xs, v_ys, rs, ys, phis, xs
+
         v_xs, v_ys, rs, delta_ys, delta_phis, xs = states[:, 0], states[:, 1], states[:, 2], \
                                                    states[:, 3], states[:, 4], states[:, 5]
         steers, a_xs = actions[:, 0], actions[:, 1]
@@ -245,6 +240,10 @@ class ReferencePath(object):
 
 
 def env_model_creator(**kwargs):
+    """
+    make env model `pyth_veh3dofconti`
+    """
+
     return Veh3dofcontiModel()
 
 

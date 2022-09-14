@@ -11,10 +11,11 @@ import numpy as np
 import sys
 import torch
 from gops.utils.utils import set_seed
+
 __all__ = ["ReplayBuffer"]
 
 
-def combined_shape(length, shape=None):
+def combined_shape(length: int, shape=None):
     if shape is None:
         return (length,)
     return (length, shape) if np.isscalar(shape) else (length, *shape)
@@ -66,7 +67,16 @@ class ReplayBuffer:
         return int(sys.getsizeof(self.buf)) * self.size / (self.max_size * 1000000)
 
     def store(
-        self, obs, act, rew, next_obs, done, logp, time_limited, con=None, advers=None
+            self,
+            obs: np.ndarray,
+            act: np.ndarray,
+            rew: float,
+            next_obs: np.ndarray,
+            done: bool,
+            logp: np.ndarray,
+            time_limited: bool,
+            con=None,
+            advers=None
     ):
         self.buf["obs"][self.ptr] = obs
         self.buf["obs2"][self.ptr] = next_obs
@@ -78,14 +88,14 @@ class ReplayBuffer:
             self.buf["con"][self.ptr] = con
         if advers is not None and "advers" in self.buf.keys():
             self.buf["advers"][self.ptr] = advers
-        self.ptr = (self.ptr + 1) % self.max_size  # 控制buffer的内存
+        self.ptr = (self.ptr + 1) % self.max_size
         self.size = min(self.size + 1, self.max_size)
 
-    def add_batch(self, samples):
+    def add_batch(self, samples: list):
         for sample in samples:
             self.store(*sample)
 
-    def sample_batch(self, batch_size):
+    def sample_batch(self, batch_size: int):
         idxs = np.random.randint(0, self.size, size=batch_size)
         batch = {}
         for k, v in self.buf.items():

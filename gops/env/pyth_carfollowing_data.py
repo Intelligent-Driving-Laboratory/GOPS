@@ -75,7 +75,7 @@ class PythCarfollowingData(gym.Env):
         # define the constraint here
 
         ################################################################################################################
-        # define the ending condition here the format is just like isdone = l(next_state)
+        # define the ending condition here
 
         isdone = bool(state_next[1] < 0.5)
 
@@ -131,7 +131,7 @@ class PythCarfollowingData(gym.Env):
 
             self.first_rendering = False
             self.backgrounds = [self.fig.canvas.copy_from_bbox(ax.bbox) for ax in self.axes]
-            # time.sleep(10)
+
 
         items = zip(self.axes, self.lines, self.backgrounds)
 
@@ -141,7 +141,6 @@ class PythCarfollowingData(gym.Env):
             self.fig.canvas.restore_region(bg)
             line.set_xdata(TT[idx])
             line.set_ydata(XX[idx])
-            # self.axes[0].draw_artist(self.axes[0].patch)
             ax.draw_artist(line)
             self.fig.canvas.blit(ax.bbox)
 
@@ -163,20 +162,13 @@ class PythCarfollowingData(gym.Env):
 
 
 def env_creator(**kwargs):
+    """
+    make env `pyth_carfollowing`
+    return an unconstrained if use_constrain is false
+    """
     if kwargs.get("use_constrain", True):
         return PythCarfollowingData()
     else:
         env = PythCarfollowingData()
         print("converting a constrain env into a unconstrain one")
         return EnvC2U(env)
-
-
-if __name__ == "__main__":
-    # import cv2
-    env = env_creator(use_constrain=False)
-
-    env.reset()
-    for _ in range(10):
-        a = env.action_space.sample()
-        env.step(a)
-        env.render()

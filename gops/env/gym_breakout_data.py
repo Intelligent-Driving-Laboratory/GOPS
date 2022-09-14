@@ -10,6 +10,9 @@ import gym
 
 
 def env_creator(**kwargs):
+    """
+    make env `Breakout-v0` from `Atari`
+    """
     try:
         return gym.make("Breakout-v0")
     except:

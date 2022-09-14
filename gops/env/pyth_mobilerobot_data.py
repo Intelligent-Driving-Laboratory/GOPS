@@ -112,18 +112,6 @@ class PythMobilerobot:
         info = {"TimeLimit.truncated": self.steps > 170, "constraint": constraint.reshape(-1)} # TODO is right
         return np.array(self.state.reshape(-1), dtype=np.float32), float(reward), isdone, info  # TODO is right
 
-    # def forward_n_step(self, func, n, state: torch.Tensor):
-    #     reward = torch.zeros(size=[state.size()[0], n])
-    #     isdone = state.numpy() <= self.hb_state | state.numpy() >= self.lb_state
-    #     if np.sum(isdone) > 0:
-    #         warning_msg = "state out of state space!"
-    #         warnings.warn(warning_msg)
-    #     isdone = torch.from_numpy(isdone)
-    #     for step in range(n):
-    #         action = func(state)
-    #         state_next, reward[:, step], isdone = self.forward(state, action, isdone)
-    #         state = state_next
-
     def reset(self, n_agent=1):
         def uniform(low, high):
             return self.np_random.random([n_agent]) * (high - low) + low
@@ -192,7 +180,6 @@ class PythMobilerobot:
                     ax = axs[i, j]
                 ax.set_aspect(1)
                 ax.set_ylim(-3, 3)
-                # ax.cla()
                 ax.plot([0, 6], [0, 0], "k")
                 circles = []
                 arrows = []
@@ -248,8 +235,6 @@ class Robot:
     def tracking_error(self, x):
         error_position = x[:, 1]
         error_head = x[:, 2]
-        # error_head = np.where(error_head > np.pi, error_head - np.pi * 2, error_head)
-        # error_head = np.where(error_head < -np.pi, error_head + np.pi * 2, error_head)
 
         error_v = x[:, 3] - self.robot_params["v_desired"]
         tracking = np.concatenate((error_position.reshape(-1, 1), error_head.reshape(-1, 1), error_v.reshape(-1, 1)), 1)
@@ -257,6 +242,9 @@ class Robot:
 
 
 def env_creator(**kwargs):
+    """
+    make env `pyth_mobilerobot`
+    """
     return PythMobilerobot(**kwargs)
 
 
@@ -271,13 +259,3 @@ def clip_by_tensor(t, t_min, t_max):
     result = (t >= t_min) * t + (t < t_min) * t_min
     result = (result <= t_max) * result + (result > t_max) * t_max
     return result
-
-
-if __name__ == "__main__":
-    env = GymMobilerobot()
-    die = np.zeros([1, 2])
-    for i in range(100):
-
-        u = np.array([[0.1, 0.1]] * 1)
-        x, r, die, _ = env.step(u)
-        env.render()

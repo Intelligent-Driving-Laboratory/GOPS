@@ -26,6 +26,7 @@ from gops.utils.utils import set_seed
 
 class OnSampler:
     def __init__(self, index=0, **kwargs):
+        # initialize necessary hyperparameters
         self.env = create_env(**kwargs)
         _, self.env = set_seed(kwargs["trainer"], kwargs["seed"], index + 200, self.env)
         alg_name = kwargs["algorithm"]
@@ -45,17 +46,6 @@ class OnSampler:
         self.gamma = 0.99
         self.gae_lambda = 0.95
         self.reward_scale = 1.0
-
-        if "constraint_dim" in kwargs.keys():
-            self.is_constrained = True
-            self.con_dim = kwargs["constraint_dim"]
-        else:
-            self.is_constrained = False
-        if "adversary_dim" in kwargs.keys():
-            self.is_adversary = True
-            self.advers_dim = kwargs["adversary_dim"]
-        else:
-            self.is_adversary = False
         self.obs_dim = self.obsv_dim
         if isinstance(self.obs_dim, int):
             self.obs_dim = (self.obs_dim,)
@@ -70,6 +60,17 @@ class OnSampler:
         self.mb_val = np.zeros(self.sample_batch_size, dtype=np.float32)
         self.mb_adv = np.zeros(self.sample_batch_size, dtype=np.float32)
         self.mb_ret = np.zeros(self.sample_batch_size, dtype=np.float32)
+        # initialize if using constrained or adversary environment
+        if "constraint_dim" in kwargs.keys():
+            self.is_constrained = True
+            self.con_dim = kwargs["constraint_dim"]
+        else:
+            self.is_constrained = False
+        if "adversary_dim" in kwargs.keys():
+            self.is_adversary = True
+            self.advers_dim = kwargs["adversary_dim"]
+        else:
+            self.is_adversary = False
         if self.is_constrained:
             self.mb_con = np.zeros((self.sample_batch_size, self.con_dim))
         if self.is_adversary:
@@ -89,11 +90,11 @@ class OnSampler:
         start_time = time.perf_counter()
         last_ptr, ptr = 0, 0
         for t in range(self.sample_batch_size):
+            # output action using behavior policy
             obs_expand = torch.from_numpy(
                 np.expand_dims(self.obs, axis=0).astype("float32")
             )
             logits = self.networks.policy(obs_expand)
-
             action_distribution = self.networks.create_action_distributions(logits)
             action, logp = action_distribution.sample()
             action = action.detach()[0].numpy()
@@ -107,6 +108,7 @@ class OnSampler:
                 )
             else:
                 action_clip = action
+            # interact with the environment
             next_obs, reward, self.done, info = self.env.step(action_clip)
             value = self.networks.value(obs_expand).detach().item()
             reward *= self.reward_scale
@@ -156,6 +158,7 @@ class OnSampler:
                 last_ptr = t
         end_time = time.perf_counter()
         tb_info[tb_tags["sampler_time"]] = (end_time - start_time) * 1000
+        # wrap collected data into replay format
         mb_data = {
             "obs": torch.from_numpy(self.mb_obs),
             "act": torch.from_numpy(self.mb_act),
@@ -171,7 +174,8 @@ class OnSampler:
     def get_total_sample_number(self):
         return self.total_sample_number
 
-    def _finish_trajs(self, est_last_val, last_ptr, ptr):
+    def _finish_trajs(self, est_last_val: float, last_ptr: int, ptr: int):
+        # calculate value target (mb_ret) & gae (mb_adv) whenever an episode is finished
         path_slice = slice(last_ptr, ptr + 1)
         value_preds_slice = np.append(self.mb_val[path_slice], est_last_val)
         rews_slice = self.mb_rew[path_slice]

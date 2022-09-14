@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 
 
 def compare(env, model, *, name=""):
+    """
+    campare an env and its model.
+    """
     s = env.reset()
 
     state_buffer = []

@@ -9,26 +9,19 @@
 
 __all__ = ["OffAsyncTrainermix"]
 
-import logging
-import queue
+import importlib
 import random
-import threading
 import time
+import warnings
 
-import numpy as np
 import ray
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from gops.utils.task_pool import TaskPool
 from gops.utils.tensorboard_tools import add_scalars
-from gops.utils.utils import random_choice_with_index
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 from gops.utils.tensorboard_tools import tb_tags
-import warnings
-import importlib
+from gops.utils.utils import random_choice_with_index
 
 warnings.filterwarnings("ignore")
 
@@ -39,23 +32,6 @@ class OffAsyncTrainermix:
         self.samplers = sampler
         self.buffers = buffer
         self.evaluator = evaluator
-        self.iteration = 0
-        self.replay_batch_size = kwargs["replay_batch_size"]
-        self.max_iteration = kwargs["max_iteration"]
-        self.ini_network_dir = kwargs["ini_network_dir"]
-        self.save_folder = kwargs["save_folder"]
-        self.log_save_interval = kwargs["log_save_interval"]
-        self.apprfunc_save_interval = kwargs["apprfunc_save_interval"]
-        self.iteration = 0
-        self.save_folder = kwargs["save_folder"]
-        self.log_save_interval = kwargs["log_save_interval"]
-        self.apprfunc_save_interval = kwargs["apprfunc_save_interval"]
-        self.eval_interval = kwargs["eval_interval"]
-        self.sample_interval = 1
-        self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
-        self.writer.add_scalar(tb_tags["alg_time"], 0, 0)
-        self.writer.add_scalar(tb_tags["sampler_time"], 0, 0)
-        self.writer.flush()
 
         # create center network
         alg_name = kwargs["algorithm"]
@@ -66,17 +42,26 @@ class OffAsyncTrainermix:
             raise NotImplementedError("This algorithm does not exist")
         if hasattr(module, alg_name):
             alg_cls = getattr(module, alg_name)
-            alg_net = alg_cls(**kwargs)
+            self.networks = alg_cls(**kwargs)
         else:
             raise NotImplementedError("This algorithm is not properly defined")
 
-        self.networks = alg_net
-
-        self.ini_network_dir = kwargs["ini_network_dir"]
-
         # initialize the networks
-        if self.ini_network_dir is not None:
-            self.networks.load_state_dict(torch.load(self.ini_network_dir))
+        if kwargs["ini_network_dir"] is not None:
+            self.networks.load_state_dict(torch.load(kwargs["ini_network_dir"]))
+
+        self.replay_batch_size = kwargs["replay_batch_size"]
+        self.max_iteration = kwargs["max_iteration"]
+        self.sample_interval = kwargs.get("sample_interval", 1)
+        self.log_save_interval = kwargs["log_save_interval"]
+        self.apprfunc_save_interval = kwargs["apprfunc_save_interval"]
+        self.eval_interval = kwargs["eval_interval"]
+        self.save_folder = kwargs["save_folder"]
+        self.iteration = 0
+
+        self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
+        add_scalars({"alg_time": 0, "sampler_time": 0}, self.writer, 0)
+        self.writer.flush()
 
         # create sample tasks and pre sampling
         self.sample_tasks = TaskPool()
@@ -84,13 +69,13 @@ class OffAsyncTrainermix:
 
         self.warm_size = kwargs["buffer_warm_size"]
         while not all(
-            [
-                l >= self.warm_size
-                for l in ray.get([rb.__len__.remote() for rb in self.buffers])
-            ]
+                [
+                    l >= self.warm_size
+                    for l in ray.get([rb.__len__.remote() for rb in self.buffers])
+                ]
         ):
             for sampler, objID in list(
-                self.sample_tasks.completed()
+                    self.sample_tasks.completed()
             ):  # sample_tasks.completed()完成了的sampler任务列表，work进程的名字，objID是进程执行任务的ID
                 batch_data, _ = ray.get(objID)  # 得到任务的函数返回值
                 random.choice(self.buffers).add_batch.remote(
