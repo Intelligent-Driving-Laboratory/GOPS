@@ -27,22 +27,25 @@ from gops.utils.utils import set_seed
 
 class OffSampler:
     def __init__(self, index=0, **kwargs):
+        # initialize necessary hyperparameters
         self.env = create_env(**kwargs)
         _, self.env = set_seed(kwargs["trainer"], kwargs["seed"], index + 200, self.env)
         alg_name = kwargs["algorithm"]
         alg_file_name = alg_name.lower()
         file = __import__(alg_file_name)
         ApproxContainer = getattr(file, "ApproxContainer")
+        self.obs = self.env.reset()
+        self.has_render = hasattr(self.env, "render")
         self.networks = ApproxContainer(**kwargs)
         self.noise_params = kwargs["noise_params"]
         self.sample_batch_size = kwargs["batch_size_per_sampler"]
-        self.obs = self.env.reset()
-        self.has_render = hasattr(self.env, "render")
         self.policy_func_name = kwargs["policy_func_name"]
         self.action_type = kwargs["action_type"]
-        self.total_sample_number = 0
         self.obsv_dim = kwargs["obsv_dim"]
         self.act_dim = kwargs["action_dim"]
+        self.total_sample_number = 0
+        self.reward_scale = 1.0
+        # initialize if using constrained or adversary environment
         if "constraint_dim" in kwargs.keys():
             self.is_constrained = True
             self.con_dim = kwargs["constraint_dim"]
@@ -68,6 +71,7 @@ class OffSampler:
         start_time = time.perf_counter()
         batch_data = []
         for _ in range(self.sample_batch_size):
+            # output action using behavior policy
             batch_obs = torch.from_numpy(
                 np.expand_dims(self.obs, axis=0).astype("float32")
             )
@@ -87,6 +91,7 @@ class OffSampler:
                 )
             else:
                 action_clip = action
+            # interact with the environment
             next_obs, reward, self.done, info = self.env.step(action_clip)
             if "TimeLimit.truncated" not in info.keys():
                 info["TimeLimit.truncated"] = False
@@ -95,7 +100,7 @@ class OffSampler:
             data = [
                 self.obs.copy(),
                 action,
-                reward,
+                self.reward_scale * reward,
                 next_obs.copy(),
                 self.done,
                 logp,
