@@ -5,6 +5,9 @@ from gops.env.resources.linear_quadratic_problem.lq_base import LqModel
 
 
 def env_model_creator(**kwargs):
+    """
+    make env model `pyth_linearquadratic`
+    """
     lqc = kwargs.get("lq_config", None)
     if lqc is None:
         config = lq_configs.config_s3a1

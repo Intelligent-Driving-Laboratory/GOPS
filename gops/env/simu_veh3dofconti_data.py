@@ -96,7 +96,7 @@ class SimuVeh3dofconti(gym.Env):
         obs_low = self.obs_scale * np.array(self._physics.get_param()["x_min"]).reshape(-1)
         ref_pos_low = -self.obs_scale[1]*self.done_range[0]*np.zeros(self.ref_horizon)
         ref_pos_high = self.obs_scale[1] * self.done_range[0] * np.zeros(self.ref_horizon)
-        # ref_phi_low = -self.obs_scale[4] * self.done_range[2] * np.zeros(self.ref_horizon)
+
         obs_low = np.concatenate([obs_low, ref_pos_low])
         obs_high = self.obs_scale * np.array(self._physics.get_param()["x_max"]).reshape(-1)
         obs_high = np.concatenate([obs_high, ref_pos_high])
@@ -147,7 +147,7 @@ class SimuVeh3dofconti(gym.Env):
         reward = -reward
         if reward < -self.rew_bound:
             reward = -self.rew_bound
-            # print('warning: reward bound')
+
         reward = reward + self.rew_bias
         if isdone:
             reward = reward + self.punish_done
@@ -209,17 +209,8 @@ class SimuVeh3dofconti(gym.Env):
 
 
 def env_creator(**kwargs):
+    """
+    make env `simu_veh3dofconti` from
+    """
     return TimeLimit(SimuVeh3dofconti(**kwargs), kwargs.get("Max_step", Max_Step_default))
 
-
-if __name__ == "__main__":
-    import gym
-    import numpy as np
-
-    env = SimuVeh3dofconti()
-    s = env.reset()
-    for i in range(50):
-        a = np.array([1.0, 5000, 5000, 5000, 5000]) * 0.001
-        sp, r, d, _ = env.step(a)
-        print(s, a, r, d)
-        s = sp

@@ -6,6 +6,8 @@
 
 
 import logging
+
+import gym
 from gym import spaces
 from gym.utils.env_checker import _check_spaces, _check_box_obs, _check_box_action, _check_returned_values  # noqa:
 import numpy as np
@@ -19,6 +21,8 @@ def _check_all_spaces(env):
     """
     Check that the observation and action spaces adv action_space are defined
     and inherit from gym.spaces.Space.
+
+    from gym repo
     """
     _check_spaces(env)
     if hasattr(env, "adv_action_space"):
@@ -29,6 +33,9 @@ def _check_all_spaces(env):
 
 
 def _check_constraint(env):
+    """
+    check that the constraint is defined and in the right shape
+    """
     assert isinstance(env.constraint_dim, int), "the constraint_sdim must be an int"
     assert env.constraint_dim >= 1, "the constraint_sdim must be bigger or equal to 1"
     env.reset()
@@ -46,6 +53,9 @@ def _check_constraint(env):
 
 
 def check_env_file_structures(env_file_name):
+    """
+    check that the env file has all necessary elements
+    """
     try:
         file_obj = importlib.import_module("gops.env." + env_file_name)
     except:
@@ -60,7 +70,11 @@ def check_env_file_structures(env_file_name):
         raise RuntimeError(f"the environment `{env_file_name}` is not implemented properly")
     return env_class
 
-def check_env0(env):
+def check_env0(env: gym.Env):
+    """
+    check that the env class is well defined
+
+    """
     _check_all_spaces(env)
     observation_space = env.observation_space
     action_space = env.action_space
@@ -87,7 +101,11 @@ def check_env0(env):
         # print(f"\033[0;31;40mThis env `{env}` does not specify an constraint_dim, please check if it is correct\033[0m")
 
 
-def check_env(env_name):
+def check_env(env_name: str):
+    """
+    check that the env is well defined
+
+    """
     print(f"checking `{env_name}_data` ...")
     try:
         env_cls = check_env_file_structures(env_name + "_data")
@@ -104,6 +122,10 @@ def check_env(env_name):
 
 
 def simple_check_env(env_name):
+    """
+    check the env in simple mode
+
+    """
     print(f"checking `{env_name}_data` ...")
     env_cls = check_env_file_structures(env_name + "_data")
     env = env_cls()

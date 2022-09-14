@@ -13,6 +13,9 @@ from gops.env.tools.env_check import check_env_file_structures
 
 
 def check_env_model_file_structures(env_file_name):
+    """
+    check that the env model file has all necessary elements
+    """
     file_obj = importlib.import_module("gops.env." + env_file_name)
     env_name_camel = ce.formatter(env_file_name)
     if hasattr(file_obj, "env_model_creator"):
@@ -25,7 +28,10 @@ def check_env_model_file_structures(env_file_name):
     return env_class
 
 def check_model0(env, env_model):
+    """
+    check that the env model class is well defined
 
+    """
 
     assert hasattr(env_model, "lb_state"), "env model must have lb_state"
     assert hasattr(env_model, "hb_state"), "env model must have hb_state"
@@ -65,6 +71,10 @@ def check_model0(env, env_model):
 
 
 def check_model(env_name):
+    """
+    check that the env model class is well defined
+
+    """
     print(f"checking `{env_name}_model` ...")
     try:
         env_cls = check_env_file_structures(env_name + "_data")

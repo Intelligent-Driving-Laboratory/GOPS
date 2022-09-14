@@ -106,6 +106,9 @@ class PythIntersectionModel(torch.nn.Module):
 
 
 def env_model_creator(**kwargs):
+    """
+    make env model `pyth_intersection`
+    """
     return PythIntersectionModel(**kwargs)
 
 
@@ -120,17 +123,3 @@ def clip_by_tensor(t, t_min, t_max):
     result = (t >= t_min) * t + (t < t_min) * t_min
     result = (result <= t_max) * result + (result > t_max) * t_max
     return result
-
-
-if __name__ == "__main__":
-    dyn = PythIntersectionModel()
-    from gops.env.pyth_intersection_data import env_creator
-
-    env = env_creator()
-
-    state = torch.as_tensor(env.reset(), dtype=torch.float32)
-    action = torch.as_tensor(env.action_space.sample(), dtype=torch.float32)
-    state = state.reshape(1, -1)
-    action = action.reshape(1, -1)
-    data = dyn.forward(state, action)
-    env.close()

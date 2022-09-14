@@ -214,15 +214,10 @@ def clip_by_tensor(t, t_min, t_max):
 
 
 def env_model_creator(**kwargs):
+    """
+    make env model `pyth_invertedpendulum`
+    """
     return PythInvertedpendulum(**kwargs)
 
-
-
-if __name__ == "__main__":
-    # testModel()
-    env = env_model_creator()
-    states = torch.randn([10, 6])
-    actions = torch.randn([10, 1])
-    state_next, reward, d, info = env.forward(states, actions)
 
 

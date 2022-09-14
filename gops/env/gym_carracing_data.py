@@ -12,7 +12,7 @@ from gym.utils import seeding
 import numpy as np
 
 
-class Env:  # todo:从git上找的环境设置，需要自己改一下
+class Env:
     """
     Environment wrapper for CarRacing
     """
@@ -34,17 +34,18 @@ class Env:  # todo:从git上找的环境设置，需要自己改一下
         self.die = False
         img_rgb = self.env.reset()
         img_gray = self.rgb2gray(img_rgb)
-        self.stack = [img_gray] * self.img_stack  # four frames for decision
+        # four frames for decision
+        self.stack = [img_gray] * self.img_stack
         return np.array(self.stack)
 
     def step(self, action):
         total_reward = 0
         a = action.copy()
         a[0] = a[0] * 2 - 1
-        # print('action = ', action)
         for i in range(self.action_repeat):
             img_rgb, reward, die, info = self.env.step(a)
             total_reward += reward
+
             # if no reward recently, end the episode
             done = True if self.av_r(reward) <= -0.1 or die else False
             if done or die:
@@ -91,20 +92,10 @@ class Env:  # todo:从git上找的环境设置，需要自己改一下
 
 
 def env_creator(**kwargs):
+    """
+    make env `CarRacing-v1`, a modified version
+    """
     try:
         return Env()
     except:
         raise ModuleNotFoundError("Warning: gym[box2d] is not installed")
-
-
-if __name__ == "__main__":
-    e = env_creator()
-    s = e.reset()
-    print("high", e.action_space.high)
-    print("low", e.action_space.low)
-    for i in range(100):
-        a = e.action_space.sample()
-        # a = np.array([0.2,0.0,0.3])
-        s, r, d, _ = e.step(a)
-        e.render()
-        # print(np.max(s), np.min(s))

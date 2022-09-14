@@ -74,7 +74,7 @@ class CarFollowingDynamics2D:
 
         a_t = u_t[:, 0]
         reward = 0.2 * ve - 0.1 * gap - 0.02 * a_t * a_t
-        # print(reward.shape)
+
         if numpy_flag:
             reward = reward[0].item()
         return reward
@@ -92,44 +92,3 @@ class CarFollowingDynamics2D:
         if numpy_flag:
             hx0 = hx0.detach().numpy().squeeze(0)
         return hx0
-
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
-    dyn_new = CarFollowingDynamics2D()
-
-    x = torch.Tensor([[2.0, 5.0]])
-    u = torch.Tensor([[0.0]])
-
-    x_list = []
-    r_list = []
-    c_list = []
-
-    x_list.append(x)
-
-    for i in range(100):
-        u = torch.Tensor([[-1.0]])
-        x = dyn_new.prediction(x, u)
-        x_list.append(x)
-        r = dyn_new.compute_reward(x, u)
-        c = dyn_new.compute_cost(x, u)
-        r_list.append(r)
-        c_list.append(c)
-
-    X1 = torch.cat(x_list)
-
-    # test state
-    plt.plot(X1)
-    # plt.plot(X2, '--')
-    plt.show()
-
-    # test reward
-    plt.plot(r_list)
-    # plt.plot(r_old_list, '--')
-    plt.show()
-
-    # test cost
-    plt.plot(c_list)
-    # plt.plot(c_old_list, '--')
-    plt.show()

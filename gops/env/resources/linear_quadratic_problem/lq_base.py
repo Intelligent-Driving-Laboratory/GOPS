@@ -246,7 +246,6 @@ class LqEnv(gym.Env):
             self.update_canvas()
 
             self.first_rendering = False
-            # time.sleep(10)
 
         else:
             for idx_s in range(self.observation_dim):

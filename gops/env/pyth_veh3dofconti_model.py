@@ -51,12 +51,10 @@ class Veh3dofcontiModel(torch.nn.Module):
         steer_norm, a_xs_norm = actions[:, 0], actions[:, 1]
         actions = torch.stack([steer_norm * 1.2 * np.pi / 9, a_xs_norm * 3.], 1)
         self.actions = actions
-        # print(self.veh_states)
-        # print("#####################")
+
         self.veh_states, _ = self.vehicle_dynamics.prediction(self.veh_states, actions,
                                                               self.base_frequency)
-        # print(self.veh_states)
-        # exit()
+
         rewards = self.vehicle_dynamics.compute_rewards(self.veh_states, actions)
         v_xs, v_ys, rs, delta_ys, delta_phis, xs = self.veh_states[:, 0], self.veh_states[:, 1], self.veh_states[:, 2], \
                                                    self.veh_states[:, 3], self.veh_states[:, 4], self.veh_states[:, 5]
@@ -152,11 +150,7 @@ class VehicleDynamics(object):
         return x_next, next_params
 
     def simulation(self, states, full_states, actions, base_freq):
-        # veh_state = obs: v_xs, v_ys, rs, delta_ys, delta_phis, xs
-        # veh_full_state: v_xs, v_ys, rs, ys, phis, xs
-        # others: alpha_f, alpha_r, r, alpha_f_bounds, alpha_r_bounds, r_bounds
-        # states = torch.from_numpy(states.copy())
-        # actions = torch.tensor(actions)
+
         states, others = self.prediction(states, actions, base_freq)
         states = states.numpy()
         others = others.numpy()
@@ -181,8 +175,7 @@ class VehicleDynamics(object):
         return states, full_states, others
 
     def compute_rewards(self, states, actions):  # obses and actions are tensors
-        # veh_state = obs: v_xs, v_ys, rs, delta_ys, delta_phis, xs
-        # veh_full_state: v_xs, v_ys, rs, ys, phis, xs
+
         v_xs, v_ys, rs, delta_ys, delta_phis, xs = states[:, 0], states[:, 1], states[:, 2], \
                                                    states[:, 3], states[:, 4], states[:, 5]
         steers, a_xs = actions[:, 0], actions[:, 1]
@@ -243,6 +236,10 @@ class ReferencePath(object):
 
 
 def env_model_creator(**kwargs):
+    """
+    make env model `pyth_veh3dofconti`
+    """
+
     return Veh3dofcontiModel()
 
 

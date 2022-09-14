@@ -14,10 +14,17 @@ from gops.env.tools.get_all_envs import get_env_model_files, CLASSIC, TOY_TEXT, 
 
 
 def simple_check_on_windows():
+    """
+    check all env in simple mode (try to make each env), mujoco env not included on windows
+    """
+
     for env_name in CLASSIC + TOY_TEXT + BOX2D:
         simple_check_env(env_name)
 
 def simple_check_on_linux():
+    """
+    check all env in simple mode
+    """
     for env_name in CLASSIC + TOY_TEXT + BOX2D + MUJOCO:
         simple_check_env(env_name)
 
