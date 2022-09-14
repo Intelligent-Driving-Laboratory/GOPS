@@ -96,7 +96,7 @@ class Dynamics(object):
         dist_penalty = 0.01 * torch.square(tip_x) + torch.square(tip_y - 2)
         v1, v2 = theta1dot, theta2dot
         vel_penalty = 1e-3 * torch.square(v1) + 5e-3 * torch.square(v2)
-        rewards = -dist_penalty - vel_penalty
+        rewards = 10 - dist_penalty - vel_penalty
 
         return rewards
 
