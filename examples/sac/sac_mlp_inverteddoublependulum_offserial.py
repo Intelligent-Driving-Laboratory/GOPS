@@ -106,7 +106,7 @@ if __name__ == "__main__":
         # Max size of reply buffer
         parser.add_argument("--buffer_max_size", type=int, default=int(1e6))
         # Batch size of replay samples from buffer
-        parser.add_argument("--replay_batch_size", type=int, default=64)
+        parser.add_argument("--replay_batch_size", type=int, default=256)
         # Period of sync central policy of each sampler
         parser.add_argument("--sampler_sync_interval", type=int, default=1)
     ################################################
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
     parser.add_argument("--num_eval_episode", type=int, default=10)
-    parser.add_argument("--eval_interval", type=int, default=100)
+    parser.add_argument("--eval_interval", type=int, default=500)
 
     ################################################
     # 8. Data savings
