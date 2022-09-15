@@ -17,7 +17,6 @@ from gops.env.pyth_inverteddoublependulum_model import Dynamics
 gym.logger.setLevel(gym.logger.ERROR)
 plt.rcParams['toolbar'] = 'None'
 
-
 class PythInverteddoublependulum(gym.Env):
     metadata = {
         "render.modes": ["human", "rgb_array"],
@@ -147,4 +146,15 @@ def env_creator(**kwargs):
     """
     make env `pyth_inverteddoublependulum`
     """
-    return TimeLimit(PythInverteddoublependulum(**kwargs), 200)
+    return TimeLimit(PythInverteddoublependulum(**kwargs), 1000)
+
+
+if __name__ == "__main__":
+    env = env_creator()
+    env.reset()
+    for _ in range(100):
+        action = env.action_space.sample()
+        s, r, d, _ = env.step(action)
+        print(s)
+        env.render()
+        if d: env.reset()
