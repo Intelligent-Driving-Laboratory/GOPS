@@ -57,7 +57,7 @@ if __name__ == "__main__":
     if value_func_type == "MLP":
         parser.add_argument("--q_hidden_sizes", type=list, default=[256, 256, 256])
         # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
-        parser.add_argument("--q_hidden_activation", type=str, default="relu")
+        parser.add_argument("--q_hidden_activation", type=str, default="gelu")
         # Output Layer: linear
         parser.add_argument("--q_output_activation", type=str, default="linear")
         parser.add_argument("--q_min_log_std", type=int, default=-0.1)
@@ -73,16 +73,16 @@ if __name__ == "__main__":
     policy_func_type = parser.parse_known_args()[0].policy_func_type
     if policy_func_type == "MLP":
         parser.add_argument("--policy_hidden_sizes", type=list, default=[256, 256, 256])
-        parser.add_argument("--policy_hidden_activation", type=str, default="relu")
+        parser.add_argument("--policy_hidden_activation", type=str, default="gelu")
         parser.add_argument("--policy_output_activation", type=str, default="linear")
     parser.add_argument("--policy_min_log_std", type=int, default=-20)
     parser.add_argument("--policy_max_log_std", type=int, default=1)  # TODO 0.5
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument("--q_learning_rate", type=float, default=5e-5)
-    parser.add_argument("--policy_learning_rate", type=float, default=5e-5)
-    parser.add_argument("--alpha_learning_rate", type=float, default=1e-5)
+    parser.add_argument("--q_learning_rate", type=float, default=3e-4)
+    parser.add_argument("--policy_learning_rate", type=float, default=3e-4)
+    parser.add_argument("--alpha_learning_rate", type=float, default=5e-5)
     # special parameter
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument("--tau", type=float, default=0.005)
@@ -90,14 +90,14 @@ if __name__ == "__main__":
     parser.add_argument("--alpha", type=bool, default=0.2)
     parser.add_argument("--delay_update", type=int, default=2, help="")
     # Reward = reward_scale * environment.Reward
-    parser.add_argument("--reward_scale", type=float, default=0.1)
+    parser.add_argument("--reward_scale", type=float, default=0.5)
     parser.add_argument("--TD_bound", type=float, default=10)
     parser.add_argument("--bound", default=True)
 
     ################################################
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
-    parser.add_argument("--max_iteration", type=int, default=1000_000)
+    parser.add_argument("--max_iteration", type=int, default=50_000)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     if trainer_type == "off_serial_trainer":
