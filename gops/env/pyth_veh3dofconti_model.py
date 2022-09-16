@@ -51,10 +51,8 @@ class Veh3dofcontiModel(torch.nn.Module):
         steer_norm, a_xs_norm = actions[:, 0], actions[:, 1]
         actions = torch.stack([steer_norm * 1.2 * np.pi / 9, a_xs_norm * 3.], 1)
         self.actions = actions
-
         self.veh_states, _ = self.vehicle_dynamics.prediction(self.veh_states, actions,
                                                               self.base_frequency)
-
         rewards = self.vehicle_dynamics.compute_rewards(self.veh_states, actions)
         v_xs, v_ys, rs, delta_ys, delta_phis, xs = self.veh_states[:, 0], self.veh_states[:, 1], self.veh_states[:, 2], \
                                                    self.veh_states[:, 3], self.veh_states[:, 4], self.veh_states[:, 5]
@@ -66,7 +64,7 @@ class Veh3dofcontiModel(torch.nn.Module):
         self.obses = self._get_obs(self.veh_states)
 
         mask = True
-        return self.obses, rewards, mask, {"constraint": None}
+        return self.scale_obs(self.obses), rewards, mask, {"constraint": None}
 
     def scale_obs(self, obs: torch.Tensor):
         v_xs, v_ys, rs, delta_ys, delta_phis, xs = obs[:, 0], obs[:, 1], obs[:, 2], \
@@ -75,14 +73,20 @@ class Veh3dofcontiModel(torch.nn.Module):
                           delta_ys * self.obs_scale[3], delta_phis * self.obs_scale[4], xs * self.obs_scale[5]]
         return torch.stack(lists_to_stack, 1)
 
+    def unscale_obs(self, obs: torch.Tensor):
+        v_xs, v_ys, rs, delta_ys, delta_phis, xs = obs[:, 0], obs[:, 1], obs[:, 2], \
+                                                   obs[:, 3], obs[:, 4], obs[:, 5]
+        lists_to_stack = [v_xs / self.obs_scale[0], v_ys / self.obs_scale[1], rs / self.obs_scale[2],
+                          delta_ys / self.obs_scale[3], delta_phis / self.obs_scale[4], xs / self.obs_scale[5]]
+        return torch.stack(lists_to_stack, 1)
+
     def forward_n_step(self, obs: torch.Tensor, func, n, done):
         done_list = []
         next_obs_list = []
         v_pi = torch.zeros((obs.shape[0],))
-        self.reset(obs)
+        self.reset(self.unscale_obs(obs))
         for step in range(n):
-            scale_obs = self.scale_obs(obs)
-            action = func(scale_obs)
+            action = func(obs)
             obs, reward, done, constraint = self.forward(action)
             v_pi = v_pi + reward
             next_obs_list.append(obs)

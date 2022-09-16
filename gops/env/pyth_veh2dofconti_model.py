@@ -45,6 +45,20 @@ class Veh2dofcontiModel(torch.nn.Module):
         lists_to_stack = [v_ys, rs, delta_ys, delta_phis]
         return torch.stack(lists_to_stack, 1)
 
+    def scale_obs(self, obs: torch.Tensor):
+        v_ys, rs, delta_ys, delta_phis = obs[:, 0], obs[:, 1], obs[:, 2], \
+                                                   obs[:, 3]
+        lists_to_stack = [v_ys * self.obs_scale[0], rs * self.obs_scale[1],
+                          delta_ys * self.obs_scale[2], delta_phis * self.obs_scale[3]]
+        return torch.stack(lists_to_stack, 1)
+
+    def unscale_obs(self, obs: torch.Tensor):
+        v_ys, rs, delta_ys, delta_phis = obs[:, 0], obs[:, 1], obs[:, 2], \
+                                                   obs[:, 3]
+        lists_to_stack = [v_ys / self.obs_scale[0], rs / self.obs_scale[1],
+                          delta_ys / self.obs_scale[2], delta_phis / self.obs_scale[3]]
+        return torch.stack(lists_to_stack, 1)
+
     def forward(self, actions: torch.Tensor):
         steer_norm = actions
         actions = steer_norm * 1.2 * np.pi / 9
@@ -59,24 +73,15 @@ class Veh2dofcontiModel(torch.nn.Module):
         mask = True
         return self.obses, rewards, mask, {"constraint": None}
 
-    def scale_obs(self, obs: torch.Tensor):
-        v_ys, rs, delta_ys, delta_phis = obs[:, 0], obs[:, 1], obs[:, 2], \
-                                                   obs[:, 3]
-        lists_to_stack = [v_ys * self.obs_scale[0], rs * self.obs_scale[1],
-                          delta_ys * self.obs_scale[2], delta_phis * self.obs_scale[3]]
-        return torch.stack(lists_to_stack, 1)
-
 
     def forward_n_step(self, obs: torch.Tensor, func, n, done):
         done_list = []
         next_obs_list = []
         v_pi = torch.zeros((obs.shape[0],))
-        self.reset(obs)
+        self.reset(self.unscale_obs(obs))
 
         for step in range(n):
-            scale_obs = self.scale_obs(obs)
-            action = func(scale_obs)
-            # print(action)
+            action = func(obs)
             obs, reward, done, constraint = self.forward(action)
             v_pi = v_pi + reward
             next_obs_list.append(obs)
