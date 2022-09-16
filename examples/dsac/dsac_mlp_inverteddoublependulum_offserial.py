@@ -93,7 +93,8 @@ if __name__ == "__main__":
     parser.add_argument("--reward_scale", type=float, default=0.5)
     parser.add_argument("--TD_bound", type=float, default=10)
     parser.add_argument("--bound", default=True)
-
+    
+    parser.add_argument("--seed", type=int, default=150156176)
     ################################################
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
