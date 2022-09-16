@@ -134,7 +134,7 @@ class PythInvertedpendulum(torch.nn.Module):
         hb_state = [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]
         lb_action = [-1.0]
         hb_action = [1.0]
-        self.dt = 0.01  # seconds between state updates
+        self.dt = 0.05  # seconds between state updates
 
         # do not change the following section
         self.lb_state = torch.tensor(lb_state, dtype=torch.float32)

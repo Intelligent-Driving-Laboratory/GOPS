@@ -58,7 +58,7 @@ if __name__ == "__main__":
     value_func_type = parser.parse_known_args()[0].value_func_type
     ### 2.1.1 MLP, CNN, RNN
     if value_func_type == "MLP":
-        parser.add_argument("--value_hidden_sizes", type=list, default=[256, 256])
+        parser.add_argument("--value_hidden_sizes", type=list, default=[256, 256, 256])
         # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
         parser.add_argument("--value_hidden_activation", type=str, default="relu")
         # Output Layer: linear
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     policy_func_type = parser.parse_known_args()[0].policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == "MLP":
-        parser.add_argument("--policy_hidden_sizes", type=list, default=[256, 256])
+        parser.add_argument("--policy_hidden_sizes", type=list, default=[256, 256, 256])
         # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
         parser.add_argument("--policy_hidden_activation", type=str, default="relu")
         # Output Layer: tanh
@@ -85,10 +85,10 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument("--value_learning_rate", type=float, default=1e-4)
-    parser.add_argument("--q_learning_rate", type=float, default=1e-4)
-    parser.add_argument("--policy_learning_rate", type=float, default=1e-4)
-    parser.add_argument("--alpha_learning_rate", type=float, default=3e-5)
+    parser.add_argument("--value_learning_rate", type=float, default=3e-4)
+    parser.add_argument("--q_learning_rate", type=float, default=3e-4)
+    parser.add_argument("--policy_learning_rate", type=float, default=3e-4)
+    parser.add_argument("--alpha_learning_rate", type=float, default=5e-5)
 
     ################################################
     # 4. Parameters for trainer

@@ -29,7 +29,7 @@ class PythInverteddoublependulum(gym.Env):
         # define your custom parameters here
 
         self.dynamics = Dynamics()
-        self.tau = 0.01
+        self.tau = 0.05
         # define observation space here
         hb_observation = [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]
         self.observation_space = spaces.Box(
