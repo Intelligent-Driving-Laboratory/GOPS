@@ -87,6 +87,8 @@ class PathAccData(gym.Env,):
         self.action_space = gym.spaces.Box(low=np.array([-2.]),
                                            high=np.array([1.]),
                                            dtype=np.float32)
+        self.Max_step = 10
+        self.cstep = 0
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -97,6 +99,7 @@ class PathAccData(gym.Env,):
         init_delta_v = np.random.normal(0, 1, (self.num_agent,)).astype(np.float32)
         init_a = np.random.normal(-0.5, 0.5, (self.num_agent,)).astype(np.float32)
         self.obs = np.stack([init_delta_s, init_delta_v, init_a], 1)
+        self.cstep = 0
         return self.obs[0]
 
     def _get_obs(self, veh_state):
@@ -113,7 +116,12 @@ class PathAccData(gym.Env,):
                                              base_freq=self.base_frequency)
         self.obs = self._get_obs(self.obs)
         self.done = self.judge_done(self.obs)
-        info = {}
+        # if self.done:
+        #     reward = reward - 10
+        # else:
+        #     reward = reward + 1
+        info = {"TimeLimit.truncated": self.cstep > self.Max_step}
+        self.cstep = self.cstep + 1
         return self.obs[0], reward, self.done, info
 
     def judge_done(self, veh_state):
