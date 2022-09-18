@@ -29,7 +29,7 @@ class VehicleDynamics(object):
                                    I_z=1536.7,  # Polar moment of inertia at CG [kg*m^2]
                                    miu=1.0,  # tire-road friction coefficient
                                    g=9.81,  # acceleration of gravity [m/s^2]
-                                   v_x=20.)
+                                   v_x=10.)
         a, b, mass, g = self.vehicle_params['a'], self.vehicle_params['b'], \
                         self.vehicle_params['mass'], self.vehicle_params['g']
         F_zf, F_zr = b * mass * g / (a + b), a * mass * g / (a + b)
@@ -66,7 +66,7 @@ class VehicleDynamics(object):
         states = states.numpy()
         # v_ys, rs, delta_ys, delta_phis = states[:, 0], states[:, 1], states[:, 2], states[:, 3]
         v_ys, rs, phis = full_states[0], full_states[1], full_states[3]
-        v_xs = 20.
+        v_xs = 10.
         full_states[3] += rs / base_freq
         full_states[2] += (v_xs * np.sin(phis) + v_ys * np.cos(phis)) / base_freq
         full_states[-1] += (v_xs * np.cos(phis) - v_ys * np.sin(phis)) / base_freq
@@ -158,7 +158,7 @@ class SimuVeh2dofconti(gym.Env,):
         self.num_agent = num_agent
         self.done = np.zeros((self.num_agent,), dtype=np.int)
         self.base_frequency = 10
-        self.expected_vs = 20.
+        self.expected_vs = 10.
         self.observation_space = gym.spaces.Box(
             low=np.array([-np.inf] * (4)),
             high=np.array([np.inf] * (4)),
@@ -189,7 +189,7 @@ class SimuVeh2dofconti(gym.Env,):
         init_y = self.vehicle_dynamics.path.compute_y(init_x, init_delta_y)
         init_delta_phi = np.random.normal(0, np.pi / 9, (self.num_agent,)).astype(np.float32)
         init_phi = self.vehicle_dynamics.path.compute_phi(init_x, init_delta_phi)
-        init_v_x = 20.
+        init_v_x = 10.
         beta = np.random.normal(0, 0.15, (self.num_agent,)).astype(np.float32)
         init_v_y = init_v_x * np.tan(beta)
         init_r = np.random.normal(0, 0.3, (self.num_agent,)).astype(np.float32)
@@ -206,10 +206,11 @@ class SimuVeh2dofconti(gym.Env,):
 
     def scale_obs(self, obs):
         obs_scale = [1., 2., 1., 2.4]
-        v_ys, rs, delta_ys, delta_phis = obs[0], obs[1], obs[2], obs[3]
-        lists_to_stack = [v_ys * obs_scale[0], rs * obs_scale[1],
-                          delta_ys * obs_scale[2], delta_phis * obs_scale[3]]
-        return lists_to_stack
+        obs[0] = obs[0] * obs_scale[0]
+        obs[1] = obs[1] * obs_scale[1]
+        obs[2] = obs[2] * obs_scale[2]
+        obs[3] = obs[3] * obs_scale[3]
+        return obs
 
     def step(self, action):  # think of action is in range [-1, 1]
         steer_norm = action
@@ -220,11 +221,12 @@ class SimuVeh2dofconti(gym.Env,):
         reward = self.vehicle_dynamics.compute_rewards(veh_state_tensor, action_tensor).numpy()
         self.veh_state, self.veh_full_state = self.vehicle_dynamics.simulation(veh_state_tensor, self.veh_full_state, action_tensor,
                                              base_freq=self.base_frequency)
-        self.done = self.judge_done(self.veh_state)
-        if self.done:
-            pass
-        else:
-            reward = reward + 1
+        # self.done = self.judge_done(self.veh_state)
+        self.done = False
+        # if self.done:
+        #     pass
+        # else:
+        #     reward = reward + 1
         self.obs = self._get_obs(self.veh_state)
         info = {"TimeLimit.truncated": self.cstep > self.Max_step}
         self.cstep = self.cstep + 1
@@ -261,8 +263,8 @@ def unscale_obs(obs):
 
 if __name__=="__main__":
     sys.path.append(r"G:\项目文档\gops开发相关\gops\gops\algorithm")
-    base_dir = r"G:\项目文档\gops开发相关\gops\results\FHADP\220907-162002"
-    net_dir = os.path.join(base_dir, r"apprfunc\apprfunc_{}.pkl".format(1999))
+    base_dir = r"G:\项目文档\gops\results\FHADP\220918-214333"
+    net_dir = os.path.join(base_dir, r"apprfunc\apprfunc_{}.pkl".format(2000))
     parser = argparse.ArgumentParser()
     ################################################
     # Key Parameters for users
@@ -360,7 +362,7 @@ if __name__=="__main__":
     reward_total = []
     # obs = torch.from_numpy(obs.astype("float32"))
     model.reset(unscale_obs(obs))
-    for _ in range(200):
+    for _ in range(500):
         action = networks.policy(obs)
         action = action.detach()[0].numpy()
         obs, reward, done, info = env.step(action)
