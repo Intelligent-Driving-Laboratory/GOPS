@@ -58,7 +58,7 @@ if __name__ == "__main__":
     value_func_type = parser.parse_known_args()[0].value_func_type
     ### 2.1.1 MLP, CNN, RNN
     if value_func_type == "MLP":
-        parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
+        parser.add_argument("--value_hidden_sizes", type=list, default=[256, 256, 256])
         # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
         parser.add_argument("--value_hidden_activation", type=str, default="relu")
         # Output Layer: linear
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     policy_func_type = parser.parse_known_args()[0].policy_func_type
     ### 2.2.1 MLP, CNN, RNN
     if policy_func_type == "MLP":
-        parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
+        parser.add_argument("--policy_hidden_sizes", type=list, default=[256, 256, 256])
         # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
         parser.add_argument("--policy_hidden_activation", type=str, default="relu")
         # Output Layer: tanh
@@ -85,17 +85,17 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument("--value_learning_rate", type=float, default=1e-3)
-    parser.add_argument("--q_learning_rate", type=float, default=1e-3)
-    parser.add_argument("--policy_learning_rate", type=float, default=1e-3)
-    parser.add_argument("--alpha_learning_rate", type=float, default=1e-3)
+    parser.add_argument("--value_learning_rate", type=float, default=3e-4)
+    parser.add_argument("--q_learning_rate", type=float, default=3e-4)
+    parser.add_argument("--policy_learning_rate", type=float, default=3e-4)
+    parser.add_argument("--alpha_learning_rate", type=float, default=5e-5)
 
     ################################################
     # 4. Parameters for trainer
     # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
     # Maximum iteration number
-    parser.add_argument("--max_iteration", type=int, default=12_000)
+    parser.add_argument("--max_iteration", type=int, default=35_000)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     # 4.3. Parameters for off_serial_trainer
@@ -104,9 +104,9 @@ if __name__ == "__main__":
         # Size of collected samples before training
         parser.add_argument("--buffer_warm_size", type=int, default=1000)
         # Max size of reply buffer
-        parser.add_argument("--buffer_max_size", type=int, default=int(1e5))
+        parser.add_argument("--buffer_max_size", type=int, default=int(1e6))
         # Batch size of replay samples from buffer
-        parser.add_argument("--replay_batch_size", type=int, default=64)
+        parser.add_argument("--replay_batch_size", type=int, default=256)
         # Period of sync central policy of each sampler
         parser.add_argument("--sampler_sync_interval", type=int, default=1)
     ################################################
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
     parser.add_argument("--num_eval_episode", type=int, default=10)
-    parser.add_argument("--eval_interval", type=int, default=100)
+    parser.add_argument("--eval_interval", type=int, default=500)
 
     ################################################
     # 8. Data savings
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters({"reward_scale": 0.1, "gamma": 0.99, "tau": 0.2})
+    alg.set_parameters({"reward_scale": 0.1, "gamma": 0.99, "tau": 0.005})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

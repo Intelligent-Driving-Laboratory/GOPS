@@ -78,7 +78,31 @@ class Dynamics(object):
 
         deriv = torch.cat([states[:, 3:], tmp], dim=-1)
         next_states = states + tau * deriv
+        next_p, next_theta1, next_theta2, next_pdot, next_theta1dot, next_theta2dot = (
+                    next_states[:, 0],
+                    next_states[:, 1],
+                    next_states[:, 2],
+                    next_states[:, 3],
+                    next_states[:, 4],
+                    next_states[:, 5],
+                )
+        next_theta1 = torch.where(next_theta1 > 3.14, next_theta1 - 2 * 3.1415, next_theta1)
+        next_theta1 = torch.where(next_theta1 < -3.14, next_theta1 + 2 * 3.1415, next_theta1)
 
+        next_theta2 = torch.where(next_theta2 > 3.14, next_theta2 - 2 * 3.1415, next_theta2)
+        next_theta2 = torch.where(next_theta2 < -3.14, next_theta2 + 2 * 3.1415, next_theta2)
+
+        next_pdot = torch.clamp(next_pdot, -10.0, 10.0)
+        next_theta1dot = torch.clamp(next_theta1dot, -10.0, 10.0)
+        next_theta2dot = torch.clamp(next_theta2dot, -10.0, 10.0)
+        next_p = next_p.reshape(-1, 1)
+        next_theta1 = next_theta1.reshape(-1, 1)
+        next_theta2 = next_theta2.reshape(-1, 1)
+        next_pdot = next_pdot.reshape(-1, 1)
+        next_theta1dot = next_theta1dot.reshape(-1, 1)
+        next_theta2dot = next_theta2dot.reshape(-1, 1)
+        next_states = torch.cat([next_p, next_theta1, next_theta2, next_pdot, next_theta1dot, next_theta2dot], dim=1)
+        # print(next_states.shape, "-------------")
         return next_states
 
     def compute_rewards(self, states):  # obses and actions are tensors
@@ -134,7 +158,7 @@ class PythInvertedpendulum(torch.nn.Module):
         hb_state = [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]
         lb_action = [-1.0]
         hb_action = [1.0]
-        self.dt = 0.01  # seconds between state updates
+        self.dt = 0.05  # seconds between state updates
 
         # do not change the following section
         self.lb_state = torch.tensor(lb_state, dtype=torch.float32)
