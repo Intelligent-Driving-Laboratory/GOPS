@@ -31,7 +31,7 @@ if __name__ == "__main__":
     ################################################
     # Key Parameters for users
     parser.add_argument("--env_id", type=str, default="pyth_linearquadratic")
-    parser.add_argument("--lq_config", type=str, default="s3a1")
+    parser.add_argument("--lq_config", type=str, default="s5a1")
     parser.add_argument("--algorithm", type=str, default="PPO", help="")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
 

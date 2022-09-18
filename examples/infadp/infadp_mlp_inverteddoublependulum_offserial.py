@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="gym_cartpoleconti")
+    parser.add_argument("--env_id", type=str, default="pyth_inverteddoublependulum")
     parser.add_argument("--algorithm", type=str, default="INFADP")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
 
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
     parser.add_argument(
-        "--max_iteration", type=int, default=6400, help="Maximum iteration number"
+        "--max_iteration", type=int, default=8000, help="Maximum iteration number"
     )
     parser.add_argument("--ini_network_dir", type=str, default=None)
     trainer_type = parser.parse_known_args()[0].trainer
@@ -88,6 +88,7 @@ if __name__ == "__main__":
         parser.add_argument("--buffer_max_size", type=int, default=100000)
         parser.add_argument("--replay_batch_size", type=int, default=64)
         parser.add_argument("--sampler_sync_interval", type=int, default=1)
+
     ################################################
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="off_sampler")
@@ -104,13 +105,13 @@ if __name__ == "__main__":
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=5)
+    parser.add_argument("--num_eval_episode", type=int, default=10)
     parser.add_argument("--eval_interval", type=int, default=100)
 
     ################################################
     # 8. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
-    parser.add_argument("--apprfunc_save_interval", type=int, default=1000)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=5000)
     parser.add_argument("--log_save_interval", type=int, default=100)
 
     # Get parameter dictionary
@@ -120,7 +121,7 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
-    alg.set_parameters({"reward_scale": 0.1, "gamma": 0.99, "tau": 0.2})
+    alg.set_parameters({"reward_scale": 0.1, "gamma": 0.99, "tau": 0.05})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)  # 调用alg里面的函数，创建自己的网络
     # Step 3: create buffer in trainer
@@ -129,7 +130,6 @@ if __name__ == "__main__":
     evaluator = create_evaluator(**args)
     # Step 5: create trainer
     trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
-    trainer.sample_interval = 1
 
     # Start training ... ...
     trainer.train()

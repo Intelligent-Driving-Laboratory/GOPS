@@ -120,7 +120,7 @@ class Dynamics(object):
         return point2y <= 1.0
 
 class PythInvertedpendulum(torch.nn.Module):
-    def __init__(self):
+    def __init__(self,**kwargs):
         super().__init__()
         """
         you need to define parameters here

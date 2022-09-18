@@ -90,6 +90,8 @@ class PolicyRuner():
             action_distribution = networks.create_action_distributions(logits)
             action = action_distribution.mode()
             action = action.detach().numpy()[0]
+            # K =np.array([11.5510,11.0562,2.8245,-9.7830,-8.9332])
+            # action = -np.array(np.dot(K,obs)).reshape(-1)
             step_list.append(step)
             next_obs, reward, done, info = env.step(action)
             step = step + 1

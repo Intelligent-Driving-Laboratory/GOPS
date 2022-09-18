@@ -33,6 +33,10 @@ class LQDynamics:
             IA = IA.numpy()
         self.inv_IA = torch.as_tensor(np.linalg.pinv(IA), dtype=torch.float32)
 
+    def compute_gain_matrix(self):
+        pass
+
+
 
     def f_xu_old(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         """
@@ -353,10 +357,6 @@ class LqModel(torch.nn.Module):
         state_next = ~mask * state_next + mask * state
         reward = ~(beyond_done) * reward
         return state_next, reward, mask.squeeze(), {"constraint": None}
-
-    def forward_n_step(self, func, n, state: torch.Tensor):
-        pass
-
 
 def clip_by_tensor(t, t_min, t_max):
     """
