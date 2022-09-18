@@ -60,17 +60,17 @@ if __name__ == "__main__":
     parser.add_argument("--policy_act_distribution", type=str, default="default")
     policy_func_type = parser.parse_known_args()[0].policy_func_type
     if policy_func_type == "POLY":
-        pass
+        parser.add_argument('--policy_degree', type=int, default=2)
 
     ################################################
     # 3. Parameters for RL algorithm
     parser.add_argument("--value_learning_rate", type=float, default=1e-3)
-    parser.add_argument("--policy_learning_rate", type=float, default=8e-3)
+    parser.add_argument("--policy_learning_rate", type=float, default=3e-4)
 
     ################################################
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
-    parser.add_argument("--max_iteration", type=int, default=2 * 6400)
+    parser.add_argument("--max_iteration", type=int, default=6400)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     if trainer_type == "off_serial_trainer":

@@ -99,8 +99,8 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument("--value_learning_rate", type=float, default=1e-3, help="")
-    parser.add_argument("--policy_learning_rate", type=float, default=1e-3, help="")
+    parser.add_argument("--value_learning_rate", type=float, default=3e-4, help="")
+    parser.add_argument("--policy_learning_rate", type=float, default=3e-4, help="")
     ################################################
     # 4. Parameters for trainer
     parser.add_argument(
@@ -125,7 +125,7 @@ if __name__ == "__main__":
         ray.init()
         parser.add_argument("--num_algs", type=int, default=1, help="number of algs")
         parser.add_argument(
-            "--num_samplers", type=int, default=2, help="number of samplers"
+            "--num_samplers", type=int, default=1, help="number of samplers"
         )
         parser.add_argument(
             "--num_buffers", type=int, default=1, help="number of buffers"
@@ -143,7 +143,6 @@ if __name__ == "__main__":
                     cpu_core_num, num_core_input
                 )
             )
-        parser.add_argument("--alg_queue_max_size", type=int, default=1)
         parser.add_argument("--buffer_name", type=str, default="replay_buffer")
         parser.add_argument(
             "--buffer_warm_size",
