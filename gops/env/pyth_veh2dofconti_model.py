@@ -150,7 +150,7 @@ class VehicleDynamics(object):
         states[:, 3][states[:, 3] > np.pi] -= 2 * np.pi
         states[:, 3][states[:, 3] <= -np.pi] += 2 * np.pi
         v_ys, rs, phis = full_states[:, 0], full_states[:, 1], full_states[:, 3]
-        v_xs = 20.
+        v_xs = 10.
         full_states[:, 3] += rs / base_freq
         full_states[:, 2] += (v_xs * np.sin(phis) + v_ys * np.cos(phis)) / base_freq
         full_states[:, -1] += (v_xs * np.cos(phis) - v_ys * np.sin(phis)) / base_freq

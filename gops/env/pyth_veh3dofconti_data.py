@@ -28,14 +28,14 @@ class VehicleDynamics(object):
                                    I_z=1536.7,  # Polar moment of inertia at CG [kg*m^2]
                                    miu=1.0,  # tire-road friction coefficient
                                    g=9.81,  # acceleration of gravity [m/s^2]
-                                   u=20
+                                   u=10
                                    )
         a, b, mass, g = self.vehicle_params['a'], self.vehicle_params['b'], \
                         self.vehicle_params['mass'], self.vehicle_params['g']
         F_zf, F_zr = b * mass * g / (a + b), a * mass * g / (a + b)
         self.vehicle_params.update(dict(F_zf=F_zf,
                                         F_zr=F_zr))
-        self.expected_vs = 20.
+        self.expected_vs = 10.
         self.path = ReferencePath()
 
     def f_xu(self, states, actions, tau):
@@ -178,7 +178,7 @@ class SimuVeh3dofconti(gym.Env,):
         self.simulation_time = 0
         self.action = None
         self.num_agent = num_agent
-        self.expected_vs = 20.
+        self.expected_vs = 10.
         self.done = np.zeros((self.num_agent,), dtype=np.int)
         self.base_frequency = 10
         self.observation_space = gym.spaces.Box(
@@ -188,7 +188,7 @@ class SimuVeh3dofconti(gym.Env,):
         self.action_space = gym.spaces.Box(low=np.array([-1.2 * np.pi / 9, -3]),
                                            high=np.array([1.2 * np.pi / 9, 3]),
                                            dtype=np.float32)
-        self.Max_step = 100
+        self.Max_step = 500
         self.cstep = 0
 
 
@@ -216,11 +216,13 @@ class SimuVeh3dofconti(gym.Env,):
 
     def scale_obs(self, obs):
         obs_scale = [1., 1., 2., 1., 2.4, 1 / 1200]
-        v_xs, v_ys, rs, delta_ys, delta_phis, xs = obs[0], obs[1], obs[2], \
-                                                   obs[3], obs[4], obs[5]
-        lists_to_stack = [v_xs * obs_scale[0], v_ys * obs_scale[1], rs * obs_scale[2],
-                          delta_ys * obs_scale[3], delta_phis * obs_scale[4], xs * obs_scale[5]]
-        return lists_to_stack
+        obs[0] = obs[0] * obs_scale[0]
+        obs[1] = obs[1] * obs_scale[1]
+        obs[2] = obs[2] * obs_scale[2]
+        obs[3] = obs[3] * obs_scale[3]
+        obs[4] = obs[4] * obs_scale[4]
+        obs[5] = obs[5] * obs_scale[5]
+        return obs
 
     def reset(self, **kwargs):
         init_x = np.random.uniform(0, 600, (self.num_agent,)).astype(np.float32)
@@ -228,7 +230,7 @@ class SimuVeh3dofconti(gym.Env,):
         init_y = self.vehicle_dynamics.path.compute_y(init_x, init_delta_y)
         init_delta_phi = np.random.normal(0, np.pi / 9, (self.num_agent,)).astype(np.float32)
         init_phi = self.vehicle_dynamics.path.compute_phi(init_x, init_delta_phi)
-        init_v_x = np.random.uniform(15, 25, (self.num_agent,)).astype(np.float32)
+        init_v_x = np.random.uniform(5, 15, (self.num_agent,)).astype(np.float32)
         beta = np.random.normal(0, 0.15, (self.num_agent,)).astype(np.float32)
         init_v_y = init_v_x * np.tan(beta)
         init_r = np.random.normal(0, 0.3, (self.num_agent,)).astype(np.float32)
@@ -246,7 +248,7 @@ class SimuVeh3dofconti(gym.Env,):
     def step(self, action):  # think of action is in range [-1, 1]
         steer_norm, a_x_norm = action[0], action[1]
         action = np.stack([steer_norm * 1.2 * np.pi / 9, a_x_norm*3], 0)
-        action = np.clip(action, self.action_space.low, self.action_space.high)
+        # action = np.clip(action, self.action_space.low, self.action_space.high)
         self.action = action
         veh_state_tensor = torch.from_numpy(self.veh_state)
         action_tensor = torch.from_numpy(self.action)
@@ -254,11 +256,12 @@ class SimuVeh3dofconti(gym.Env,):
         self.veh_state, self.veh_full_state, stability_related = \
             self.vehicle_dynamics.simulation(veh_state_tensor, self.veh_full_state, action_tensor,
                                              base_freq=self.base_frequency)
-        self.done = self.judge_done(self.veh_state, stability_related)
-        if self.done:
-            pass
-        else:
-            reward = reward + 1
+        # self.done = self.judge_done(self.veh_state, stability_related)
+        self.done = False
+        # if self.done:
+        #     pass
+        # else:
+        #     reward = reward + 1
         self.obs = self._get_obs(self.veh_state, self.veh_full_state)
         info = {"TimeLimit.truncated": self.cstep > self.Max_step}
         self.cstep = self.cstep + 1
@@ -304,8 +307,8 @@ def unscale_obs(obs):
 
 if __name__=="__main__":
     sys.path.append(r"G:\项目文档\gops开发相关\gops\gops\algorithm")
-    base_dir = r"G:\项目文档\gops开发相关\gops\results\FHADP\220907-151803"
-    net_dir = os.path.join(base_dir, r"apprfunc\apprfunc_{}.pkl".format(1999))
+    base_dir = r"G:\项目文档\gops\results\FHADP\220918-201057"
+    net_dir = os.path.join(base_dir, r"apprfunc\apprfunc_{}.pkl".format(2000))
     parser = argparse.ArgumentParser()
     ################################################
     # Key Parameters for users
@@ -394,7 +397,7 @@ if __name__=="__main__":
     phi = []
     reward_total = []
     model.reset(unscale_obs(obs))
-    for _ in range(300):
+    for _ in range(500):
         action = networks.policy(obs)
         action = action.detach()[0].numpy()
         obs, reward, done, info = env.step(action)

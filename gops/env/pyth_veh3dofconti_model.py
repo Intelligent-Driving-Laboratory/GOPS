@@ -25,7 +25,7 @@ class Veh3dofcontiModel(torch.nn.Module):
         self.vehicle_dynamics = VehicleDynamics()
         self.obs_scale = [1., 1., 2., 1., 2.4, 1/1200]
         self.base_frequency = 10.
-        self.expected_vs = 20.
+        self.expected_vs = 10.
         self.obses = None
         self.actions = None
         self.veh_states = None
@@ -105,14 +105,14 @@ class VehicleDynamics(object):
                                    I_z=1536.7,  # Polar moment of inertia at CG [kg*m^2]
                                    miu=1.0,  # tire-road friction coefficient
                                    g=9.81,  # acceleration of gravity [m/s^2]
-                                   u=20
+                                   u=10
                                    )
         a, b, mass, g = self.vehicle_params['a'], self.vehicle_params['b'], \
                         self.vehicle_params['mass'], self.vehicle_params['g']
         F_zf, F_zr = b * mass * g / (a + b), a * mass * g / (a + b)
         self.vehicle_params.update(dict(F_zf=F_zf,
                                         F_zr=F_zr))
-        self.expected_vs = 20.
+        self.expected_vs = 10.
         self.path = ReferencePath()
 
     def f_xu(self, states, actions, tau):
