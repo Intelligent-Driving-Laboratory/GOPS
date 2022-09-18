@@ -90,10 +90,10 @@ if __name__ == "__main__":
 
         ray.init()
         parser.add_argument(
-            "--num_algs", type=int, default=20, help="number of algs"
+            "--num_algs", type=int, default=2, help="number of algs"
         )  # 22
         parser.add_argument(
-            "--num_samplers", type=int, default=7, help="number of samplers"
+            "--num_samplers", type=int, default=1, help="number of samplers"
         )  # 7
         parser.add_argument(
             "--num_buffers", type=int, default=1, help="number of buffers"
