@@ -6,9 +6,11 @@ from typing import Union
 import gym
 import matplotlib.pyplot as plt
 import numpy as np
+
 import torch
 from gym.spaces import Box
 from gym.utils import seeding
+from scipy.linalg._solvers import solve_discrete_are
 
 warnings.filterwarnings("ignore")
 gym.logger.setLevel(gym.logger.ERROR)
@@ -33,9 +35,15 @@ class LQDynamics:
             IA = IA.numpy()
         self.inv_IA = torch.as_tensor(np.linalg.pinv(IA), dtype=torch.float32)
 
-    def compute_gain_matrix(self):
-        pass
 
+    def compute_control_matrix(self):
+        A = self.A.numpy()
+        B=self.B.numpy()
+        Q= np.diag(self.Q.numpy())
+        R=np.diag(self.R.numpy())
+        P = solve_discrete_are(A,B,Q,R)
+        K = np.linalg.pinv(R)@B.T@P
+        return K
 
 
     def f_xu_old(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
@@ -149,6 +157,7 @@ class LqEnv(gym.Env):
         action_low = np.array(config["action_low"], dtype=np.float32)
         self.action_space = Box(low=action_low, high=action_high)
         self.action_dim = self.action_space.shape[0]
+        self.control_matrix = self.dynamics.compute_control_matrix()
 
         self.seed()
 
@@ -162,6 +171,12 @@ class LqEnv(gym.Env):
         self.num_figures = self.observation_dim + self.action_dim
         self.ncol = math.ceil(math.sqrt(self.num_figures))
         self.nrow = math.ceil(self.num_figures / self.ncol)
+
+    @property
+    def has_optimal_controller(self):
+        return True
+    def control_policy(self,x):
+        return self.control_matrix@x
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -386,6 +401,8 @@ def test_env():
 
     env = LqEnv(config_s3a1)
     env.reset()
+    print(env.has_optimal_controller)
+    print(env.control_matrix)
     for _ in range(100):
         a = env.action_space.sample()
         env.step(a)
@@ -396,3 +413,4 @@ if __name__ == "__main__":
     # test_dynamic()
     test_check()
     test_env()
+
