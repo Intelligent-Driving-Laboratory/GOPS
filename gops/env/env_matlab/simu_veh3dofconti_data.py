@@ -10,7 +10,7 @@
 from gym import spaces
 import gym
 from gym.utils import seeding
-from gops.env.env_archive.resources import vehicle3dof
+from gops.env.env_matlab.resources.simu_vehicle3dof_v2 import vehicle3dof
 from gym.wrappers.time_limit import TimeLimit
 from typing import List
 import numpy as np

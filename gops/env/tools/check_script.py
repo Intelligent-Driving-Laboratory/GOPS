@@ -2,7 +2,7 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #  Creator: iDLab
-#  Description: ?
+#  Description: check basic functionality of all environments (make, reset, step)
 
 
 import os
@@ -15,18 +15,20 @@ from gops.env.tools.get_all_envs import get_env_model_files, CLASSIC, TOY_TEXT, 
 
 def simple_check_on_windows():
     """
-    check all env in simple mode (try to make each env), mujoco env not included on windows
+    check all env (try to make each env), mujoco env not included on windows
     """
 
     for env_name in CLASSIC + TOY_TEXT + BOX2D:
         simple_check_env(env_name)
 
+
 def simple_check_on_linux():
     """
-    check all env in simple mode
+    check all env, mujoco included
     """
     for env_name in CLASSIC + TOY_TEXT + BOX2D + MUJOCO:
         simple_check_env(env_name)
+
 
 def main():
     env_list, model_list = get_env_model_files()
@@ -37,8 +39,7 @@ def main():
         check_model(m[:-6])
 
 
-
 if __name__ == '__main__':
     # main()
-    # simple_check_on_windows()
-    simple_check_on_linux()
+    simple_check_on_windows()
+    # simple_check_on_linux()

@@ -10,7 +10,7 @@
 from gym import spaces
 import gym
 from gym.utils import seeding
-from gops.env.env_archive.resources import aircraft
+from gops.env.env_matlab.resources.simu_aircraft import aircraft
 import numpy as np
 
 

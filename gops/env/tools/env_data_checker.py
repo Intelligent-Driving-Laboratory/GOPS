@@ -1,9 +1,8 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
-#
 #  Creator: iDLab
-
+#  Description: check functionality of a given environment (make, reset, step, data format, file structure)
 
 import logging
 
@@ -57,9 +56,14 @@ def check_env_file_structures(env_file_name):
     check that the env file has all necessary elements
     """
     try:
-        file_obj = importlib.import_module("gops.env." + env_file_name)
+        for sub in ["env_archive", "env_gym", "env_matlab", "env_ocp"]:
+            try:
+                file_obj = importlib.import_module("gops.env." + sub + "." + env_file_name)
+                break
+            except:
+                pass
     except:
-        file_obj = importlib.import_module("gops.env.env_archive." + env_file_name)
+        raise RuntimeError(f"can not found env `{env_file_name}`")
     env_name_camel = ce.formatter(env_file_name)
     if hasattr(file_obj, "env_creator"):
         env_class = getattr(file_obj, "env_creator")

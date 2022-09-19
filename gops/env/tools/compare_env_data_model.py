@@ -1,3 +1,8 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Creator: iDLab
+#  Description: check if `env` and `env_model` have the same dynamics
 import torch
 import numpy as np
 import matplotlib.pyplot as plt

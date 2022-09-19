@@ -1,8 +1,8 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
-#
 #  Creator: iDLab
+#  Description: check functionality of a given environment model (make, reset, step, data format, file structure)
 
 
 import torch
@@ -16,7 +16,15 @@ def check_env_model_file_structures(env_file_name):
     """
     check that the env model file has all necessary elements
     """
-    file_obj = importlib.import_module("gops.env." + env_file_name)
+    try:
+        for sub in ["env_archive", "env_gym", "env_matlab", "env_ocp"]:
+            try:
+                file_obj = importlib.import_module("gops.env." + sub + "." + env_file_name)
+                break
+            except:
+                pass
+    except:
+        raise RuntimeError(f"can not found env `{env_file_name}`")
     env_name_camel = ce.formatter(env_file_name)
     if hasattr(file_obj, "env_model_creator"):
         env_class = getattr(file_obj, "env_model_creator")

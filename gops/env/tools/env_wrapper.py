@@ -1,3 +1,10 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Creator: iDLab
+#  Description: wrappers for `env` and `env model`: transform between
+#               env with constraints and envs without constraints
+
 import gym
 import numpy as np
 import torch
