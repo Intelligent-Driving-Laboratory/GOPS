@@ -19,9 +19,9 @@ from gops.create_pkg.create_evaluator import create_evaluator
 from gops.create_pkg.create_sampler import create_sampler
 from gops.create_pkg.create_trainer import create_trainer
 from gops.utils.init_args import init_args
-from gops.utils.plot import plot_all
-from gops.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
-from gops.utils.utils import seed_everything
+from gops.utils.plot_evaluation import plot_all
+from gops.utils.tensorboard_setup import start_tensorboard, save_tb_to_csv
+from gops.utils.common_utils import seed_everything
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     parser.add_argument("--env_id", type=str, default="pyth_linearquadratic")
     parser.add_argument("--lq_config", type=str, default="s5a1")
     parser.add_argument("--algorithm", type=str, default="FHADP")
-    parser.add_argument("--pre_horizon", type=int, default=30)
+    parser.add_argument("--pre_horizon", type=int, default=60)
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     ################################################
     # 1. Parameters for environment
@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument("--policy_learning_rate", type=float, default=3e-5)
+    parser.add_argument("--policy_learning_rate", type=float, default=3e-4)
 
     ################################################
     # 4. Parameters for trainer
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     ################################################
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="off_sampler")
-    parser.add_argument("--sample_batch_size", type=int, default=256)
+    parser.add_argument("--sample_batch_size", type=int, default=1)
     parser.add_argument(
         "--noise_params",
         type=dict,
@@ -96,13 +96,13 @@ if __name__ == "__main__":
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=100)
+    parser.add_argument("--num_eval_episode", type=int, default=10)
     parser.add_argument("--eval_interval", type=int, default=100)
 
     ################################################
     # 8. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
-    parser.add_argument("--apprfunc_save_interval", type=int, default=100)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=1000)
     parser.add_argument("--log_save_interval", type=int, default=100)
 
     # Get parameter dictionary
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     alg.set_parameters(
-        {"reward_scale": 0.1, "gamma": 0.99, "tau": 0.2, "delay_update": 1}
+        {"reward_scale": 0.1, "gamma": 1, "tau": 0.2, "delay_update": 1}
     )
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)

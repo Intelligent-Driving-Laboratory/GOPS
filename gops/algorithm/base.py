@@ -2,9 +2,9 @@ from abc import ABCMeta, ABC, abstractmethod
 
 from typing import Tuple, Type
 
-from gops.utils.utils import set_seed
+from gops.utils.common_utils import set_seed
 from gops.create_pkg.create_apprfunc import create_apprfunc
-from gops.utils.utils import get_apprfunc_dict
+from gops.utils.common_utils import get_apprfunc_dict
 import warnings
 import torch
 

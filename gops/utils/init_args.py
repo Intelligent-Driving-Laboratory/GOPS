@@ -14,7 +14,7 @@ import os
 import torch
 import warnings
 
-from gops.utils.utils import change_type, seed_everything
+from gops.utils.common_utils import change_type, seed_everything
 
 
 def init_args(env, **args):

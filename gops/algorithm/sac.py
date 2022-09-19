@@ -19,9 +19,9 @@ from torch.optim import Adam
 
 from gops.algorithm.base import AlgorithmBase, ApprBase
 from gops.create_pkg.create_apprfunc import create_apprfunc
-from gops.utils.tensorboard_tools import tb_tags
-from gops.utils.typing import DataDict
-from gops.utils.utils import get_apprfunc_dict
+from gops.utils.tensorboard_setup import tb_tags
+from gops.utils.gops_typing import DataDict
+from gops.utils.common_utils import get_apprfunc_dict
 
 
 class ApproxContainer(ApprBase):

@@ -15,11 +15,9 @@ __all__ = [
     "StateValue",
 ]
 
-import numpy as np
 import torch
 import torch.nn as nn
-from gops.utils.utils import get_activation_func
-from act_distribution_cls import Action_Distribution
+from gops.utils.act_distribution_cls import Action_Distribution
 
 
 class RBF(nn.Module):

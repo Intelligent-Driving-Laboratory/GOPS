@@ -18,8 +18,8 @@ import time
 
 from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.create_pkg.create_env_model import create_env_model
-from gops.utils.utils import get_apprfunc_dict
-from gops.utils.tensorboard_tools import tb_tags
+from gops.utils.common_utils import get_apprfunc_dict
+from gops.utils.tensorboard_setup import tb_tags
 from gops.algorithm.base import AlgorithmBase, ApprBase
 import numpy as np
 

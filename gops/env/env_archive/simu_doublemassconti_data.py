@@ -9,8 +9,7 @@
 
 from gym import spaces
 import gym
-from gops.env.resources.simu_doublemass import doublemass
-import numpy as np
+from gops.env.env_archive.resources import doublemass
 
 
 class SimuDoublemassconti(gym.Env):

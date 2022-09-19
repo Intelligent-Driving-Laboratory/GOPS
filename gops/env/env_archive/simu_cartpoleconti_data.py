@@ -9,8 +9,7 @@
 
 from gym import spaces
 import gym
-from gops.env.resources.simu_cartpole import cartpole
-import numpy as np
+from gops.env.env_archive.resources import cartpole
 
 
 class SimuCartpoleconti(gym.Env):

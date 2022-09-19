@@ -24,8 +24,8 @@ from gops.create_pkg.create_evaluator import create_evaluator
 from gops.create_pkg.create_sampler import create_sampler
 from gops.create_pkg.create_trainer import create_trainer
 from gops.utils.init_args import init_args
-from gops.utils.plot import plot_all
-from gops.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
+from gops.utils.plot_evaluation import plot_all
+from gops.utils.tensorboard_setup import start_tensorboard, save_tb_to_csv
 
 os.environ["OMP_NUM_THREADS"] = "1"
 
@@ -82,9 +82,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max_iteration", type=int, default=1000, help="Maximum iteration number"
     )
-    parser.add_argument(
-        "--ini_network_dir", type=str, default='D:/Seafile/Research/SafeRL-dev/results/SPIL/220605-192144/apprfunc/apprfunc_999.pkl'
-    )  # 'D:/Seafile/Research/GOPS/gops/gops/results/SPIL/0927-112733/apprfunc/apprfunc_4000.pkl'
+    parser.add_argument("--ini_network_dir", type=str, default=None)
     trainer_type = parser.parse_known_args()[0].trainer
     if trainer_type == "off_serial_trainer":
         parser.add_argument("--buffer_name", type=str, default="replay_buffer")

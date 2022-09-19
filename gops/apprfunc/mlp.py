@@ -19,8 +19,8 @@ __all__ = [
 import numpy as np  # Matrix computation library
 import torch
 import torch.nn as nn
-from gops.utils.utils import get_activation_func
-from act_distribution_cls import Action_Distribution
+from gops.utils.common_utils import get_activation_func
+from gops.utils.act_distribution_cls import Action_Distribution
 
 
 # Define MLP function
