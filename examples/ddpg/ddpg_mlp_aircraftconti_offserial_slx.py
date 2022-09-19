@@ -24,8 +24,8 @@ from gops.create_pkg.create_evaluator import create_evaluator
 from gops.create_pkg.create_sampler import create_sampler
 from gops.create_pkg.create_trainer import create_trainer
 from gops.utils.init_args import init_args
-from gops.utils.plot import plot_all
-from gops.utils.tensorboard_tools import start_tensorboard, save_tb_to_csv
+from gops.utils.plot_evaluation import plot_all
+from gops.utils.tensorboard_setup import start_tensorboard, save_tb_to_csv
 
 
 if __name__ == "__main__":

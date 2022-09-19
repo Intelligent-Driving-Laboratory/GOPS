@@ -15,12 +15,10 @@ __all__ = [
     "StateValue",
 ]
 
-import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from gops.utils.utils import get_activation_func
-from act_distribution_cls import Action_Distribution
+from gops.utils.common_utils import get_activation_func
+from gops.utils.act_distribution_cls import Action_Distribution
 
 
 def CNN(kernel_sizes, channels, strides, activation, input_channel):

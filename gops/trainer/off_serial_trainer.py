@@ -14,9 +14,9 @@ import time
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from gops.utils.tensorboard_tools import add_scalars
-from gops.utils.tensorboard_tools import tb_tags
-from gops.utils.utils import ModuleOnDevice
+from gops.utils.tensorboard_setup import add_scalars
+from gops.utils.tensorboard_setup import tb_tags
+from gops.utils.common_utils import ModuleOnDevice
 
 
 class OffSerialTrainer:

@@ -16,9 +16,9 @@ from torch.optim import Adam
 import warnings
 import time
 from gops.create_pkg.create_apprfunc import create_apprfunc
-from gops.utils.utils import get_apprfunc_dict
-from gops.utils.tensorboard_tools import tb_tags
-from gops.utils.action_distributions import GaussDistribution
+from gops.utils.common_utils import get_apprfunc_dict
+from gops.utils.tensorboard_setup import tb_tags
+from gops.utils.act_distribution import GaussDistribution
 
 
 class ApproxContainer(nn.Module):

@@ -10,7 +10,7 @@
 import numpy as np
 import sys
 import torch
-from gops.utils.utils import set_seed
+from gops.utils.common_utils import set_seed
 
 __all__ = ["ReplayBuffer"]
 

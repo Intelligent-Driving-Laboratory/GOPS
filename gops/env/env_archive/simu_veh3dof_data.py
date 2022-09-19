@@ -5,13 +5,13 @@
 #  Creator: iDLab
 #  Description: Simulink cartpole environment
 #  Update Date: 2021-07-011, Wenxuan Wang: create simulink environment
-from typing import Optional, List
+from typing import List
 
 from gym import spaces
 import gym
 from gym.utils import seeding
 
-from gops.env.resources.simu_vehicle3dof_v2 import vehicle3dof
+from gops.env.env_archive.resources import vehicle3dof
 import numpy as np
 
 

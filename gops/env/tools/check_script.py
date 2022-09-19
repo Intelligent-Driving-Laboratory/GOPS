@@ -1,15 +1,15 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
-#
 #  Creator: iDLab
+#  Description: ?
 
 
 import os
 import importlib
 import gops.create_pkg.create_env as ce
-from gops.env.tools.env_check import check_env, simple_check_env
-from gops.env.tools.model_check import check_model
+from gops.env.tools.env_data_checker import check_env, simple_check_env
+from gops.env.tools.env_model_checker import check_model
 from gops.env.tools.get_all_envs import get_env_model_files, CLASSIC, TOY_TEXT, BOX2D, MUJOCO
 
 

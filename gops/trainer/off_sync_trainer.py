@@ -19,9 +19,9 @@ import ray
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from gops.utils.task_pool import TaskPool
-from gops.utils.tensorboard_tools import add_scalars
-from gops.utils.tensorboard_tools import tb_tags
+from gops.utils.parallel_task_manager import TaskPool
+from gops.utils.tensorboard_setup import add_scalars
+from gops.utils.tensorboard_setup import tb_tags
 
 warnings.filterwarnings("ignore")
 
