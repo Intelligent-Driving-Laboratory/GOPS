@@ -1,0 +1,6 @@
+*
+!.gitignore
+!env.toml
+!model.toml
+!aircraft.slx
+!aircraft.*.pyd

@@ -1,0 +1,23 @@
+__version__ = "1.0.0"
+
+model = "doublemass"
+
+[simulink]
+    solver = "FixedStepAuto"
+    absolute_time = false
+    integer_code = false
+    non_finite = false
+    complex = false
+    continuous_time = true
+    variable_size_signal = false
+    non_inlined_sfcn = false
+
+[cpp]
+    class_name = "doublemass"
+    namespace = ""
+
+[info]
+    description = "<auto>"
+    version = "<auto>"
+    author = "<auto>"
+    license = "<no-license>"
