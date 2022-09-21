@@ -78,6 +78,7 @@ class TD3(AlgorithmBase):
         self.tau = 0.005
         self.delay_update = 2
         self.reward_scale = 1
+        self.per_flag = (kwargs["buffer_name"] == "prioritized_replay_buffer")
 
     @property
     def adjustable_parameters(self):
@@ -85,21 +86,34 @@ class TD3(AlgorithmBase):
         return para_tuple
 
     def __compute_gradient(self, data: dict, iteration):
-        o, a, r, o2, d = (
-            data["obs"],
-            data["act"],
-            data["rew"] * self.reward_scale,
-            data["obs2"],
-            data["done"],
-        )
+        tb_info = dict()
+        start_time = time.time()
         self.networks.q1_optimizer.zero_grad()
         self.networks.q2_optimizer.zero_grad()
         self.networks.policy_optimizer.zero_grad()
 
-        tb_info = dict()
-        start_time = time.time()
-        loss_q, loss_q1, loss_q2 = self.__compute_loss_q(o, a, r, o2, d)
-        loss_q.backward()
+        if not self.per_flag:
+            o, a, r, o2, d = (
+                data["obs"],
+                data["act"],
+                data["rew"] * self.reward_scale,
+                data["obs2"],
+                data["done"],
+            )
+            loss_q, loss_q1, loss_q2 = self.__compute_loss_q(o, a, r, o2, d)
+            loss_q.backward()
+        else:
+            o, a, r, o2, d, idx, weight = (
+                data["obs"],
+                data["act"],
+                data["rew"] * self.reward_scale,
+                data["obs2"],
+                data["done"],
+                data["idx"],
+                data["weight"]
+            )
+            loss_q, loss_q1, loss_q2, abs_err = self.__compute_loss_q_per(o, a, r, o2, d, idx, weight)
+            loss_q.backward()
 
         for p in self.networks.q1.parameters():
             p.requires_grad = False
@@ -120,7 +134,10 @@ class TD3(AlgorithmBase):
         tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
         tb_info[tb_tags["loss_actor"]] = loss_policy.item()
 
-        return tb_info
+        if self.per_flag:
+            return tb_info, idx, abs_err
+        else:
+            return tb_info
 
     def __compute_loss_q(self, o, a, r, o2, d):
         q1 = self.networks.q1(o, a)
@@ -147,6 +164,33 @@ class TD3(AlgorithmBase):
         loss_q = loss_q1 + loss_q2
 
         return loss_q, loss_q1, loss_q2
+
+    def __compute_loss_q_per(self, o, a, r, o2, d, idx, weight):
+        q1 = self.networks.q1(o, a)
+        q2 = self.networks.q2(o, a)
+
+        # Bellman backup for Q functions
+        with torch.no_grad():
+            pi_targ = self.networks.policy_target(o2)
+            # Target policy smoothing
+            epsilon = torch.randn_like(pi_targ) * self.target_noise
+            epsilon = torch.clamp(epsilon, -self.noise_clip, self.noise_clip)
+            a2 = pi_targ + epsilon
+            a2 = torch.clamp(a2, -self.act_limit, self.act_limit)
+
+            # Target Q-values
+            q1_pi_targ = self.networks.q1_target(o2, a2)
+            q2_pi_targ = self.networks.q2_target(o2, a2)
+            q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
+            backup = r + self.gamma * (1 - d) * q_pi_targ
+
+        # MSE loss against Bellman backup
+        loss_q1 = (weight * ((q1 - backup) ** 2)).mean()
+        loss_q2 = (weight * ((q2 - backup) ** 2)).mean()
+        loss_q = loss_q1 + loss_q2
+        abs_err = torch.abs(q1 - backup)
+
+        return loss_q, loss_q1, loss_q2, abs_err
 
     def __compute_loss_pi(self, o):
         q1_pi = self.networks.q1(o, self.networks.policy(o))

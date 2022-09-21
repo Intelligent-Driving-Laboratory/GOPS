@@ -3,8 +3,8 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Reply buffer
-#  Update: 2021-03-05, Yuheng Lei: Create reply buffer
+#  Description: Replay buffer
+#  Update: 2021-03-05, Yuheng Lei: Create replay buffer
 
 
 import numpy as np
