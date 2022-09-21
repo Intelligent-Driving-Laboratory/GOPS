@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from gym import spaces
 from gym.utils import seeding
-from gops.env.tools.env_wrapper import EnvC2U
+from gops.env.env_wrapper.transform_constraint import EnvC2U
 from gops.env.env_archive.resources import CarFollowingDynamics2D
 
 gym.logger.setLevel(gym.logger.ERROR)
