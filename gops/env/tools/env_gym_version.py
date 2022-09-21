@@ -33,3 +33,14 @@ def safe_make(env_id):
                 )
             )
             return gym.make(valid_env_id)
+
+def random_rollout(env, steps=50):
+    s = env.reset()
+    for i in range(steps):
+        a = env.action_space.sample()
+        sp, r, d, i = env.step(a)
+        print(s, a, r, d, i)
+        if d:
+            s = env.reset()
+        else:
+            s = sp
