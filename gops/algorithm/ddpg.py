@@ -129,12 +129,12 @@ class DDPG(AlgorithmBase):
                 p_targ.data.add_((1 - polyak) * p.data)
 
     def local_update(self, data: dict, iteration: int):
-        tb_info = self.__compute_gradient(data, iteration)
+        extra_info = self.__compute_gradient(data, iteration)
         self.__update(iteration)
-        return tb_info
+        return extra_info
 
     def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
-        tb_info = self.__compute_gradient(data, iteration)
+        extra_info = self.__compute_gradient(data, iteration)
 
         q_grad = [p._grad for p in self.networks.q.parameters()]
         policy_grad = [p._grad for p in self.networks.policy.parameters()]
@@ -144,7 +144,7 @@ class DDPG(AlgorithmBase):
         update_info["policy_grad"] = policy_grad
         update_info["iteration"] = iteration
 
-        return tb_info, update_info
+        return extra_info, update_info
 
     def remote_update(self, update_info: dict):
         iteration = update_info["iteration"]

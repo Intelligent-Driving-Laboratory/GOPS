@@ -31,6 +31,9 @@ class OffAsyncTrainer:
         self.algs = alg
         self.samplers = sampler
         self.buffers = buffer
+        self.per_flag = (kwargs["buffer_name"] == "prioritized_replay_buffer")
+        if self.per_flag and kwargs["num_buffers"]> 1:
+            raise RuntimeError("Using multiple prioritized_replay_buffers is not supported!")
         self.evaluator = evaluator
 
         # create center network
@@ -130,7 +133,12 @@ class OffAsyncTrainer:
 
         # learning
         for alg, objID in self.learn_tasks.completed():
-            alg_tb_dict, update_info = ray.get(objID)
+            if self.per_flag:
+                extra_info,update_info = ray.get(objID)
+                alg_tb_dict, idx, new_priority = extra_info
+                self.buffers[0].update_batch.remote(idx, new_priority)
+            else:
+                alg_tb_dict, update_info = ray.get(objID)
 
             # replay
             data = ray.get(random.choice(self.buffers).sample_batch.remote(
