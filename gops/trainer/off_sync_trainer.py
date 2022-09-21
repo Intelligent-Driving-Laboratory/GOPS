@@ -31,6 +31,9 @@ class OffSyncTrainer:
         self.algs = alg
         self.samplers = sampler
         self.buffers = buffer
+        self.per_flag = (kwargs["buffer_name"] == "prioritized_replay_buffer")
+        if self.per_flag and kwargs["num_buffers"]> 1:
+            raise RuntimeError("Using multiple prioritized_replay_buffers is not supported!")
         self.evaluator = evaluator
 
         # create center network
@@ -127,8 +130,14 @@ class OffSyncTrainer:
             if self.use_gpu:
                 for k, v in data.items():
                     data[k] = v.cuda()
+            if self.per_flag:
+                alg_tb_dict, idx, new_priority,update_information =\
+                    ray.get(alg.get_remote_update_info.remote(data, self.iteration))
 
-            alg_tb_dict, update_information = ray.get(alg.get_remote_update_info.remote(data, self.iteration))
+                self.buffers[0].update_batch.remote(idx, new_priority)
+            else:
+                alg_tb_dict, update_information = ray.get(alg.get_remote_update_info.remote(data, self.iteration))
+
             tb_dict.append(alg_tb_dict)
             update_info.append(update_information)
 

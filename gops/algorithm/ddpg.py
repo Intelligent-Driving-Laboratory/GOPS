@@ -58,6 +58,7 @@ class DDPG(AlgorithmBase):
         self.tau = 0.005
         self.delay_update = 1
         self.reward_scale = 1
+        self.per_flag = (kwargs["buffer_name"] == "prioritized_replay_buffer")
 
     @property
     def adjustable_parameters(self):
@@ -65,19 +66,33 @@ class DDPG(AlgorithmBase):
         return para_tuple
 
     def __compute_gradient(self, data: dict, iteration):
-        o, a, r, o2, d = (
-            data["obs"],
-            data["act"],
-            data["rew"] * self.reward_scale,
-            data["obs2"],
-            data["done"],
-        )
-
         tb_info = dict()
         start_time = time.perf_counter()
         self.networks.q_optimizer.zero_grad()
-        loss_q, q = self.__compute_loss_q(o, a, r, o2, d)
-        loss_q.backward()
+        if not self.per_flag:
+            o, a, r, o2, d = (
+                data["obs"],
+                data["act"],
+                data["rew"] * self.reward_scale,
+                data["obs2"],
+                data["done"],
+            )
+            loss_q, q = self.__compute_loss_q(o, a, r, o2, d)
+            loss_q.backward()
+        else:
+
+            o, a, r, o2, d, idx, weight = (
+                data["obs"],
+                data["act"],
+                data["rew"] * self.reward_scale,
+                data["obs2"],
+                data["done"],
+                data["idx"],
+                data["weight"]
+            )
+            loss_q, q, abs_err = self.__compute_loss_q_per(o, a, r, o2, d, idx, weight)
+            loss_q.backward()
+
 
         for p in self.networks.q.parameters():
             p.requires_grad = False
@@ -96,7 +111,10 @@ class DDPG(AlgorithmBase):
         tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
         tb_info[tb_tags["loss_actor"]] = loss_policy.item()
 
-        return tb_info
+        if self.per_flag:
+            return tb_info, idx, abs_err
+        else:
+            return tb_info
 
     def __compute_loss_q(self, o, a, r, o2, d):
         q = self.networks.q(o, a)
@@ -106,6 +124,16 @@ class DDPG(AlgorithmBase):
 
         loss_q = ((q - backup) ** 2).mean()
         return loss_q, torch.mean(q)
+
+    def __compute_loss_q_per(self, o, a, r, o2, d, idx, weight):
+        q = self.networks.q(o, a)
+
+        q_policy_targ = self.networks.q_target(o2, self.networks.policy_target(o2))
+        backup = r + self.gamma * (1 - d) * q_policy_targ
+
+        loss_q = (weight * ((q - backup) ** 2)).mean()
+        abs_err = torch.abs(q - backup)
+        return loss_q, torch.mean(q), abs_err
 
     def __compute_loss_policy(self, o):
         q_policy = self.networks.q(o, self.networks.policy(o))
@@ -129,12 +157,12 @@ class DDPG(AlgorithmBase):
                 p_targ.data.add_((1 - polyak) * p.data)
 
     def local_update(self, data: dict, iteration: int):
-        tb_info = self.__compute_gradient(data, iteration)
+        extra_info = self.__compute_gradient(data, iteration)
         self.__update(iteration)
-        return tb_info
+        return extra_info
 
     def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
-        tb_info = self.__compute_gradient(data, iteration)
+        extra_info = self.__compute_gradient(data, iteration)
 
         q_grad = [p._grad for p in self.networks.q.parameters()]
         policy_grad = [p._grad for p in self.networks.policy.parameters()]
@@ -144,7 +172,7 @@ class DDPG(AlgorithmBase):
         update_info["policy_grad"] = policy_grad
         update_info["iteration"] = iteration
 
-        return tb_info, update_info
+        return extra_info, update_info
 
     def remote_update(self, update_info: dict):
         iteration = update_info["iteration"]

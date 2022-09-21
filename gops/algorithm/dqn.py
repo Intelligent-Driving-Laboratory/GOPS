@@ -83,6 +83,7 @@ class DQN(AlgorithmBase):
         self.tau = 0.005
         self.reward_scale = 1
         self.networks = ApproxContainer(**kwargs)
+        self.per_flag = (kwargs["buffer_name"] == "prioritized_replay_buffer")
 
     @property
     def adjustable_parameters(self):
@@ -107,26 +108,49 @@ class DQN(AlgorithmBase):
 
     def __compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
         start_time = time.perf_counter()
-        obs, act, rew, obs2, done = (
-            data["obs"],
-            data["act"],
-            data["rew"] * self.reward_scale,
-            data["obs2"],
-            data["done"],
-        )
-        if self.use_gpu:
-            self.networks.cuda()
-            obs, act, rew, obs2, done = (
-                obs.cuda(),
-                act.cuda(),
-                rew.cuda(),
-                obs2.cuda(),
-                done.cuda(),
-            )
-
         self.networks.q_optimizer.zero_grad()
-        loss = self.compute_loss(obs, act, rew, obs2, done)
-        loss.backward()
+        if not self.per_flag:
+            obs, act, rew, obs2, done = (
+                data["obs"],
+                data["act"],
+                data["rew"] * self.reward_scale,
+                data["obs2"],
+                data["done"],
+            )
+            if self.use_gpu:
+                self.networks.cuda()
+                obs, act, rew, obs2, done = (
+                    obs.cuda(),
+                    act.cuda(),
+                    rew.cuda(),
+                    obs2.cuda(),
+                    done.cuda(),
+                )
+            loss = self.compute_loss(obs, act, rew, obs2, done)
+            loss.backward()
+        else:
+            obs, act, rew, obs2, done, idx, weight = (
+                data["obs"],
+                data["act"],
+                data["rew"] * self.reward_scale,
+                data["obs2"],
+                data["done"],
+                data["idx"],
+                data["weight"]
+            )
+            if self.use_gpu:
+                self.networks.cuda()
+                obs, act, rew, obs2, done, idx, weight = (
+                    obs.cuda(),
+                    act.cuda(),
+                    rew.cuda(),
+                    obs2.cuda(),
+                    done.cuda(),
+                    idx.cuda(),
+                    weight.cuda()
+                )
+            loss, abs_err = self.compute_loss_per(obs, act, rew, obs2, done, idx, weight)
+            loss.backward()
 
         if self.use_gpu:
             self.networks.cpu()
@@ -143,7 +167,10 @@ class DQN(AlgorithmBase):
         # grad_info["q_grad"] = q_grad
         # grad_info["tau"] = self.tau
 
-        return tb_info
+        if self.per_flag:
+            return tb_info, idx, abs_err
+        else:
+            return tb_info
 
     def __update(self, iteration):
         self.networks.q_optimizer.step()
@@ -155,19 +182,19 @@ class DQN(AlgorithmBase):
                 p_targ.data.add_((1 - polyak) * p.data)
 
     def local_update(self, data: dict, iteration: int):
-        tb_info = self.__compute_gradient(data, iteration)
+        extra_info = self.__compute_gradient(data, iteration)
         self.__update(iteration)
-        return tb_info
+        return extra_info
 
     def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
-        tb_info = self.__compute_gradient(data, iteration)
+        extra_info = self.__compute_gradient(data, iteration)
 
         update_info = {
             "q_grad": [p._grad for p in self.networks.q.parameters()],
             "iteration": iteration,
         }
 
-        return tb_info, update_info
+        return extra_info, update_info
 
     def remote_update(self, update_info: dict):
         iteration = update_info["iteration"]
@@ -194,6 +221,25 @@ class DQN(AlgorithmBase):
 
         loss = F.mse_loss(q_policy, q_expect)
         return loss
+
+    def compute_loss_per(
+        self,
+        obs: torch.Tensor,
+        act: torch.Tensor,
+        rew: torch.Tensor,
+        obs2: torch.Tensor,
+        done: torch.Tensor,
+        idx: torch.Tensor,
+        weight: torch.Tensor
+    ):
+        q_policy = self.networks.q(obs).gather(1, act.to(torch.long)).squeeze()
+
+        with torch.no_grad():
+            q_target, _ = torch.max(self.networks.target(obs2), dim=1)
+        q_expect = rew + self.gamma * (1 - done) * q_target
+        loss = (weight * ((q_policy - q_expect) ** 2)).mean()
+        abs_err = torch.abs(q_policy-q_expect)
+        return loss, abs_err
 
     def load_state_dict(self, state_dict: Dict[str, torch.Tensor]):
         self.networks.load_state_dict(state_dict)

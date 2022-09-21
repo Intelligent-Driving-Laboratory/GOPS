@@ -24,6 +24,7 @@ class OffSerialTrainer:
         self.alg = alg
         self.sampler = sampler
         self.buffer = buffer
+        self.per_flag = (kwargs["buffer_name"] == "prioritized_replay_buffer")
         self.evaluator = evaluator
 
         self.networks = self.alg.networks
@@ -73,7 +74,12 @@ class OffSerialTrainer:
         if self.use_gpu:
             for k, v in replay_samples.items():
                 replay_samples[k] = v.cuda()
-        alg_tb_dict = self.alg.local_update(replay_samples, self.iteration)
+
+        if self.per_flag:
+            alg_tb_dict, idx, new_priority = self.alg.local_update(replay_samples, self.iteration)
+            self.buffer.update_batch(idx, new_priority)
+        else:
+            alg_tb_dict = self.alg.local_update(replay_samples, self.iteration)
 
         # log
         if self.iteration % self.log_save_interval == 0:

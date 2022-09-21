@@ -7,7 +7,7 @@
 #  Update Date: 2020-12-13, Hao Sun: add create buffer function
 
 
-from ..trainer.buffer.replay_buffer import ReplayBuffer
+import importlib
 
 
 def create_buffer(**kwargs):
@@ -22,21 +22,21 @@ def create_buffer(**kwargs):
     ):
         buffer_file_name = kwargs["buffer_name"].lower()
         try:
-            file = __import__(buffer_file_name)
+            module = importlib.import_module("gops.trainer.buffer." + buffer_file_name)
         except NotImplementedError:
             raise NotImplementedError("This buffer does not exist")
 
         buffer_name = formatter(buffer_file_name)
 
-        if hasattr(file, buffer_name):  #
-            buffer_cls = getattr(file, buffer_name)  # 返回
+        if hasattr(module, buffer_name):  #
+            buffer_cls = getattr(module, buffer_name)  # 返回
             if trainer == "off_serial_trainer":
                 buffer = buffer_cls(**kwargs)
             elif trainer == "off_async_trainer" or trainer == "off_async_trainermix" or trainer == "off_sync_trainer":
                 import ray
 
                 buffer = [
-                    ray.remote(num_cpus=1)(ReplayBuffer).remote(index=idx, **kwargs)
+                    ray.remote(num_cpus=1)(buffer_cls).remote(index=idx, **kwargs)
                     for idx in range(kwargs["num_buffers"])
                 ]
             else:
