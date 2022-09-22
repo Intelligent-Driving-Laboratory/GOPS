@@ -1,5 +1,5 @@
-from shaping_reward import ShapingRewardData, ShapingRewardModel
-from scale_observation import ScaleObservationData, ScaleObservationModel
+from gops.env.env_wrapper.shaping_reward import ShapingRewardData, ShapingRewardModel
+from gops.env.env_wrapper.scale_observation import ScaleObservationData, ScaleObservationModel
 
 
 def all_none(a, b):

@@ -15,6 +15,9 @@ class ShapingRewardData(gym.Wrapper):
     """
         r_rescaled = (r + reward_shift) * reward_scale
         info["raw_reward"] = r
+        example: add following to example script
+            parser.add_argument("--reward_scale", default=0.5)
+            parser.add_argument("--reward_shift", default=0)
     """
     def __init__(self, env, reward_shift: float = 0.0, reward_scale: float = 1.0):
         super(ShapingRewardData, self).__init__(env)
@@ -31,6 +34,9 @@ class ShapingRewardData(gym.Wrapper):
 class ShapingRewardModel(ModelWrapper):
     """
         r_rescaled = (r + reward_shift) * reward_scale
+        example: add following to example script
+            parser.add_argument("--reward_scale", default=0.5)
+            parser.add_argument("--reward_shift", default=0)
     """
     def __init__(self,
                  model: nn.Module,

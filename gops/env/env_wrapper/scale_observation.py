@@ -16,6 +16,9 @@ class ScaleObservationData(gym.Wrapper):
     """
         obs_rescaled = (obs + shift) * scale
         info["raw_obs"] = obs
+        example: add following to example script
+            parser.add_argument("--obs_scale", default=np.array([2, 2, 2, 2]))
+            parser.add_argument("--obs_shift", default=np.array([0, 0, 0, 0]))
     """
     def __init__(self, env, shift: Union[np.ndarray, float] = 0.0, scale: Union[np.ndarray, float] = 1.0):
         super(ScaleObservationData, self).__init__(env)
@@ -44,13 +47,20 @@ class ScaleObservationData(gym.Wrapper):
 class ScaleObservationModel(ModelWrapper):
     """
         obs_rescaled = (obs + shift) * scale
+        example: add following to example script
+            parser.add_argument("--obs_scale", default=np.array([2, 2, 2, 2]))
+            parser.add_argument("--obs_shift", default=np.array([0, 0, 0, 0]))
     """
     def __init__(self,
                  model: nn.Module,
-                 shift: Union[torch.Tensor, float] = 0.0,
-                 scale: Union[torch.Tensor, float] = 1.0
+                 shift: Union[np.ndarray, float] = 0.0,
+                 scale: Union[np.ndarray, float] = 1.0
                  ):
         super(ScaleObservationModel, self).__init__(model)
+        if isinstance(shift, np.ndarray):
+            shift = torch.as_tensor(shift, dtype=torch.float32)
+        if isinstance(scale, np.ndarray):
+            scale = torch.as_tensor(scale, dtype=torch.float32)
         self.shift = shift
         self.scale = scale
 

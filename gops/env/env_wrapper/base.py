@@ -8,10 +8,10 @@ class ModelWrapper(nn.Module):
         super(ModelWrapper, self).__init__()
         self.model = model
 
-    def __getattr__(self, name):
-        if name.startswith("_"):
-            raise AttributeError(f"attempted to get missing private attribute '{name}'")
-        return getattr(self.env, name)
+    # def __getattr__(self, name):
+    #     if name.startswith("_"):
+    #         raise AttributeError(f"attempted to get missing private attribute '{name}'")
+    #     return getattr(self.model, name)
 
     def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=None):
         return self.model.forward(state, action, beyond_done)
