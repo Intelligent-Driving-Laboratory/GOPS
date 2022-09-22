@@ -45,16 +45,9 @@ class ReplayBuffer:
             "done": np.zeros(self.max_size, dtype=np.float32),
             "logp": np.zeros(self.max_size, dtype=np.float32),
         }
-        if "constraint_dim" in kwargs.keys():
-            self.con_dim = kwargs["constraint_dim"]
-            self.buf["con"] = np.zeros(
-                combined_shape(self.max_size, self.con_dim), dtype=np.float32
-            )
-        if "adversary_dim" in kwargs.keys():
-            self.advers_dim = kwargs["adversary_dim"]
-            self.buf["advers"] = np.zeros(
-                combined_shape(self.max_size, self.advers_dim), dtype=np.float32
-            )
+        self.additional_info = kwargs["additional_info"]
+        for k, v in self.additional_info.items():
+            self.buf[k] = np.zeros(combined_shape(self.max_size, v["shape"]), dtype=v["dtype"])
         self.ptr, self.size, = (
             0,
             0,
@@ -74,9 +67,7 @@ class ReplayBuffer:
             next_obs: np.ndarray,
             done: bool,
             logp: np.ndarray,
-            time_limited: bool,
-            con=None,
-            advers=None
+            info: dict
     ):
         self.buf["obs"][self.ptr] = obs
         self.buf["obs2"][self.ptr] = next_obs
@@ -84,10 +75,8 @@ class ReplayBuffer:
         self.buf["rew"][self.ptr] = rew
         self.buf["done"][self.ptr] = done
         self.buf["logp"][self.ptr] = logp
-        if con is not None and "con" in self.buf.keys():
-            self.buf["con"][self.ptr] = con
-        if advers is not None and "advers" in self.buf.keys():
-            self.buf["advers"][self.ptr] = advers
+        for k in self.additional_info.keys():
+            self.buf[k][self.ptr] = info[k]
         self.ptr = (self.ptr + 1) % self.max_size
         self.size = min(self.size + 1, self.max_size)
 
