@@ -8,21 +8,15 @@
 #  Update Date: 2021-03-05, Wenxuan Wang: add action clip
 
 
+import time
+
 import numpy as np
 import torch
 
 from gops.create_pkg.create_env import create_env
-from gops.utils.act_distribution import (
-    GaussDistribution,
-    DiracDistribution,
-    ValueDiracDistribution,
-    CategoricalDistribution,
-)
-from gops.utils.explore_noise import GaussNoise, EpsilonGreedy
-import time
-from gops.utils.tensorboard_setup import tb_tags
-from gops.utils.common_utils import array_to_scalar
 from gops.utils.common_utils import set_seed
+from gops.utils.explore_noise import GaussNoise, EpsilonGreedy
+from gops.utils.tensorboard_setup import tb_tags
 
 
 class OffSampler:
@@ -45,22 +39,12 @@ class OffSampler:
         self.act_dim = kwargs["action_dim"]
         self.total_sample_number = 0
         self.reward_scale = 1.0
-        # initialize if using constrained or adversary environment
-        if "constraint_dim" in kwargs.keys():
-            self.is_constrained = True
-            self.con_dim = kwargs["constraint_dim"]
-        else:
-            self.is_constrained = False
-        if "adversary_dim" in kwargs.keys():
-            self.is_adversary = True
-            self.advers_dim = kwargs["adversary_dim"]
-        else:
-            self.is_adversary = False
         if self.noise_params is not None:
             if self.action_type == "continu":
                 self.noise_processor = GaussNoise(**self.noise_params)
             elif self.action_type == "discret":
                 self.noise_processor = EpsilonGreedy(**self.noise_params)
+        self.additional_info = kwargs["additional_info"]
 
     def load_state_dict(self, state_dict):
         self.networks.load_state_dict(state_dict)
@@ -104,18 +88,8 @@ class OffSampler:
                 next_obs.copy(),
                 self.done,
                 logp,
-                info["TimeLimit.truncated"],
+                info,
             ]
-            if self.is_constrained:
-                constraint = info["constraint"]
-            else:
-                constraint = None
-            if self.is_adversary:
-                sth_about_adversary = np.zeros(self.advers_dim)
-            else:
-                sth_about_adversary = None
-            data.append(constraint)
-            data.append(sth_about_adversary)
             batch_data.append(tuple(data))
             self.obs = next_obs
             if self.done or info["TimeLimit.truncated"]:
