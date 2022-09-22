@@ -12,7 +12,7 @@ from gym.wrappers.time_limit import TimeLimit
 import numpy as np
 import matplotlib.pyplot as plt
 
-from gops.env.env_ocp.pyth_inverteddoublependulum_model import Dynamics
+from gops.env.env_ocp.pyth_idpendulum_model import Dynamics
 
 gym.logger.setLevel(gym.logger.ERROR)
 plt.rcParams['toolbar'] = 'None'
