@@ -5,7 +5,7 @@
 #  Creator: iDLab
 #  Description: Create environments
 #  Update Date: 2020-11-10, Yuhang Zhang: add create environments code
-
+from gops.env.env_wrapper.wrapping_utils import wrapping_model
 
 def create_env_model(**kwargs):
     env_model_name = kwargs["env_id"] + "_model"
@@ -24,6 +24,13 @@ def create_env_model(**kwargs):
         env_model = y(**kwargs)
     else:
         raise NotImplementedError("This environment model is not properly defined")
+
+    reward_scale = kwargs.get("reward_scale", None)
+    reward_shift = kwargs.get("reward_shift", None)
+    obs_scale = kwargs.get("obs_scale", None)
+    obs_shift = kwargs.get("obs_shift", None)
+    env_model = wrapping_model(env_model, reward_shift, reward_scale, obs_shift, obs_scale)
+    print("model", reward_shift, reward_scale, obs_shift, obs_scale)
     print("Create environment model successfully!")
     return env_model
 

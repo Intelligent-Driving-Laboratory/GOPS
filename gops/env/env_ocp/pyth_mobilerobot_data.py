@@ -50,6 +50,12 @@ class PythMobilerobot:
 
         self.steps = 0
 
+    @staticmethod
+    def additional_info():
+        info_dict = dict(
+            constraint={"shape": (1,), "dtype": np.float64}
+        )
+        return info_dict
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -259,3 +265,11 @@ def clip_by_tensor(t, t_min, t_max):
     result = (t >= t_min) * t + (t < t_min) * t_min
     result = (result <= t_max) * result + (result > t_max) * t_max
     return result
+
+
+if __name__ == "__main__":
+    env = env_creator()
+    env.reset()
+    a = env.action_space.sample()
+    d, r, d, info = env.step(a)
+    print(info["constraint"].dtype, type(info["constraint"]))
