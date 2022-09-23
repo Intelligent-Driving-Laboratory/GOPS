@@ -142,17 +142,18 @@ class INFADP(AlgorithmBase):
             data["done"],
         )
         v = self.networks.v(o)
+        info_init = data
 
         with torch.no_grad():
             for step in range(self.forward_step):
                 if step == 0:
                     a = self.networks.policy(o)
-                    o2, r, d, _ = self.envmodel.forward(o, a, d)
+                    o2, r, d, info = self.envmodel.forward(o, a,info_init, d)
                     backup = self.reward_scale * r
                 else:
                     o = o2
                     a = self.networks.policy(o)
-                    o2, r, d, _ = self.envmodel.forward(o, a, d)
+                    o2, r, d, info = self.envmodel.forward(o, a, info, d)
                     backup += self.reward_scale * self.gamma ** step * r
 
             backup += (
@@ -169,18 +170,19 @@ class INFADP(AlgorithmBase):
             data["obs2"],
             data["done"],
         )
+        info_init = data
         v_pi = torch.zeros(1)
         for p in self.networks.v.parameters():
             p.requires_grad = False
         for step in range(self.forward_step):
             if step == 0:
                 a = self.networks.policy(o)
-                o2, r, d, _ = self.envmodel.forward(o, a, d)
+                o2, r, d, info = self.envmodel.forward(o, a,info_init, d)
                 v_pi = self.reward_scale * r
             else:
                 o = o2
                 a = self.networks.policy(o)
-                o2, r, d, _ = self.envmodel.forward(o, a, d)
+                o2, r, d, info = self.envmodel.forward(o, a,info, d)
                 v_pi += self.reward_scale * self.gamma ** step * r
         v_pi += (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
         for p in self.networks.v.parameters():

@@ -21,6 +21,7 @@ class PythDemo(gym.Env):
     def __init__(self, **kwargs):
         self.is_adversary = kwargs.get("is_adversary", False)
         self.is_constraint = kwargs.get("is_constraint", False)
+        self.info_dict = {}
 
         # define your custom parameters here
 
@@ -40,16 +41,32 @@ class PythDemo(gym.Env):
             low=np.array(lb_action, dtype=np.float32), high=np.array(hb_action, dtype=np.float32)
         )
 
-        if self.is_constraint:
+        if self.is_adversary:
             # define adversial action space here
             lb_adv_action = [-1.0, -1.0]
             hb_adv_action = [1.0, 1.0]
             self.adv_action_space = spaces.Box(
                 low=np.array(lb_adv_action, dtype=np.float32), high=np.array(hb_adv_action, dtype=np.float32)
             )
+            self.info_dict["advers"]= {"shape":self.adv_action_space.shape, "dtype":np.float32}
+        if self.is_constraint:
+            # define constraint dimension here
+            self.constraint_dim = 1
+            self.info_dict["cons"] = {"shape": self.constraint_dim, "dtype": np.float32}
+
+        # define state dimension here
+        # NOTE: Observation may be different from state in some environments! In these cases, if you want to
+        #       use the corresponding "*_model.py", you need to define self.state_dim and add relevant information
+        #       to self.info
+        self.state_dim = (1,)
+        self.info_dict["state"] = {"shape": self.state_dim, "dtype": np.float32}
 
         self.seed()
         self.obs = None
+
+    @property
+    def additional_info(self):
+        return self.info_dict
 
     def seed(self, seed=None):
         """
@@ -73,7 +90,7 @@ class PythDemo(gym.Env):
 
         reward = 0
         done = False
-        info = {"constraint": None}
+        info = {"cons": 0.,"state":self.obs,"advers":0*self.obs}
         return self.obs, reward, done, info
 
     def reset(self, *, init_obs=None):

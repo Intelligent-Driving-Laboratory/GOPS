@@ -94,6 +94,7 @@ class FHADP(AlgorithmBase):
             data["obs2"],
             data["done"],
         )
+        info_init = data
         v_pi =0
         if hasattr(self.envmodel,'forward_n_step'):
             next_state_list, v_pi, done_list = self.envmodel.forward_n_step(
@@ -102,12 +103,12 @@ class FHADP(AlgorithmBase):
             for step in range(self.forward_step):
                 if step == 0:
                     a = self.networks.policy(o)
-                    o2, r, d, _ = self.envmodel.forward(o, a, d)
+                    o2, r, d, info = self.envmodel.forward(o, a,info_init, d)
                     v_pi =  r
                 else:
                     o = o2
                     a = self.networks.policy(o)
-                    o2, r, d, _ = self.envmodel.forward(o, a, d)
+                    o2, r, d, info = self.envmodel.forward(o, a,info, d)
                     v_pi += r
 
         return -(v_pi * self.reward_scale).mean()

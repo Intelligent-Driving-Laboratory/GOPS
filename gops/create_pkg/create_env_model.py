@@ -30,7 +30,7 @@ def create_env_model(**kwargs):
     obs_scale = kwargs.get("obs_scale", None)
     obs_shift = kwargs.get("obs_shift", None)
     env_model = wrapping_model(env_model, reward_shift, reward_scale, obs_shift, obs_scale)
-    print("model", reward_shift, reward_scale, obs_shift, obs_scale)
+    # print("wrap_model with", reward_shift, reward_scale, obs_shift, obs_scale)
     print("Create environment model successfully!")
     return env_model
 
