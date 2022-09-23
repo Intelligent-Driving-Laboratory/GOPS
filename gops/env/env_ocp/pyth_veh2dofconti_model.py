@@ -98,9 +98,9 @@ class VehicleDynamics(object):
         x_next = self.f_xu(x_1, u_1, 1 / frequency)
         return x_next
 
-    def compute_rewards(self, states, actions):  # obses and actions are tensors
-        v_ys, rs, delta_ys, delta_phis = states[:, 0], states[:, 1], states[:, 2], \
-                                                   states[:, 3]
+    def compute_rewards(self, obs, actions):  # obses and actions are tensors
+        v_ys, rs, delta_ys, delta_phis = obs[:, 0], obs[:, 1], obs[:, 2], \
+                                                   obs[:, 3]
         devi_y = -torch.square(delta_ys)
         devi_phi = -torch.square(delta_phis)
         steers = actions[:, 0]

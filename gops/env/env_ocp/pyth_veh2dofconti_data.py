@@ -77,9 +77,9 @@ class VehicleDynamics(object):
             state_next[3] += 2 * np.pi
         return state_next, obs
 
-    def compute_rewards(self, states, actions):  # obses and actions are tensors
-        v_ys, rs, delta_ys, delta_phis = states[0], states[1], states[2], \
-                                                   states[3]
+    def compute_rewards(self, obs, actions):  # obses and actions are tensors
+        v_ys, rs, delta_ys, delta_phis = obs[0], obs[1], obs[2], \
+                                                   obs[3]
         devi_y = -np.square(delta_ys)
         devi_phi = -np.square(delta_phis)
         steers = actions[0]
@@ -93,9 +93,6 @@ class VehicleDynamics(object):
 class ReferencePath(object):
     def __init__(self):
         self.expect_v = 10
-        self.path_x = self.compute_x_point()
-        self.path_y = self.compute_path_y(self.path_x)
-        self.path_phi = self.compute_path_phi(self.path_x)
         self.period = 1200
 
     def compute_x_point(self):
@@ -191,7 +188,7 @@ class SimuVeh2dofconti(gym.Env,):
         reward = self.vehicle_dynamics.compute_rewards(self.obs, action)
         self.state, self.obs = self.vehicle_dynamics.simulation(self.state, action,
                                              base_freq=self.base_frequency)
-        self.done = self.judge_done(self.obs)
+        self.done = self.judge_done(self.state)
 
         state = np.array(self.state, dtype=np.float32)
         return self.obs, reward, self.done, {"state":state}
@@ -217,6 +214,7 @@ def env_creator(**kwargs):
 
 if __name__ == "__main__":
     env = env_creator()
+    env.seed()
     env.reset()
     for _ in range(100):
         action = env.action_space.sample()
