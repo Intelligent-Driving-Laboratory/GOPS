@@ -33,7 +33,7 @@ def create_env(**kwargs):
     obs_scale = kwargs.get("obs_scale", None)
     obs_shift = kwargs.get("obs_shift", None)
     env = wrapping_env(env, reward_shift, reward_scale, obs_shift, obs_scale)
-    print("env", reward_shift, reward_scale, obs_shift, obs_scale)
+    # print("wrap_env with", reward_shift, reward_scale, obs_shift, obs_scale)
     print("Create environment successfully!")
     return env
 
