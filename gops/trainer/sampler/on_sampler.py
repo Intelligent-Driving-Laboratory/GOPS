@@ -8,21 +8,16 @@
 #  Update: 2021-03-05, Wenxuan Wang: add action clip
 
 
+import time
+
 import numpy as np
 import torch
 
 from gops.create_pkg.create_env import create_env
-from gops.utils.act_distribution import (
-    GaussDistribution,
-    DiracDistribution,
-    ValueDiracDistribution,
-    CategoricalDistribution,
-)
-from gops.utils.explore_noise import GaussNoise, EpsilonGreedy
-import time
-from gops.utils.tensorboard_setup import tb_tags
-from gops.utils.common_utils import array_to_scalar
 from gops.utils.common_utils import set_seed
+from gops.utils.explore_noise import GaussNoise, EpsilonGreedy
+from gops.utils.tensorboard_setup import tb_tags
+
 
 class OnSampler:
     def __init__(self, index=0, **kwargs):
@@ -60,21 +55,9 @@ class OnSampler:
         self.mb_val = np.zeros(self.sample_batch_size, dtype=np.float32)
         self.mb_adv = np.zeros(self.sample_batch_size, dtype=np.float32)
         self.mb_ret = np.zeros(self.sample_batch_size, dtype=np.float32)
-        # initialize if using constrained or adversary environment
-        if "constraint_dim" in kwargs.keys():
-            self.is_constrained = True
-            self.con_dim = kwargs["constraint_dim"]
-        else:
-            self.is_constrained = False
-        if "adversary_dim" in kwargs.keys():
-            self.is_adversary = True
-            self.advers_dim = kwargs["adversary_dim"]
-        else:
-            self.is_adversary = False
-        if self.is_constrained:
-            self.mb_con = np.zeros((self.sample_batch_size, self.con_dim))
-        if self.is_adversary:
-            self.mb_avs = np.zeros((self.sample_batch_size, self.advers_dim))
+        self.mb_additional = {}
+        for k, v in kwargs["additional_info"].items():
+            self.mb_additional[k] = np.zeros((self.sample_batch_size, *v["shape"]), dtype=v["dtype"])
         if self.noise_params is not None:
             if self.action_type == "continu":
                 self.noise_processor = GaussNoise(**self.noise_params)
@@ -116,12 +99,6 @@ class OnSampler:
                 info["TimeLimit.truncated"] = False
             if info["TimeLimit.truncated"]:
                 self.done = False
-            if self.is_constrained:
-                constraint = info["constraint"]
-                self.mb_con[t] = constraint
-            if self.is_adversary:
-                sth_about_adversary = np.zeros(self.advers_dim)
-                self.mb_avs[t] = sth_about_adversary
             (
                 self.mb_obs[t],
                 self.mb_act[t],
@@ -139,13 +116,15 @@ class OnSampler:
                 logp,
                 value,
             )
+            for k in self.mb_additional.keys():
+                self.mb_additional[k][t] = info[k]
             self.obs = next_obs
             if self.done or info["TimeLimit.truncated"]:
                 self.obs = self.env.reset()
             if (
-                self.done
-                or info["TimeLimit.truncated"]
-                or t == self.sample_batch_size - 1
+                    self.done
+                    or info["TimeLimit.truncated"]
+                    or t == self.sample_batch_size - 1
             ):
                 last_obs_expand = torch.from_numpy(
                     np.expand_dims(next_obs, axis=0).astype("float32")
@@ -169,6 +148,8 @@ class OnSampler:
             "ret": torch.from_numpy(self.mb_ret),
             "adv": torch.from_numpy(self.mb_adv),
         }
+        for k, v in self.mb_additional.items():
+            mb_data[k] = torch.from_numpy(v)
         return mb_data, tb_info
 
     def get_total_sample_number(self):
@@ -185,9 +166,9 @@ class OnSampler:
         gae = 0.0
         for i in reversed(range(length)):
             delta = (
-                rews_slice[i]
-                + self.gamma * value_preds_slice[i + 1]
-                - value_preds_slice[i]
+                    rews_slice[i]
+                    + self.gamma * value_preds_slice[i + 1]
+                    - value_preds_slice[i]
             )
             gae = delta + self.gamma * self.gae_lambda * gae
             ret[i] = gae + value_preds_slice[i]

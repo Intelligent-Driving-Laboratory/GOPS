@@ -76,12 +76,16 @@ class PythDemo(gym.Env):
         info = {"constraint": None}
         return self.obs, reward, done, info
 
-    def reset(self):
+    def reset(self, *, init_obs=None):
         """
         self.obs: initial observation, datatype:numpy.ndarray, shape:[state_dim]
         """
         # define initial state distribution here
-        self.obs = self.np_random.uniform(low=-0.05, high=0.05, size=(self.observation_space.shape[0],))
+        if init_obs is None:
+            self.obs = self.np_random.uniform(low=-0.05, high=0.05, size=(self.observation_space.shape[0],))
+        else:
+            assert self.observation_space.contains(init_obs)
+            self.obs = init_obs
         return self.obs
 
     def render(self, mode="human"):

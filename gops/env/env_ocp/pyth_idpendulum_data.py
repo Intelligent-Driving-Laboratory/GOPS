@@ -12,7 +12,7 @@ from gym.wrappers.time_limit import TimeLimit
 import numpy as np
 import matplotlib.pyplot as plt
 
-from gops.env.env_ocp.pyth_inverteddoublependulum_model import Dynamics
+from gops.env.env_ocp.pyth_idpendulum_model import Dynamics
 
 gym.logger.setLevel(gym.logger.ERROR)
 plt.rcParams['toolbar'] = 'None'
@@ -73,18 +73,22 @@ class PythInverteddoublependulum(gym.Env):
         reward = reward.numpy()[0]
         return self.obs, reward, bool(done), info
 
-    def reset(self):
+    def reset(self, *, init_obs=None):
         """
         self.obs: initial observation, datatype:numpy.ndarray, shape:[state_dim]
         """
         # define initial state distribution here
-        p = self.np_random.uniform(low=-0.1, high=0.1)
-        theta1 = self.np_random.uniform(low=-0.1, high=0.1)
-        theta2 = self.np_random.uniform(low=-0.1, high=0.1)
-        pdot = self.np_random.standard_normal() * 0.1
-        theta1dot = self.np_random.standard_normal() * 0.1
-        theta2dot = self.np_random.standard_normal() * 0.1
-        self.obs = np.array([p, theta1, theta2, pdot, theta1dot, theta2dot], dtype=np.float32)
+        if init_obs is None:
+            p = self.np_random.uniform(low=-0.1, high=0.1)
+            theta1 = self.np_random.uniform(low=-0.1, high=0.1)
+            theta2 = self.np_random.uniform(low=-0.1, high=0.1)
+            pdot = self.np_random.standard_normal() * 0.1
+            theta1dot = self.np_random.standard_normal() * 0.1
+            theta2dot = self.np_random.standard_normal() * 0.1
+            self.obs = np.array([p, theta1, theta2, pdot, theta1dot, theta2dot], dtype=np.float32)
+        else:
+            assert self.observation_space.contains(init_obs)
+            self.abs = init_obs
         return self.obs
 
     def render(self, mode="human"):

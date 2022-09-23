@@ -9,6 +9,9 @@ import gym
 import numpy as np
 import torch
 
+from gops.env.env_wrapper.base import ModelWrapper
+
+
 class EnvC2U(gym.Wrapper):
     """
     transform an env with constraints to env without constraint by punishing
@@ -26,28 +29,24 @@ class EnvC2U(gym.Wrapper):
         return observation, reward_new, done, info
 
 
-class ModelC2U:
+class ModelC2U(ModelWrapper):
     """
     transform an env model with constraints to env model without constraint by punishing
     the constraint function in the reward function
     """
-    def __init__(self, dyn, punish_factor=10):
-        self.dyn = dyn
+    def __init__(self, model, punish_factor=10):
+        super(ModelC2U, self).__init__(model)
+        self.model = model
         self.punish_factor = punish_factor
-
-    def __getattr__(self, name):
-        if name.startswith("_"):
-            raise AttributeError(f"attempted to get missing private attribute '{name}'")
-        return getattr(self.dyn, name)
     
     def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=None):
-        state_next, reward, done, info = self.dyn.forward(state, action, beyond_done)
+        state_next, reward, done, info = self.model.forward(state, action, beyond_done)
         const = info["constraint"].reshape(state_next.shape[0], -1)
-        # print(reward.shape, const.shape)
+
         punish = torch.clamp(const, min=0) * self.punish_factor
 
         reward_new = reward - torch.sum(punish, dim=1)
-        # print(torch.sum(punish, dim=1).shape, reward_new.shape)
+
         return state_next, reward_new, done, info
 
 def main():
