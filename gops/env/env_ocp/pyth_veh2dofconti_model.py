@@ -21,7 +21,8 @@ class Veh2dofcontiModel(torch.nn.Module):
         self.vehicle_dynamics = VehicleDynamics()
         self.base_frequency = 10.
 
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, info: dict, beyond_done=None):
+    # obs is o2 in data
+    def forward(self, obs: torch.Tensor, action: torch.Tensor, info: dict, beyond_done=torch.tensor(1)):
         steer_norm = action
         actions = steer_norm * 1.2 * np.pi / 9
         reward = self.vehicle_dynamics.compute_rewards(obs, actions)
@@ -35,24 +36,18 @@ class Veh2dofcontiModel(torch.nn.Module):
 
         isdone = self.vehicle_dynamics.judge_done(state_next)
 
-        path_y, path_phi = self.path.compute_path_y(t), \
-                           self.path.compute_path_phi(t)
-        obs = torch.tensor([v_ys, rs, ys - path_y, phis - path_phi], dtype=torch.float32)
-        for i in range(self.prediction_horizon - 1):
+        path_y, path_phi = self.vehicle_dynamics.path.compute_path_y(t), \
+                           self.vehicle_dynamics.path.compute_path_phi(t)
+        obs = torch.stack([v_ys, rs, ys - path_y, phis - path_phi], 1)
+        for i in range(self.vehicle_dynamics.prediction_horizon - 1):
             ref_y = self.vehicle_dynamics.path.compute_path_y(t + (i + 1) / self.base_frequency)
             ref_phi = self.vehicle_dynamics.path.compute_path_phi(t + (i + 1) / self.base_frequency)
-            ref_obs = torch.tensor([ys - ref_y, phis - ref_phi], dtype=torch.float32)
+            ref_obs = torch.stack([ys - ref_y, phis - ref_phi], 1)
             obs = torch.hstack((obs, ref_obs))
         info["state"] = state_next
         info["constraint"] = None
 
-        if beyond_done is None:
-            beyond_done = torch.full([obs.size()[0]], False, dtype=torch.float32)
-
-        beyond_done = beyond_done.bool()
-        mask = isdone | beyond_done
-        mask = torch.unsqueeze(mask, -1)
-        return obs, reward, mask.squeeze(), info
+        return obs, reward, isdone, {"state":state_next}
 
 
 class VehicleDynamics(object):
@@ -96,8 +91,6 @@ class VehicleDynamics(object):
         return next_state
 
     def judge_done(self, state):
-        # v_ys, rs, ys, phis = state[0], state[1], state[2], state[3]
-        # done = (np.abs(delta_ys) > 2)
         done = False
         return done
 
@@ -120,50 +113,41 @@ class VehicleDynamics(object):
 
 class ReferencePath(object):
     def __init__(self):
-        self.expect_v = 10
-        self.path_x = self.compute_x_point()
-        self.path_y = self.compute_path_y(self.path_x)
-        self.path_phi = self.compute_path_phi(self.path_x)
+        self.expect_v = 10.
         self.period = 1200
-
-
-    def compute_x_point(self):
-        x = np.linspace(0., 1000., 10000).astype(np.float32)
-        return x
-
-    def indexs2points(self, indexs):
-        indexs = torch.tensor(indexs)
-        indexs = torch.where(torch.tensor(indexs >= 0), indexs, torch.tensor(0))
-        indexs = torch.where(torch.tensor(indexs < len(self.path_x)), indexs, torch.tensor(len(self.path_x) - 1))
-        indexs = torch.tensor(indexs, dtype=torch.int64)
-        points = (torch.gather(torch.Tensor(self.path_x), 0, indexs),
-                 torch.gather(torch.Tensor(self.path_y), 0, indexs),
-                 torch.gather(torch.Tensor(self.path_phi), 0, indexs))
-
-        return points[0], points[1], points[2]
-
-    def find_closest_point(self, xs, ys, ratio=1):
-        path_len = len(self.path_x)
-        reduced_idx = np.arange(0, path_len, ratio)
-        reduced_len = len(reduced_idx)
-        reduced_path_x, reduced_path_y = self.path_x[reduced_idx], self.path_y[reduced_idx]
-        reduced_path_x = torch.tensor(reduced_path_x)
-        reduced_path_y = torch.tensor(reduced_path_y)
-        xs_tile = xs.reshape(-1, 1).repeat(1, reduced_len)
-        ys_tile = ys.reshape(-1, 1).repeat(1, reduced_len)
-        pathx_tile = reduced_path_x.reshape(1, -1).repeat(len(xs), 1)
-        pathy_tile = reduced_path_y.reshape(1, -1).repeat(len(xs), 1)
-        dist_array = torch.square(xs_tile - pathx_tile) + torch.square(ys_tile - pathy_tile)
-        indexs = torch.argmin(dist_array, 1) * ratio
-        return indexs, self.indexs2points(indexs)
+    # def indexs2points(self, indexs):
+    #     indexs = torch.tensor(indexs)
+    #     indexs = torch.where(torch.tensor(indexs >= 0), indexs, torch.tensor(0))
+    #     indexs = torch.where(torch.tensor(indexs < len(self.path_x)), indexs, torch.tensor(len(self.path_x) - 1))
+    #     indexs = torch.tensor(indexs, dtype=torch.int64)
+    #     points = (torch.gather(torch.Tensor(self.path_x), 0, indexs),
+    #              torch.gather(torch.Tensor(self.path_y), 0, indexs),
+    #              torch.gather(torch.Tensor(self.path_phi), 0, indexs))
+    #
+    #     return points[0], points[1], points[2]
+    #
+    # def find_closest_point(self, xs, ys, ratio=1):
+    #     path_len = len(self.path_x)
+    #     reduced_idx = np.arange(0, path_len, ratio)
+    #     reduced_len = len(reduced_idx)
+    #     reduced_path_x, reduced_path_y = self.path_x[reduced_idx], self.path_y[reduced_idx]
+    #     reduced_path_x = torch.tensor(reduced_path_x)
+    #     reduced_path_y = torch.tensor(reduced_path_y)
+    #     xs_tile = xs.reshape(-1, 1).repeat(1, reduced_len)
+    #     ys_tile = ys.reshape(-1, 1).repeat(1, reduced_len)
+    #     pathx_tile = reduced_path_x.reshape(1, -1).repeat(len(xs), 1)
+    #     pathy_tile = reduced_path_y.reshape(1, -1).repeat(len(xs), 1)
+    #     dist_array = torch.square(xs_tile - pathx_tile) + torch.square(ys_tile - pathy_tile)
+    #     indexs = torch.argmin(dist_array, 1) * ratio
+    #     return indexs, self.indexs2points(indexs)
 
     def compute_path_y(self, t):
-        y = np.sin((1 / 30) * self.expect_v * t)
+        y = torch.sin((1 / 30) * self.expect_v * t)
         return y
 
     def compute_path_phi(self, t):
-        phi = (np.sin((1 / 30) * self.expect_v * (t + 0.001)) - np.sin((1 / 30) * self.expect_v * t)) / (self.expect_v * 0.001)
-        return np.arctan(phi)
+        phi = (torch.sin((1 / 30) * self.expect_v * (t + 0.001)) - torch.sin((1 / 30) * self.expect_v * t)) / (self.expect_v * 0.001)
+        return torch.arctan(phi)
 
     def compute_y(self, x, delta_y):
         y_ref = self.compute_path_y(x)
@@ -176,18 +160,9 @@ class ReferencePath(object):
     def compute_phi(self, x, delta_phi):
         phi_ref = self.compute_path_phi(x)
         phi = delta_phi + phi_ref
-        if phi > np.pi:
-            phi -= 2 * np.pi
-        if phi <= -np.pi:
-            phi += 2 * np.pi
+        phi[phi > torch.pi] -= 2 * torch.pi
+        phi[phi <= -torch.pi] += 2 * torch.pi
         return phi
-
-    def compute_delta_phi(self, x, phi):
-        phi_ref = self.compute_path_phi(x)
-        delta_phi = phi - phi_ref
-        delta_phi[delta_phi > np.pi] -= 2 * np.pi
-        delta_phi[delta_phi <= -np.pi] += 2 * np.pi
-        return delta_phi
 
 
 def env_model_creator(**kwargs):
@@ -208,12 +183,3 @@ def clip_by_tensor(t, t_min, t_max):
     result = (t >= t_min) * t + (t < t_min) * t_min
     result = (result <= t_max) * result + (result > t_max) * t_max
     return result
-
-if __name__ == "__main__":
-    path = ReferencePath()
-    x = torch.tensor([1, 2, 3])
-    y = torch.tensor([2, 2, 3])
-
-    index, _ = path.find_closest_point(x, y)
-    print(index)
-    print(_)

@@ -53,9 +53,7 @@ class VehicleDynamics(object):
         return next_state
 
     def judge_done(self, state):
-        # v_ys, rs, ys, phis = state[0], state[1], state[2], state[3]
-        # done = (np.abs(delta_ys) > 2)
-        done = False
+        done = True
         return done
 
     def prediction(self, x_1, u_1, frequency):
@@ -100,36 +98,9 @@ class ReferencePath(object):
         self.path_phi = self.compute_path_phi(self.path_x)
         self.period = 1200
 
-
     def compute_x_point(self):
         x = np.linspace(0., 1000., 10000).astype(np.float32)
         return x
-
-    def indexs2points(self, indexs):
-        indexs = torch.tensor(indexs)
-        indexs = torch.where(torch.tensor(indexs >= 0), indexs, torch.tensor(0))
-        indexs = torch.where(torch.tensor(indexs < len(self.path_x)), indexs, torch.tensor(len(self.path_x) - 1))
-        indexs = torch.tensor(indexs, dtype=torch.int64)
-        points = (torch.gather(torch.Tensor(self.path_x), 0, indexs),
-                 torch.gather(torch.Tensor(self.path_y), 0, indexs),
-                 torch.gather(torch.Tensor(self.path_phi), 0, indexs))
-
-        return points[0], points[1], points[2]
-
-    def find_closest_point(self, xs, ys, ratio=1):
-        path_len = len(self.path_x)
-        reduced_idx = np.arange(0, path_len, ratio)
-        reduced_len = len(reduced_idx)
-        reduced_path_x, reduced_path_y = self.path_x[reduced_idx], self.path_y[reduced_idx]
-        reduced_path_x = torch.tensor(reduced_path_x)
-        reduced_path_y = torch.tensor(reduced_path_y)
-        xs_tile = xs.reshape(-1, 1).repeat(1, reduced_len)
-        ys_tile = ys.reshape(-1, 1).repeat(1, reduced_len)
-        pathx_tile = reduced_path_x.reshape(1, -1).repeat(len(xs), 1)
-        pathy_tile = reduced_path_y.reshape(1, -1).repeat(len(xs), 1)
-        dist_array = torch.square(xs_tile - pathx_tile) + torch.square(ys_tile - pathy_tile)
-        indexs = torch.argmin(dist_array, 1) * ratio
-        return indexs, self.indexs2points(indexs)
 
     def compute_path_y(self, t):
         y = np.sin((1 / 30) * self.expect_v * t)
@@ -174,16 +145,20 @@ class SimuVeh2dofconti(gym.Env,):
         self.base_frequency = 10
         self.expected_vs = 10.
         self.observation_space = gym.spaces.Box(
-            low=np.array([-np.inf] * (4)),
-            high=np.array([np.inf] * (4)),
+            low=np.array([-np.inf] * (22)),
+            high=np.array([np.inf] * (22)),
             dtype=np.float32)
         self.action_space = gym.spaces.Box(low=np.array([-1.2 * np.pi / 9]),
                                            high=np.array([1.2 * np.pi / 9]),
                                            dtype=np.float32)
-        self.Max_step = 100
-        self.cstep = 0
         self.obs = None
         self.state = None
+        self.state_dim = 5
+        self.info_dict = {"state":{"shape": self.state_dim, "dtype": np.float32}}
+
+    @property
+    def additional_info(self):
+        return self.info_dict
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -208,7 +183,7 @@ class SimuVeh2dofconti(gym.Env,):
             obs = np.hstack((obs, ref_obs))
         self.obs = obs
         self.state = np.array([init_v_y, init_r, init_y, init_phi, t], dtype=np.float32)
-        return self.obs, self.state
+        return self.obs
 
     def step(self, action: np.ndarray, adv_action=None):  # think of action is in range [-1, 1]
         steer_norm = action
@@ -217,9 +192,9 @@ class SimuVeh2dofconti(gym.Env,):
         self.state, self.obs = self.vehicle_dynamics.simulation(self.state, action,
                                              base_freq=self.base_frequency)
         self.done = self.judge_done(self.obs)
-        info = {"TimeLimit.truncated": self.cstep > self.Max_step}
-        self.cstep = self.cstep + 1
-        return self.obs, reward, self.done, info
+
+        state = np.array(self.state, dtype=np.float32)
+        return self.obs, reward, self.done, {"state":state}
 
     def judge_done(self, state):
 
