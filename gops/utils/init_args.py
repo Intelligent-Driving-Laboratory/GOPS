@@ -69,7 +69,7 @@ def init_args(env, **args):
         args["constraint_dim"] = env.constraint_dim
 
     if hasattr(env, "additional_info"):
-        args["additional_info"] = env.additional_info()
+        args["additional_info"] = env.additional_info
     else:
         args["additional_info"] = {}
 

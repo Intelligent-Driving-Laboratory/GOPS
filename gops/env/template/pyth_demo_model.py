@@ -9,6 +9,8 @@ import warnings
 import numpy as np
 import torch
 
+from gops.utils.gops_typing import InfoDict
+
 
 class GymDemocontiModel(torch.nn.Module):
     def __init__(self):
@@ -33,7 +35,7 @@ class GymDemocontiModel(torch.nn.Module):
         self.lb_action = torch.tensor(lb_action, dtype=torch.float32)
         self.hb_action = torch.tensor(hb_action, dtype=torch.float32)
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=None):
+    def forward(self, state: torch.Tensor, action: torch.Tensor, info: InfoDict, beyond_done=None):
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
@@ -41,22 +43,26 @@ class GymDemocontiModel(torch.nn.Module):
         when constructing your function
         :param state: datatype:torch.Tensor, shape:[batch_size, state_dim]
         :param action: datatype:torch.Tensor, shape:[batch_size, action_dim]
+        :param info: datatype: InfoDict, any useful information for debug or training, including constraint,
+                     adversary action, etc
         :param beyond_done: flag indicate the state is already done which means it will not be calculated by the model
         :return:
                 next_state:  datatype:torch.Tensor, shape:[batch_size, state_dim]
-                              the state will not change anymore when the corresponding flag done is set to True
+                             the state will not change anymore when the corresponding flag done is set to True
                 reward:  datatype:torch.Tensor, shape:[batch_size,]
                 isdone:   datatype:torch.Tensor, shape:[batch_size,]
-                         flag done will be set to true when the model reaches the max_iteration or the next state
-                         satisfies ending condition
+                          flag done will be set to true when the model reaches the max_iteration or the next state
+                          satisfies ending condition
 
-                info: datatype: dict, any useful information for debug or training, including constraint
-                        {"constraint": None}
+                info: datatype: InfoDict, any useful information for debug or training, including constraint,
+                      adversary action, etc
         """
         warning_msg = "action out of action space!"
         if not ((action <= self.hb_action).all() and (action >= self.lb_action).all()):
             warnings.warn(warning_msg)
             action = clip_by_tensor(action, self.lb_action, self.hb_action)
+        # If the state is same as observation in your environment, you can delete the following line
+            state = info["state"]
 
         warning_msg = "state out of state space!"
         if not ((state <= self.hb_state).all() and (state >= self.lb_state).all()):
@@ -85,7 +91,10 @@ class GymDemocontiModel(torch.nn.Module):
         mask = torch.unsqueeze(mask, -1)
         state_next = ~mask * state_next + mask * state
         reward = ~(beyond_done) * reward
-        return state_next, reward, mask.squeeze(), {"constraint": None}
+        # the content in info is determined by your environment, if your environment don't need any extra infomation,
+        # you can set info ={}
+        info={"state":state_next,"constraint": 0}
+        return state_next, reward, mask.squeeze(), info
 
     def forward_n_step(self, func, n, state: torch.Tensor):
         reward = torch.zeros(size=[state.size()[0], n])
