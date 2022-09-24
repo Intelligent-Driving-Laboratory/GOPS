@@ -40,6 +40,8 @@ if __name__ == "__main__":
     parser.add_argument("--action_high_limit", type=list, default=None)
     parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--action_type", type=str, default="continu")
+    parser.add_argument("--reward_scale", type=float, default=2.0)
+    parser.add_argument("--obs_scale", type=list, default=[1.0,1.0,1.0,1.0])
     parser.add_argument("--is_render", type=bool, default=False)
     parser.add_argument(
         "--is_adversary", type=bool, default=False, help="Adversary training"

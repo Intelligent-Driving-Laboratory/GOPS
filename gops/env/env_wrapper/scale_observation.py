@@ -22,8 +22,12 @@ class ScaleObservationData(gym.Wrapper):
             parser.add_argument("--obs_scale", default=np.array([2, 2, 2, 2]))
             parser.add_argument("--obs_shift", default=np.array([0, 0, 0, 0]))
     """
-    def __init__(self, env, shift: Union[np.ndarray, float] = 0.0, scale: Union[np.ndarray, float] = 1.0):
+    def __init__(self, env, shift: Union[np.ndarray, float, list] = 0.0, scale: Union[np.ndarray, float, list] = 1.0):
         super(ScaleObservationData, self).__init__(env)
+        if  isinstance(shift, list):
+            shift = np.array(shift, dtype=np.float32)
+        if  isinstance(scale, list):
+            scale = np.array(scale, dtype=np.float32)
         self.shift = shift
         self.scale = scale
 
@@ -55,13 +59,13 @@ class ScaleObservationModel(ModelWrapper):
     """
     def __init__(self,
                  model: nn.Module,
-                 shift: Union[np.ndarray, float] = 0.0,
-                 scale: Union[np.ndarray, float] = 1.0
+                 shift: Union[np.ndarray, float, list] = 0.0,
+                 scale: Union[np.ndarray, float, list] = 1.0
                  ):
         super(ScaleObservationModel, self).__init__(model)
-        if isinstance(shift, np.ndarray):
+        if isinstance(shift, np.ndarray) or isinstance(shift, list):
             shift = torch.as_tensor(shift, dtype=torch.float32)
-        if isinstance(scale, np.ndarray):
+        if isinstance(scale, np.ndarray) or isinstance(scale, list):
             scale = torch.as_tensor(scale, dtype=torch.float32)
         self.shift = shift
         self.scale = scale
