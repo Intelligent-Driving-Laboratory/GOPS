@@ -52,10 +52,6 @@ class VehicleDynamics(object):
                       ])
         return next_state
 
-    def judge_done(self, state):
-        done = True
-        return done
-
     def prediction(self, x_1, u_1, frequency):
         x_next = self.f_xu(x_1, u_1, 1 / frequency)
         return x_next

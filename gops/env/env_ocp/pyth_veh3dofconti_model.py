@@ -82,8 +82,8 @@ class VehicleDynamics(object):
         self.path = ReferencePath()
 
     def f_xu(self, states, actions, tau):
-        v_x, v_y, r, delta_y, delta_phi, x = states[:, 0], states[:, 1], states[:, 2], \
-                                             states[:, 3], states[:, 4], states[:, 5]
+        v_x, v_y, r, delta_y, delta_phi, x, t = states[:, 0], states[:, 1], states[:, 2], \
+                                             states[:, 3], states[:, 4], states[:, 5], states[:, 6]
         steer, a_x = actions[:, 0], actions[:, 1]
         C_f = torch.tensor(self.vehicle_params['C_f'], dtype=torch.float32)
         C_r = torch.tensor(self.vehicle_params['C_r'], dtype=torch.float32)
@@ -109,6 +109,7 @@ class VehicleDynamics(object):
                       delta_y + tau * (v_x * torch.sin(delta_phi) + v_y * torch.cos(delta_phi)),
                       delta_phi + tau * r,
                       x + tau * (v_x * torch.cos(delta_phi) - v_y * torch.sin(delta_phi)),
+                      t + tau
                       ]
         alpha_f_bounds, alpha_r_bounds = 3 * miu_f * F_zf / C_f, 3 * miu_r * F_zr / C_r
         r_bounds = miu_r * g / torch.abs(v_x)
@@ -120,15 +121,16 @@ class VehicleDynamics(object):
         return state_next, others
 
     def judge_done(self, veh_state, stability_related):
-        v_xs, v_ys, rs, delta_ys, delta_phis, xs = veh_state[0], veh_state[1], veh_state[2], \
-                                                   veh_state[3], veh_state[4], veh_state[5]
+        v_xs, v_ys, rs, ys, phis, xs, t = veh_state[0], veh_state[1], veh_state[2], \
+                                                   veh_state[3], veh_state[4], veh_state[5], veh_state[6]
         alpha_f, alpha_r, r, alpha_f_bounds, alpha_r_bounds, r_bounds = stability_related[0], \
                                                                         stability_related[1], \
                                                                         stability_related[2], \
                                                                         stability_related[3], \
                                                                         stability_related[4], \
                                                                         stability_related[5]
-        done = (np.abs(delta_ys) > 3) | (np.abs(delta_phis) > np.pi / 4.) | (v_xs < 2) | \
+        done = (np.abs(ys - self.path.compute_path_y(t)) > 3) | (np.abs(phis - self.path.compute_path_phi(t)) > np.pi / 4.) | \
+               (v_xs < 2) | \
                (alpha_f < -alpha_f_bounds) | (alpha_f > alpha_f_bounds) | \
                (alpha_r < -alpha_r_bounds) | (alpha_r > alpha_r_bounds) | \
                (r < -r_bounds) | (r > r_bounds)
