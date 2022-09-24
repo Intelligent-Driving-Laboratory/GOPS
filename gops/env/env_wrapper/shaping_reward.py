@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 
 from gops.env.env_wrapper.base import ModelWrapper
+from gops.utils.gops_typing import InfoDict
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
@@ -47,8 +48,8 @@ class ShapingRewardModel(ModelWrapper):
         self.shift = shift
         self.scale = scale
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=None):
-        s, r, d, info = self.model.forward(state, action, beyond_done)
+    def forward(self, state: torch.Tensor, action: torch.Tensor, info: InfoDict,  beyond_done=None):
+        s, r, d, info = self.model.forward(state, action, info, beyond_done)
         r_scaled = (r + self.shift) * self.scale
         return s, r_scaled, d, info
 

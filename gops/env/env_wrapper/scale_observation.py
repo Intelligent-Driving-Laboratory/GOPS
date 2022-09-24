@@ -7,6 +7,8 @@ import torch
 import torch.nn as nn
 
 from gops.env.env_wrapper.base import ModelWrapper
+from gops.utils.gops_typing import InfoDict
+
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
@@ -15,7 +17,7 @@ ActType = TypeVar("ActType")
 class ScaleObservationData(gym.Wrapper):
     """
         obs_rescaled = (obs + shift) * scale
-        info["raw_obs"] = obs
+        info["raw_obs"] = obs`
         example: add following to example script
             parser.add_argument("--obs_scale", default=np.array([2, 2, 2, 2]))
             parser.add_argument("--obs_shift", default=np.array([0, 0, 0, 0]))
@@ -64,8 +66,8 @@ class ScaleObservationModel(ModelWrapper):
         self.shift = shift
         self.scale = scale
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=None):
+    def forward(self, state: torch.Tensor, action: torch.Tensor, info: InfoDict,  beyond_done=None):
         unscaled_state = state / self.scale - self.shift
-        s, r, d, info = self.model.forward(unscaled_state, action, beyond_done)
+        s, r, d, info = self.model.forward(unscaled_state, action, info, beyond_done)
         scaled_state = (s + self.shift) * self.scale
         return scaled_state, r, d, info
