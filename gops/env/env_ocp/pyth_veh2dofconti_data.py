@@ -10,7 +10,7 @@
 import gym
 from gym.utils import seeding
 import numpy as np
-import torch
+from gym.wrappers.time_limit import TimeLimit
 
 class VehicleDynamics(object):
     def __init__(self):
@@ -52,10 +52,6 @@ class VehicleDynamics(object):
                       ])
         return next_state
 
-    def judge_done(self, state):
-        done = True
-        return done
-
     def prediction(self, x_1, u_1, frequency):
         x_next = self.f_xu(x_1, u_1, 1 / frequency)
         return x_next
@@ -77,9 +73,9 @@ class VehicleDynamics(object):
             state_next[3] += 2 * np.pi
         return state_next, obs
 
-    def compute_rewards(self, states, actions):  # obses and actions are tensors
-        v_ys, rs, delta_ys, delta_phis = states[0], states[1], states[2], \
-                                                   states[3]
+    def compute_rewards(self, obs, actions):  # obses and actions are tensors
+        v_ys, rs, delta_ys, delta_phis = obs[0], obs[1], obs[2], \
+                                                   obs[3]
         devi_y = -np.square(delta_ys)
         devi_phi = -np.square(delta_phis)
         steers = actions[0]
@@ -93,14 +89,7 @@ class VehicleDynamics(object):
 class ReferencePath(object):
     def __init__(self):
         self.expect_v = 10
-        self.path_x = self.compute_x_point()
-        self.path_y = self.compute_path_y(self.path_x)
-        self.path_phi = self.compute_path_phi(self.path_x)
         self.period = 1200
-
-    def compute_x_point(self):
-        x = np.linspace(0., 1000., 10000).astype(np.float32)
-        return x
 
     def compute_path_y(self, t):
         y = np.sin((1 / 30) * self.expect_v * t)
@@ -109,30 +98,6 @@ class ReferencePath(object):
     def compute_path_phi(self, t):
         phi = (np.sin((1 / 30) * self.expect_v * (t + 0.001)) - np.sin((1 / 30) * self.expect_v * t)) / (self.expect_v * 0.001)
         return np.arctan(phi)
-
-    def compute_y(self, x, delta_y):
-        y_ref = self.compute_path_y(x)
-        return delta_y + y_ref
-
-    def compute_delta_y(self, x, y):
-        y_ref = self.compute_path_y(x)
-        return y - y_ref
-
-    def compute_phi(self, x, delta_phi):
-        phi_ref = self.compute_path_phi(x)
-        phi = delta_phi + phi_ref
-        if phi > np.pi:
-            phi -= 2 * np.pi
-        if phi <= -np.pi:
-            phi += 2 * np.pi
-        return phi
-
-    def compute_delta_phi(self, x, phi):
-        phi_ref = self.compute_path_phi(x)
-        delta_phi = phi - phi_ref
-        delta_phi[delta_phi > np.pi] -= 2 * np.pi
-        delta_phi[delta_phi <= -np.pi] += 2 * np.pi
-        return delta_phi
 
 
 class SimuVeh2dofconti(gym.Env,):
@@ -148,13 +113,14 @@ class SimuVeh2dofconti(gym.Env,):
             low=np.array([-np.inf] * (22)),
             high=np.array([np.inf] * (22)),
             dtype=np.float32)
-        self.action_space = gym.spaces.Box(low=np.array([-1.2 * np.pi / 9]),
-                                           high=np.array([1.2 * np.pi / 9]),
+        self.action_space = gym.spaces.Box(low=np.array([-np.pi / 6]),
+                                           high=np.array([np.pi / 6]),
                                            dtype=np.float32)
         self.obs = None
         self.state = None
         self.state_dim = 5
         self.info_dict = {"state":{"shape": self.state_dim, "dtype": np.float32}}
+        self.seed()
 
     @property
     def additional_info(self):
@@ -168,9 +134,9 @@ class SimuVeh2dofconti(gym.Env,):
         t = 60. * self.np_random.uniform(low=0., high=1.)
         init_x = self.expected_vs * t
         init_delta_y = self.np_random.normal(0, 1)
-        init_y = self.vehicle_dynamics.path.compute_y(init_x, init_delta_y)
+        init_y = self.vehicle_dynamics.path.compute_path_y(t) + init_delta_y
         init_delta_phi = self.np_random.normal(0, np.pi / 9)
-        init_phi = self.vehicle_dynamics.path.compute_phi(init_x, init_delta_phi)
+        init_phi = self.vehicle_dynamics.path.compute_path_phi(t) + init_delta_phi
         beta = self.np_random.normal(0, 0.15)
         init_v_y = self.expected_vs * np.tan(beta)
         init_r = self.np_random.normal(0, 0.3)
@@ -191,15 +157,17 @@ class SimuVeh2dofconti(gym.Env,):
         reward = self.vehicle_dynamics.compute_rewards(self.obs, action)
         self.state, self.obs = self.vehicle_dynamics.simulation(self.state, action,
                                              base_freq=self.base_frequency)
-        self.done = self.judge_done(self.obs)
+        self.done = self.judge_done(self.state)
 
         state = np.array(self.state, dtype=np.float32)
         return self.obs, reward, self.done, {"state":state}
 
     def judge_done(self, state):
+        v_ys, rs, ys, phis, t = state[0], state[1], state[2], \
+                                                           state[3], state[4]
 
-        done = True
-
+        done = (np.abs(ys - self.vehicle_dynamics.path.compute_path_y(t)) > 3) | \
+               (np.abs(phis - self.vehicle_dynamics.path.compute_path_phi(t)) > np.pi / 4.)
         return done
 
     def close(self):
@@ -213,10 +181,11 @@ def env_creator(**kwargs):
     """
     make env `pyth_veh2dofconti`
     """
-    return SimuVeh2dofconti(**kwargs)
+    return TimeLimit(SimuVeh2dofconti(**kwargs), 1)
 
 if __name__ == "__main__":
     env = env_creator()
+    env.seed()
     env.reset()
     for _ in range(100):
         action = env.action_space.sample()
