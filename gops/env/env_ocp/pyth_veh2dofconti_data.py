@@ -13,7 +13,7 @@ import numpy as np
 from gym.wrappers.time_limit import TimeLimit
 
 class VehicleDynamics(object):
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.vehicle_params = dict(C_f=-128915.5,  # front wheel cornering stiffness [N/rad]
                                    C_r=-85943.6,  # rear wheel cornering stiffness [N/rad]
                                    a=1.06,  # distance from CG to front axle [m]
@@ -29,7 +29,7 @@ class VehicleDynamics(object):
         self.vehicle_params.update(dict(F_zf=F_zf,
                                         F_zr=F_zr))
         self.path = ReferencePath()
-        self.prediction_horizon = 10
+        self.prediction_horizon = kwargs["predictive_horizon"]
 
     def f_xu(self, states, actions, tau):
         v_y, r, delta_y, delta_phi, t = states[0], states[1], states[2], \
@@ -104,8 +104,8 @@ class SimuVeh2dofconti(gym.Env,):
     def __init__(self, num_future_data=0, num_agent=1, **kwargs):
         self.is_adversary = kwargs.get("is_adversary", False)
         self.is_constraint = kwargs.get("is_constraint", False)
-        self.prediction_horizon = 10
-        self.vehicle_dynamics = VehicleDynamics()
+        self.prediction_horizon = kwargs["predictive_horizon"]
+        self.vehicle_dynamics = VehicleDynamics(**kwargs)
         self.num_agent = num_agent
         self.base_frequency = 10
         self.expected_vs = 10.
