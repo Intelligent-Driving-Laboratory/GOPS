@@ -205,21 +205,20 @@ class SimuVeh3dofconti(gym.Env,):
         return self.obs, reward, self.done, {"state":state}
 
     def judge_done(self, veh_state, stability_related):
-        # v_xs, v_ys, rs, ys, phis, xs, t = veh_state[0], veh_state[1], veh_state[2], \
-        #                                            veh_state[3], veh_state[4], veh_state[5], veh_state[6]
-        # alpha_f, alpha_r, r, alpha_f_bounds, alpha_r_bounds, r_bounds = stability_related[0], \
-        #                                                                 stability_related[1], \
-        #                                                                 stability_related[2], \
-        #                                                                 stability_related[3], \
-        #                                                                 stability_related[4], \
-        #                                                                 stability_related[5]
-        # done = (np.abs(ys- self.vehicle_dynamics.path.compute_path_y(t)) > 3) |\
-        #        (np.abs(phis - self.vehicle_dynamics.path.compute_path_phi(t)) > np.pi / 4.) |\
-        #        (v_xs < 2) | \
-        #        (alpha_f < -alpha_f_bounds) | (alpha_f > alpha_f_bounds) | \
-        #        (alpha_r < -alpha_r_bounds) | (alpha_r > alpha_r_bounds) | \
-        #        (r < -r_bounds) | (r > r_bounds)
-        done = True
+        v_xs, v_ys, rs, ys, phis, xs, t = veh_state[0], veh_state[1], veh_state[2], \
+                                                   veh_state[3], veh_state[4], veh_state[5], veh_state[6]
+        alpha_f, alpha_r, r, alpha_f_bounds, alpha_r_bounds, r_bounds = stability_related[0], \
+                                                                        stability_related[1], \
+                                                                        stability_related[2], \
+                                                                        stability_related[3], \
+                                                                        stability_related[4], \
+                                                                        stability_related[5]
+        done = (np.abs(ys- self.vehicle_dynamics.path.compute_path_y(t)) > 3) |\
+               (np.abs(phis - self.vehicle_dynamics.path.compute_path_phi(t)) > np.pi / 4.) |\
+               (v_xs < 2) | \
+               (alpha_f < -alpha_f_bounds) | (alpha_f > alpha_f_bounds) | \
+               (alpha_r < -alpha_r_bounds) | (alpha_r > alpha_r_bounds) | \
+               (r < -r_bounds) | (r > r_bounds)
         return done
 
     def close(self):
