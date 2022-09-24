@@ -91,11 +91,10 @@ class VehicleDynamics(object):
         return next_state
 
     def judge_done(self, state):
-        v_ys, rs, ys, phis, t = state[0], state[1], state[2], \
-                                state[3], state[4]
-
-        done = (np.abs(ys - self.path.compute_path_y(t)) > 3) | \
-               (np.abs(phis - self.path.compute_path_phi(t)) > np.pi / 4.)
+        v_ys, rs, ys, phis, t = state[:, 0], state[:, 1], state[:, 2], \
+                                state[:, 3], state[:, 4]
+        done = (torch.abs(ys - self.path.compute_path_y(t)) > 3) | \
+               (torch.abs(phis - self.path.compute_path_phi(t)) > np.pi / 4.)
         return done
 
     def prediction(self, x_1, u_1, frequency):

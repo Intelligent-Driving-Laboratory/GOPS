@@ -150,8 +150,8 @@ class SimuVeh3dofconti(gym.Env,):
             low=np.array([-np.inf] * (33)),
             high=np.array([np.inf] * (33)),
             dtype=np.float32)
-        self.action_space = gym.spaces.Box(low=np.array([-1.2 * np.pi / 9, -3]),
-                                           high=np.array([1.2 * np.pi / 9, 3]),
+        self.action_space = gym.spaces.Box(low=np.array([-np.pi / 6, -3]),
+                                           high=np.array([np.pi / 6, 3]),
                                            dtype=np.float32)
         self.obs = None
         self.state = None
@@ -205,20 +205,21 @@ class SimuVeh3dofconti(gym.Env,):
         return self.obs, reward, self.done, {"state":state}
 
     def judge_done(self, veh_state, stability_related):
-        v_xs, v_ys, rs, ys, phis, xs, t = veh_state[0], veh_state[1], veh_state[2], \
-                                                   veh_state[3], veh_state[4], veh_state[5], veh_state[6]
-        alpha_f, alpha_r, r, alpha_f_bounds, alpha_r_bounds, r_bounds = stability_related[0], \
-                                                                        stability_related[1], \
-                                                                        stability_related[2], \
-                                                                        stability_related[3], \
-                                                                        stability_related[4], \
-                                                                        stability_related[5]
-        done = (np.abs(ys- self.vehicle_dynamics.path.compute_path_y(t)) > 3) |\
-               (np.abs(phis - self.vehicle_dynamics.path.compute_path_phi(t)) > np.pi / 4.) |\
-               (v_xs < 2) | \
-               (alpha_f < -alpha_f_bounds) | (alpha_f > alpha_f_bounds) | \
-               (alpha_r < -alpha_r_bounds) | (alpha_r > alpha_r_bounds) | \
-               (r < -r_bounds) | (r > r_bounds)
+        # v_xs, v_ys, rs, ys, phis, xs, t = veh_state[0], veh_state[1], veh_state[2], \
+        #                                            veh_state[3], veh_state[4], veh_state[5], veh_state[6]
+        # alpha_f, alpha_r, r, alpha_f_bounds, alpha_r_bounds, r_bounds = stability_related[0], \
+        #                                                                 stability_related[1], \
+        #                                                                 stability_related[2], \
+        #                                                                 stability_related[3], \
+        #                                                                 stability_related[4], \
+        #                                                                 stability_related[5]
+        # done = (np.abs(ys- self.vehicle_dynamics.path.compute_path_y(t)) > 3) |\
+        #        (np.abs(phis - self.vehicle_dynamics.path.compute_path_phi(t)) > np.pi / 4.) |\
+        #        (v_xs < 2) | \
+        #        (alpha_f < -alpha_f_bounds) | (alpha_f > alpha_f_bounds) | \
+        #        (alpha_r < -alpha_r_bounds) | (alpha_r > alpha_r_bounds) | \
+        #        (r < -r_bounds) | (r > r_bounds)
+        done = True
         return done
 
     def close(self):
@@ -232,7 +233,7 @@ def env_creator(**kwargs):
     """
     make env `pyth_veh3dofconti`
     """
-    return TimeLimit(SimuVeh3dofconti(**kwargs), 100)
+    return TimeLimit(SimuVeh3dofconti(**kwargs), 10)
 
 if __name__ == "__main__":
     env = env_creator()

@@ -113,8 +113,8 @@ class SimuVeh2dofconti(gym.Env,):
             low=np.array([-np.inf] * (22)),
             high=np.array([np.inf] * (22)),
             dtype=np.float32)
-        self.action_space = gym.spaces.Box(low=np.array([-1.2 * np.pi / 9]),
-                                           high=np.array([1.2 * np.pi / 9]),
+        self.action_space = gym.spaces.Box(low=np.array([-np.pi / 6]),
+                                           high=np.array([np.pi / 6]),
                                            dtype=np.float32)
         self.obs = None
         self.state = None
@@ -163,11 +163,12 @@ class SimuVeh2dofconti(gym.Env,):
         return self.obs, reward, self.done, {"state":state}
 
     def judge_done(self, state):
-        v_ys, rs, ys, phis, t = state[0], state[1], state[2], \
-                                                   state[3], state[4]
-
-        done = (np.abs(ys - self.vehicle_dynamics.path.compute_path_y(t)) > 3) | \
-               (np.abs(phis - self.vehicle_dynamics.path.compute_path_phi(t)) > np.pi / 4.)
+        # v_ys, rs, ys, phis, t = state[0], state[1], state[2], \
+        #         #                                            state[3], state[4]
+        #         #
+        #         # done = (np.abs(ys - self.vehicle_dynamics.path.compute_path_y(t)) > 3) | \
+        #         #        (np.abs(phis - self.vehicle_dynamics.path.compute_path_phi(t)) > np.pi / 4.)
+        done = True
         return done
 
     def close(self):
@@ -181,7 +182,7 @@ def env_creator(**kwargs):
     """
     make env `pyth_veh2dofconti`
     """
-    return TimeLimit(SimuVeh2dofconti(**kwargs), 100)
+    return TimeLimit(SimuVeh2dofconti(**kwargs), 10)
 
 if __name__ == "__main__":
     env = env_creator()

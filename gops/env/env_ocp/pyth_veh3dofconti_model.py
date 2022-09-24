@@ -42,13 +42,12 @@ class Veh3dofcontiModel(torch.nn.Module):
         state_next = torch.stack([v_xs, v_ys, rs, ys, phis, xs, t], 1)
 
         isdone = self.vehicle_dynamics.judge_done(state_next, stability_related)
-
         path_x, path_y, path_phi = self.vehicle_dynamics.path.compute_path_x(t),\
                                    self.vehicle_dynamics.path.compute_path_y(t), \
                            self.vehicle_dynamics.path.compute_path_phi(t)
         obs = torch.stack([v_xs - self.expected_vs, v_ys, rs, ys - path_y, phis - path_phi, xs - path_x], 1)
         for i in range(self.vehicle_dynamics.prediction_horizon - 1):
-            ref_x = self.path.compute_path_x(t + (i + 1) / self.base_freq)
+            ref_x = self.vehicle_dynamics.path.compute_path_x(t + (i + 1) / self.base_frequency)
             ref_y = self.vehicle_dynamics.path.compute_path_y(t + (i + 1) / self.base_frequency)
             ref_phi = self.vehicle_dynamics.path.compute_path_phi(t + (i + 1) / self.base_frequency)
             ref_obs = torch.stack([xs - ref_x, ys - ref_y, phis - ref_phi], 1)
@@ -121,19 +120,19 @@ class VehicleDynamics(object):
         return state_next, others
 
     def judge_done(self, veh_state, stability_related):
-        v_xs, v_ys, rs, ys, phis, xs, t = veh_state[0], veh_state[1], veh_state[2], \
-                                                   veh_state[3], veh_state[4], veh_state[5], veh_state[6]
-        alpha_f, alpha_r, r, alpha_f_bounds, alpha_r_bounds, r_bounds = stability_related[0], \
-                                                                        stability_related[1], \
-                                                                        stability_related[2], \
-                                                                        stability_related[3], \
-                                                                        stability_related[4], \
-                                                                        stability_related[5]
-        done = (np.abs(ys - self.path.compute_path_y(t)) > 3) | (np.abs(phis - self.path.compute_path_phi(t)) > np.pi / 4.) | \
-               (v_xs < 2) | \
-               (alpha_f < -alpha_f_bounds) | (alpha_f > alpha_f_bounds) | \
-               (alpha_r < -alpha_r_bounds) | (alpha_r > alpha_r_bounds) | \
-               (r < -r_bounds) | (r > r_bounds)
+        v_xs, v_ys, rs, ys, phis, xs, t = veh_state[:, 0], veh_state[:, 1], veh_state[:, 2], \
+                                                   veh_state[:, 3], veh_state[:, 4], veh_state[:, 5], veh_state[:, 6]
+        # alpha_f, alpha_r, r, alpha_f_bounds, alpha_r_bounds, r_bounds = stability_related[:, 0], \
+        #                                                                 stability_related[:, 1], \
+        #                                                                 stability_related[:, 2], \
+        #                                                                 stability_related[:, 3], \
+        #                                                                 stability_related[:, 4], \
+        #                                                                 stability_related[:, 5]
+        done = (torch.abs(ys - self.path.compute_path_y(t)) > 3) | (torch.abs(phis - self.path.compute_path_phi(t)) > np.pi / 4.) | \
+               (v_xs < 2)
+               # (alpha_f < -alpha_f_bounds) | (alpha_f > alpha_f_bounds) | \
+               # (alpha_r < -alpha_r_bounds) | (alpha_r > alpha_r_bounds) | \
+               # (r < -r_bounds) | (r > r_bounds)
         return done
 
 
@@ -171,21 +170,6 @@ class ReferencePath(object):
     def compute_path_phi(self, t):
         phi = (torch.sin((1 / 30) * self.expect_v * (t + 0.001)) - torch.sin((1 / 30) * self.expect_v * t)) / (self.expect_v * 0.001)
         return torch.arctan(phi)
-
-    def compute_y(self, x, delta_y):
-        y_ref = self.compute_path_y(x)
-        return delta_y + y_ref
-
-    def compute_delta_y(self, x, y):
-        y_ref = self.compute_path_y(x)
-        return y - y_ref
-
-    def compute_phi(self, x, delta_phi):
-        phi_ref = self.compute_path_phi(x)
-        phi = delta_phi + phi_ref
-        phi[phi > torch.pi] -= 2 * torch.pi
-        phi[phi <= -torch.pi] += 2 * torch.pi
-        return phi
 
 
 def env_model_creator(**kwargs):
