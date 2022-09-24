@@ -10,7 +10,7 @@
 import gym
 from gym.utils import seeding
 import numpy as np
-import torch
+from gym.wrappers.time_limit import TimeLimit
 
 class VehicleDynamics(object):
     def __init__(self):
@@ -95,10 +95,6 @@ class ReferencePath(object):
         self.expect_v = 10
         self.period = 1200
 
-    def compute_x_point(self):
-        x = np.linspace(0., 1000., 10000).astype(np.float32)
-        return x
-
     def compute_path_y(self, t):
         y = np.sin((1 / 30) * self.expect_v * t)
         return y
@@ -106,30 +102,6 @@ class ReferencePath(object):
     def compute_path_phi(self, t):
         phi = (np.sin((1 / 30) * self.expect_v * (t + 0.001)) - np.sin((1 / 30) * self.expect_v * t)) / (self.expect_v * 0.001)
         return np.arctan(phi)
-
-    def compute_y(self, x, delta_y):
-        y_ref = self.compute_path_y(x)
-        return delta_y + y_ref
-
-    def compute_delta_y(self, x, y):
-        y_ref = self.compute_path_y(x)
-        return y - y_ref
-
-    def compute_phi(self, x, delta_phi):
-        phi_ref = self.compute_path_phi(x)
-        phi = delta_phi + phi_ref
-        if phi > np.pi:
-            phi -= 2 * np.pi
-        if phi <= -np.pi:
-            phi += 2 * np.pi
-        return phi
-
-    def compute_delta_phi(self, x, phi):
-        phi_ref = self.compute_path_phi(x)
-        delta_phi = phi - phi_ref
-        delta_phi[delta_phi > np.pi] -= 2 * np.pi
-        delta_phi[delta_phi <= -np.pi] += 2 * np.pi
-        return delta_phi
 
 
 class SimuVeh2dofconti(gym.Env,):
@@ -152,6 +124,7 @@ class SimuVeh2dofconti(gym.Env,):
         self.state = None
         self.state_dim = 5
         self.info_dict = {"state":{"shape": self.state_dim, "dtype": np.float32}}
+        self.seed()
 
     @property
     def additional_info(self):
@@ -165,9 +138,9 @@ class SimuVeh2dofconti(gym.Env,):
         t = 60. * self.np_random.uniform(low=0., high=1.)
         init_x = self.expected_vs * t
         init_delta_y = self.np_random.normal(0, 1)
-        init_y = self.vehicle_dynamics.path.compute_y(init_x, init_delta_y)
+        init_y = self.vehicle_dynamics.path.compute_path_y(t) + init_delta_y
         init_delta_phi = self.np_random.normal(0, np.pi / 9)
-        init_phi = self.vehicle_dynamics.path.compute_phi(init_x, init_delta_phi)
+        init_phi = self.vehicle_dynamics.path.compute_path_phi(t) + init_delta_phi
         beta = self.np_random.normal(0, 0.15)
         init_v_y = self.expected_vs * np.tan(beta)
         init_r = self.np_random.normal(0, 0.3)
@@ -210,7 +183,7 @@ def env_creator(**kwargs):
     """
     make env `pyth_veh2dofconti`
     """
-    return SimuVeh2dofconti(**kwargs)
+    return TimeLimit(SimuVeh2dofconti(**kwargs), 100)
 
 if __name__ == "__main__":
     env = env_creator()
