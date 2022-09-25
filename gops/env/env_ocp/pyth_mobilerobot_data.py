@@ -89,8 +89,8 @@ class PythMobilerobot:
         self.state = state_next
         ############################################################################################
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
-        r_tracking = -1.4 * (tracking_error[:, 0]) ** 2 - 1 * tracking_error[:, 1] ** 2 - 16 * tracking_error[:, 2] ** 2
-        r_action = -0.2 * action[:, 0] ** 2 - 0.5 * action[:, 1] ** 2
+        r_tracking = -1.4 * np.abs(tracking_error[:, 0]) - 1 * np.abs(tracking_error[:, 1]) - 16 * np.abs(tracking_error[:, 2])
+        r_action = -0.2 * np.abs(action[:, 0]) - 0.5 * np.abs(action[:, 1])
         reward = r_tracking + r_action
         ############################################################################################
         # define the constraint here
@@ -180,7 +180,9 @@ class PythMobilerobot:
                     ax = axs[i, j]
                 ax.set_aspect(1)
                 ax.set_ylim(-3, 3)
-                ax.plot([0, 6], [0, 0], "k")
+                x = np.linspace(0, 6, 1000)
+                y = np.sin(1 / 30 * x)
+                ax.plot(x, y, "k")
                 circles = []
                 arrows = []
                 circles.append(plt.Circle([0, 0], r_rob, color="red", fill=False))
@@ -201,11 +203,11 @@ class PythMobilerobot:
 
 
 class Robot:
-    def __init__(self, path=None):
+    def __init__(self):
         self.robot_params = dict(
             v_max=0.4, w_max=np.pi / 2, v_delta_max=1.8, w_delta_max=0.8, v_desired=0.3, radius=0.74 / 2  # per second
         )
-        self.path = path
+        self.path = ReferencePath()
 
     def f_xu(self, states, actions, T, type):
         v_delta_max = self.robot_params["v_delta_max"]
@@ -233,12 +235,24 @@ class Robot:
         return np.stack(next_state, 1)
 
     def tracking_error(self, x):
-        error_position = x[:, 1]
-        error_head = x[:, 2]
+        error_position = x[:, 1] - self.path.compute_path_y(x[:, 0])
+        error_head = x[:, 2] - self.path.compute_path_phi(x[:, 0])
 
         error_v = x[:, 3] - self.robot_params["v_desired"]
         tracking = np.concatenate((error_position.reshape(-1, 1), error_head.reshape(-1, 1), error_v.reshape(-1, 1)), 1)
         return tracking
+
+class ReferencePath(object):
+    def __init__(self):
+        pass
+
+    def compute_path_y(self, x):
+        y = np.sin(1/30 * x)
+        return y
+
+    def compute_path_phi(self, x):
+        deriv = 1/30 * np.cos(1/30 * x)
+        return np.arctan(deriv)
 
 
 def env_creator(**kwargs):

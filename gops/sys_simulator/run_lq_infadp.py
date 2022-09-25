@@ -1,12 +1,12 @@
 from sys_run import PolicyRuner
 
-def controller_func(x):
-    u = -x+4
-    return u
 runer = PolicyRuner(
-    log_policy_dir_list=["../../results/INFADP/220919-104858"],
-    trained_policy_iteration_list=['4000'],
-    init_state=[2,-0.1],
-    save_render=False)
+    log_policy_dir_list=["../../results/INFADP/220919-152944", "../../results/INFADP/220919-152944", "../../results/INFADP/220919-152944"],
+    trained_policy_iteration_list=['5000', '6000', '3500'],
+    is_init_state=False,
+    init_state=[2, -0.1],
+    save_render=False,
+    legend_list=['5000', '6000', '3500'],
+    use_opt=True)
 
 runer.run()
