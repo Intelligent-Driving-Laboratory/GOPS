@@ -3,101 +3,128 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Prioritize Reply buffer
-#  Update: 2021-03-05, Yuheng Lei: Create reply buffer
+#  Description: Replay buffer
+#  Update: 2021-05-05, Yuheng Lei: Create prioritized replay buffer
 
 
 import numpy as np
+import sys
+import torch
+
+__all__ = ['PrioritizedReplayBuffer']
 
 
-class SumTree(object):
-    data_pointer = 0
-
-    def __init__(self, capacity):
-        self.capacity = capacity
-        self.tree = np.zeros(2 * capacity - 1)
-        self.data = np.zeros(capacity, dtype=object)
-
-    def add(self, p, data):
-        tree_idx = self.data_pointer + self.capacity - 1
-        self.data[self.data_pointer] = data
-        self.update(tree_idx, p)
-
-        self.data_pointer += 1
-        if self.data_pointer >= self.capacity:
-            self.data_pointer = 0
-
-    def update(self, tree_idx, p):
-        change = p - self.tree[tree_idx]
-        self.tree[tree_idx] = p
-        while tree_idx != 0:
-            tree_idx = (tree_idx - 1) // 2
-            self.tree[tree_idx] += change
-
-    def get_leaf(self, p):
-        parent_idx = 0
-        while True:
-            cl_idx = 2 * parent_idx + 1
-            cr_idx = cl_idx + 1
-            if cl_idx >= len(self.tree):
-                leaf_idx = parent_idx
-                break
-            else:
-                if p <= self.tree[cl_idx]:
-                    parent_idx = cl_idx
-                else:
-                    p -= self.tree[cl_idx]
-                    parent_idx = cr_idx
-
-        data_idx = leaf_idx - self.capacity + 1
-        return leaf_idx, self.tree[leaf_idx], self.data[data_idx]
-
-    @property
-    def total_p(self):
-        return self.tree[0]
+def combined_shape(length, shape=None):
+    if shape is None:
+        return (length,)
+    return (length, shape) if np.isscalar(shape) else (length, *shape)
 
 
 class PrioritizedReplayBuffer(object):
-    epsilon = 0.01
-    alpha = 0.6
-    beta = 0.4
-    beta_increment_per_sampling = 0.001
-    abs_err_upper = 1.0
+    def __init__(self, **kwargs):
+        self.obsv_dim = kwargs['obsv_dim']
+        self.act_dim = kwargs['action_dim']
+        self.max_size = kwargs['buffer_max_size']
+        self.buf = {'obs': np.zeros(combined_shape(self.max_size, self.obsv_dim), dtype=np.float32),
+                    'obs2': np.zeros(combined_shape(self.max_size, self.obsv_dim), dtype=np.float32),
+                    'act': np.zeros(combined_shape(self.max_size, self.act_dim), dtype=np.float32),
+                    'rew': np.zeros(self.max_size, dtype=np.float32),
+                    'done': np.zeros(self.max_size, dtype=np.float32),
+                    'logp': np.zeros(self.max_size, dtype=np.float32)}
+        if 'constraint_dim' in kwargs.keys():
+            self.con_dim = kwargs['constraint_dim']
+            self.buf['con'] = np.zeros(combined_shape(self.max_size, self.con_dim), dtype=np.float32)
+        if 'adversary_dim' in kwargs.keys():
+            self.advers_dim = kwargs['adversary_dim']
+            self.buf['advers'] = np.zeros(combined_shape(self.max_size, self.advers_dim), dtype=np.float32)
+        self.ptr, self.size, = 0, 0
+        self.sum_tree = np.zeros(2 * self.max_size - 1)
+        self.min_tree = float('inf') * np.ones(2 * self.max_size - 1)
+        self.alpha = kwargs['per_alpha']
+        self.beta = kwargs['per_beta_init']
+        self.beta_increment = kwargs['per_beta_increment']
+        self.epsilon = 1e-6
+        self.max_priority = 1. ** self.alpha
 
-    def __init__(self, buffer_size):
-        self.tree = SumTree(buffer_size)
+    def __len__(self):
+        return self.size
 
-    def store(self, transition):
-        max_p = np.max(self.tree.tree[-self.tree.capacity :])
-        if max_p == 0:
-            max_p = self.abs_err_upper
-        self.tree.add(max_p, transition)
+    def __get_RAM__(self):
+        return int(sys.getsizeof(self.buf)) * self.size / (self.max_size * 1000000)
 
-    def sample(self, n):
-        b_idx, b_memory, ISWeights = (
-            np.empty((n,), dtype=np.int32),
-            np.empty((n, self.tree.data[0].size)),
-            np.empty((n, 1)),
-        )
-        pri_seg = self.tree.total_p / n
-        self.beta = np.min([1.0, self.beta + self.beta_increment_per_sampling])
+    def store(self, obs, act, rew, next_obs, done, logp, time_limited, con=None, advers=None):
+        self.buf['obs'][self.ptr] = obs
+        self.buf['obs2'][self.ptr] = next_obs
+        self.buf['act'][self.ptr] = act
+        self.buf['rew'][self.ptr] = rew
+        self.buf['done'][self.ptr] = done
+        self.buf['logp'][self.ptr] = logp
+        if con is not None and 'con' in self.buf.keys():
+            self.buf['con'][self.ptr] = con
+        if advers is not None and 'advers' in self.buf.keys():
+            self.buf['advers'][self.ptr] = advers
+        tree_idx = self.ptr + self.max_size - 1
+        self.update_tree(tree_idx, self.max_priority)
+        self.ptr = (self.ptr + 1) % self.max_size
+        self.size = min(self.size + 1, self.max_size)
 
-        min_prob = np.min(self.tree.tree[-self.tree.capacity :]) / self.tree.total_p
-        if min_prob == 0:
-            min_prob = 0.00001
-        for i in range(n):
-            a, b = pri_seg * i, pri_seg * (i + 1)
-            v = np.random.uniform(a, b)
-            idx, p, data = self.tree.get_leaf(v)
-            prob = p / self.tree.total_p
-            ISWeights[i, 0] = np.power(prob / min_prob, -self.beta)
-            b_idx[i], b_memory[i, :] = idx, data
-        return b_idx, b_memory, ISWeights
+    def add_batch(self, samples):
+        for sample in samples:
+            self.store(*sample)
 
-    def batch_update(self, tree_idx, abs_errors):
-        # TODO
-        abs_errors += self.epsilon
-        clipped_errors = np.minimum(abs_errors, self.abs_err_upper)
-        ps = np.power(clipped_errors, self.alpha)
-        for ti, p in zip(tree_idx, ps):
-            self.tree.update(ti, p)
+    def update_tree(self, tree_idx, priority):
+        self.sum_tree[tree_idx] = priority
+        self.min_tree[tree_idx] = priority
+        parent = (tree_idx - 1) // 2
+        while True:
+            left = 2 * parent + 1
+            right = left + 1
+            self.sum_tree[parent] = self.sum_tree[left] + self.sum_tree[right]
+            self.min_tree[parent] = min(self.min_tree[left], self.min_tree[right])
+            if parent == 0:
+                break
+            parent = (parent - 1) // 2
+
+    def get_leaf(self, value):
+        parent = 0
+        while True:
+            left = 2 * parent + 1
+            right = left + 1
+            if left >= len(self.sum_tree):
+                idx = parent
+                break
+            else:
+                if value <= self.sum_tree[left]:
+                    parent = left
+                else:
+                    value -= self.sum_tree[left]
+                    parent = right
+        return idx, self.sum_tree[idx]
+
+    def sample_batch(self, batch_size):
+        idxes, weights = np.zeros(batch_size, dtype=np.int), np.zeros(batch_size)
+        segment = self.sum_tree[0] / batch_size
+        self.beta = min(1., self.beta + self.beta_increment)
+        min_prob = self.min_tree[0] / self.sum_tree[0]
+        max_weight = (min_prob * self.size) ** (-self.beta)
+        for i in range(batch_size):
+            a, b = segment * i, segment * (i + 1)
+            value = np.random.uniform(a, b)
+            idx, priority = self.get_leaf(value)
+            prob = priority / self.sum_tree[0]
+            weight = np.power(prob * self.size, -self.beta)
+            weights[i] = weight / max_weight
+            idxes[i] = idx
+        batch = {}
+        ptrs = idxes - self.max_size + 1
+        batch['idx'] = torch.as_tensor(idxes, dtype=torch.int)
+        batch['weight'] = torch.as_tensor(weights, dtype=torch.float32)
+        for k, v in self.buf.items():
+            batch[k] = torch.as_tensor(v[ptrs].copy(), dtype=torch.float32)
+        return batch
+
+    def update_batch(self, idxes, priorities):
+        for idx, priority in zip(idxes, priorities):
+            priority = (priority + self.epsilon) ** self.alpha
+            self.max_priority = max(self.max_priority, priority)
+            self.update_tree(idx, priority)

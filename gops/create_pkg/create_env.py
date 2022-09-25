@@ -5,7 +5,7 @@
 #  Creator: iDLab
 #  Description: Create environments
 #  Update Date: 2020-11-10, Yuhang Zhang: add create environments code
-
+from gops.env.env_wrapper.wrapping_utils import wrapping_env
 
 def create_env(**kwargs):
     env_name = kwargs["env_id"]
@@ -26,6 +26,14 @@ def create_env(**kwargs):
     else:
         print("Env name: ", env_name_camel)
         raise NotImplementedError("This environment is not properly defined")
+
+    # wrapping the env
+    reward_scale = kwargs.get("reward_scale", None)
+    reward_shift = kwargs.get("reward_shift", None)
+    obs_scale = kwargs.get("obs_scale", None)
+    obs_shift = kwargs.get("obs_shift", None)
+    env = wrapping_env(env, reward_shift, reward_scale, obs_shift, obs_scale)
+    # print("wrap_env with", reward_shift, reward_scale, obs_shift, obs_scale)
     print("Create environment successfully!")
     return env
 

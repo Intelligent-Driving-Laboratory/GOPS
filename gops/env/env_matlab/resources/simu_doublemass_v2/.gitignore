@@ -1,0 +1,6 @@
+*
+!.gitignore
+!env.toml
+!model.toml
+!doublemass.slx
+!doublemass.*.pyd

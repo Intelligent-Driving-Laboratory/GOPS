@@ -55,11 +55,17 @@ class _GymCartpoleconti(gym.Env):
         self.seed()
         self.viewer = None
         self.state = None
+        self.state_dim = self.observation_space.shape
+        self.info_dict = {"state":{"shape": self.state_dim, "dtype": np.float32}}
 
         self.steps_beyond_done = None
 
         # self.max_episode_steps = 200
         self.steps = 0
+
+    @property
+    def additional_info(self):
+        return self.info_dict
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -122,7 +128,8 @@ class _GymCartpoleconti(gym.Env):
             self.steps_beyond_done += 1
             reward = 0.0
 
-        return np.array(self.state, dtype=np.float32), reward, done, {}
+        state = np.array(self.state, dtype=np.float32)
+        return state, reward, done, {"state":state}
 
     def reset(self):
         self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))

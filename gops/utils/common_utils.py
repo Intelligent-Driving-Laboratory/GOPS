@@ -129,6 +129,8 @@ def change_type(obj):
         ),
     ):
         return int(obj)
+    elif isinstance(obj,type):
+        return str(obj)
     elif isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
         return float(obj)
     elif isinstance(obj, (np.ndarray,)):  # add this line
