@@ -37,7 +37,7 @@ default_cfg["img_fmt"] = "png"
 
 class PolicyRuner():
     def __init__(self, log_policy_dir_list, trained_policy_iteration_list, save_render=False, plot_range=[],
-                 is_init_state=False, init_state=[], legend_list=[], state_name_list=[], use_opt=False, constrained_env=False) -> None:
+                 is_init_state=False, init_state=[], legend_list=[], use_opt=False, constrained_env=False, is_tracking=False) -> None:
         self.log_policy_dir_list = log_policy_dir_list
         self.trained_policy_iteration_list = trained_policy_iteration_list
         self.save_render = save_render
@@ -48,9 +48,9 @@ class PolicyRuner():
         else:
             self.init_state = []
         self.legend_list = legend_list
-        self.state_name_list = state_name_list
         self.use_opt = use_opt
         self.constrained_env = constrained_env
+        self.is_tracking = is_tracking
         if self.use_opt:
             self.legend_list.append('LQ')
         self.policy_num = len(self.log_policy_dir_list)
@@ -64,6 +64,7 @@ class PolicyRuner():
         self.eval_list = []
         self.env_id_list = []
         self.algorithm_list = []
+        self.tracking_list = []
 
         self.__load_all_args()
         self.env_id = self.get_n_verify_env_id()
@@ -86,6 +87,13 @@ class PolicyRuner():
         step = 0
         step_list = []
         obs = env.reset()
+        # plot tracking
+        state = env.state
+        t_list = []
+        x_list = []
+        x_ref_list = []
+        y_list = []
+        y_ref_list = []
         if len(init_state) == 0:
             pass
         elif len(obs) == len(init_state):
@@ -105,6 +113,7 @@ class PolicyRuner():
             step_list.append(step)
             next_obs, reward, done, info = env.step(action)
             step = step + 1
+            print("step:", step)
             obs_list.append(obs)
             action_list.append(action)
             obs = next_obs
@@ -128,8 +137,27 @@ class PolicyRuner():
                     "action_list": action_list,
                     "obs_list": obs_list,
                     "step_list": step_list}
+            if self.is_tracking:
+                frequency = env.base_frequency
 
-        return eval_dict
+                t_now = state[-1] + step / frequency
+                t_list.append((step-1) / frequency)
+                x_list.append(env.expected_vs * t_now)
+                x_ref_list.append(env.expected_vs * t_now)
+                y_list.append(state[2])
+                y_ref_list.append(env.vehicle_dynamics.path.compute_path_y(t_now))
+                state = info['state']
+                tracking_dict = {
+                    "t_list": t_list,
+                    "x_list": x_list,
+                    "x_ref_list": x_ref_list,
+                    "y_list": y_list,
+                    "y_ref_list": y_ref_list
+                }
+            else:
+                tracking_dict = {}
+
+        return eval_dict, tracking_dict
     def compute_action(self, obs, networks):
         batch_obs = torch.from_numpy(np.expand_dims(obs, axis=0).astype("float32"))
         logits = networks.policy(batch_obs)
@@ -254,6 +282,74 @@ class PolicyRuner():
             plt.legend(loc="best", prop=default_cfg["legend_font"])
             fig.tight_layout(pad=default_cfg["pad"])
             plt.savefig(path_state_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+
+            # plot tracking
+            if self.is_tracking:
+                # Creat inital array
+                t_array_list = []
+                x_array_list = []
+                x_ref_array_list = []
+                y_array_list = []
+                y_ref_array_list = []
+                marker_list = ['*', 'p', 's', 'D', 'h', '^', '8', 'x']
+                for i in range(policy_num):
+                    t_array_list.append(np.array(self.tracking_list[i]["t_list"]))
+                    x_array_list.append(np.array(self.tracking_list[i]["x_list"]))
+                    x_ref_array_list.append(np.array(self.tracking_list[i]["x_ref_list"]))
+                    y_array_list.append(np.array(self.tracking_list[i]["y_list"]))
+                    y_ref_array_list.append(np.array(self.tracking_list[i]["y_ref_list"]))
+
+                # plot x_compare
+                path_x_compare_fmt = os.path.join(self.save_path, "x_compare.{}".format(default_cfg["img_fmt"]))
+                fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
+                for i in range(policy_num):
+                    legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
+                    sns.lineplot(x=t_array_list[i], y=x_array_list[i], label="{}".format(legend))
+                sns.lineplot(x=t_array_list[0], y=x_ref_array_list[0], label="x_ref")
+                plt.tick_params(labelsize=default_cfg["tick_size"])
+                labels = ax.get_xticklabels() + ax.get_yticklabels()
+                [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
+                plt.xlabel("Time", default_cfg["label_font"])
+                plt.ylabel("x_compare", default_cfg["label_font"])
+                plt.legend(loc="best", prop=default_cfg["legend_font"])
+                fig.tight_layout(pad=default_cfg["pad"])
+                plt.savefig(path_x_compare_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+                # plt.show()
+
+                # plot y_compare
+                path_y_compare_fmt = os.path.join(self.save_path, "y_compare.{}".format(default_cfg["img_fmt"]))
+                fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
+                for i in range(policy_num):
+                    legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
+                    sns.lineplot(x=t_array_list[i], y=y_array_list[i], label="{}".format(legend))
+                sns.lineplot(x=t_array_list[0], y=y_ref_array_list[0], label="y_ref")
+                plt.tick_params(labelsize=default_cfg["tick_size"])
+                labels = ax.get_xticklabels() + ax.get_yticklabels()
+                [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
+                plt.xlabel("Time", default_cfg["label_font"])
+                plt.ylabel("y_compare", default_cfg["label_font"])
+                plt.legend(loc="best", prop=default_cfg["legend_font"])
+                fig.tight_layout(pad=default_cfg["pad"])
+                plt.savefig(path_y_compare_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+
+                # plot x_y
+                path_x_y_fmt = os.path.join(self.save_path, "x_y.{}".format(default_cfg["img_fmt"]))
+                fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
+                for i in range(policy_num):
+                    legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
+                    plt.scatter(x=x_array_list[i], y=y_array_list[i], c=t_array_list[i],
+                                label="{}".format(legend), cmap='plasma', marker=marker_list[i])
+                sc = plt.scatter(x=x_ref_array_list[0], y=y_ref_array_list[0], c=t_array_list[0], label="x_y_ref",
+                                 cmap='plasma')
+                plt.colorbar(sc)
+                plt.tick_params(labelsize=default_cfg["tick_size"])
+                labels = ax.get_xticklabels() + ax.get_yticklabels()
+                [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
+                plt.xlabel("X", default_cfg["label_font"])
+                plt.ylabel("Y", default_cfg["label_font"])
+                plt.legend(loc="best", prop=default_cfg["legend_font"])
+                fig.tight_layout(pad=default_cfg["pad"])
+                plt.savefig(path_x_y_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
         # plot constraint value
         if self.constrained_env:
@@ -433,12 +529,13 @@ class PolicyRuner():
             networks = self.__load_policy(log_policy_dir, trained_policy_iteration)
 
             # Run policy
-            eval_dict = self.run_an_episode(env, networks, self.init_state, is_opt=False, render=False)
+            eval_dict, tracking_dict = self.run_an_episode(env, networks, self.init_state, is_opt=False, render=False)
             # mp4 to gif
             self.eval_list.append(eval_dict)
+            self.tracking_list.append(tracking_dict)
         if self.use_opt:
             K = env.control_matrix
-            eval_dict_lqr = self.run_an_episode(env, K, self.init_state, is_opt=True, render=False)
+            eval_dict_lqr, _ = self.run_an_episode(env, K, self.init_state, is_opt=True, render=False)
             self.eval_list.append(eval_dict_lqr)
             for i in range(self.policy_num):
                 if i == 0:

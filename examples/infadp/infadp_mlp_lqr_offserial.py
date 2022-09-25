@@ -111,7 +111,7 @@ if __name__ == "__main__":
     ################################################
     # 8. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
-    parser.add_argument("--apprfunc_save_interval", type=int, default=2000)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=500)
     parser.add_argument("--log_save_interval", type=int, default=100)
 
     # Get parameter dictionary
@@ -130,7 +130,6 @@ if __name__ == "__main__":
     evaluator = create_evaluator(**args)
     # Step 5: create trainer
     trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
-    trainer.sample_interval = 1
 
     # Start training ... ...
     trainer.train()
