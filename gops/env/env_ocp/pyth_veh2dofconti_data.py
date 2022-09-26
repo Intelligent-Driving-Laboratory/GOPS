@@ -181,7 +181,7 @@ def env_creator(**kwargs):
     """
     make env `pyth_veh2dofconti`
     """
-    return TimeLimit(SimuVeh2dofconti(**kwargs), 1)
+    return TimeLimit(SimuVeh2dofconti(**kwargs), 100)
 
 if __name__ == "__main__":
     env = env_creator()
