@@ -29,8 +29,8 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="pyth_linearquadratic")
-    parser.add_argument("--lq_config", type=str, default="s5a1")
+    parser.add_argument("--env_id", type=str, default="pyth_lq")
+    parser.add_argument("--lq_config", type=str, default="s2a1")
     parser.add_argument("--algorithm", type=str, default="FHADP")
     parser.add_argument("--pre_horizon", type=int, default=60)
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     ################################################
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
-    parser.add_argument("--max_iteration", type=int, default=10000)
+    parser.add_argument("--max_iteration", type=int, default=2000)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     if trainer_type == "off_serial_trainer":
@@ -102,7 +102,7 @@ if __name__ == "__main__":
     ################################################
     # 8. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
-    parser.add_argument("--apprfunc_save_interval", type=int, default=1000)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=100)
     parser.add_argument("--log_save_interval", type=int, default=100)
 
     # Get parameter dictionary

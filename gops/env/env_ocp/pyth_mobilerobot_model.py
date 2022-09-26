@@ -85,9 +85,9 @@ class PythMobilerobotModel(torch.nn.Module):
         ############################################################################################
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
         r_tracking = (
-            -1.4 * torch.square(tracking_error[:, 0]) - 1 * tracking_error[:, 1] ** 2 - 16 * tracking_error[:, 2] ** 2
+            -1.4 * torch.abs(tracking_error[:, 0]) - 1 * torch.abs(tracking_error[:, 1]) - 16 * torch.abs(tracking_error[:, 2])
         )
-        r_action = -0.2 * action[:, 0] ** 2 - 0.5 * action[:, 1] ** 2
+        r_action = -0.2 * torch.abs(action[:, 0]) - 0.5 * torch.abs(action[:, 1])
         reward = r_tracking + r_action
         ############################################################################################
         # define the constraint funtion
@@ -105,7 +105,7 @@ class PythMobilerobotModel(torch.nn.Module):
 
 
 class Robot:
-    def __init__(self, path=None):
+    def __init__(self):
         self.robot_params = dict(
             v_max=0.4,
             w_max=np.pi / 2,
@@ -114,7 +114,7 @@ class Robot:
             v_desired=0.3,
             radius=0.74 / 2,
         )
-        self.path = path
+        self.path = ReferencePath()
 
     def f_xu(self, states, actions, T, type):
         v_delta_max = self.robot_params["v_delta_max"]
@@ -159,8 +159,8 @@ class Robot:
         return torch.stack(next_state, 1)
 
     def tracking_error(self, x):
-        error_position = x[:, 1]
-        error_head = x[:, 2]
+        error_position = x[:, 1] - self.path.compute_path_y(x[:, 0])
+        error_head = x[:, 2] - self.path.compute_path_phi(x[:, 0])
 
 
         error_v = x[:, 3] - self.robot_params["v_desired"]
@@ -173,6 +173,18 @@ class Robot:
             1,
         )
         return tracking
+
+class ReferencePath(object):
+    def __init__(self):
+        pass
+
+    def compute_path_y(self, x):
+        y = torch.sin(1/30 * x)
+        return y
+
+    def compute_path_phi(self, x):
+        deriv = 1/30 * torch.cos(1/30 * x)
+        return torch.arctan(deriv)
 
 
 def clip_by_tensor(t, t_min, t_max):

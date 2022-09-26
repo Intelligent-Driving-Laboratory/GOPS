@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="pyth_veh3dofconti")
+    parser.add_argument("--env_id", type=str, default="pyth_veh2dofconti")
     parser.add_argument("--algorithm", type=str, default="INFADP")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     parser.add_argument("--predictive_horizon", type=int, default="10")
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     ################################################
     # 8. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
-    parser.add_argument("--apprfunc_save_interval", type=int, default=5000)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=100)
     parser.add_argument("--log_save_interval", type=int, default=100)
 
     # Get parameter dictionary
