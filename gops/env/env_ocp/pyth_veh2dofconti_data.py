@@ -82,7 +82,7 @@ class VehicleDynamics(object):
         punish_yaw_rate = -np.square(rs)
         punish_steer = -np.square(steers)
         punish_vys = - np.square(v_ys)
-        rewards = 0.4 * devi_y + 0.1 * devi_phi + 0.2 * punish_yaw_rate + 0.5 * punish_steer + 0.1 * punish_vys
+        rewards = 2.0 * devi_y + 0.1 * devi_phi + 0.2 * punish_yaw_rate + 5 * punish_steer + 0.1 * punish_vys
         return rewards
 
 
@@ -177,11 +177,12 @@ class SimuVeh2dofconti(gym.Env,):
         return self.obs, reward, self.done, info
 
     def judge_done(self, state):
-        v_ys, rs, ys, phis, t = state[0], state[1], state[2], \
-                                                           state[3], state[4]
-
-        done = (np.abs(ys - self.vehicle_dynamics.path.compute_path_y(t)) > 3) | \
-               (np.abs(phis - self.vehicle_dynamics.path.compute_path_phi(t)) > np.pi / 4.)
+        # v_ys, rs, ys, phis, t = state[0], state[1], state[2], \
+        #                                                    state[3], state[4]
+        #
+        # done = (np.abs(ys - self.vehicle_dynamics.path.compute_path_y(t)) > 3) | \
+        #        (np.abs(phis - self.vehicle_dynamics.path.compute_path_phi(t)) > np.pi / 4.)
+        done = False
         return done
 
     def close(self):
@@ -195,7 +196,7 @@ def env_creator(**kwargs):
     """
     make env `pyth_veh2dofconti`
     """
-    return TimeLimit(SimuVeh2dofconti(**kwargs), 100)
+    return TimeLimit(SimuVeh2dofconti(**kwargs), 200)
 
 if __name__ == "__main__":
     env = env_creator()
