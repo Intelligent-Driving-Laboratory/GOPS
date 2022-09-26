@@ -160,7 +160,21 @@ class SimuVeh2dofconti(gym.Env,):
         self.done = self.judge_done(self.state)
 
         state = np.array(self.state, dtype=np.float32)
-        return self.obs, reward, self.done, {"state":state}
+        t = state[-1]
+        x = self.expected_vs * t
+        x_ref = x
+        y = state[2]
+        y_ref = self.vehicle_dynamics.path.compute_path_y(t)
+        info = {
+            "state": state,
+            "t": t,
+            "x": x,
+            "x_ref": x_ref,
+            "y": y,
+            "y_ref": y_ref,
+        }
+
+        return self.obs, reward, self.done, info
 
     def judge_done(self, state):
         v_ys, rs, ys, phis, t = state[0], state[1], state[2], \
