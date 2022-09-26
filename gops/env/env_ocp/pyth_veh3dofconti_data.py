@@ -200,9 +200,23 @@ class SimuVeh3dofconti(gym.Env,):
         self.state, self.obs, stability_related = self.vehicle_dynamics.simulation(self.state, action,
                                                                 base_freq=self.base_frequency)
         self.done = self.judge_done(self.state, stability_related)
-        state = np.array(self.state, dtype=np.float32)
 
-        return self.obs, reward, self.done, {"state":state}
+        state = np.array(self.state, dtype=np.float32)
+        t = state[-1]
+        x = state[5]
+        x_ref = self.expected_vs * t
+        y = state[3]
+        y_ref = self.vehicle_dynamics.path.compute_path_y(t)
+        info = {
+            "state": state,
+            "t": t,
+            "x": x,
+            "x_ref": x_ref,
+            "y": y,
+            "y_ref": y_ref,
+        }
+
+        return self.obs, reward, self.done, info
 
     def judge_done(self, veh_state, stability_related):
         v_xs, v_ys, rs, ys, phis, xs, t = veh_state[0], veh_state[1], veh_state[2], \

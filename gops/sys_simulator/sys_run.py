@@ -88,7 +88,6 @@ class PolicyRuner():
         step_list = []
         obs = env.reset()
         # plot tracking
-        state = env.state
         t_list = []
         x_list = []
         x_ref_list = []
@@ -101,7 +100,7 @@ class PolicyRuner():
             env.env.reset(obs)
         else:
             raise NotImplementedError("The dimension of Initial state is wrong!")
-        done = 0
+        done = False
         info = {"TimeLimit.truncated": False}
         while not (done or info["TimeLimit.truncated"]):
             if is_opt:
@@ -125,39 +124,37 @@ class PolicyRuner():
             reward_list.append(reward)
             if self.constrained_env:
                 constrain_list.append(info["constraint"])
-                eval_dict = {
-                    "reward_list": reward_list,
-                    "action_list": action_list,
-                    "obs_list": obs_list,
-                    "step_list": step_list,
-                    "constrain_list": constrain_list}
-            else:
-                eval_dict = {
-                    "reward_list": reward_list,
-                    "action_list": action_list,
-                    "obs_list": obs_list,
-                    "step_list": step_list}
             if self.is_tracking:
-                frequency = env.base_frequency
+                t_list.append(info["t"])
+                x_list.append(info["x"])
+                x_ref_list.append(info["x_ref"])
+                y_list.append(info["y"])
+                y_ref_list.append(info["y_ref"])
 
-                t_now = state[-1] + step / frequency
-                t_list.append((step-1) / frequency)
-                x_list.append(env.expected_vs * t_now)
-                x_ref_list.append(env.expected_vs * t_now)
-                y_list.append(state[2])
-                y_ref_list.append(env.vehicle_dynamics.path.compute_path_y(t_now))
-                state = info['state']
-                tracking_dict = {
-                    "t_list": t_list,
-                    "x_list": x_list,
-                    "x_ref_list": x_ref_list,
-                    "y_list": y_list,
-                    "y_ref_list": y_ref_list
-                }
-            else:
-                tracking_dict = {}
+        eval_dict = {
+            "reward_list": reward_list,
+            "action_list": action_list,
+            "obs_list": obs_list,
+            "step_list": step_list,
+        }
+        if self.constrained_env:
+            eval_dict.update({
+                "constrain_list": constrain_list,
+            })
+
+        if self.is_tracking:
+            tracking_dict = {
+                "t_list": t_list,
+                "x_list": x_list,
+                "x_ref_list": x_ref_list,
+                "y_list": y_list,
+                "y_ref_list": y_ref_list,
+            }
+        else:
+            tracking_dict = {}
 
         return eval_dict, tracking_dict
+
     def compute_action(self, obs, networks):
         batch_obs = torch.from_numpy(np.expand_dims(obs, axis=0).astype("float32"))
         logits = networks.policy(batch_obs)
