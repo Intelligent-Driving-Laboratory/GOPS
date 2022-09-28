@@ -9,158 +9,148 @@
 
 __all__ = ["ApproxContainer", "A3C"]
 
-from copy import deepcopy
-import torch
-import torch.nn as nn
+from typing import Tuple
+from gops.algorithm.base import AlgorithmBase, ApprBase
 from torch.optim import Adam
-import warnings
 import time
 from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.utils.common_utils import get_apprfunc_dict
 from gops.utils.tensorboard_setup import tb_tags
-from gops.utils.act_distribution import GaussDistribution
 
 
-class ApproxContainer(nn.Module):
+class ApproxContainer(ApprBase):
+    """Approximate function container for A3C.
+
+    Contains a policy and a state value.
+    """
+
     def __init__(self, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
         value_func_type = kwargs["value_func_type"]
         policy_func_type = kwargs["policy_func_type"]
 
-        if kwargs["cnn_shared"]:  # todo:设置默认false
-            feature_args = get_apprfunc_dict("feature", value_func_type, **kwargs)
-            kwargs["feature_net"] = create_apprfunc(**feature_args)
-
-        value_args = get_apprfunc_dict("value", value_func_type, **kwargs)
-        self.value = create_apprfunc(**value_args)
+        v_args = get_apprfunc_dict("value", value_func_type, **kwargs)
+        self.v = create_apprfunc(**v_args)
         policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
         self.policy = create_apprfunc(**policy_args)
 
         self.policy_optimizer = Adam(
             self.policy.parameters(), lr=kwargs["policy_learning_rate"]
         )
-        self.value_optimizer = Adam(
-            self.value.parameters(), lr=kwargs["value_learning_rate"]
+        self.v_optimizer = Adam(
+            self.v.parameters(), lr=kwargs["value_learning_rate"]
         )
 
-    # create action_distributions
     def create_action_distributions(self, logits):
         return self.policy.get_act_dist(logits)
 
-    def update(self, grads_info: dict):
-        iteration = grads_info["iteration"]
-        value_grad = grads_info["value_grad"]
-        policy_grad = grads_info["policy_grad"]
-        self.delay_update = grads_info["delay_update"]
-        # self.polyak = 1 - grads_info['tau']
-        # self.delay_update = grads_info['delay_update']
 
-        for p, grad in zip(self.value.parameters(), value_grad):
-            p._grad = grad
-        for p, grad in zip(self.policy.parameters(), policy_grad):
-            p._grad = grad
-        self.value_optimizer.step()
-        if iteration % self.delay_update == 0:
-            self.policy_optimizer.step()
+class A3C(AlgorithmBase):
+    """Asynchronous Advantage Actor Critic (A3C) algorithm
 
-
-class A3C:
-    def __init__(self, **kwargs):
+    Paper: https://arxiv.org/abs/1602.01783
+    
+    """
+    
+    def __init__(self, index=0, **kwargs):
+        super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
         self.gamma = 0.99
         self.reward_scale = 1
         self.delay_update = 1
-        self.action_distirbution_cls = GaussDistribution
 
-    def set_parameters(self, param_dict):
-        for key in param_dict:
-            if hasattr(self, key):
-                setattr(self, key, param_dict[key])
-            else:
-                warning_msg = "param '" + key + "'is not defined in algorithm!"
-                warnings.warn(warning_msg)
+    @property
+    def adjustable_parameters(self):
+        return (
+            "gamma",
+            "reward_scale",
+            "delay_update"
+        )
 
-    def get_parameters(self):
-        params = dict()
-        params["gamma"] = self.gamma
-        params["reward_scale"] = self.reward_scale
-        params["delay_update"] = self.delay_update
-        return params
 
-    def compute_gradient(self, data: dict, iteration):
+    def __compute_gradient(self, data: dict, iteration):
+        o, a, r, o2 = (
+            data["obs"],
+            data["act"],
+            data["rew"] * self.reward_scale,
+            data["obs2"],
+        )
+
         tb_info = dict()
         start_time = time.time()
 
-        self.networks.value_optimizer.zero_grad()
-        loss_value, value = self.__compute_loss_value(data)
-        # print('loss_value = ', loss_value)
-        loss_value.backward()
+        self.networks.v_optimizer.zero_grad()
+        loss_v, v = self.__compute_loss_v(o, r, o2)
+        loss_v.backward()
 
-        for p in self.networks.value.parameters():
+        for p in self.networks.v.parameters():
             p.requires_grad = False
 
         self.networks.policy_optimizer.zero_grad()
-        loss_policy = self.__compute_loss_policy(data)
-        # print('loss_policy = ', loss_policy)
+        loss_policy = self.__compute_loss_policy(o, a, r, o2)
         loss_policy.backward()
 
-        for p in self.networks.value.parameters():
+        for p in self.networks.v.parameters():
             p.requires_grad = True
-
-        value_grad = [p._grad for p in self.networks.value.parameters()]
-        policy_grad = [p._grad for p in self.networks.policy.parameters()]
 
         # ------------------------------------
         end_time = time.time()
-        tb_info[tb_tags["loss_critic"]] = loss_value.item()
-        tb_info[tb_tags["critic_avg_value"]] = value.item()
+        tb_info[tb_tags["loss_critic"]] = loss_v.item()
+        tb_info[tb_tags["critic_avg_value"]] = v.item()
         tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
         tb_info[tb_tags["loss_actor"]] = loss_policy.item()
-        # ------------------------------------
-        grad_info = dict()
-        grad_info["value_grad"] = value_grad
-        grad_info["policy_grad"] = policy_grad
-        grad_info["iteration"] = iteration
-        grad_info["delay_update"] = self.delay_update
 
-        return grad_info, tb_info
+        return tb_info
 
-    def load_state_dict(self, state_dict):
-        self.networks.load_state_dict(state_dict)
+    def __compute_loss_v(self, o, r, o2):
+        v = self.networks.v(o)
+        target_v = r + self.gamma * self.networks.v(o2)
+        loss_v = ((v - target_v) ** 2).mean()
 
-    def __compute_loss_value(self, data):
-        obs = data["obs"]
-        rew = data["rew"] * self.reward_scale
-        done = data["done"]
-        obs2 = data["obs2"]
-        value = self.networks.value(obs)
-        target_value = rew + self.gamma * self.networks.value(obs2)
-        # target_value = torch.where(done == 1, rew, rew + self.gamma * self.networks.value(obs2))
-        loss_value = ((value - target_value) ** 2).mean()
-        return loss_value, value.detach().mean()
+        return loss_v, v.detach().mean()
 
-    def __compute_loss_policy(self, data):
-        # one_step advantage r + V(obs2) - V(obs)
-        obs = data["obs"]
-        rew = data["rew"] * self.reward_scale
-        done = data["done"]
-        obs2 = data["obs2"]
-        action = data["act"]
-        logits = self.networks.policy(obs)
-        action_distribution = self.action_distirbution_cls(logits)
-        logp = action_distribution.log_prob(action)
-        value_policy = logp * (
-            rew + self.gamma * self.networks.value(obs2) - self.networks.value(obs)
+    def __compute_loss_policy(self, o, a, r, o2):
+        # one_step advantage r + gamma * V(obs2) - V(obs)        
+        logits = self.networks.policy(o)
+        action_distribution = self.networks.create_action_distributions(logits)
+        logp = action_distribution.log_prob(a)
+        v_policy = logp * (
+            r + self.gamma * self.networks.v(o2) - self.networks.v(o)
         )
-        # value_policy = torch.where(done == 1, logp * (rew - self.networks.value(obs)), logp * (rew + self.gamma * self.networks.value(obs2) - self.networks.value(obs)))
-        return -value_policy.mean()
+        
+        return -v_policy.mean()
 
-    def update_policy(self, data: dict, iteration):
-        grad_info, tb_info = self.compute_gradient(data, iteration)
-        self.networks.update(grad_info)
-        return grad_info, tb_info
+    def __update(self, iteration):
+        self.networks.v_optimizer.step()
+        if iteration % self.delay_update == 0:
+            self.networks.policy_optimizer.step()
 
-    def state_dict(
-        self,
-    ):
-        return self.networks.state_dict()
+    def local_update(self, data: dict, iteration: int):
+        tb_info = self.__compute_gradient(data, iteration)
+        self.__update(iteration)
+        return tb_info
+
+    def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
+        tb_info = self.__compute_gradient(data, iteration)
+
+        v_grad = [p._grad for p in self.networks.v.parameters()]
+        policy_grad = [p._grad for p in self.networks.policy.parameters()]
+
+        update_info = dict()
+        update_info["v_grad"] = v_grad
+        update_info["policy_grad"] = policy_grad
+        update_info["iteration"] = iteration
+
+        return tb_info, update_info
+
+    def remote_update(self, update_info: dict):
+        iteration = update_info["iteration"]
+        v_grad = update_info["v_grad"]
+        policy_grad = update_info["policy_grad"]
+
+        for p, grad in zip(self.networks.v.parameters(), v_grad):
+            p._grad = grad
+        for p, grad in zip(self.networks.policy.parameters(), policy_grad):
+            p._grad = grad
+
+        self.__update(iteration)
