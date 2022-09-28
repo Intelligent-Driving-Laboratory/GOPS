@@ -76,8 +76,7 @@ class VehicleDynamics(object):
 
     def simulation(self, states, actions, base_freq):
         state_next, others = self.prediction(states, actions, base_freq)
-        states[0] = np.clip(states[0], 1, 35)
-        v_x, v_y, r, y, phi, x, t = states[0], states[1], states[2], states[3], states[4], states[5], states[6]
+        v_x, v_y, r, y, phi, x, t = state_next[0], state_next[1], state_next[2], state_next[3], state_next[4], state_next[5], state_next[6]
         path_x, path_y, path_phi = self.path.compute_path_x(t), \
                                    self.path.compute_path_y(t), \
                            self.path.compute_path_phi(t)
@@ -88,10 +87,7 @@ class VehicleDynamics(object):
             ref_phi = self.path.compute_path_phi(t + (i + 1) / base_freq)
             ref_obs = np.array([x - ref_x, y - ref_y, phi - ref_phi], dtype=np.float32)
             obs = np.hstack((obs, ref_obs))
-        if state_next[-2] > self.path.period:
-            state_next[-2] -= self.path.period
-        if state_next[-2] < self.path.period:
-            state_next[-2] += self.path.period
+
         if state_next[4] > np.pi:
             state_next[4] -= 2 * np.pi
         if state_next[4] <= -np.pi:
@@ -104,15 +100,16 @@ class VehicleDynamics(object):
         v_xs, v_ys, rs, delta_ys, delta_phis, xs = obs[0], obs[1], obs[2], \
                                                    obs[3], obs[4], obs[5]
         steers, a_xs = actions[0], actions[1]
-        devi_v = -np.square(v_xs - self.expected_vs)
+        devi_v = -np.square(v_xs)
         devi_y = -np.square(delta_ys)
         devi_phi = -np.square(delta_phis)
         punish_yaw_rate = -np.square(rs)
         punish_steer = -np.square(steers)
         punish_a_x = -np.square(a_xs)
+        punish_x = -np.square(xs)
 
-        rewards = 0.1 * devi_v + 0.4 * devi_y + 1 * devi_phi + 0.2 * punish_yaw_rate + \
-                  0.5 * punish_steer + 0.5 * punish_a_x
+        rewards = 0.05 * devi_v + 2.0 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
+                  0.05 * punish_steer + 0.05 * punish_a_x + 0.02 * punish_x
 
         return rewards
 
@@ -120,7 +117,6 @@ class VehicleDynamics(object):
 class ReferencePath(object):
     def __init__(self):
         self.expect_v = 10
-        self.period = 1200
 
     def compute_path_x(self, t):
         x = self.expect_v * t
@@ -182,7 +178,6 @@ class SimuVeh3dofconti(gym.Env,):
         init_v_x = self.np_random.uniform(low=5., high=15.)
         init_v_y = init_v_x * np.tan(beta)
         obs = np.array([init_v_x - self.expected_vs, init_v_y, init_r, init_delta_y, init_delta_phi, init_delta_x], dtype=np.float32)
-
         for i in range(self.prediction_horizon - 1):
             ref_x = self.vehicle_dynamics.path.compute_path_x(t + (i + 1) / self.base_frequency)
             ref_y = self.vehicle_dynamics.path.compute_path_y(t + (i + 1) / self.base_frequency)
@@ -215,7 +210,6 @@ class SimuVeh3dofconti(gym.Env,):
             "y": y,
             "y_ref": y_ref,
         }
-
         return self.obs, reward, self.done, info
 
     def judge_done(self, veh_state, stability_related):
@@ -229,10 +223,10 @@ class SimuVeh3dofconti(gym.Env,):
                                                                         stability_related[5]
         done = (np.abs(ys- self.vehicle_dynamics.path.compute_path_y(t)) > 3) |\
                (np.abs(phis - self.vehicle_dynamics.path.compute_path_phi(t)) > np.pi / 4.) |\
-               (v_xs < 2) | \
-               (alpha_f < -alpha_f_bounds) | (alpha_f > alpha_f_bounds) | \
-               (alpha_r < -alpha_r_bounds) | (alpha_r > alpha_r_bounds) | \
-               (r < -r_bounds) | (r > r_bounds)
+               (v_xs < 2)
+               # (alpha_f < -alpha_f_bounds) | (alpha_f > alpha_f_bounds) | \
+               # (alpha_r < -alpha_r_bounds) | (alpha_r > alpha_r_bounds) | \
+               # (r < -r_bounds) | (r > r_bounds)
         return done
 
     def close(self):
@@ -246,7 +240,7 @@ def env_creator(**kwargs):
     """
     make env `pyth_veh3dofconti`
     """
-    return TimeLimit(SimuVeh3dofconti(**kwargs), 10)
+    return TimeLimit(SimuVeh3dofconti(**kwargs), 200)
 
 if __name__ == "__main__":
     env = env_creator()

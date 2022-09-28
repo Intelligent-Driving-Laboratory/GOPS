@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="pyth_veh2dofconti")
+    parser.add_argument("--env_id", type=str, default="pyth_veh3dofconti")
     parser.add_argument("--algorithm", type=str, default="INFADP")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     parser.add_argument("--predictive_horizon", type=int, default="10")
@@ -42,8 +42,8 @@ if __name__ == "__main__":
     parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--action_type", type=str, default="continu")
     parser.add_argument("--reward_scale", type=float, default=1.0)
-    parser.add_argument("--state_obs_scale", type=list, default=[1.0, 1.0, 1.0 / 3.0, 1.0])
-    parser.add_argument("--one_step_scale", type=list, default=[1.0 / 5.0, 1.0 / 2.0])
+    parser.add_argument("--state_obs_scale", type=list, default=[1.0 / 5.0, 1.0, 1.0, 1.0, 1.0, 1.0 / 600.])
+    parser.add_argument("--one_step_scale", type=list, default=[1.0 / 20., 1.0 / 5.0, 1.0 / 2.0])
     state_obs_scale = parser.parse_known_args()[0].state_obs_scale
     predictive_horizon = parser.parse_known_args()[0].predictive_horizon
     one_step_scale = parser.parse_known_args()[0].one_step_scale
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
     parser.add_argument(
-        "--max_iteration", type=int, default=4000, help="Maximum iteration number"
+        "--max_iteration", type=int, default=6000, help="Maximum iteration number"
     )
     parser.add_argument("--ini_network_dir", type=str, default=None)
     trainer_type = parser.parse_known_args()[0].trainer

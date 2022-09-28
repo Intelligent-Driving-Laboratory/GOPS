@@ -31,9 +31,21 @@ class Veh3dofcontiModel(torch.nn.Module):
         steer_norm, a_xs_norm = action[:, 0], action[:, 1]
         actions = torch.stack([steer_norm * 1.2 * np.pi / 9, a_xs_norm * 3.], 1)
         state = info["state"]
+        v_xc, v_yc, rc, yc, phic, xc, tc = state[:, 0], state[:, 1], state[:, 2], \
+                                          state[:, 3], state[:, 4], state[:, 5], state[:, 6]
+        path_xc, path_yc, path_phic = self.vehicle_dynamics.path.compute_path_x(tc), \
+                                   self.vehicle_dynamics.path.compute_path_y(tc), \
+                                   self.vehicle_dynamics.path.compute_path_phi(tc)
+        obsc = torch.stack([v_xc - self.expected_vs, v_yc, rc, yc - path_yc, phic - path_phic, xc - path_xc], 1)
+        for i in range(self.vehicle_dynamics.prediction_horizon - 1):
+            ref_x = self.vehicle_dynamics.path.compute_path_x(tc + (i + 1) / self.base_frequency)
+            ref_y = self.vehicle_dynamics.path.compute_path_y(tc + (i + 1) / self.base_frequency)
+            ref_phi = self.vehicle_dynamics.path.compute_path_phi(tc + (i + 1) / self.base_frequency)
+            ref_obs = torch.stack([xc - ref_x, yc - ref_y, phic - ref_phi], 1)
+            obsc = torch.hstack((obsc, ref_obs))
+        reward = self.vehicle_dynamics.compute_rewards(obsc, actions)
         state_next, stability_related = self.vehicle_dynamics.prediction(state, actions,
                                                               self.base_frequency)
-        reward = self.vehicle_dynamics.compute_rewards(obs, actions)
         v_xs, v_ys, rs, ys, phis, xs, t = state_next[:, 0], state_next[:, 1], state_next[:, 2], \
                                                    state_next[:, 3], state_next[:, 4], state_next[:, 5], state_next[:, 6]
         v_xs = clip_by_tensor(v_xs, 1, 35)
@@ -122,12 +134,12 @@ class VehicleDynamics(object):
     def judge_done(self, veh_state, stability_related):
         v_xs, v_ys, rs, ys, phis, xs, t = veh_state[:, 0], veh_state[:, 1], veh_state[:, 2], \
                                                    veh_state[:, 3], veh_state[:, 4], veh_state[:, 5], veh_state[:, 6]
-        # alpha_f, alpha_r, r, alpha_f_bounds, alpha_r_bounds, r_bounds = stability_related[:, 0], \
-        #                                                                 stability_related[:, 1], \
-        #                                                                 stability_related[:, 2], \
-        #                                                                 stability_related[:, 3], \
-        #                                                                 stability_related[:, 4], \
-        #                                                                 stability_related[:, 5]
+        alpha_f, alpha_r, r, alpha_f_bounds, alpha_r_bounds, r_bounds = stability_related[:, 0], \
+                                                                        stability_related[:, 1], \
+                                                                        stability_related[:, 2], \
+                                                                        stability_related[:, 3], \
+                                                                        stability_related[:, 4], \
+                                                                        stability_related[:, 5]
         done = (torch.abs(ys - self.path.compute_path_y(t)) > 3) | (torch.abs(phis - self.path.compute_path_phi(t)) > np.pi / 4.) | \
                (v_xs < 2)
                # (alpha_f < -alpha_f_bounds) | (alpha_f > alpha_f_bounds) | \
@@ -141,15 +153,16 @@ class VehicleDynamics(object):
         v_xs, v_ys, rs, delta_ys, delta_phis, xs = obs[:, 0], obs[:, 1], obs[:, 2], \
                                                    obs[:, 3], obs[:, 4], obs[:, 5]
         steers, a_xs = actions[:, 0], actions[:, 1]
-        devi_v = -torch.square(v_xs - self.expected_vs)
+        devi_v = -torch.square(v_xs)
         devi_y = -torch.square(delta_ys)
         devi_phi = -torch.square(delta_phis)
         punish_yaw_rate = -torch.square(rs)
         punish_steer = -torch.square(steers)
         punish_a_x = -torch.square(a_xs)
+        punish_x = -torch.square(xs)
 
-        rewards = 0.1 * devi_v + 0.4 * devi_y + 1 * devi_phi + 0.2 * punish_yaw_rate + \
-                  0.5 * punish_steer + 0.5 * punish_a_x
+        rewards = 0.05 * devi_v + 2.0 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
+                  0.05 * punish_steer + 0.05 * punish_a_x + 0.02 * punish_x
 
         return rewards
 
@@ -157,7 +170,6 @@ class VehicleDynamics(object):
 class ReferencePath(object):
     def __init__(self):
         self.expect_v = 10.
-        self.period = 1200
 
     def compute_path_x(self, t):
         x = self.expect_v * t

@@ -13,7 +13,7 @@ import numpy as np
 from gym.wrappers.time_limit import TimeLimit
 
 class VehicleDynamics(object):
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.vehicle_params = dict(C_f=-128915.5,  # front wheel cornering stiffness [N/rad]
                                    C_r=-85943.6,  # rear wheel cornering stiffness [N/rad]
                                    a=1.06,  # distance from CG to front axle [m]
@@ -29,7 +29,7 @@ class VehicleDynamics(object):
         self.vehicle_params.update(dict(F_zf=F_zf,
                                         F_zr=F_zr))
         self.path = ReferencePath()
-        self.prediction_horizon = 10
+        self.prediction_horizon = kwargs["predictive_horizon"]
 
     def f_xu(self, states, actions, tau):
         v_y, r, delta_y, delta_phi, t = states[0], states[1], states[2], \
@@ -82,14 +82,17 @@ class VehicleDynamics(object):
         punish_yaw_rate = -np.square(rs)
         punish_steer = -np.square(steers)
         punish_vys = - np.square(v_ys)
-        rewards = 0.4 * devi_y + 0.1 * devi_phi + 0.2 * punish_yaw_rate + 0.5 * punish_steer + 0.1 * punish_vys
+        rewards = 2.0 * devi_y + 0.1 * devi_phi + 0.2 * punish_yaw_rate + 5 * punish_steer + 0.1 * punish_vys
         return rewards
 
 
 class ReferencePath(object):
     def __init__(self):
         self.expect_v = 10
-        self.period = 1200
+
+    def compute_path_x(self, t):
+        x = self.expect_v * t
+        return x
 
     def compute_path_y(self, t):
         y = np.sin((1 / 30) * self.expect_v * t)
@@ -104,8 +107,8 @@ class SimuVeh2dofconti(gym.Env,):
     def __init__(self, num_future_data=0, num_agent=1, **kwargs):
         self.is_adversary = kwargs.get("is_adversary", False)
         self.is_constraint = kwargs.get("is_constraint", False)
-        self.prediction_horizon = 10
-        self.vehicle_dynamics = VehicleDynamics()
+        self.prediction_horizon = kwargs["predictive_horizon"]
+        self.vehicle_dynamics = VehicleDynamics(**kwargs)
         self.num_agent = num_agent
         self.base_frequency = 10
         self.expected_vs = 10.
@@ -182,6 +185,7 @@ class SimuVeh2dofconti(gym.Env,):
 
         done = (np.abs(ys - self.vehicle_dynamics.path.compute_path_y(t)) > 3) | \
                (np.abs(phis - self.vehicle_dynamics.path.compute_path_phi(t)) > np.pi / 4.)
+        # done = False
         return done
 
     def close(self):
@@ -195,7 +199,7 @@ def env_creator(**kwargs):
     """
     make env `pyth_veh2dofconti`
     """
-    return TimeLimit(SimuVeh2dofconti(**kwargs), 100)
+    return TimeLimit(SimuVeh2dofconti(**kwargs), 200)
 
 if __name__ == "__main__":
     env = env_creator()

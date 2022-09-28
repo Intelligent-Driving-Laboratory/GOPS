@@ -25,10 +25,19 @@ class Veh2dofcontiModel(torch.nn.Module):
     def forward(self, obs: torch.Tensor, action: torch.Tensor, info: dict, beyond_done=torch.tensor(1)):
         steer_norm = action
         actions = steer_norm * 1.2 * np.pi / 9
-        reward = self.vehicle_dynamics.compute_rewards(obs, actions)
         state = info["state"]
-        state_next = self.vehicle_dynamics.prediction(state, actions, self.base_frequency)
+        v_yc, rc, yc, phic, tc = state[:, 0], state[:, 1], state[:, 2], state[:, 3], state[:, 4]
+        path_yc, path_phic = self.vehicle_dynamics.path.compute_path_y(tc), \
+                           self.vehicle_dynamics.path.compute_path_phi(tc)
+        obsc = torch.stack([v_yc, rc, yc - path_yc, phic - path_phic], 1)
+        for i in range(self.vehicle_dynamics.prediction_horizon - 1):
+            ref_y = self.vehicle_dynamics.path.compute_path_y(tc + (i + 1) / self.base_frequency)
+            ref_phi = self.vehicle_dynamics.path.compute_path_phi(tc + (i + 1) / self.base_frequency)
+            ref_obs = torch.stack([yc - ref_y, phic - ref_phi], 1)
+            obsc = torch.hstack((obsc, ref_obs))
+        reward = self.vehicle_dynamics.compute_rewards(obsc, actions)
 
+        state_next = self.vehicle_dynamics.prediction(state, actions, self.base_frequency)
         v_ys, rs, ys, phis, t = state_next[:, 0], state_next[:, 1], state_next[:, 2], state_next[:, 3], state_next[:, 4]
         phis = torch.where(phis > np.pi, phis - 2 * np.pi, phis)
         phis = torch.where(phis <= -np.pi, phis + 2 * np.pi, phis)
@@ -110,7 +119,7 @@ class VehicleDynamics(object):
         punish_yaw_rate = -torch.square(rs)
         punish_steer = -torch.square(steers)
         punish_vys = - torch.square(v_ys)
-        rewards = 0.4 * devi_y + 0.1 * devi_phi + 0.2 * punish_yaw_rate + 0.5 * punish_steer + 0.1 * punish_vys
+        rewards = 2.0 * devi_y + 0.1 * devi_phi + 0.2 * punish_yaw_rate + 5 * punish_steer + 0.1 * punish_vys
         return rewards
 
 
