@@ -43,7 +43,8 @@ setup(
         'matplotlib<=3.5.1',
         'pyglet<=1.5.21',
         "seaborn==0.11.2",
-        'scipy<=1.7.3'
+        'scipy<=1.7.3',
+        'protobuf<=3.20'
     ],
     python_requires='>=3.6',
 )
