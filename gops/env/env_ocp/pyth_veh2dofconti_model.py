@@ -126,14 +126,37 @@ class VehicleDynamics(object):
 class ReferencePath(object):
     def __init__(self):
         self.expect_v = 10.
-        self.period = 1200
 
-    def compute_path_y(self, t):
-        y = torch.sin((1 / 30) * self.expect_v * t)
+    def compute_path_y(self, t, num):
+        if num == 0:
+            y = torch.sin((1 / 30) * self.expect_v * t)
+        elif num == 1:
+            if t < (50 / self.expect_v):
+                y = 0
+            elif t < (90 / self.expect_v):
+                y = 0.0875 * self.expect_v * t - 4.375
+            elif t < (140 / self.expect_v):
+                y = -0.0875 * self.expect_v * t + 15.75
+            elif t >= (180 / self.expect_v):
+                y = 0
         return y
 
-    def compute_path_phi(self, t):
-        phi = (torch.sin((1 / 30) * self.expect_v * (t + 0.001)) - torch.sin((1 / 30) * self.expect_v * t)) / (self.expect_v * 0.001)
+    def compute_path_phi(self, t, num):
+        if num == 0:
+            phi = (torch.sin((1 / 30) * self.expect_v * (t + 0.001)) - torch.sin((1 / 30) * self.expect_v * t)) / (
+                        self.expect_v * 0.001)
+        elif num == 1:
+            if t < (50 / self.expect_v):
+                phi = 0.
+            elif t < (90 / self.expect_v):
+                phi = ((0.0875 * self.expect_v * (t + 0.001) - 4.375) - (0.0875 * self.expect_v * t - 4.375)) / (
+                            self.expect_v * 0.001)
+            elif t < (140 / self.expect_v):
+                phi = ((-0.0875 * self.expect_v * (t + 0.001) + 15.75) - (-0.0875 * self.expect_v * t + 15.75)) / (
+                            self.expect_v * 0.001)
+            elif t >= (180 / self.expect_v):
+                phi = 0.
+
         return torch.arctan(phi)
 
 

@@ -11,6 +11,7 @@ import gym
 from gym.utils import seeding
 import numpy as np
 from gym.wrappers.time_limit import TimeLimit
+from random import choice
 
 class VehicleDynamics(object):
     def __init__(self, **kwargs):
@@ -94,12 +95,33 @@ class ReferencePath(object):
         x = self.expect_v * t
         return x
 
-    def compute_path_y(self, t):
-        y = np.sin((1 / 30) * self.expect_v * t)
+    def compute_path_y(self, t, num):
+        if num == 0:
+            y = np.sin((1 / 30) * self.expect_v * t)
+        elif num == 1:
+            if t < (50 / self.expect_v):
+                y = 0
+            elif t < (90 / self.expect_v):
+                y = 0.0875 * self.expect_v * t - 4.375
+            elif t < (140 / self.expect_v):
+                y = -0.0875 * self.expect_v * t + 15.75
+            elif t >= (180 / self.expect_v):
+                y = 0
         return y
 
-    def compute_path_phi(self, t):
-        phi = (np.sin((1 / 30) * self.expect_v * (t + 0.001)) - np.sin((1 / 30) * self.expect_v * t)) / (self.expect_v * 0.001)
+    def compute_path_phi(self, t, num):
+        if num == 0:
+            phi = (np.sin((1 / 30) * self.expect_v * (t + 0.001)) - np.sin((1 / 30) * self.expect_v * t)) / (self.expect_v * 0.001)
+        elif num == 1:
+            if t < (50 / self.expect_v):
+                phi = 0
+            elif t < (90 / self.expect_v):
+                phi = ((0.0875 * self.expect_v * (t + 0.001) - 4.375) - (0.0875 * self.expect_v * t - 4.375)) / (self.expect_v * 0.001)
+            elif t < (140 / self.expect_v):
+                phi = ((-0.0875 * self.expect_v * (t + 0.001) + 15.75) - (-0.0875 * self.expect_v * t + 15.75)) / (self.expect_v * 0.001)
+            elif t >= (180 / self.expect_v):
+                phi = 0
+
         return np.arctan(phi)
 
 
@@ -135,6 +157,7 @@ class SimuVeh2dofconti(gym.Env,):
 
     def reset(self):
         t = 60. * self.np_random.uniform(low=0., high=1.)
+        flag = self.np_random.uniform
         init_x = self.expected_vs * t
         init_delta_y = self.np_random.normal(0, 1)
         init_y = self.vehicle_dynamics.path.compute_path_y(t) + init_delta_y
