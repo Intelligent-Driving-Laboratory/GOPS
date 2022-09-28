@@ -7,7 +7,7 @@
 #  Update: 2021-03-05, Wenxuan Wang: create DQN algorithm
 
 
-__all__ = ["DQN"]
+__all__ = ["ApproxContainer", "DQN"]
 
 
 from copy import deepcopy
@@ -15,7 +15,6 @@ import time
 import warnings
 from typing import Dict
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Adam
 from typing import Tuple
@@ -25,43 +24,33 @@ from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.utils.common_utils import get_apprfunc_dict
 from gops.utils.tensorboard_setup import tb_tags
 
-
 class ApproxContainer(ApprBase):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        """Approximate function container for DQN.
 
+        Contains an action value.
+        """
+        super().__init__(**kwargs)
         value_func_type = kwargs["value_func_type"]
-        Q_network_dict = get_apprfunc_dict("value", value_func_type, **kwargs)
-        Q_network: nn.Module = create_apprfunc(**Q_network_dict)
-        target_network = deepcopy(Q_network)
-        target_network.eval()
-        for p in target_network.parameters():
+
+        q_args = get_apprfunc_dict("value", value_func_type, **kwargs)
+        self.q = create_apprfunc(**q_args)
+
+        self.q_target = deepcopy(self.q)
+
+        for p in self.q_target.parameters():
             p.requires_grad = False
 
+        # the policy directly comes from the Q func, and is just for sampling
         def policy_q(obs):
             with torch.no_grad():
                 return self.q.forward(obs)
-
         self.policy = policy_q
-        self.q = Q_network
-        self.target = target_network
+
         self.q_optimizer = Adam(self.q.parameters(), lr=kwargs["value_learning_rate"])
 
     def create_action_distributions(self, logits):
         return self.q.get_act_dist(logits)
-
-    def update(self, grads_info: dict):
-        polyak = 1 - grads_info["tau"]
-        q_grad = grads_info["q_grad"]
-        for p, grad in zip(self.q.parameters(), q_grad):
-            p._grad = grad
-        self.q_optimizer.step()
-
-        with torch.no_grad():
-            for p, p_targ in zip(self.q.parameters(), self.target.parameters()):
-                p_targ.data.mul_(polyak)
-                p_targ.data.add_((1 - polyak) * p.data)
-
 
 class DQN(AlgorithmBase):
     def __init__(self, index=0, **kwargs):
@@ -69,8 +58,7 @@ class DQN(AlgorithmBase):
 
         A DQN implementation with soft target update.
 
-        Mnih, V., Kavukcuoglu, K., Silver, D. et al. Human-level control through deep reinforcement learning.
-        Nature 518, 529~533 (2015). https://doi.org/10.1038/nature14236
+        Paper: https://doi.org/10.1038/nature14236
 
         Args:
             learning_rate (float, optional): Q network learning rate. Defaults to 0.001.
@@ -87,8 +75,11 @@ class DQN(AlgorithmBase):
 
     @property
     def adjustable_parameters(self):
-        para_tuple = ("gamma", "tau", "reward_scale")
-        return para_tuple
+        return (
+            "gamma", 
+            "tau", 
+            "reward_scale"
+        )
 
     def set_parameters(self, param_dict):
         for key in param_dict:
@@ -99,18 +90,17 @@ class DQN(AlgorithmBase):
                 warnings.warn(warning_msg)
 
     def get_parameters(self):
-        params = dict()
-        params["gamma"] = self.gamma
-        params["tau"] = self.tau
+        params = super().get_parameters()
         params["use_gpu"] = self.use_gpu
-        params["reward_scale"] = self.reward_scale
         return params
 
     def __compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
+        tb_info = dict()
         start_time = time.perf_counter()
+
         self.networks.q_optimizer.zero_grad()
         if not self.per_flag:
-            obs, act, rew, obs2, done = (
+            o, a, r, o2, d = (
                 data["obs"],
                 data["act"],
                 data["rew"] * self.reward_scale,
@@ -119,17 +109,17 @@ class DQN(AlgorithmBase):
             )
             if self.use_gpu:
                 self.networks.cuda()
-                obs, act, rew, obs2, done = (
-                    obs.cuda(),
-                    act.cuda(),
-                    rew.cuda(),
-                    obs2.cuda(),
-                    done.cuda(),
+                o, a, r, o2, d = (
+                    o.cuda(),
+                    a.cuda(),
+                    r.cuda(),
+                    o2.cuda(),
+                    d.cuda(),
                 )
-            loss = self.compute_loss(obs, act, rew, obs2, done)
-            loss.backward()
+            loss_q = self.__compute_loss_q(o, a, r, o2, d)
+            loss_q.backward()
         else:
-            obs, act, rew, obs2, done, idx, weight = (
+            o, a, r, o2, d, idx, weight = (
                 data["obs"],
                 data["act"],
                 data["rew"] * self.reward_scale,
@@ -140,44 +130,59 @@ class DQN(AlgorithmBase):
             )
             if self.use_gpu:
                 self.networks.cuda()
-                obs, act, rew, obs2, done, idx, weight = (
-                    obs.cuda(),
-                    act.cuda(),
-                    rew.cuda(),
-                    obs2.cuda(),
-                    done.cuda(),
+                o, a, r, o2, d, idx, weight = (
+                    o.cuda(),
+                    a.cuda(),
+                    r.cuda(),
+                    o2.cuda(),
+                    d.cuda(),
                     idx.cuda(),
                     weight.cuda()
                 )
-            loss, abs_err = self.compute_loss_per(obs, act, rew, obs2, done, idx, weight)
-            loss.backward()
+            loss_q, abs_err = self.__compute_loss_per(o, a, r, o2, d, idx, weight)
+            loss_q.backward()
 
         if self.use_gpu:
             self.networks.cpu()
 
         end_time = time.perf_counter()
 
-        # q_grad = [p._grad for p in self.networks.q.parameters()]
-        tb_info = {
-            tb_tags["loss_critic"]: loss.item(),
-            tb_tags["alg_time"]: (end_time - start_time) * 1000,
-        }
-
-        # grad_info = dict()
-        # grad_info["q_grad"] = q_grad
-        # grad_info["tau"] = self.tau
+        tb_info[tb_tags["loss_critic"]] = loss_q.item()
+        tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
 
         if self.per_flag:
             return tb_info, idx, abs_err
         else:
             return tb_info
 
+    def __compute_loss_q(self, o, a, r, o2, d):
+        q = self.networks.q(o).gather(1, a.to(torch.long)).squeeze()
+
+        with torch.no_grad():
+            q_target, _ = torch.max(self.networks.q_target(o2), dim=1)
+        backup = r + self.gamma * (1 - d) * q_target
+
+        loss_q = F.mse_loss(q, backup)
+        return loss_q
+
+    def __compute_loss_per(self, o, a, r, o2, d, idx, weight):
+        q = self.networks.q(o).gather(1, a.to(torch.long)).squeeze()
+
+        with torch.no_grad():
+            q_target, _ = torch.max(self.networks.target(o2), dim=1)
+        backup = r + self.gamma * (1 - d) * q_target
+
+        loss_q = (weight * ((q - backup) ** 2)).mean()
+        abs_err = torch.abs(q - backup)
+        return loss_q, abs_err
+
     def __update(self, iteration):
+        polyak = 1 - self.tau
+
         self.networks.q_optimizer.step()
 
         with torch.no_grad():
-            polyak = 1 - self.tau
-            for p, p_targ in zip(self.networks.q.parameters(), self.networks.target.parameters()):
+            for p, p_targ in zip(self.networks.q.parameters(), self.networks.q_target.parameters()):
                 p_targ.data.mul_(polyak)
                 p_targ.data.add_((1 - polyak) * p.data)
 
@@ -189,10 +194,11 @@ class DQN(AlgorithmBase):
     def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
         extra_info = self.__compute_gradient(data, iteration)
 
-        update_info = {
-            "q_grad": [p._grad for p in self.networks.q.parameters()],
-            "iteration": iteration,
-        }
+        q_grad = [p._grad for p in self.networks.q.parameters()]
+
+        update_info = dict()
+        update_info["q_grad"] = q_grad
+        update_info["iteration"] = iteration
 
         return extra_info, update_info
 
@@ -204,42 +210,3 @@ class DQN(AlgorithmBase):
             p._grad = grad
 
         self.__update(iteration)
-
-    def compute_loss(
-        self,
-        obs: torch.Tensor,
-        act: torch.Tensor,
-        rew: torch.Tensor,
-        obs2: torch.Tensor,
-        done: torch.Tensor,
-    ):
-        q_policy = self.networks.q(obs).gather(1, act.to(torch.long)).squeeze()
-
-        with torch.no_grad():
-            q_target, _ = torch.max(self.networks.target(obs2), dim=1)
-        q_expect = rew + self.gamma * (1 - done) * q_target
-
-        loss = F.mse_loss(q_policy, q_expect)
-        return loss
-
-    def compute_loss_per(
-        self,
-        obs: torch.Tensor,
-        act: torch.Tensor,
-        rew: torch.Tensor,
-        obs2: torch.Tensor,
-        done: torch.Tensor,
-        idx: torch.Tensor,
-        weight: torch.Tensor
-    ):
-        q_policy = self.networks.q(obs).gather(1, act.to(torch.long)).squeeze()
-
-        with torch.no_grad():
-            q_target, _ = torch.max(self.networks.target(obs2), dim=1)
-        q_expect = rew + self.gamma * (1 - done) * q_target
-        loss = (weight * ((q_policy - q_expect) ** 2)).mean()
-        abs_err = torch.abs(q_policy-q_expect)
-        return loss, abs_err
-
-    def load_state_dict(self, state_dict: Dict[str, torch.Tensor]):
-        self.networks.load_state_dict(state_dict)
