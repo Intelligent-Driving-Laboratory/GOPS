@@ -334,10 +334,10 @@ class PolicyRuner():
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
                 for i in range(policy_num):
                     legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
-                    plt.scatter(x=x_array_list[i], y=y_array_list[i], c=t_array_list[i],
+                    plt.scatter(x=x_array_list[i], y=y_array_list[i], c=t_array_list[i], s=2,
                                 label="{}".format(legend), cmap='plasma', marker=marker_list[i])
                 sc = plt.scatter(x=x_ref_array_list[0], y=y_ref_array_list[0], c=t_array_list[0], label="x_y_ref",
-                                 cmap='plasma')
+                                 s=2, cmap='plasma')
                 plt.colorbar(sc)
                 plt.tick_params(labelsize=default_cfg["tick_size"])
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
