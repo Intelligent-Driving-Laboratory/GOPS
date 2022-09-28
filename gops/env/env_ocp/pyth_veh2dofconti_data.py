@@ -89,7 +89,10 @@ class VehicleDynamics(object):
 class ReferencePath(object):
     def __init__(self):
         self.expect_v = 10
-        self.period = 1200
+
+    def compute_path_x(self, t):
+        x = self.expect_v * t
+        return x
 
     def compute_path_y(self, t):
         y = np.sin((1 / 30) * self.expect_v * t)
@@ -177,12 +180,12 @@ class SimuVeh2dofconti(gym.Env,):
         return self.obs, reward, self.done, info
 
     def judge_done(self, state):
-        # v_ys, rs, ys, phis, t = state[0], state[1], state[2], \
-        #                                                    state[3], state[4]
-        #
-        # done = (np.abs(ys - self.vehicle_dynamics.path.compute_path_y(t)) > 3) | \
-        #        (np.abs(phis - self.vehicle_dynamics.path.compute_path_phi(t)) > np.pi / 4.)
-        done = False
+        v_ys, rs, ys, phis, t = state[0], state[1], state[2], \
+                                                           state[3], state[4]
+
+        done = (np.abs(ys - self.vehicle_dynamics.path.compute_path_y(t)) > 3) | \
+               (np.abs(phis - self.vehicle_dynamics.path.compute_path_phi(t)) > np.pi / 4.)
+        # done = False
         return done
 
     def close(self):
