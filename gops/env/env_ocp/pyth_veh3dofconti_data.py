@@ -152,9 +152,12 @@ class SimuVeh3dofconti(gym.Env,):
         self.obs = None
         self.state = None
         self.state_dim = 7
-        self.info_dict = {"state": {"shape": self.state_dim, "dtype": np.float32}}
+        self.ref_num = 1
+        self.info_dict = {
+            "state": {"shape": self.state_dim, "dtype": np.float32},
+            "ref_num": {"shape": (), "dtype": np.uint8},
+        }
         self.seed()
-
 
     @property
     def additional_info(self):
@@ -209,6 +212,7 @@ class SimuVeh3dofconti(gym.Env,):
             "x_ref": x_ref,
             "y": y,
             "y_ref": y_ref,
+            "ref_num": self.ref_num,
         }
         return self.obs, reward, self.done, info
 
