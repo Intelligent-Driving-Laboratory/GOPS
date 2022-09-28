@@ -110,8 +110,6 @@ class VehicleDynamics(object):
 
         rewards = 0.05 * devi_v + 2.0 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
                   0.05 * punish_steer + 0.05 * punish_a_x + 0.02 * punish_x
-        # rewards = 0.01 * devi_v + 0.5 * devi_y + 1 * devi_phi + 0.2 * punish_yaw_rate + \
-        #           0.5 * punish_steer + 0.1 * punish_a_x + 0.1 * punish_x
 
         return rewards
 
