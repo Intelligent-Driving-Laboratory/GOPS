@@ -15,58 +15,56 @@ from random import choice
 
 
 class VehicleDynamics(object):
-    def __init__(self):
-        self.vehicle_params = dict(C_f=-128915.5,  # front wheel cornering stiffness [N/rad]
-                                   C_r=-85943.6,  # rear wheel cornering stiffness [N/rad]
-                                   a=1.06,  # distance from CG to front axle [m]
-                                   b=1.85,  # distance from CG to rear axle [m]
-                                   mass=1412.,  # mass [kg]
+    def __init__(self, **kwargs):
+        self.vehicle_params = dict(k_f=-128915.5,  # front wheel cornering stiffness [N/rad]
+                                   k_r=-85943.6,  # rear wheel cornering stiffness [N/rad]
+                                   l_f=1.06,  # distance from CG to front axle [m]
+                                   l_r=1.85,  # distance from CG to rear axle [m]
+                                   m=1412.,  # mass [kg]
                                    I_z=1536.7,  # Polar moment of inertia at CG [kg*m^2]
                                    miu=1.0,  # tire-road friction coefficient
                                    g=9.81,  # acceleration of gravity [m/s^2]
-                                   u=10
-                                   )
-        a, b, mass, g = self.vehicle_params['a'], self.vehicle_params['b'], \
-                        self.vehicle_params['mass'], self.vehicle_params['g']
-        F_zf, F_zr = b * mass * g / (a + b), a * mass * g / (a + b)
+                                   u=10.)
+        l_f, l_r, mass, g = self.vehicle_params['l_f'], self.vehicle_params['l_r'], \
+                        self.vehicle_params['m'], self.vehicle_params['g']
+        F_zf, F_zr = l_r * mass * g / (l_f + l_r), l_f * mass * g / (l_f + l_r)
         self.vehicle_params.update(dict(F_zf=F_zf,
                                         F_zr=F_zr))
         self.expected_vs = 10.
         self.path = ReferencePath()
-        self.prediction_horizon = 10
+        self.prediction_horizon = kwargs["predictive_horizon"]
 
-    def f_xu(self, states, actions, tau):
-        v_x, v_y, r, delta_y, delta_phi, x, t = states[0], states[1], states[2], \
-                                             states[3], states[4], states[5], states[6]
+    def f_xu(self, states, actions, delta_t):
+        x, y, phi, u, v, w = states[0], states[1], states[2], \
+                                             states[3], states[4], states[5]
         steer, a_x = actions[0], actions[1]
-        C_f = self.vehicle_params['C_f']
-        C_r = self.vehicle_params['C_r']
-        a = self.vehicle_params['a']
-        b = self.vehicle_params['b']
-        mass = self.vehicle_params['mass']
+        k_f = self.vehicle_params['k_f']
+        k_r = self.vehicle_params['k_r']
+        l_f = self.vehicle_params['l_f']
+        l_r = self.vehicle_params['l_r']
+        m = self.vehicle_params['m']
         I_z = self.vehicle_params['I_z']
         miu = self.vehicle_params['miu']
         g = self.vehicle_params['g']
-        F_zf, F_zr = b * mass * g / (a + b), a * mass * g / (a + b)
-        F_xf = np.where(a_x < 0, mass * a_x / 2, np.zeros_like(a_x))
-        F_xr = np.where(a_x < 0, mass * a_x / 2, mass * a_x)
+        F_zf, F_zr = l_r * m * g / (l_f + l_r), l_f * m * g / (l_f + l_r)
+        F_xf = np.where(a_x < 0, m * a_x / 2, np.zeros_like(a_x))
+        F_xr = np.where(a_x < 0, m * a_x / 2, m * a_x)
         miu_f = np.sqrt(np.square(miu * F_zf) - np.square(F_xf)) / F_zf
         miu_r = np.sqrt(np.square(miu * F_zr) - np.square(F_xr)) / F_zr
-        alpha_f = np.arctan((v_y + a * r) / v_x) - steer
-        alpha_r = np.arctan((v_y - b * r) / v_x)
-        next_state = [v_x + tau * (a_x + v_y * r),
-                      (mass * v_y * v_x + tau * (
-                                  a * C_f - b * C_r) * r - tau * C_f * steer * v_x - tau * mass * np.square(
-                          v_x) * r) / (mass * v_x - tau * (C_f + C_r)),
-                      (-I_z * r * v_x - tau * (a * C_f - b * C_r) * v_y + tau * a * C_f * steer * v_x) / (
-                                  tau * (np.square(a) * C_f + np.square(b) * C_r) - I_z * v_x),
-                      delta_y + tau * (v_x * np.sin(delta_phi) + v_y * np.cos(delta_phi)),
-                      delta_phi + tau * r,
-                      x + tau * (v_x * np.cos(delta_phi) - v_y * np.sin(delta_phi)),
-                      t + tau
+        alpha_f = np.arctan((v + l_f * w) / u) - steer
+        alpha_r = np.arctan((v - l_r * r) / u)
+        next_state = [x + delta_t * (u * np.cos(phi) - v * np.sin(phi)),
+                      y + delta_t * (u * np.sin(phi) + v * np.cos(phi)),
+                      phi + delta_t * w,
+                      u + delta_t * (a_x + v * w),
+                      (m * v * u + delta_t * (
+                                  l_f * k_f - l_r * k_r) * r - delta_t * k_f * steer * u - delta_t * m * np.square(
+                          u) * r) / (m * u - delta_t * (k_f + k_r)),
+                      (-I_z * r * u - delta_t * (l_f * k_f - l_r * k_r) * v + delta_t * l_f * k_f * steer * u) / (
+                                  delta_t * (np.square(l_f) * k_f + np.square(l_r) * k_r) - I_z * u)
                       ]
-        alpha_f_bounds, alpha_r_bounds = 3 * miu_f * F_zf / C_f, 3 * miu_r * F_zr / C_r
-        r_bounds = miu_r * g / np.abs(v_x)
+        alpha_f_bounds, alpha_r_bounds = 3 * miu_f * F_zf / k_f, 3 * miu_r * F_zr / k_r
+        r_bounds = miu_r * g / np.abs(u)
         other = [alpha_f, alpha_r, next_state[2], alpha_f_bounds, alpha_r_bounds, r_bounds]
         return next_state, other
 
@@ -75,15 +73,15 @@ class VehicleDynamics(object):
         x_next, next_params = self.f_xu(x_1, u_1, 1 / frequency)
         return x_next, next_params
 
-    def simulation(self, states, actions, base_freq, ref_num):
+    def simulation(self, states, actions, base_freq, ref_num, t):
         state_next, others = self.prediction(states, actions, base_freq)
-        v_x, v_y, r, y, phi, x, t = state_next[0], state_next[1], state_next[2], state_next[3], state_next[4], state_next[5], state_next[6]
-        path_x, path_y, path_phi = self.path.compute_path_x(t), \
+        x, y, phi, u, v, w = state_next[0], state_next[1], state_next[2], state_next[3], state_next[4], state_next[5]
+        path_x, path_y, path_phi = self.path.compute_path_x(t, ref_num), \
                                    self.path.compute_path_y(t, ref_num), \
                            self.path.compute_path_phi(t, ref_num)
-        obs = np.array([v_x - self.expected_vs, v_y, r, y - path_y, phi - path_phi, x - path_x], dtype=np.float32)
+        obs = np.array([x - path_x, y - path_y, phi - path_phi, u - self.expected_vs, v, w], dtype=np.float32)
         for i in range(self.prediction_horizon - 1):
-            ref_x = self.path.compute_path_x(t + (i + 1) / base_freq)
+            ref_x = self.path.compute_path_x(t + (i + 1) / base_freq, ref_num)
             ref_y = self.path.compute_path_y(t + (i + 1) / base_freq, ref_num)
             ref_phi = self.path.compute_path_phi(t + (i + 1) / base_freq, ref_num)
             ref_obs = np.array([x - ref_x, y - ref_y, phi - ref_phi], dtype=np.float32)
@@ -122,7 +120,7 @@ class ReferencePath(object):
     def compute_path_x(self, t, num):
         x = np.zeros_like(t)
         if num == 0:
-            x = np.cos(2*np.pi/6*t) +self.expect_v*t
+            x = 10 * t + np.cos(2 * np.pi * t / 6)
         elif num == 1:
             x = self.expect_v * t
         return x
@@ -130,37 +128,37 @@ class ReferencePath(object):
     def compute_path_y(self, t, num):
         y = np.zeros_like(t)
         if num == 0:
-            y = np.sin((1 / 30) * self.expect_v * t)
+            y = 1.5 * np.sin(2 * np.pi * t / 10)
         elif num == 1:
-            if t < (50 / self.expect_v):
+            if t <= 5:
                 y = 0
-            elif t < (90 / self.expect_v):
-                y = 0.0875 * self.expect_v * t - 4.375
-            elif t < (140 / self.expect_v):
+            elif t <= 9:
+                y = 0.875 * t - 4.375
+            elif t <= 14:
                 y = 3.5
-            elif t < (180 / self.expect_v):
-                y = -0.0875 * self.expect_v * t + 15.75
-            elif t >= (180 / self.expect_v):
+            elif t <= 18:
+                y = -0.875 * t + 15.75
+            elif t > 18:
                 y = 0
         return y
 
     def compute_path_phi(self, t, num):
         phi = np.zeros_like(t)
         if num == 0:
-            phi = (np.sin((1 / 30) * self.expect_v * (t + 0.001)) - np.sin((1 / 30) * self.expect_v * t)) / (
-                        self.expect_v * 0.001)
+            phi = (1.5 * np.sin(2 * np.pi * (t + 0.001) / 10) - 1.5 * np.sin(2 * np.pi * t / 10)) \
+                  / (10 * t + np.cos(2 * np.pi * (t + 0.001) / 6) - 10 * t + np.cos(2 * np.pi * t / 6))
         elif num == 1:
-            if t < (50 / self.expect_v):
+            if t <= 5:
                 phi = 0
-            elif t < (90 / self.expect_v):
-                phi = ((0.0875 * self.expect_v * (t + 0.001) - 4.375) - (0.0875 * self.expect_v * t - 4.375)) / (
-                            self.expect_v * 0.001)
-            elif t < (140 / self.expect_v):
+            elif t <= 9:
+                phi = ((0.875 * (t + 0.001) - 4.375) - (0.875 * t - 4.375)) \
+                      / (self.expect_v * 0.001)
+            elif t <= 14:
                 phi = 0
-            elif t < (180 / self.expect_v):
-                phi = ((-0.0875 * self.expect_v * (t + 0.001) + 15.75) - (-0.0875 * self.expect_v * t + 15.75)) / (
-                            self.expect_v * 0.001)
-            elif t >= (180 / self.expect_v):
+            elif t <= 18:
+                phi = ((-0.875 * (t + 0.001) + 15.75) - (-0.875 * t + 15.75)) \
+                      / (self.expect_v * 0.001)
+            elif t > 18:
                 phi = 0
 
         return np.arctan(phi)
@@ -171,7 +169,7 @@ class SimuVeh3dofconti(gym.Env,):
 
         self.is_adversary = kwargs.get("is_adversary", False)
         self.is_constraint = kwargs.get("is_constraint", False)
-        self.prediction_horizon = 10
+        self.prediction_horizon = kwargs["predictive_horizon"]
         self.vehicle_dynamics = VehicleDynamics()
         self.num_agent = num_agent
         self.expected_vs = 10.
@@ -185,11 +183,12 @@ class SimuVeh3dofconti(gym.Env,):
                                            dtype=np.float32)
         self.obs = None
         self.state = None
-        self.state_dim = 7
+        self.state_dim = 6
         self.ref_num = 1
         self.info_dict = {
             "state": {"shape": self.state_dim, "dtype": np.float32},
             "ref_num": {"shape": (), "dtype": np.uint8},
+            "t": {"shape": (), "dtype": np.uint8},
         }
         self.seed()
 
@@ -202,9 +201,8 @@ class SimuVeh3dofconti(gym.Env,):
         return [seed]
 
     def reset(self, **kwargs):
-        self.seed(123)
         t = 20. * self.np_random.uniform(low=0., high=1.)
-        flag = [0,1]
+        flag = [0, 1]
         self.ref_num = self.np_random.choice(flag)
         path_x = self.vehicle_dynamics.path.compute_path_x(t)
         init_delta_x = self.np_random.normal(0, 2)
