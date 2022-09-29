@@ -320,7 +320,7 @@ class LqModel(torch.nn.Module):
         self.lb_action = torch.tensor(lb_action, dtype=torch.float32)
         self.hb_action = torch.tensor(hb_action, dtype=torch.float32)
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=None):
+    def forward(self, state: torch.Tensor, action: torch.Tensor,info, beyond_done=None):
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here

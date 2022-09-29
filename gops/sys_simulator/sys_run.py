@@ -99,11 +99,12 @@ class PolicyRuner():
         y_error_list = []
         if len(init_state) == 0:
             pass
-        elif len(obs) == len(init_state):
-            obs = np.array(init_state)
-            env.reset(**{'init_obs':obs})
         else:
-            raise NotImplementedError("The dimension of Initial state is wrong!")
+            # len(obs) == len(init_state):
+            obs = np.array(init_state)
+            obs=env.reset(**{'init_obs':obs})
+        # else:
+        #     raise NotImplementedError("The dimension of Initial state is wrong!")
         done = False
         info = {"TimeLimit.truncated": False}
         while not (done or info["TimeLimit.truncated"]):
@@ -275,14 +276,14 @@ class PolicyRuner():
             labels = ax.get_xticklabels() + ax.get_yticklabels()
             [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
             plt.xlabel(x_label, default_cfg["label_font"])
-            plt.ylabel("Action-{}".format(j), default_cfg["label_font"])
+            plt.ylabel("Action-{}".format(j+1), default_cfg["label_font"])
             plt.legend(loc="best", prop=default_cfg["legend_font"])
             fig.tight_layout(pad=default_cfg["pad"])
             plt.savefig(path_action_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
         # plot state
         for j in range(obs_dim):
-            path_state_fmt = os.path.join(self.save_path, "state-{}.{}".format(j, default_cfg["img_fmt"]))
+            path_state_fmt = os.path.join(self.save_path, "state-{}.{}".format(j+1, default_cfg["img_fmt"]))
             fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
 
             # save state data to csv
@@ -297,7 +298,7 @@ class PolicyRuner():
             labels = ax.get_xticklabels() + ax.get_yticklabels()
             [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
             plt.xlabel(x_label, default_cfg["label_font"])
-            plt.ylabel("State_{}".format(j), default_cfg["label_font"])
+            plt.ylabel("State_{}".format(j+1), default_cfg["label_font"])
             plt.legend(loc="best", prop=default_cfg["legend_font"])
             fig.tight_layout(pad=default_cfg["pad"])
             plt.savefig(path_state_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
@@ -321,40 +322,40 @@ class PolicyRuner():
                     y_error_array_list.append(np.array(self.tracking_list[i]["y_error_list"]))
 
                 # plot x_compare
-                path_x_compare_fmt = os.path.join(self.save_path, "X-0.{}".format(default_cfg["img_fmt"]))
+                path_x_compare_fmt = os.path.join(self.save_path, "State-1.{}".format(default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
                 for i in range(policy_num):
                     legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
                     sns.lineplot(x=step_array[i], y=x_array_list[i], label="{}".format(legend))
-                sns.lineplot(x=step_array[0], y=x_ref_array_list[0], label="X-0 Ref")
+                sns.lineplot(x=step_array[0], y=x_ref_array_list[0], label="State-1 Ref")
                 plt.tick_params(labelsize=default_cfg["tick_size"])
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
                 plt.xlabel(x_label,  default_cfg["label_font"])
-                plt.ylabel("X-0", default_cfg["label_font"])
+                plt.ylabel("State-1", default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
                 plt.savefig(path_x_compare_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
                 # plt.show()
 
                 # plot y_compare
-                path_y_compare_fmt = os.path.join(self.save_path, "X-1.{}".format(default_cfg["img_fmt"]))
+                path_y_compare_fmt = os.path.join(self.save_path, "State-2.{}".format(default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
                 for i in range(policy_num):
                     legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
                     sns.lineplot(x=step_array[i], y=y_array_list[i], label="{}".format(legend))
-                sns.lineplot(x=step_array[0], y=y_ref_array_list[0], label="X-1 Ref")
+                sns.lineplot(x=step_array[0], y=y_ref_array_list[0], label="State-2 Ref")
                 plt.tick_params(labelsize=default_cfg["tick_size"])
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
                 plt.xlabel(x_label, default_cfg["label_font"])
-                plt.ylabel("X-1", default_cfg["label_font"])
+                plt.ylabel("State-2", default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
                 plt.savefig(path_y_compare_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
                 # plot x_error
-                path_x_error_fmt = os.path.join(self.save_path, "X-0 error.{}".format(default_cfg["img_fmt"]))
+                path_x_error_fmt = os.path.join(self.save_path, "State-1 error.{}".format(default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
                 for i in range(policy_num):
                     legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
@@ -364,13 +365,13 @@ class PolicyRuner():
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
                 plt.xlabel(x_label, default_cfg["label_font"])
-                plt.ylabel("X-0 Error", default_cfg["label_font"])
+                plt.ylabel("State-1 error", default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
                 plt.savefig(path_x_error_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
                 # plot y_error
-                path_y_error_fmt = os.path.join(self.save_path, "X-2 error.{}".format(default_cfg["img_fmt"]))
+                path_y_error_fmt = os.path.join(self.save_path, "State-2 error.{}".format(default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
                 for i in range(policy_num):
                     legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
@@ -380,7 +381,7 @@ class PolicyRuner():
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
                 plt.xlabel(x_label, default_cfg["label_font"])
-                plt.ylabel("X-1 Error", default_cfg["label_font"])
+                plt.ylabel("State-2 error", default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
                 plt.savefig(path_y_error_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
@@ -450,7 +451,7 @@ class PolicyRuner():
 
             # action error
             for j in range(action_dim):
-                path_action_error_fmt = os.path.join(self.save_path, "action-{}_error.{}".format(j, default_cfg["img_fmt"]))
+                path_action_error_fmt = os.path.join(self.save_path, "action-{}_error.{}".format(j+1, default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
 
                 action_error_array = np.zeros_like(action_array[:-1])
@@ -464,18 +465,18 @@ class PolicyRuner():
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
                 plt.xlabel(x_label, default_cfg["label_font"])
-                plt.ylabel("Action-{}_error".format(j), default_cfg["label_font"])
+                plt.ylabel("Action_{} error".format(j+1), default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
                 plt.savefig(path_action_error_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
                 # save action error data to csv
                 action_error_data = pd.DataFrame(data=action_error_array[:, :, j])
-                action_error_data.to_csv('{}\\action-{}_error.csv'.format(self.save_path, j), encoding='gbk')
+                action_error_data.to_csv('{}\\Action_{} error.csv'.format(self.save_path, j), encoding='gbk')
 
             # state error
             for j in range(obs_dim):
-                path_state_error_fmt = os.path.join(self.save_path, "state-{}_error.{}".format(j, default_cfg["img_fmt"]))
+                path_state_error_fmt = os.path.join(self.save_path, "State-{} error.{}".format(j+1, default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
 
                 state_error_array = np.zeros_like(state_array[:-1])
@@ -489,14 +490,14 @@ class PolicyRuner():
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
                 plt.xlabel(x_label, default_cfg["label_font"])
-                plt.ylabel("State_{}_error".format(j), default_cfg["label_font"])
+                plt.ylabel("State-{}_error".format(j+1), default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
                 plt.savefig(path_state_error_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
                 # save state data to csv
                 state_error_data = pd.DataFrame(data=state_error_array[:, :, j])
-                state_error_data.to_csv('{}\\state-{}_error.csv'.format(self.save_path, j), encoding='gbk')
+                state_error_data.to_csv('{}\\State-{} error.csv'.format(self.save_path, j), encoding='gbk')
 
             # compute relative error
             error_result = {}
@@ -523,7 +524,7 @@ class PolicyRuner():
                         error_list.append(error)
                     state_error["max_error"] = max(error_list)
                     state_error["mean_error"] = sum(error_list) / len(error_list)
-                    error_result["policy_{}-state_{}_error".format(i, j)] = state_error
+                    error_result["policy_{}-state_{}_error".format(i+1, j+1)] = state_error
             print(error_result)
 
 
@@ -582,6 +583,7 @@ class PolicyRuner():
             networks = self.__load_policy(log_policy_dir, trained_policy_iteration)
 
             # Run policy
+            env.seed(12564564)
             eval_dict, tracking_dict = self.run_an_episode(env, networks, self.init_state, is_opt=False, render=False)
             # mp4 to gif
             self.eval_list.append(eval_dict)

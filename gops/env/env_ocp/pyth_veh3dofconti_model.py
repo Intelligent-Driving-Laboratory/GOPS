@@ -173,9 +173,15 @@ class ReferencePath(object):
     def __init__(self):
         self.expect_v = 10.
 
-    def compute_path_x(self, t):
-        x = self.expect_v * t
-        return torch.as_tensor(x)
+    def compute_path_x(self, t, num):
+        if num ==0:
+            x = self.expect_v * t+ torch.cos(2*np.pi/6*t)
+        elif num==1:
+            x = self.expect_v * t
+        x_1 = self.expect_v * t+ torch.cos(2*np.pi/6*t)
+        x_2 = self.expect_v * t
+        x = (num==0)*x_1 + (num==1)*x_2
+        return
 
     def compute_path_y(self, t, num):
         y = torch.where(num == 0, torch.sin((1 / 30) * self.expect_v * t),

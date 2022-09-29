@@ -119,8 +119,12 @@ class ReferencePath(object):
     def __init__(self):
         self.expect_v = 10
 
-    def compute_path_x(self, t):
-        x = self.expect_v * t
+    def compute_path_x(self, t, num):
+        x = np.zeros_like(t)
+        if num == 0:
+            x = np.cos(2*np.pi/6*t) +self.expect_v*t
+        elif num == 1:
+            x = self.expect_v * t
         return x
 
     def compute_path_y(self, t, num):
@@ -198,9 +202,10 @@ class SimuVeh3dofconti(gym.Env,):
         return [seed]
 
     def reset(self, **kwargs):
+        self.seed(123)
         t = 20. * self.np_random.uniform(low=0., high=1.)
-        flag = [0, 1]
-        self.ref_num = choice(flag)
+        flag = [0,1]
+        self.ref_num = self.np_random.choice(flag)
         path_x = self.vehicle_dynamics.path.compute_path_x(t)
         init_delta_x = self.np_random.normal(0, 2)
         init_x = path_x + init_delta_x
@@ -234,7 +239,7 @@ class SimuVeh3dofconti(gym.Env,):
         state = np.array(self.state, dtype=np.float32)
         t = state[-1]
         x = state[5]
-        x_ref = self.expected_vs * t
+        x_ref = self.vehicle_dynamics.path.compute_path_x(t, self.ref_num)
         y = state[3]
         y_ref = self.vehicle_dynamics.path.compute_path_y(t, self.ref_num)
         info = {
