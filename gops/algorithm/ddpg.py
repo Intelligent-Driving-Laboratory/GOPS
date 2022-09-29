@@ -23,6 +23,10 @@ from gops.algorithm.base import AlgorithmBase, ApprBase
 
 class ApproxContainer(ApprBase):
     def __init__(self, **kwargs):
+        """Approximate function container for DDPG.
+
+        Contains a policy and an action value.
+        """
         super().__init__(**kwargs)
         value_func_type = kwargs["value_func_type"]
         policy_func_type = kwargs["policy_func_type"]
@@ -51,6 +55,11 @@ class ApproxContainer(ApprBase):
 
 
 class DDPG(AlgorithmBase):
+    """Deep Deterministic Policy Gradient (DDPG) algorithm
+
+    Paper: https://arxiv.org/pdf/1509.02971.pdf
+
+    """
     def __init__(self, index=0, **kwargs):
         super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
@@ -62,12 +71,17 @@ class DDPG(AlgorithmBase):
 
     @property
     def adjustable_parameters(self):
-        para_tuple = ("gamma", "tau", "delay_update", "reward_scale")
-        return para_tuple
+        return (
+            "gamma", 
+            "tau", 
+            "delay_update", 
+            "reward_scale"
+        )
 
     def __compute_gradient(self, data: dict, iteration):
         tb_info = dict()
         start_time = time.perf_counter()
+        
         self.networks.q_optimizer.zero_grad()
         if not self.per_flag:
             o, a, r, o2, d = (
@@ -80,7 +94,6 @@ class DDPG(AlgorithmBase):
             loss_q, q = self.__compute_loss_q(o, a, r, o2, d)
             loss_q.backward()
         else:
-
             o, a, r, o2, d, idx, weight = (
                 data["obs"],
                 data["act"],
@@ -146,6 +159,7 @@ class DDPG(AlgorithmBase):
         self.networks.q_optimizer.step()
         if iteration % delay_update == 0:
             self.networks.policy_optimizer.step()
+
         with torch.no_grad():
             for p, p_targ in zip(self.networks.q.parameters(), self.networks.q_target.parameters()):
                 p_targ.data.mul_(polyak)
@@ -185,9 +199,3 @@ class DDPG(AlgorithmBase):
             p._grad = grad
 
         self.__update(iteration)
-
-
-if __name__ == "__main__":
-    print("this is ddpg algorithm!")
-    print(torch.cuda.is_available())
-    print(torch.cuda.device_count())
