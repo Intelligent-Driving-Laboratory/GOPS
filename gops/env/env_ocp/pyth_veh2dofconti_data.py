@@ -165,24 +165,31 @@ class SimuVeh2dofconti(gym.Env,):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def reset(self):
-        t = 20. * self.np_random.uniform(low=0., high=1.)
-        flag = [0, 1]
-        self.ref_num = choice(flag)
-        # t = 0
-        # self.ref_num = 0
-        init_delta_y = self.np_random.normal(0, 1)
-        init_y = self.vehicle_dynamics.path.compute_path_y(t, self.ref_num) + init_delta_y
-        init_delta_phi = self.np_random.normal(0, np.pi / 9)
-        init_phi = self.vehicle_dynamics.path.compute_path_phi(t, self.ref_num) + init_delta_phi
-        beta = self.np_random.normal(0, 0.15)
-        init_v_y = self.expected_vs * np.tan(beta)
-        init_r = self.np_random.normal(0, 0.3)
-        obs = np.array([init_v_y, init_r, init_delta_y, init_delta_phi], dtype=np.float32)
+    def reset(self, init_obs=None):
+        if init_obs is None:
+            flag = [0, 1]
+            self.ref_num = choice(flag)
+            t = 60. * self.np_random.uniform(low=0., high=1.)
+            init_x = self.expected_vs * t
+            init_delta_y = self.np_random.normal(0, 1)
+            init_y = self.vehicle_dynamics.path.compute_path_y(t,self.ref_num) + init_delta_y
+            init_delta_phi = self.np_random.normal(0, np.pi / 9)
+            init_phi = self.vehicle_dynamics.path.compute_path_phi(t,self.ref_num) + init_delta_phi
+            beta = self.np_random.normal(0, 0.15)
+            init_v_y = self.expected_vs * np.tan(beta)
+            init_r = self.np_random.normal(0, 0.3)
+            obs = np.array([init_v_y, init_r, init_delta_y, init_delta_phi], dtype=np.float32)
+        else:
+            flag = [0, 1]
+            self.ref_num = choice(flag)
+            init_v_y, init_r, init_y, init_phi, t = init_obs
+            init_delta_y = self.vehicle_dynamics.path.compute_path_y(t,self.ref_num) - init_y
+            init_delta_phi = self.vehicle_dynamics.path.compute_path_phi(t,self.ref_num) + init_phi
+            obs = np.array([init_v_y, init_r, init_delta_y, init_delta_phi], dtype=np.float32)
 
         for i in range(self.prediction_horizon - 1):
-            ref_y = self.vehicle_dynamics.path.compute_path_y(t + (i + 1)/self.base_frequency, self.ref_num)
-            ref_phi = self.vehicle_dynamics.path.compute_path_phi(t + (i + 1)/self.base_frequency, self.ref_num)
+            ref_y = self.vehicle_dynamics.path.compute_path_y(t + (i + 1) / self.base_frequency,self.ref_num)
+            ref_phi = self.vehicle_dynamics.path.compute_path_phi(t + (i + 1) / self.base_frequency,self.ref_num)
             ref_obs = np.array([init_y - ref_y, init_phi - ref_phi], dtype=np.float32)
             obs = np.hstack((obs, ref_obs))
         self.obs = obs
