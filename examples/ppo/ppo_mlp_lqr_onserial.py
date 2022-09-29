@@ -42,6 +42,8 @@ if __name__ == "__main__":
     parser.add_argument("--action_high_limit", type=list, default=None)
     parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--action_type", type=str, default="continu")
+    parser.add_argument("--reward_scale", type=float, default=1)
+    parser.add_argument("--reward_shift", type=float, default=0)
     parser.add_argument("--is_render", type=bool, default=False)
     parser.add_argument(
         "--is_adversary", type=bool, default=False, help="Adversary training"
@@ -174,7 +176,7 @@ if __name__ == "__main__":
             "schedule_clip": "None",
             "loss_value_clip": False,
             "loss_value_norm": False,
-            "reward_scale": 0.1,
+            "reward_scale": 1,
         }
     )
     # Step 2: create sampler in trainer

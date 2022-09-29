@@ -18,5 +18,5 @@ class ModelWrapper(nn.Module):
     def forward(self, state: torch.Tensor, action: torch.Tensor,info: InfoDict, beyond_done=None):
         return self.model.forward(state, action,info, beyond_done)
 
-    def forward_n_step(self, func, n, state: torch.Tensor):
-        return self.model.forward_n_step(func, n, state)
+    # def forward_n_step(self, func, n, state: torch.Tensor):
+    #     return self.model.forward_n_step(func, n, state)

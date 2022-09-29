@@ -48,6 +48,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--is_adversary", type=bool, default=False, help="Adversary training"
     )
+    parser.add_argument("--reward_scale", type=float, default=1)
+    parser.add_argument("--reward_shift", type=float, default=0)
     ################################################
     # 2.1 Parameters of value approximate function
     # parser.add_argument("--value_func_name", type=str, default="ActionValue")

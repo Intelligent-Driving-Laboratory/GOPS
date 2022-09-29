@@ -30,16 +30,16 @@ if __name__ == "__main__":
     ################################################
     # Key Parameters for users
     parser.add_argument("--env_id", type=str, default="pyth_lq")
-    parser.add_argument("--lq_config", type=str, default="s2a1")
+    parser.add_argument("--lq_config", type=str, default="s3a1")
     parser.add_argument("--algorithm", type=str, default="FHADP")
-    parser.add_argument("--pre_horizon", type=int, default=60)
+    parser.add_argument("--pre_horizon", type=int, default=80)
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=3, help="dim(State)")
-    parser.add_argument("--action_dim", type=int, default=1, help="dim(Action)")
     parser.add_argument("--action_high_limit", type=list, default=None)
     parser.add_argument("--action_low_limit", type=list, default=None)
+    parser.add_argument("--reward_scale", type=float, default=1)
+    parser.add_argument("--reward_shift", type=float, default=0)
     parser.add_argument(
         "--action_type", type=str, default="continu", help="Options: continu/discret"
     )
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     ################################################
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
-    parser.add_argument("--max_iteration", type=int, default=2000)
+    parser.add_argument("--max_iteration", type=int, default=6000)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     if trainer_type == "off_serial_trainer":
@@ -102,8 +102,8 @@ if __name__ == "__main__":
     ################################################
     # 8. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
-    parser.add_argument("--apprfunc_save_interval", type=int, default=100)
-    parser.add_argument("--log_save_interval", type=int, default=100)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=500)
+    parser.add_argument("--log_save_interval", type=int, default=200)
 
     # Get parameter dictionary
     args = vars(parser.parse_args())
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     alg.set_parameters(
-        {"reward_scale": 0.1, "gamma": 1, "tau": 0.2, "delay_update": 1}
+        {"reward_scale": 1, "gamma": 1, "tau": 0.2, "delay_update": 1}
     )
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
