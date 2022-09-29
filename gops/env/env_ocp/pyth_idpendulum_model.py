@@ -134,12 +134,12 @@ class Dynamics(object):
             states[:, 5],
         )
         point0x, point0y = p, 0
-        point1x, point1y = point0x + self.l_rod1 * np.sin(
+        point1x, point1y = point0x + self.l_rod1 * torch.sin(
             theta1
-        ), point0y + self.l_rod1 * np.cos(theta1)
-        point2x, point2y = point1x + self.l_rod2 * np.sin(
+        ), point0y + self.l_rod1 * torch.cos(theta1)
+        point2x, point2y = point1x + self.l_rod2 * torch.sin(
             theta2
-        ), point1y + self.l_rod2 * np.cos(theta2)
+        ), point1y + self.l_rod2 * torch.cos(theta2)
 
         return point2y <= 1.0
 
@@ -166,7 +166,7 @@ class PythInvertedpendulum(torch.nn.Module):
         self.lb_action = torch.tensor(lb_action, dtype=torch.float32)
         self.hb_action = torch.tensor(hb_action, dtype=torch.float32)
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=None):
+    def forward(self, state: torch.Tensor, action: torch.Tensor, info_init=None, beyond_done=None):
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
