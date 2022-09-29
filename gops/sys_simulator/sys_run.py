@@ -37,7 +37,8 @@ default_cfg["img_fmt"] = "png"
 
 class PolicyRuner():
     def __init__(self, log_policy_dir_list, trained_policy_iteration_list, save_render=False, plot_range=[],
-                 is_init_state=False, init_state=[], legend_list=[], use_opt=False, constrained_env=False, is_tracking=False) -> None:
+                 is_init_state=False, init_state=[], legend_list=[], use_opt=False, constrained_env=False,
+                 is_tracking=False, dt=None) -> None:
         self.log_policy_dir_list = log_policy_dir_list
         self.trained_policy_iteration_list = trained_policy_iteration_list
         self.save_render = save_render
@@ -51,6 +52,7 @@ class PolicyRuner():
         self.use_opt = use_opt
         self.constrained_env = constrained_env
         self.is_tracking = is_tracking
+        self.dt = dt
         if self.use_opt:
             self.legend_list.append('LQ')
         self.policy_num = len(self.log_policy_dir_list)
@@ -93,11 +95,13 @@ class PolicyRuner():
         x_ref_list = []
         y_list = []
         y_ref_list = []
+        x_error_list = []
+        y_error_list = []
         if len(init_state) == 0:
             pass
         elif len(obs) == len(init_state):
             obs = np.array(init_state)
-            env.env.reset(obs)
+            env.reset(**{'init_obs':obs})
         else:
             raise NotImplementedError("The dimension of Initial state is wrong!")
         done = False
@@ -125,11 +129,12 @@ class PolicyRuner():
             if self.constrained_env:
                 constrain_list.append(info["constraint"])
             if self.is_tracking:
-                t_list.append(info["t"])
                 x_list.append(info["x"])
                 x_ref_list.append(info["x_ref"])
                 y_list.append(info["y"])
                 y_ref_list.append(info["y_ref"])
+                x_error_list.append(info["x"] - info["x_ref"])
+                y_error_list.append(info["y"] - info["y_ref"])
 
         eval_dict = {
             "reward_list": reward_list,
@@ -149,6 +154,8 @@ class PolicyRuner():
                 "x_ref_list": x_ref_list,
                 "y_list": y_list,
                 "y_ref_list": y_ref_list,
+                "x_error_list":x_error_list,
+                "y_error_list":y_error_list
             }
         else:
             tracking_dict = {}
@@ -182,6 +189,16 @@ class PolicyRuner():
         state_list = []
         step_list = []
         constrain_list = []
+        # font form
+        font1 = {'family': 'Times New Roman',
+                 'weight': 'normal',
+                 'size': 9,
+                 'style': 'italic'
+                 }
+        font2 = {'family': 'Times New Roman',
+                 'weight': 'normal',
+                 'size': 8,
+                 }
         # Put data into list
         for i in range(policy_num):
             reward_list.append(np.array(self.eval_list[i]["reward_list"]))
@@ -213,6 +230,11 @@ class PolicyRuner():
         action_array = np.array(action_list)
         state_array = np.array(state_list)
         step_array = np.array(step_list)
+        x_label = "Time Step"
+        if self.dt != None:
+            step_array = step_array * self.dt
+            x_label = "t"
+
         if self.constrained_env:
             constrain_array = np.array(constrain_list)[:, :, 0]  # todo:special for SPIL
 
@@ -230,7 +252,7 @@ class PolicyRuner():
         plt.tick_params(labelsize=default_cfg["tick_size"])
         labels = ax.get_xticklabels() + ax.get_yticklabels()
         [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
-        plt.xlabel("Time step", default_cfg["label_font"])
+        plt.xlabel(x_label, default_cfg["label_font"])
         plt.ylabel("Reward", default_cfg["label_font"])
         plt.legend(loc="best", prop=default_cfg["legend_font"])
         fig.tight_layout(pad=default_cfg["pad"])
@@ -252,7 +274,7 @@ class PolicyRuner():
             plt.tick_params(labelsize=default_cfg["tick_size"])
             labels = ax.get_xticklabels() + ax.get_yticklabels()
             [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
-            plt.xlabel("Time step", default_cfg["label_font"])
+            plt.xlabel(x_label, default_cfg["label_font"])
             plt.ylabel("Action-{}".format(j), default_cfg["label_font"])
             plt.legend(loc="best", prop=default_cfg["legend_font"])
             fig.tight_layout(pad=default_cfg["pad"])
@@ -274,7 +296,7 @@ class PolicyRuner():
             plt.tick_params(labelsize=default_cfg["tick_size"])
             labels = ax.get_xticklabels() + ax.get_yticklabels()
             [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
-            plt.xlabel("Time step", default_cfg["label_font"])
+            plt.xlabel(x_label, default_cfg["label_font"])
             plt.ylabel("State_{}".format(j), default_cfg["label_font"])
             plt.legend(loc="best", prop=default_cfg["legend_font"])
             fig.tight_layout(pad=default_cfg["pad"])
@@ -283,70 +305,104 @@ class PolicyRuner():
             # plot tracking
             if self.is_tracking:
                 # Creat inital array
-                t_array_list = []
                 x_array_list = []
                 x_ref_array_list = []
                 y_array_list = []
                 y_ref_array_list = []
-                marker_list = ['*', 'p', 's', 'D', 'h', '^', '8', 'x']
+                x_error_array_list = []
+                y_error_array_list = []
+                # marker_list = ['*', 'p', 's', 'D', 'h', '^', '8', 'x']
                 for i in range(policy_num):
-                    t_array_list.append(np.array(self.tracking_list[i]["t_list"]))
                     x_array_list.append(np.array(self.tracking_list[i]["x_list"]))
                     x_ref_array_list.append(np.array(self.tracking_list[i]["x_ref_list"]))
                     y_array_list.append(np.array(self.tracking_list[i]["y_list"]))
                     y_ref_array_list.append(np.array(self.tracking_list[i]["y_ref_list"]))
+                    x_error_array_list.append(np.array(self.tracking_list[i]["x_error_list"]))
+                    y_error_array_list.append(np.array(self.tracking_list[i]["y_error_list"]))
 
                 # plot x_compare
-                path_x_compare_fmt = os.path.join(self.save_path, "x_compare.{}".format(default_cfg["img_fmt"]))
+                path_x_compare_fmt = os.path.join(self.save_path, "X-0.{}".format(default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
                 for i in range(policy_num):
                     legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
-                    sns.lineplot(x=t_array_list[i], y=x_array_list[i], label="{}".format(legend))
-                sns.lineplot(x=t_array_list[0], y=x_ref_array_list[0], label="x_ref")
+                    sns.lineplot(x=step_array[i], y=x_array_list[i], label="{}".format(legend))
+                sns.lineplot(x=step_array[0], y=x_ref_array_list[0], label="X-0 Ref")
                 plt.tick_params(labelsize=default_cfg["tick_size"])
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
-                plt.xlabel("Time", default_cfg["label_font"])
-                plt.ylabel("x_compare", default_cfg["label_font"])
+                plt.xlabel(x_label,  default_cfg["label_font"])
+                plt.ylabel("X-0", default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
                 plt.savefig(path_x_compare_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
                 # plt.show()
 
                 # plot y_compare
-                path_y_compare_fmt = os.path.join(self.save_path, "y_compare.{}".format(default_cfg["img_fmt"]))
+                path_y_compare_fmt = os.path.join(self.save_path, "X-1.{}".format(default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
                 for i in range(policy_num):
                     legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
-                    sns.lineplot(x=t_array_list[i], y=y_array_list[i], label="{}".format(legend))
-                sns.lineplot(x=t_array_list[0], y=y_ref_array_list[0], label="y_ref")
+                    sns.lineplot(x=step_array[i], y=y_array_list[i], label="{}".format(legend))
+                sns.lineplot(x=step_array[0], y=y_ref_array_list[0], label="X-1 Ref")
                 plt.tick_params(labelsize=default_cfg["tick_size"])
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
-                plt.xlabel("Time", default_cfg["label_font"])
-                plt.ylabel("y_compare", default_cfg["label_font"])
+                plt.xlabel(x_label, default_cfg["label_font"])
+                plt.ylabel("X-1", default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
                 plt.savefig(path_y_compare_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
-                # plot x_y
-                path_x_y_fmt = os.path.join(self.save_path, "x_y.{}".format(default_cfg["img_fmt"]))
+                # plot x_error
+                path_x_error_fmt = os.path.join(self.save_path, "X-0 error.{}".format(default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
                 for i in range(policy_num):
                     legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
-                    plt.scatter(x=x_array_list[i], y=y_array_list[i], c=t_array_list[i], s=2,
-                                label="{}".format(legend), cmap='plasma', marker=marker_list[i])
-                sc = plt.scatter(x=x_ref_array_list[0], y=y_ref_array_list[0], c=t_array_list[0], label="x_y_ref",
-                                 s=2, cmap='plasma')
-                plt.colorbar(sc)
+                    sns.lineplot(x=step_array[i], y=x_error_array_list[i], label="{}".format(legend))
+                # sns.lineplot(x=t_array_list[0], y=x_ref_array_list[0], label="x_ref")
                 plt.tick_params(labelsize=default_cfg["tick_size"])
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
-                plt.xlabel("X", default_cfg["label_font"])
-                plt.ylabel("Y", default_cfg["label_font"])
+                plt.xlabel(x_label, default_cfg["label_font"])
+                plt.ylabel("X-0 Error", default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
-                plt.savefig(path_x_y_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+                plt.savefig(path_x_error_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+
+                # plot y_error
+                path_y_error_fmt = os.path.join(self.save_path, "X-2 error.{}".format(default_cfg["img_fmt"]))
+                fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
+                for i in range(policy_num):
+                    legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
+                    sns.lineplot(x=step_array[i], y=y_error_array_list[i], label="{}".format(legend))
+                # sns.lineplot(x=t_array_list[0], y=x_ref_array_list[0], label="x_ref")
+                plt.tick_params(labelsize=default_cfg["tick_size"])
+                labels = ax.get_xticklabels() + ax.get_yticklabels()
+                [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
+                plt.xlabel(x_label, default_cfg["label_font"])
+                plt.ylabel("X-1 Error", default_cfg["label_font"])
+                plt.legend(loc="best", prop=default_cfg["legend_font"])
+                fig.tight_layout(pad=default_cfg["pad"])
+                plt.savefig(path_y_error_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+
+                # plot x_y
+                # path_x_y_fmt = os.path.join(self.save_path, "x_y.{}".format(default_cfg["img_fmt"]))
+                # fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
+                # for i in range(policy_num):
+                #     legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
+                #     plt.scatter(x=x_array_list[i], y=y_array_list[i], c=t_array_list[i], s=2,
+                #                 label="{}".format(legend), cmap='plasma', marker=marker_list[i])
+                # sc = plt.scatter(x=x_ref_array_list[0], y=y_ref_array_list[0], c=t_array_list[0], label="x_y_ref",
+                #                  s=2, cmap='plasma')
+                # plt.colorbar(sc)
+                # plt.tick_params(labelsize=default_cfg["tick_size"])
+                # labels = ax.get_xticklabels() + ax.get_yticklabels()
+                # [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
+                # plt.xlabel("X", default_cfg["label_font"])
+                # plt.ylabel("Y", default_cfg["label_font"])
+                # plt.legend(loc="best", prop=default_cfg["legend_font"])
+                # fig.tight_layout(pad=default_cfg["pad"])
+                # plt.savefig(path_x_y_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
         # plot constraint value
         if self.constrained_env:
@@ -363,7 +419,7 @@ class PolicyRuner():
             plt.tick_params(labelsize=default_cfg["tick_size"])
             labels = ax.get_xticklabels() + ax.get_yticklabels()
             [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
-            plt.xlabel("Time step", default_cfg["label_font"])
+            plt.xlabel(x_label, default_cfg["label_font"])
             plt.ylabel("Constraint value", default_cfg["label_font"])
             plt.legend(loc="best", prop=default_cfg["legend_font"])
             fig.tight_layout(pad=default_cfg["pad"])
@@ -386,7 +442,7 @@ class PolicyRuner():
             plt.tick_params(labelsize=default_cfg["tick_size"])
             labels = ax.get_xticklabels() + ax.get_yticklabels()
             [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
-            plt.xlabel("Time step", default_cfg["label_font"])
+            plt.xlabel(x_label, default_cfg["label_font"])
             plt.ylabel("Reward_error", default_cfg["label_font"])
             plt.legend(loc="best", prop=default_cfg["legend_font"])
             fig.tight_layout(pad=default_cfg["pad"])
@@ -407,7 +463,7 @@ class PolicyRuner():
                 plt.tick_params(labelsize=default_cfg["tick_size"])
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
-                plt.xlabel("Time step", default_cfg["label_font"])
+                plt.xlabel(x_label, default_cfg["label_font"])
                 plt.ylabel("Action-{}_error".format(j), default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
@@ -432,7 +488,7 @@ class PolicyRuner():
                 plt.tick_params(labelsize=default_cfg["tick_size"])
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
-                plt.xlabel("Time step", default_cfg["label_font"])
+                plt.xlabel(x_label, default_cfg["label_font"])
                 plt.ylabel("State_{}_error".format(j), default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
@@ -557,6 +613,7 @@ class PolicyRuner():
         next_obs_list = []
         for i in range(init_state_nums):
             obs = obs_list[i]
+            env.reset(**{'init_obs': obs})
             if is_opt:
                 action = self.compute_action_lqr(obs, controller)
             else:
