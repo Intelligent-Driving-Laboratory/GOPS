@@ -98,7 +98,6 @@ class VehicleDynamics(object):
         delta_x, delta_y, delta_phi, delta_u, v, w = obs[0], obs[1], obs[2], \
                                                    obs[3], obs[4], obs[5]
         steers, a_xs = actions[0], actions[1]
-        devi_v = -np.square(delta_u)
         devi_y = -np.square(delta_y)
         devi_phi = -np.square(delta_phi)
         punish_yaw_rate = -np.square(w)
@@ -106,8 +105,8 @@ class VehicleDynamics(object):
         punish_a_x = -np.square(a_xs)
         punish_x = -np.square(delta_x)
 
-        rewards = 0.05 * devi_v + 2.0 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
-                  0.05 * punish_steer + 0.05 * punish_a_x + 0.02 * punish_x
+        rewards = 1.0 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
+                  0.05 * punish_steer + 0.05 * punish_a_x + 0.5 * punish_x
 
         return rewards
 
@@ -188,7 +187,7 @@ class SimuVeh3dofconti(gym.Env,):
         self.info_dict = {
             "state": {"shape": self.state_dim, "dtype": np.float32},
             "ref_num": {"shape": (), "dtype": np.uint8},
-            "t": {"shape": (), "dtype": np.uint8},
+            "t": {"shape": (), "dtype": np.float32},
         }
         self.seed()
 
@@ -208,7 +207,7 @@ class SimuVeh3dofconti(gym.Env,):
         init_w = None
         init_x = None
         obs = None
-        if (init_state == None) & (t == None) & (ref_num == None):
+        if (init_state is None) & (t is None) & (ref_num is None):
             flag = [0, 1]
             self.ref_num = self.np_random.choice(flag)
             t = 20. * self.np_random.uniform(low=0., high=1.)
@@ -225,7 +224,7 @@ class SimuVeh3dofconti(gym.Env,):
             init_v = init_u * np.tan(beta)
             init_w = self.np_random.normal(0, 0.3)
             obs = np.array([init_delta_x, init_delta_y, init_delta_phi, init_u - self.expected_vs, init_v, init_w], dtype=np.float32)
-        elif (init_state != None) & (t != None) & (ref_num != None):
+        elif (init_state is not None) & (t is not None) & (ref_num is not None):
             flag = [0, 1]
             self.ref_num = self.np_random.choice(flag)
             self.t = t

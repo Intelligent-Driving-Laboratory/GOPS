@@ -156,7 +156,7 @@ class SimuVeh2dofconti(gym.Env,):
         self.info_dict = {
             "state": {"shape": self.state_dim, "dtype": np.float32},
             "ref_num": {"shape": (), "dtype": np.uint8},
-            "t": {"shape": (), "dtype": np.uint8},
+            "t": {"shape": (), "dtype": np.float32},
         }
         self.seed()
 
@@ -174,7 +174,7 @@ class SimuVeh2dofconti(gym.Env,):
         init_v = None
         init_w = None
         obs = None
-        if (init_state == None) & (t == None) & (ref_num == None):
+        if (init_state is None) & (t is None) & (ref_num is None):
             flag = [0, 1]
             self.ref_num = self.np_random.choice(flag)
             t = 20. * self.np_random.uniform(low=0., high=1.)
@@ -187,7 +187,7 @@ class SimuVeh2dofconti(gym.Env,):
             init_v = self.expected_vs * np.tan(beta)
             init_w = self.np_random.normal(0, 0.3)
             obs = np.array([init_delta_y, init_delta_phi, init_v, init_w], dtype=np.float32)
-        elif (init_state != None) & (t != None) & (ref_num != None):
+        elif (init_state is not None) & (t is not None) & (ref_num is not None):
             flag = [0, 1]
             self.ref_num = self.np_random.choice(flag)
             self.t = t
@@ -208,8 +208,6 @@ class SimuVeh2dofconti(gym.Env,):
         return self.obs
 
     def step(self, action: np.ndarray, adv_action=None):  # think of action is in range [-1, 1]
-        steer_norm = action
-        action = steer_norm * 1.2 * np.pi / 9
         reward = self.vehicle_dynamics.compute_rewards(self.obs, action)
         self.state, self.obs = self.vehicle_dynamics.simulation(self.state, action,
                                              self.base_frequency, self.ref_num, self.t)

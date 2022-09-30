@@ -156,7 +156,7 @@ class VehicleDynamics(object):
         delta_x, delta_y, delta_phi, delta_u, v, w = obs[:, 0], obs[:, 1], obs[:, 2], \
                                                    obs[:, 3], obs[:, 4], obs[:, 5]
         steers, a_xs = actions[:, 0], actions[:, 1]
-        devi_v = -torch.square(delta_u)
+        # devi_v = -torch.square(delta_u)
         devi_y = -torch.square(delta_y)
         devi_phi = -torch.square(delta_phi)
         punish_yaw_rate = -torch.square(w)
@@ -164,8 +164,8 @@ class VehicleDynamics(object):
         punish_a_x = -torch.square(a_xs)
         punish_x = -torch.square(delta_x)
 
-        rewards = 0.05 * devi_v + 2.0 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
-                  0.05 * punish_steer + 0.05 * punish_a_x + 0.02 * punish_x
+        rewards = 1.0 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
+                  0.05 * punish_steer + 0.05 * punish_a_x + 0.5 * punish_x
 
         return rewards
 
