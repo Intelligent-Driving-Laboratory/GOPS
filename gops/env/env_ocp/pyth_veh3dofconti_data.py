@@ -257,11 +257,12 @@ class SimuVeh3dofconti(gym.Env,):
         state = np.array(self.state, dtype=np.float32)
         x_ref = self.vehicle_dynamics.path.compute_path_x(self.t, self.ref_num)
         y_ref = self.vehicle_dynamics.path.compute_path_y(self.t, self.ref_num)
+        phi_ref = self.vehicle_dynamics.path.compute_path_phi(self.t, self.ref_num)
 
         info = {
             "state": state,
             "t": self.t,
-            "ref": [x_ref, y_ref, None, None, None, None],
+            "ref": [x_ref, y_ref, phi_ref, None, None, None],
             "ref_num": self.ref_num,
         }
         return self.obs, reward, self.done, info
