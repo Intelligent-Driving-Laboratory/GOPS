@@ -79,7 +79,7 @@ class VehicleDynamics(object):
         path_x, path_y, path_phi = self.path.compute_path_x(t, ref_num), \
                                    self.path.compute_path_y(t, ref_num), \
                            self.path.compute_path_phi(t, ref_num)
-        obs = np.array([x - path_x, y - path_y, phi - path_phi, u - self.expected_vs, v, w], dtype=np.float32)
+        obs = np.array([x - path_x, y - path_y, phi - path_phi, u, v, w], dtype=np.float32)
         for i in range(self.prediction_horizon - 1):
             ref_x = self.path.compute_path_x(t + (i + 1) / base_freq, ref_num)
             ref_y = self.path.compute_path_y(t + (i + 1) / base_freq, ref_num)
@@ -223,7 +223,7 @@ class SimuVeh3dofconti(gym.Env,):
             init_u = self.np_random.uniform(low=5., high=15.)
             init_v = init_u * np.tan(beta)
             init_w = self.np_random.normal(0, 0.3)
-            obs = np.array([init_delta_x, init_delta_y, init_delta_phi, init_u - self.expected_vs, init_v, init_w], dtype=np.float32)
+            obs = np.array([init_delta_x, init_delta_y, init_delta_phi, init_u, init_v, init_w], dtype=np.float32)
         elif (init_state is not None) & (t is not None) & (ref_num is not None):
             flag = [0, 1]
             self.ref_num = self.np_random.choice(flag)
@@ -232,7 +232,7 @@ class SimuVeh3dofconti(gym.Env,):
             init_delta_x = self.vehicle_dynamics.path.compute_path_x(t, self.ref_num) - init_x
             init_delta_y = self.vehicle_dynamics.path.compute_path_y(t, self.ref_num) - init_y
             init_delta_phi = self.vehicle_dynamics.path.compute_path_phi(t, self.ref_num) + init_phi
-            obs = np.array([init_delta_x, init_delta_y, init_delta_phi, init_u - self.expected_vs, init_v, init_w], dtype=np.float32)
+            obs = np.array([init_delta_x, init_delta_y, init_delta_phi, init_u, init_v, init_w], dtype=np.float32)
         else:
             print("reset error")
 
