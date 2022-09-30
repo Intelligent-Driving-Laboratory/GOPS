@@ -27,7 +27,7 @@ class Veh3dofcontiModel(torch.nn.Module):
 
     def forward(self, obs: torch.Tensor, action: torch.Tensor, info: dict, beyond_done=torch.tensor(1)):
         steer_norm, a_xs_norm = action[:, 0], action[:, 1]
-        actions = torch.stack([steer_norm, a_xs_norm], 1)
+        actions = torch.stack([steer_norm * 1.2 * np.pi / 9, a_xs_norm * 3.], 1)
         state = info["state"]
         ref_num = info["ref_num"]
         tc = info["t"]
