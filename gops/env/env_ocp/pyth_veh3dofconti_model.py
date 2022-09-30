@@ -22,7 +22,7 @@ class Veh3dofcontiModel(torch.nn.Module):
         """
         you need to define parameters here
         """
-        self.vehicle_dynamics = VehicleDynamics()
+        self.vehicle_dynamics = VehicleDynamics(**kwargs)
         self.base_frequency = 10.
         self.expected_vs = 10.
 
@@ -40,7 +40,7 @@ class Veh3dofcontiModel(torch.nn.Module):
                                    self.vehicle_dynamics.path.compute_path_phi(tc, ref_num)
         obsc = torch.stack([xc - path_xc, yc - path_yc, phic - path_phic, uc - self.expected_vs, vc, wc], 1)
         for i in range(self.vehicle_dynamics.prediction_horizon - 1):
-            ref_x = self.vehicle_dynamics.path.compute_path_x(tc + (i + 1) / self.base_frequency)
+            ref_x = self.vehicle_dynamics.path.compute_path_x(tc + (i + 1) / self.base_frequency, ref_num)
             ref_y = self.vehicle_dynamics.path.compute_path_y(tc + (i + 1) / self.base_frequency, ref_num)
             ref_phi = self.vehicle_dynamics.path.compute_path_phi(tc + (i + 1) / self.base_frequency, ref_num)
             ref_obs = torch.stack([xc - ref_x, yc - ref_y, phic - ref_phi], 1)
@@ -203,7 +203,7 @@ def env_model_creator(**kwargs):
     make env model `pyth_veh3dofconti`
     """
 
-    return Veh3dofcontiModel()
+    return Veh3dofcontiModel(**kwargs)
 
 
 def clip_by_tensor(t, t_min, t_max):

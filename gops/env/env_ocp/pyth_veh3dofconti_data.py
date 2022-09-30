@@ -52,15 +52,15 @@ class VehicleDynamics(object):
         miu_f = np.sqrt(np.square(miu * F_zf) - np.square(F_xf)) / F_zf
         miu_r = np.sqrt(np.square(miu * F_zr) - np.square(F_xr)) / F_zr
         alpha_f = np.arctan((v + l_f * w) / u) - steer
-        alpha_r = np.arctan((v - l_r * r) / u)
+        alpha_r = np.arctan((v - l_r * w) / u)
         next_state = [x + delta_t * (u * np.cos(phi) - v * np.sin(phi)),
                       y + delta_t * (u * np.sin(phi) + v * np.cos(phi)),
                       phi + delta_t * w,
                       u + delta_t * (a_x + v * w),
                       (m * v * u + delta_t * (
-                                  l_f * k_f - l_r * k_r) * r - delta_t * k_f * steer * u - delta_t * m * np.square(
-                          u) * r) / (m * u - delta_t * (k_f + k_r)),
-                      (-I_z * r * u - delta_t * (l_f * k_f - l_r * k_r) * v + delta_t * l_f * k_f * steer * u) / (
+                                  l_f * k_f - l_r * k_r) * w - delta_t * k_f * steer * u - delta_t * m * np.square(
+                          u) * w) / (m * u - delta_t * (k_f + k_r)),
+                      (-I_z * w * u - delta_t * (l_f * k_f - l_r * k_r) * v + delta_t * l_f * k_f * steer * u) / (
                                   delta_t * (np.square(l_f) * k_f + np.square(l_r) * k_r) - I_z * u)
                       ]
         alpha_f_bounds, alpha_r_bounds = 3 * miu_f * F_zf / k_f, 3 * miu_r * F_zr / k_r
@@ -104,7 +104,7 @@ class VehicleDynamics(object):
         punish_yaw_rate = -np.square(w)
         punish_steer = -np.square(steers)
         punish_a_x = -np.square(a_xs)
-        punish_x = -np.square(x)
+        punish_x = -np.square(delta_x)
 
         rewards = 0.05 * devi_v + 2.0 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
                   0.05 * punish_steer + 0.05 * punish_a_x + 0.02 * punish_x
@@ -169,7 +169,7 @@ class SimuVeh3dofconti(gym.Env,):
         self.is_adversary = kwargs.get("is_adversary", False)
         self.is_constraint = kwargs.get("is_constraint", False)
         self.prediction_horizon = kwargs["predictive_horizon"]
-        self.vehicle_dynamics = VehicleDynamics()
+        self.vehicle_dynamics = VehicleDynamics(**kwargs)
         self.num_agent = num_agent
         self.expected_vs = 10.
         self.base_frequency = 10
