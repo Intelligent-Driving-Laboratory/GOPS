@@ -11,7 +11,6 @@ import gym
 from gym.utils import seeding
 import numpy as np
 from gym.wrappers.time_limit import TimeLimit
-from random import choice
 
 
 class VehicleDynamics(object):
@@ -31,8 +30,53 @@ class VehicleDynamics(object):
         self.vehicle_params.update(dict(F_zf=F_zf,
                                         F_zr=F_zr))
         self.expected_vs = 10.
-        self.path = ReferencePath()
         self.prediction_horizon = kwargs["predictive_horizon"]
+
+    def compute_path_x(self, t, num):
+        x = np.zeros_like(t)
+        if num == 0:
+            x = 10 * t + np.cos(2 * np.pi * t / 6)
+        elif num == 1:
+            x = self.vehicle_params['u'] * t
+        return x
+
+    def compute_path_y(self, t, num):
+        y = np.zeros_like(t)
+        if num == 0:
+            y = 1.5 * np.sin(2 * np.pi * t / 10)
+        elif num == 1:
+            if t <= 5:
+                y = 0
+            elif t <= 9:
+                y = 0.875 * t - 4.375
+            elif t <= 14:
+                y = 3.5
+            elif t <= 18:
+                y = -0.875 * t + 15.75
+            elif t > 18:
+                y = 0
+        return y
+
+    def compute_path_phi(self, t, num):
+        phi = np.zeros_like(t)
+        if num == 0:
+            phi = (1.5 * np.sin(2 * np.pi * (t + 0.001) / 10) - 1.5 * np.sin(2 * np.pi * t / 10)) \
+                  / (10 * t + np.cos(2 * np.pi * (t + 0.001) / 6) - 10 * t + np.cos(2 * np.pi * t / 6))
+        elif num == 1:
+            if t <= 5:
+                phi = 0
+            elif t <= 9:
+                phi = ((0.875 * (t + 0.001) - 4.375) - (0.875 * t - 4.375)) \
+                      / (self.vehicle_params['u'] * 0.001)
+            elif t <= 14:
+                phi = 0
+            elif t <= 18:
+                phi = ((-0.875 * (t + 0.001) + 15.75) - (-0.875 * t + 15.75)) \
+                      / (self.vehicle_params['u'] * 0.001)
+            elif t > 18:
+                phi = 0
+
+        return np.arctan(phi)
 
     def f_xu(self, states, actions, delta_t):
         x, y, phi, u, v, w = states[0], states[1], states[2], \
@@ -76,14 +120,14 @@ class VehicleDynamics(object):
     def simulation(self, states, actions, base_freq, ref_num, t):
         state_next, others = self.prediction(states, actions, base_freq)
         x, y, phi, u, v, w = state_next[0], state_next[1], state_next[2], state_next[3], state_next[4], state_next[5]
-        path_x, path_y, path_phi = self.path.compute_path_x(t, ref_num), \
-                                   self.path.compute_path_y(t, ref_num), \
-                           self.path.compute_path_phi(t, ref_num)
+        path_x, path_y, path_phi = self.compute_path_x(t, ref_num), \
+                                   self.compute_path_y(t, ref_num), \
+                           self.compute_path_phi(t, ref_num)
         obs = np.array([x - path_x, y - path_y, phi - path_phi, u, v, w], dtype=np.float32)
         for i in range(self.prediction_horizon - 1):
-            ref_x = self.path.compute_path_x(t + (i + 1) / base_freq, ref_num)
-            ref_y = self.path.compute_path_y(t + (i + 1) / base_freq, ref_num)
-            ref_phi = self.path.compute_path_phi(t + (i + 1) / base_freq, ref_num)
+            ref_x = self.compute_path_x(t + (i + 1) / base_freq, ref_num)
+            ref_y = self.compute_path_y(t + (i + 1) / base_freq, ref_num)
+            ref_phi = self.compute_path_phi(t + (i + 1) / base_freq, ref_num)
             ref_obs = np.array([x - ref_x, y - ref_y, phi - ref_phi], dtype=np.float32)
             obs = np.hstack((obs, ref_obs))
 
@@ -95,7 +139,7 @@ class VehicleDynamics(object):
         return state_next, obs, others
 
     def compute_rewards(self, obs, actions):  # obses and actions are tensors
-        delta_x, delta_y, delta_phi, delta_u, v, w = obs[0], obs[1], obs[2], \
+        delta_x, delta_y, delta_phi, u, v, w = obs[0], obs[1], obs[2], \
                                                    obs[3], obs[4], obs[5]
         steers, a_xs = actions[0], actions[1]
         devi_y = -np.square(delta_y)
@@ -105,72 +149,20 @@ class VehicleDynamics(object):
         punish_a_x = -np.square(a_xs)
         punish_x = -np.square(delta_x)
 
-        rewards = 1.0 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
-                  0.05 * punish_steer + 0.05 * punish_a_x + 0.5 * punish_x
+        rewards = 0.5 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
+                  0.2 * punish_steer + 0.2 * punish_a_x + 0.5 * punish_x
 
         return rewards
 
 
-class ReferencePath(object):
-    def __init__(self):
-        self.expect_v = 10
-
-    def compute_path_x(self, t, num):
-        x = np.zeros_like(t)
-        if num == 0:
-            x = 10 * t + np.cos(2 * np.pi * t / 6)
-        elif num == 1:
-            x = self.expect_v * t
-        return x
-
-    def compute_path_y(self, t, num):
-        y = np.zeros_like(t)
-        if num == 0:
-            y = 1.5 * np.sin(2 * np.pi * t / 10)
-        elif num == 1:
-            if t <= 5:
-                y = 0
-            elif t <= 9:
-                y = 0.875 * t - 4.375
-            elif t <= 14:
-                y = 3.5
-            elif t <= 18:
-                y = -0.875 * t + 15.75
-            elif t > 18:
-                y = 0
-        return y
-
-    def compute_path_phi(self, t, num):
-        phi = np.zeros_like(t)
-        if num == 0:
-            phi = (1.5 * np.sin(2 * np.pi * (t + 0.001) / 10) - 1.5 * np.sin(2 * np.pi * t / 10)) \
-                  / (10 * t + np.cos(2 * np.pi * (t + 0.001) / 6) - 10 * t + np.cos(2 * np.pi * t / 6))
-        elif num == 1:
-            if t <= 5:
-                phi = 0
-            elif t <= 9:
-                phi = ((0.875 * (t + 0.001) - 4.375) - (0.875 * t - 4.375)) \
-                      / (self.expect_v * 0.001)
-            elif t <= 14:
-                phi = 0
-            elif t <= 18:
-                phi = ((-0.875 * (t + 0.001) + 15.75) - (-0.875 * t + 15.75)) \
-                      / (self.expect_v * 0.001)
-            elif t > 18:
-                phi = 0
-
-        return np.arctan(phi)
 
 
 class SimuVeh3dofconti(gym.Env,):
-    def __init__(self, num_future_data=0, num_agent=1, **kwargs):
-
+    def __init__(self, **kwargs):
         self.is_adversary = kwargs.get("is_adversary", False)
         self.is_constraint = kwargs.get("is_constraint", False)
         self.prediction_horizon = kwargs["predictive_horizon"]
         self.vehicle_dynamics = VehicleDynamics(**kwargs)
-        self.num_agent = num_agent
-        self.expected_vs = 10.
         self.base_frequency = 10
         self.observation_space = gym.spaces.Box(
             low=np.array([-np.inf] * (33)),
@@ -213,12 +205,12 @@ class SimuVeh3dofconti(gym.Env,):
             t = 20. * self.np_random.uniform(low=0., high=1.)
             self.t = t
             init_delta_y = self.np_random.normal(0, 1)
-            init_y = self.vehicle_dynamics.path.compute_path_y(t, self.ref_num) + init_delta_y
-            path_x = self.vehicle_dynamics.path.compute_path_x(t, self.ref_num)
+            init_y = self.vehicle_dynamics.compute_path_y(t, self.ref_num) + init_delta_y
+            path_x = self.vehicle_dynamics.compute_path_x(t, self.ref_num)
             init_delta_x = self.np_random.normal(0, 2)
             init_x = path_x + init_delta_x
             init_delta_phi = self.np_random.normal(0, np.pi / 9)
-            init_phi = self.vehicle_dynamics.path.compute_path_phi(t, self.ref_num) + init_delta_phi
+            init_phi = self.vehicle_dynamics.compute_path_phi(t, self.ref_num) + init_delta_phi
             beta = self.np_random.normal(0, 0.15)
             init_u = self.np_random.uniform(low=5., high=15.)
             init_v = init_u * np.tan(beta)
@@ -229,17 +221,17 @@ class SimuVeh3dofconti(gym.Env,):
             self.ref_num = self.np_random.choice(flag)
             self.t = t
             init_x, init_y, init_phi, init_u, init_v, init_w = init_state[0], init_state[1], init_state[2], init_state[3], init_state[4], init_state[5]
-            init_delta_x = self.vehicle_dynamics.path.compute_path_x(t, self.ref_num) - init_x
-            init_delta_y = self.vehicle_dynamics.path.compute_path_y(t, self.ref_num) - init_y
-            init_delta_phi = self.vehicle_dynamics.path.compute_path_phi(t, self.ref_num) + init_phi
+            init_delta_x = self.vehicle_dynamics.compute_path_x(t, self.ref_num) - init_x
+            init_delta_y = self.vehicle_dynamics.compute_path_y(t, self.ref_num) - init_y
+            init_delta_phi = self.vehicle_dynamics.compute_path_phi(t, self.ref_num) + init_phi
             obs = np.array([init_delta_x, init_delta_y, init_delta_phi, init_u, init_v, init_w], dtype=np.float32)
         else:
             print("reset error")
 
         for i in range(self.prediction_horizon - 1):
-            ref_x = self.vehicle_dynamics.path.compute_path_x(t + (i + 1) / self.base_frequency, self.ref_num)
-            ref_y = self.vehicle_dynamics.path.compute_path_y(t + (i + 1) / self.base_frequency, self.ref_num)
-            ref_phi = self.vehicle_dynamics.path.compute_path_phi(t + (i + 1) / self.base_frequency, self.ref_num)
+            ref_x = self.vehicle_dynamics.compute_path_x(t + (i + 1) / self.base_frequency, self.ref_num)
+            ref_y = self.vehicle_dynamics.compute_path_y(t + (i + 1) / self.base_frequency, self.ref_num)
+            ref_phi = self.vehicle_dynamics.compute_path_phi(t + (i + 1) / self.base_frequency, self.ref_num)
             ref_obs = np.array([init_x - ref_x, init_y - ref_y, init_phi - ref_phi], dtype=np.float32)
             obs = np.hstack((obs, ref_obs))
         self.obs = obs
@@ -248,16 +240,16 @@ class SimuVeh3dofconti(gym.Env,):
 
     def step(self, action: np.ndarray, adv_action=None):  # think of action is in range [-1, 1]
         steer_norm, a_x_norm = action[0], action[1]
-        action = np.stack([steer_norm * 1.2 * np.pi / 9, a_x_norm*3], 0)
+        action = np.stack([steer_norm, a_x_norm], 0)
         reward = self.vehicle_dynamics.compute_rewards(self.obs, action)
         self.state, self.obs, stability_related = self.vehicle_dynamics.simulation(self.state, action,
                                                                 self.base_frequency, self.ref_num, self.t)
         self.done = self.judge_done(self.state, stability_related, self.t)
 
         state = np.array(self.state, dtype=np.float32)
-        x_ref = self.vehicle_dynamics.path.compute_path_x(self.t, self.ref_num)
-        y_ref = self.vehicle_dynamics.path.compute_path_y(self.t, self.ref_num)
-        phi_ref = self.vehicle_dynamics.path.compute_path_phi(self.t, self.ref_num)
+        x_ref = self.vehicle_dynamics.compute_path_x(self.t, self.ref_num)
+        y_ref = self.vehicle_dynamics.compute_path_y(self.t, self.ref_num)
+        phi_ref = self.vehicle_dynamics.compute_path_phi(self.t, self.ref_num)
 
         info = {
             "state": state,
@@ -276,9 +268,9 @@ class SimuVeh3dofconti(gym.Env,):
                                                                         stability_related[3], \
                                                                         stability_related[4], \
                                                                         stability_related[5]
-        done = (np.abs(y- self.vehicle_dynamics.path.compute_path_y(t, self.ref_num)) > 3) |\
-               (np.abs(phi - self.vehicle_dynamics.path.compute_path_phi(t, self.ref_num)) > np.pi / 4.) |\
-               (v < 2)
+        done = (np.abs(y - self.vehicle_dynamics.compute_path_y(t, self.ref_num)) > 3) |\
+               (np.abs(phi - self.vehicle_dynamics.compute_path_phi(t, self.ref_num)) > np.pi / 4.)
+               # (v < 2)
                # (alpha_f < -alpha_f_bounds) | (alpha_f > alpha_f_bounds) | \
                # (alpha_r < -alpha_r_bounds) | (alpha_r > alpha_r_bounds) | \
                # (r < -r_bounds) | (r > r_bounds)

@@ -24,25 +24,24 @@ class Veh3dofcontiModel(torch.nn.Module):
         """
         self.vehicle_dynamics = VehicleDynamics(**kwargs)
         self.base_frequency = 10.
-        self.expected_vs = 10.
 
 
     def forward(self, obs: torch.Tensor, action: torch.Tensor, info: dict, beyond_done=torch.tensor(1)):
         steer_norm, a_xs_norm = action[:, 0], action[:, 1]
-        actions = torch.stack([steer_norm * 1.2 * np.pi / 9, a_xs_norm * 3.], 1)
+        actions = torch.stack([steer_norm, a_xs_norm], 1)
         state = info["state"]
         ref_num = info["ref_num"]
         tc = info["t"]
         xc, yc, phic, uc, vc, wc = state[:, 0], state[:, 1], state[:, 2], \
                                           state[:, 3], state[:, 4], state[:, 5]
-        path_xc, path_yc, path_phic = self.vehicle_dynamics.path.compute_path_x(tc, ref_num), \
-                                   self.vehicle_dynamics.path.compute_path_y(tc, ref_num), \
-                                   self.vehicle_dynamics.path.compute_path_phi(tc, ref_num)
-        obsc = torch.stack([xc - path_xc, yc - path_yc, phic - path_phic, uc - self.expected_vs, vc, wc], 1)
+        path_xc, path_yc, path_phic = self.vehicle_dynamics.compute_path_x(tc, ref_num), \
+                                   self.vehicle_dynamics.compute_path_y(tc, ref_num), \
+                                   self.vehicle_dynamics.compute_path_phi(tc, ref_num)
+        obsc = torch.stack([xc - path_xc, yc - path_yc, phic - path_phic, uc, vc, wc], 1)
         for i in range(self.vehicle_dynamics.prediction_horizon - 1):
-            ref_x = self.vehicle_dynamics.path.compute_path_x(tc + (i + 1) / self.base_frequency, ref_num)
-            ref_y = self.vehicle_dynamics.path.compute_path_y(tc + (i + 1) / self.base_frequency, ref_num)
-            ref_phi = self.vehicle_dynamics.path.compute_path_phi(tc + (i + 1) / self.base_frequency, ref_num)
+            ref_x = self.vehicle_dynamics.compute_path_x(tc + (i + 1) / self.base_frequency, ref_num)
+            ref_y = self.vehicle_dynamics.compute_path_y(tc + (i + 1) / self.base_frequency, ref_num)
+            ref_phi = self.vehicle_dynamics.compute_path_phi(tc + (i + 1) / self.base_frequency, ref_num)
             ref_obs = torch.stack([xc - ref_x, yc - ref_y, phic - ref_phi], 1)
             obsc = torch.hstack((obsc, ref_obs))
         reward = self.vehicle_dynamics.compute_rewards(obsc, actions)
@@ -51,20 +50,19 @@ class Veh3dofcontiModel(torch.nn.Module):
         x, y, phi, u, v, w = state_next[:, 0], state_next[:, 1], state_next[:, 2], \
                                                    state_next[:, 3], state_next[:, 4], state_next[:, 5]
         t = tc + 1 / self.base_frequency
-        v_xs = clip_by_tensor(u, 1, 35)
         phi = torch.where(phi > np.pi, phi - 2 * np.pi, phi)
         phi = torch.where(phi <= -np.pi, phi + 2 * np.pi, phi)
         state_next = torch.stack([x, y, phi, u, v, w], 1)
 
         isdone = self.vehicle_dynamics.judge_done(state_next, stability_related, ref_num, t)
-        path_x, path_y, path_phi = self.vehicle_dynamics.path.compute_path_x(t, ref_num),\
-                                   self.vehicle_dynamics.path.compute_path_y(t, ref_num), \
-                           self.vehicle_dynamics.path.compute_path_phi(t, ref_num)
-        obs = torch.stack([x - path_x, y - path_y, phi - path_phi, u - self.expected_vs, v, w], 1)
+        path_x, path_y, path_phi = self.vehicle_dynamics.compute_path_x(t, ref_num),\
+                                   self.vehicle_dynamics.compute_path_y(t, ref_num), \
+                           self.vehicle_dynamics.compute_path_phi(t, ref_num)
+        obs = torch.stack([x - path_x, y - path_y, phi - path_phi, u, v, w], 1)
         for i in range(self.vehicle_dynamics.prediction_horizon - 1):
-            ref_x = self.vehicle_dynamics.path.compute_path_x(t + (i + 1) / self.base_frequency, ref_num)
-            ref_y = self.vehicle_dynamics.path.compute_path_y(t + (i + 1) / self.base_frequency, ref_num)
-            ref_phi = self.vehicle_dynamics.path.compute_path_phi(t + (i + 1) / self.base_frequency, ref_num)
+            ref_x = self.vehicle_dynamics.compute_path_x(t + (i + 1) / self.base_frequency, ref_num)
+            ref_y = self.vehicle_dynamics.compute_path_y(t + (i + 1) / self.base_frequency, ref_num)
+            ref_phi = self.vehicle_dynamics.compute_path_phi(t + (i + 1) / self.base_frequency, ref_num)
             ref_obs = torch.stack([x - ref_x, y - ref_y, phi - ref_phi], 1)
             obs = torch.hstack((obs, ref_obs))
         info["state"] = state_next
@@ -92,9 +90,31 @@ class VehicleDynamics(object):
         F_zf, F_zr = l_r * mass * g / (l_f + l_r), l_f * mass * g / (l_f + l_r)
         self.vehicle_params.update(dict(F_zf=F_zf,
                                         F_zr=F_zr))
-        self.expected_vs = 10.
         self.prediction_horizon = kwargs["predictive_horizon"]
-        self.path = ReferencePath()
+
+    def compute_path_x(self, t, num):
+        x = torch.where(num == 0, 10 * t + np.cos(2 * np.pi * t / 6), self.vehicle_params['u'] * t)
+        return x
+
+    def compute_path_y(self, t, num):
+        y = torch.where(num == 0, 1.5 * torch.sin(2 * np.pi * t / 10),
+                        torch.where(t < 5, torch.as_tensor(0.),
+                                    torch.where(t < 9, 0.875 * t - 4.375,
+                                                torch.where(t < 14, torch.as_tensor(3.5),
+                                                            torch.where(t < 18, -0.875 * t + 15.75,
+                                                                        torch.as_tensor(0.))))))
+        return y
+
+    def compute_path_phi(self, t, num):
+        phi = torch.where(num == 0,
+                          (1.5 * torch.sin(2 * torch.pi * (t + 0.001) / 10) - 1.5 * torch.sin(2 * torch.pi * t / 10)) \
+                          / (10 * t + torch.cos(2 * np.pi * (t + 0.001) / 6) - 10 * t + torch.cos(2 * np.pi * t / 6)),
+                        torch.where(t <= 5, torch.as_tensor(0.),
+                        torch.where(t <= 9, torch.as_tensor(((0.875 * (t + 0.001) - 4.375) - (0.875 * t - 4.375)) / (self.vehicle_params['u'] * 0.001)),
+                        torch.where(t <= 14, torch.as_tensor(0.),
+                        torch.where(t <= 18, torch.as_tensor(((-0.875 * (t + 0.001) + 15.75) - (-0.875 * t + 15.75)) / (self.vehicle_params['u'] * 0.001)),
+                                                                          torch.as_tensor(0.))))))
+        return torch.arctan(phi)
 
     def f_xu(self, states, actions, tau):
         x, y, phi, u, v, w = states[:, 0], states[:, 1], states[:, 2], \
@@ -143,8 +163,8 @@ class VehicleDynamics(object):
                                                                         stability_related[:, 3], \
                                                                         stability_related[:, 4], \
                                                                         stability_related[:, 5]
-        done = (torch.abs(y - self.path.compute_path_y(t, ref_num)) > 3) | (torch.abs(phi - self.path.compute_path_phi(t, ref_num)) > np.pi / 4.) | \
-               (u < 2)
+        done = (torch.abs(y - self.compute_path_y(t, ref_num)) > 3) | (torch.abs(phi - self.compute_path_phi(t, ref_num)) > np.pi / 4.)
+               # (u < 2) | \
                # (alpha_f < -alpha_f_bounds) | (alpha_f > alpha_f_bounds) | \
                # (alpha_r < -alpha_r_bounds) | (alpha_r > alpha_r_bounds) | \
                # (r < -r_bounds) | (r > r_bounds)
@@ -153,10 +173,9 @@ class VehicleDynamics(object):
 
     def compute_rewards(self, obs, actions):  # obses and actions are tensors
 
-        delta_x, delta_y, delta_phi, delta_u, v, w = obs[:, 0], obs[:, 1], obs[:, 2], \
+        delta_x, delta_y, delta_phi, u, v, w = obs[:, 0], obs[:, 1], obs[:, 2], \
                                                    obs[:, 3], obs[:, 4], obs[:, 5]
         steers, a_xs = actions[:, 0], actions[:, 1]
-        # devi_v = -torch.square(delta_u)
         devi_y = -torch.square(delta_y)
         devi_phi = -torch.square(delta_phi)
         punish_yaw_rate = -torch.square(w)
@@ -164,38 +183,12 @@ class VehicleDynamics(object):
         punish_a_x = -torch.square(a_xs)
         punish_x = -torch.square(delta_x)
 
-        rewards = 1.0 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
-                  0.05 * punish_steer + 0.05 * punish_a_x + 0.5 * punish_x
+        rewards = 0.5 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
+                  0.2 * punish_steer + 0.2 * punish_a_x + 0.5 * punish_x
 
         return rewards
 
 
-class ReferencePath(object):
-    def __init__(self):
-        self.expect_v = 10.
-
-    def compute_path_x(self, t, num):
-        x = torch.where(num == 0, 10 * t + np.cos(2 * np.pi * t / 6), self.expect_v * t)
-        return x
-
-    def compute_path_y(self, t, num):
-        y = torch.where(num == 0, 1.5 * torch.sin(2 * np.pi * t / 10),
-                        torch.where(t < 5, torch.as_tensor(0.),
-                                    torch.where(t < 9, 0.875 * t - 4.375,
-                                    torch.where(t < 14, torch.as_tensor(3.5),
-                                    torch.where(t < 18, -0.875 * t + 15.75, torch.as_tensor(0.))))))
-        return y
-
-    def compute_path_phi(self, t, num):
-        phi = torch.where(num == 0, (1.5 * torch.sin(2 * torch.pi * (t + 0.001) / 10) - 1.5 * torch.sin(2 * torch.pi * t / 10))\
-                  / (10 * t + torch.cos(2 * np.pi * (t + 0.001) / 6) - 10 * t + torch.cos(2 * np.pi * t / 6)),
-                        torch.where(t <= 5, torch.as_tensor(0.),
-                        torch.where(t <= 9, torch.as_tensor(((0.875 * (t + 0.001) - 4.375) - (0.875 * t - 4.375)) / (
-                            self.expect_v * 0.001)),
-                        torch.where(t <= 14, torch.as_tensor(0.),
-                        torch.where(t <= 18, torch.as_tensor(((-0.875 * (t + 0.001) + 15.75) - (-0.875 * t + 15.75)) / (
-                            self.expect_v * 0.001)), torch.as_tensor(0.))))))
-        return torch.arctan(phi)
 
 
 def env_model_creator(**kwargs):
