@@ -88,15 +88,6 @@ class VehicleDynamics(object):
         l_r = self.vehicle_params['l_r']
         m = self.vehicle_params['m']
         I_z = self.vehicle_params['I_z']
-        miu = self.vehicle_params['miu']
-        g = self.vehicle_params['g']
-        F_zf, F_zr = l_r * m * g / (l_f + l_r), l_f * m * g / (l_f + l_r)
-        F_xf = np.where(a_x < 0, m * a_x / 2, np.zeros_like(a_x))
-        F_xr = np.where(a_x < 0, m * a_x / 2, m * a_x)
-        miu_f = np.sqrt(np.square(miu * F_zf) - np.square(F_xf)) / F_zf
-        miu_r = np.sqrt(np.square(miu * F_zr) - np.square(F_xr)) / F_zr
-        alpha_f = np.arctan((v + l_f * w) / u) - steer
-        alpha_r = np.arctan((v - l_r * w) / u)
         next_state = [x + delta_t * (u * np.cos(phi) - v * np.sin(phi)),
                       y + delta_t * (u * np.sin(phi) + v * np.cos(phi)),
                       phi + delta_t * w,
@@ -107,18 +98,14 @@ class VehicleDynamics(object):
                       (-I_z * w * u - delta_t * (l_f * k_f - l_r * k_r) * v + delta_t * l_f * k_f * steer * u) / (
                                   delta_t * (np.square(l_f) * k_f + np.square(l_r) * k_r) - I_z * u)
                       ]
-        alpha_f_bounds, alpha_r_bounds = 3 * miu_f * F_zf / k_f, 3 * miu_r * F_zr / k_r
-        r_bounds = miu_r * g / np.abs(u)
-        other = [alpha_f, alpha_r, next_state[2], alpha_f_bounds, alpha_r_bounds, r_bounds]
-        return next_state, other
-
+        return next_state
 
     def prediction(self, x_1, u_1, frequency):
-        x_next, next_params = self.f_xu(x_1, u_1, 1 / frequency)
-        return x_next, next_params
+        x_next = self.f_xu(x_1, u_1, 1 / frequency)
+        return x_next
 
     def simulation(self, states, actions, base_freq, ref_num, t):
-        state_next, others = self.prediction(states, actions, base_freq)
+        state_next = self.prediction(states, actions, base_freq)
         x, y, phi, u, v, w = state_next[0], state_next[1], state_next[2], state_next[3], state_next[4], state_next[5]
         path_x, path_y, path_phi = self.compute_path_x(t, ref_num), \
                                    self.compute_path_y(t, ref_num), \
@@ -136,7 +123,7 @@ class VehicleDynamics(object):
         if state_next[4] <= -np.pi:
             state_next[4] += 2 * np.pi
 
-        return state_next, obs, others
+        return state_next, obs
 
     def compute_rewards(self, obs, actions):  # obses and actions are tensors
         delta_x, delta_y, delta_phi, u, v, w = obs[0], obs[1], obs[2], \
@@ -148,13 +135,10 @@ class VehicleDynamics(object):
         punish_steer = -np.square(steers)
         punish_a_x = -np.square(a_xs)
         punish_x = -np.square(delta_x)
-
         rewards = 0.5 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
                   0.2 * punish_steer + 0.2 * punish_a_x + 0.5 * punish_x
 
         return rewards
-
-
 
 
 class SimuVeh3dofconti(gym.Env,):
@@ -242,9 +226,9 @@ class SimuVeh3dofconti(gym.Env,):
         steer_norm, a_x_norm = action[0], action[1]
         action = np.stack([steer_norm, a_x_norm], 0)
         reward = self.vehicle_dynamics.compute_rewards(self.obs, action)
-        self.state, self.obs, stability_related = self.vehicle_dynamics.simulation(self.state, action,
+        self.state, self.obs = self.vehicle_dynamics.simulation(self.state, action,
                                                                 self.base_frequency, self.ref_num, self.t)
-        self.done = self.judge_done(self.state, stability_related, self.t)
+        self.done = self.judge_done(self.state, self.t)
 
         state = np.array(self.state, dtype=np.float32)
         x_ref = self.vehicle_dynamics.compute_path_x(self.t, self.ref_num)
@@ -259,21 +243,11 @@ class SimuVeh3dofconti(gym.Env,):
         }
         return self.obs, reward, self.done, info
 
-    def judge_done(self, veh_state, stability_related, t):
+    def judge_done(self, veh_state, t):
         x, y, phi, u, v, w = veh_state[0], veh_state[1], veh_state[2], \
                                                    veh_state[3], veh_state[4], veh_state[5]
-        alpha_f, alpha_r, r, alpha_f_bounds, alpha_r_bounds, r_bounds = stability_related[0], \
-                                                                        stability_related[1], \
-                                                                        stability_related[2], \
-                                                                        stability_related[3], \
-                                                                        stability_related[4], \
-                                                                        stability_related[5]
         done = (np.abs(y - self.vehicle_dynamics.compute_path_y(t, self.ref_num)) > 3) |\
                (np.abs(phi - self.vehicle_dynamics.compute_path_phi(t, self.ref_num)) > np.pi / 4.)
-               # (v < 2)
-               # (alpha_f < -alpha_f_bounds) | (alpha_f > alpha_f_bounds) | \
-               # (alpha_r < -alpha_r_bounds) | (alpha_r > alpha_r_bounds) | \
-               # (r < -r_bounds) | (r > r_bounds)
         return done
 
     def close(self):

@@ -25,7 +25,6 @@ class Veh3dofcontiModel(torch.nn.Module):
         self.vehicle_dynamics = VehicleDynamics(**kwargs)
         self.base_frequency = 10.
 
-
     def forward(self, obs: torch.Tensor, action: torch.Tensor, info: dict, beyond_done=torch.tensor(1)):
         steer_norm, a_xs_norm = action[:, 0], action[:, 1]
         actions = torch.stack([steer_norm, a_xs_norm], 1)
@@ -45,7 +44,7 @@ class Veh3dofcontiModel(torch.nn.Module):
             ref_obs = torch.stack([xc - ref_x, yc - ref_y, phic - ref_phi], 1)
             obsc = torch.hstack((obsc, ref_obs))
         reward = self.vehicle_dynamics.compute_rewards(obsc, actions)
-        state_next, stability_related = self.vehicle_dynamics.prediction(state, actions,
+        state_next = self.vehicle_dynamics.prediction(state, actions,
                                                               self.base_frequency)
         x, y, phi, u, v, w = state_next[:, 0], state_next[:, 1], state_next[:, 2], \
                                                    state_next[:, 3], state_next[:, 4], state_next[:, 5]
@@ -53,8 +52,7 @@ class Veh3dofcontiModel(torch.nn.Module):
         phi = torch.where(phi > np.pi, phi - 2 * np.pi, phi)
         phi = torch.where(phi <= -np.pi, phi + 2 * np.pi, phi)
         state_next = torch.stack([x, y, phi, u, v, w], 1)
-
-        isdone = self.vehicle_dynamics.judge_done(state_next, stability_related, ref_num, t)
+        isdone = self.vehicle_dynamics.judge_done(state_next, ref_num, t)
         path_x, path_y, path_phi = self.vehicle_dynamics.compute_path_x(t, ref_num),\
                                    self.vehicle_dynamics.compute_path_y(t, ref_num), \
                            self.vehicle_dynamics.compute_path_phi(t, ref_num)
@@ -69,9 +67,7 @@ class Veh3dofcontiModel(torch.nn.Module):
         info["constraint"] = None
         info["ref_num"] = info["ref_num"]
         info["t"] = t
-
         return obs, reward, isdone, info
-
 
 
 class VehicleDynamics(object):
@@ -126,50 +122,27 @@ class VehicleDynamics(object):
         l_r = torch.tensor(self.vehicle_params['l_r'], dtype=torch.float32)
         m = torch.tensor(self.vehicle_params['m'], dtype=torch.float32)
         I_z = torch.tensor(self.vehicle_params['I_z'], dtype=torch.float32)
-        miu = torch.tensor(self.vehicle_params['miu'], dtype=torch.float32)
-        g = torch.tensor(self.vehicle_params['g'], dtype=torch.float32)
-        F_zf, F_zr = l_r * m * g / (l_f + l_r), l_f * m * g / (l_f + l_r)
-        F_xf = torch.where(a_x < 0, m * a_x / 2, torch.zeros_like(a_x))
-        F_xr = torch.where(a_x < 0, m * a_x / 2, m * a_x)
-        miu_f = torch.sqrt(torch.square(miu * F_zf) - torch.square(F_xf)) / F_zf
-        miu_r = torch.sqrt(torch.square(miu * F_zr) - torch.square(F_xr)) / F_zr
-        alpha_f = torch.atan((v + l_f * w) / u) - steer
-        alpha_r = torch.atan((v - l_r * w) / u)
-        next_state = [u + tau * (a_x + v * w),
+        next_state = [x + tau * (u * torch.cos(phi) - v * torch.sin(phi)),
+                      y + tau * (u * torch.sin(phi) + v * torch.cos(phi)),
+                      phi + tau * w,
+                      u + tau * (a_x + v * w),
                       (m * v * u + tau * (
                                   l_f * k_f - l_r * k_r) * w - tau * k_f * steer * u - tau * m * torch.square(
                           u) * w) / (m * u - tau * (k_f + k_r)),
                       (-I_z * w * u - tau * (l_f * k_f - l_r * k_r) * v + tau * l_f * k_f * steer * u) / (
                                   tau * (torch.square(l_f) * k_f + torch.square(l_r) * k_r) - I_z * u),
-                      y + tau * (u * torch.sin(phi) + v * torch.cos(phi)),
-                      phi + tau * w,
-                      x + tau * (u * torch.cos(phi) - v * torch.sin(phi)),
                       ]
-        alpha_f_bounds, alpha_r_bounds = 3 * miu_f * F_zf / k_f, 3 * miu_r * F_zr / k_r
-        r_bounds = miu_r * g / torch.abs(u)
-        return torch.stack(next_state, 1), \
-               torch.stack([alpha_f, alpha_r, next_state[2], alpha_f_bounds, alpha_r_bounds, r_bounds], 1)
+        return torch.stack(next_state, 1)
 
     def prediction(self, x_1, u_1, frequency):
-        state_next, others = self.f_xu(x_1, u_1, 1 / frequency)
-        return state_next, others
+        state_next = self.f_xu(x_1, u_1, 1 / frequency)
+        return state_next
 
-    def judge_done(self, veh_state, stability_related, ref_num, t):
+    def judge_done(self, veh_state, ref_num, t):
         x, y, phi, u, v, w = veh_state[:, 0], veh_state[:, 1], veh_state[:, 2], \
                                                    veh_state[:, 3], veh_state[:, 4], veh_state[:, 5]
-        alpha_f, alpha_r, r, alpha_f_bounds, alpha_r_bounds, r_bounds = stability_related[:, 0], \
-                                                                        stability_related[:, 1], \
-                                                                        stability_related[:, 2], \
-                                                                        stability_related[:, 3], \
-                                                                        stability_related[:, 4], \
-                                                                        stability_related[:, 5]
         done = (torch.abs(y - self.compute_path_y(t, ref_num)) > 3) | (torch.abs(phi - self.compute_path_phi(t, ref_num)) > np.pi / 4.)
-               # (u < 2) | \
-               # (alpha_f < -alpha_f_bounds) | (alpha_f > alpha_f_bounds) | \
-               # (alpha_r < -alpha_r_bounds) | (alpha_r > alpha_r_bounds) | \
-               # (r < -r_bounds) | (r > r_bounds)
         return done
-
 
     def compute_rewards(self, obs, actions):  # obses and actions are tensors
 
@@ -182,13 +155,10 @@ class VehicleDynamics(object):
         punish_steer = -torch.square(steers)
         punish_a_x = -torch.square(a_xs)
         punish_x = -torch.square(delta_x)
-
         rewards = 0.5 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
                   0.2 * punish_steer + 0.2 * punish_a_x + 0.5 * punish_x
 
         return rewards
-
-
 
 
 def env_model_creator(**kwargs):
