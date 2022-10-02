@@ -91,12 +91,12 @@ class VehicleDynamics(object):
         next_state = [x + delta_t * (u * np.cos(phi) - v * np.sin(phi)),
                       y + delta_t * (u * np.sin(phi) + v * np.cos(phi)),
                       phi + delta_t * w,
-                      u + delta_t * (a_x + v * w),
+                      u + delta_t * a_x,
                       (m * v * u + delta_t * (
                                   l_f * k_f - l_r * k_r) * w - delta_t * k_f * steer * u - delta_t * m * np.square(
                           u) * w) / (m * u - delta_t * (k_f + k_r)),
-                      (-I_z * w * u - delta_t * (l_f * k_f - l_r * k_r) * v + delta_t * l_f * k_f * steer * u) / (
-                                  delta_t * (np.square(l_f) * k_f + np.square(l_r) * k_r) - I_z * u)
+                      (I_z * w * u + delta_t * (l_f * k_f - l_r * k_r) * v - delta_t * l_f * k_f * steer * u) / (
+                                  I_z * u - delta_t * (np.square(l_f) * k_f + np.square(l_r) * k_r))
                       ]
         return next_state
 

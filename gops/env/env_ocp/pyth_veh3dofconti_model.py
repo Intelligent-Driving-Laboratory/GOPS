@@ -112,7 +112,7 @@ class VehicleDynamics(object):
                                                                           torch.as_tensor(0.))))))
         return torch.arctan(phi)
 
-    def f_xu(self, states, actions, tau):
+    def f_xu(self, states, actions, delta_t):
         x, y, phi, u, v, w = states[:, 0], states[:, 1], states[:, 2], \
                                              states[:, 3], states[:, 4], states[:, 5]
         steer, a_x = actions[:, 0], actions[:, 1]
@@ -122,15 +122,15 @@ class VehicleDynamics(object):
         l_r = torch.tensor(self.vehicle_params['l_r'], dtype=torch.float32)
         m = torch.tensor(self.vehicle_params['m'], dtype=torch.float32)
         I_z = torch.tensor(self.vehicle_params['I_z'], dtype=torch.float32)
-        next_state = [x + tau * (u * torch.cos(phi) - v * torch.sin(phi)),
-                      y + tau * (u * torch.sin(phi) + v * torch.cos(phi)),
-                      phi + tau * w,
-                      u + tau * (a_x + v * w),
-                      (m * v * u + tau * (
-                                  l_f * k_f - l_r * k_r) * w - tau * k_f * steer * u - tau * m * torch.square(
-                          u) * w) / (m * u - tau * (k_f + k_r)),
-                      (-I_z * w * u - tau * (l_f * k_f - l_r * k_r) * v + tau * l_f * k_f * steer * u) / (
-                                  tau * (torch.square(l_f) * k_f + torch.square(l_r) * k_r) - I_z * u),
+        next_state = [x + delta_t * (u * torch.cos(phi) - v * torch.sin(phi)),
+                      y + delta_t * (u * torch.sin(phi) + v * torch.cos(phi)),
+                      phi + delta_t * w,
+                      u + delta_t * a_x,
+                      (m * v * u + delta_t * (
+                                  l_f * k_f - l_r * k_r) * w - delta_t * k_f * steer * u - delta_t * m * torch.square(
+                          u) * w) / (m * u - delta_t * (k_f + k_r)),
+                      (I_z * w * u + delta_t * (l_f * k_f - l_r * k_r) * v - delta_t * l_f * k_f * steer * u) / (
+                                  I_z * u - delta_t * (torch.square(l_f) * k_f + torch.square(l_r) * k_r)),
                       ]
         return torch.stack(next_state, 1)
 
