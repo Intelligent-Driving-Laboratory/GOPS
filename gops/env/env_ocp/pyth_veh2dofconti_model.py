@@ -24,7 +24,7 @@ class Veh2dofcontiModel(torch.nn.Module):
     # obs is o2 in data
     def forward(self, obs: torch.Tensor, action: torch.Tensor, info: dict, beyond_done=torch.tensor(1)):
         steer_norm = action
-        actions = steer_norm * 1.2 * np.pi / 9
+        actions = steer_norm
         state = info["state"]
         ref_num = info["ref_num"]
         tc = info["t"]

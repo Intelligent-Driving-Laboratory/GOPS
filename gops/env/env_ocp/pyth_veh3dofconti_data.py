@@ -224,7 +224,7 @@ class SimuVeh3dofconti(gym.Env,):
 
     def step(self, action: np.ndarray, adv_action=None):  # think of action is in range [-1, 1]
         steer_norm, a_x_norm = action[0], action[1]
-        action = np.stack([steer_norm * 1.2 * np.pi / 9, a_x_norm * 3], 0)
+        action = np.stack([steer_norm, a_x_norm], 0)
         reward = self.vehicle_dynamics.compute_rewards(self.obs, action)
         self.state, self.obs = self.vehicle_dynamics.simulation(self.state, action,
                                                                 self.base_frequency, self.ref_num, self.t)
@@ -249,6 +249,7 @@ class SimuVeh3dofconti(gym.Env,):
         done = (np.abs(y - self.vehicle_dynamics.compute_path_y(t, self.ref_num)) > 2) |\
                (np.abs(phi - self.vehicle_dynamics.compute_path_phi(t, self.ref_num)) > np.pi / 4.) | \
                (np.abs(x - self.vehicle_dynamics.compute_path_x(t, self.ref_num)) > 5)
+        # done = False
         return done
 
     def close(self):

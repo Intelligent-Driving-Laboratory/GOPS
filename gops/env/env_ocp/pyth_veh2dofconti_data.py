@@ -201,7 +201,7 @@ class SimuVeh2dofconti(gym.Env,):
 
     def step(self, action: np.ndarray, adv_action=None):  # think of action is in range [-1, 1]
         steer_norm = action
-        action = steer_norm * 1.2 * np.pi / 9
+        action = steer_norm
         reward = self.vehicle_dynamics.compute_rewards(self.obs, action)
         self.state, self.obs = self.vehicle_dynamics.simulation(self.state, action,
                                              self.base_frequency, self.ref_num, self.t)
