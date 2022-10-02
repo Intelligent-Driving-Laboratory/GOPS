@@ -141,7 +141,9 @@ class VehicleDynamics(object):
     def judge_done(self, veh_state, ref_num, t):
         x, y, phi, u, v, w = veh_state[:, 0], veh_state[:, 1], veh_state[:, 2], \
                                                    veh_state[:, 3], veh_state[:, 4], veh_state[:, 5]
-        done = (torch.abs(y - self.compute_path_y(t, ref_num)) > 3) | (torch.abs(phi - self.compute_path_phi(t, ref_num)) > np.pi / 4.)
+        done = (torch.abs(y - self.compute_path_y(t, ref_num)) > 2) |\
+               (torch.abs(phi - self.compute_path_phi(t, ref_num)) > np.pi / 4.) | \
+               (torch.abs(x - self.compute_path_x(t, ref_num)) > 5)
         return done
 
     def compute_rewards(self, obs, actions):  # obses and actions are tensors

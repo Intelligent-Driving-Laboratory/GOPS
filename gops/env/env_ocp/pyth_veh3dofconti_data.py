@@ -246,8 +246,9 @@ class SimuVeh3dofconti(gym.Env,):
     def judge_done(self, veh_state, t):
         x, y, phi, u, v, w = veh_state[0], veh_state[1], veh_state[2], \
                                                    veh_state[3], veh_state[4], veh_state[5]
-        done = (np.abs(y - self.vehicle_dynamics.compute_path_y(t, self.ref_num)) > 3) |\
-               (np.abs(phi - self.vehicle_dynamics.compute_path_phi(t, self.ref_num)) > np.pi / 4.)
+        done = (np.abs(y - self.vehicle_dynamics.compute_path_y(t, self.ref_num)) > 2) |\
+               (np.abs(phi - self.vehicle_dynamics.compute_path_phi(t, self.ref_num)) > np.pi / 4.) | \
+               (np.abs(x - self.vehicle_dynamics.compute_path_x(t, self.ref_num)) > 5)
         return done
 
     def close(self):
