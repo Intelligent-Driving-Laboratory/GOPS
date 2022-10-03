@@ -90,17 +90,7 @@ class PolicyRuner():
         step_list = []
         obs = env.reset()
         # plot tracking
-        state_with_ref_error = {"state-0-error": [],
-                                "state-1-error": [],
-                                "state-2-error": [],
-                                "state-3-error": [],
-                                "state-4-error": [],
-                                "state-5-error": [],
-                                "state-6-error": [],
-                                "state-7-error": [],
-                                "state-8-error": [],
-                                "state-9-error": [],
-                                "state-10-error": []}
+        state_with_ref_error = {}
 
         if len(init_state) == 0:
             pass
@@ -135,11 +125,19 @@ class PolicyRuner():
             if self.constrained_env:
                 constrain_list.append(info["constraint"])
             if self.is_tracking:
-                self.ref_state_num = 0
                 state_num = len(info["ref"])
+                self.ref_state_num = sum(x is not None for x in info["ref"])
+                if step == 1:
+                    for i in range(state_num):
+                        if info["ref"][i] is not None:
+                            state_with_ref_error["state-{}".format(i)] = []
+                            state_with_ref_error["ref-{}".format(i)] = []
+                            state_with_ref_error["state-{}-error".format(i)] = []
+
                 for i in range(state_num):
-                    if info["ref"][i] != None:
-                        self.ref_state_num += 1
+                    if info["ref"][i] is not None:
+                        state_with_ref_error["state-{}".format(i)].append(info["state"][i])
+                        state_with_ref_error["ref-{}".format(i)].append(info["ref"][i])
                         state_with_ref_error["state-{}-error".format(i)].append(abs(info["state"][i] - info["ref"][i]))
 
         eval_dict = {
@@ -306,19 +304,40 @@ class PolicyRuner():
 
         # plot tracking
         if self.is_tracking:
-            # marker_list = ['*', 'p', 's', 'D', 'h', '^', '8', 'x']
             for j in range(self.ref_state_num):
+
+                # plot state and ref
+                path_tracking_state_fmt = os.path.join(self.save_path, "State-{} compare.{}".format(j + 1, default_cfg["img_fmt"]))
+                fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
+                # save tracking state data to csv
+                tracking_state_data = []
+                for i in range(policy_num):
+                    legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
+                    sns.lineplot(x=step_array[i], y=state_ref_error_array[i]["state-{}".format(j)], label="{}".format(legend))
+                    tracking_state_data.append(state_ref_error_array[i]["state-{}".format(j)])
+                sns.lineplot(x=step_array[0], y=state_ref_error_array[0]["ref-{}".format(j)], label="ref")
+                tracking_state_data.append(state_ref_error_array[0]["ref-{}".format(j)])
+                plt.tick_params(labelsize=default_cfg["tick_size"])
+                labels = ax.get_xticklabels() + ax.get_yticklabels()
+                [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
+                plt.xlabel(x_label, default_cfg["label_font"])
+                plt.ylabel("State-{} compare".format(j + 1), default_cfg["label_font"])
+                plt.legend(loc="best", prop=default_cfg["legend_font"])
+                fig.tight_layout(pad=default_cfg["pad"])
+                plt.savefig(path_tracking_state_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+
+                tracking_state_data = pd.DataFrame(data=np.array(tracking_state_data))
+                tracking_state_data.to_csv('{}\\State-{} compare.csv'.format(self.save_path, j + 1), encoding='gbk')
+
+                # plot state-ref error
                 path_tracking_error_fmt = os.path.join(self.save_path, "State-{} error.{}".format(j+1, default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
-
                 # save tracking error data to csv
                 tracking_error_data = []
-
                 for i in range(policy_num):
                     legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
                     sns.lineplot(x=step_array[i], y=state_ref_error_array[i]["state-{}-error".format(j)], label="{}".format(legend))
                     tracking_error_data.append(state_ref_error_array[i]["state-{}-error".format(j)])
-
                 plt.tick_params(labelsize=default_cfg["tick_size"])
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
