@@ -188,7 +188,7 @@ class SimuVeh3dofconti(gym.Env,):
             self.ref_num = self.np_random.choice(flag)
             t = 20. * self.np_random.uniform(low=0., high=1.)
             self.t = t
-            init_delta_y = self.np_random.normal(0, 1)
+            init_delta_y = self.np_random.normal(0, 0.3)
             init_y = self.vehicle_dynamics.compute_path_y(t, self.ref_num) + init_delta_y
             path_x = self.vehicle_dynamics.compute_path_x(t, self.ref_num)
             init_delta_x = self.np_random.normal(0, 2)
