@@ -201,8 +201,7 @@ class SimuVeh3dofconti(gym.Env,):
             init_w = self.np_random.normal(0, 0.3)
             obs = np.array([init_delta_x, init_delta_y, init_delta_phi, init_u, init_v, init_w], dtype=np.float32)
         elif (init_state is not None) & (t is not None) & (ref_num is not None):
-            flag = [0, 1]
-            self.ref_num = self.np_random.choice(flag)
+            self.ref_num = ref_num
             self.t = t
             init_x, init_y, init_phi, init_u, init_v, init_w = init_state[0], init_state[1], init_state[2], init_state[3], init_state[4], init_state[5]
             init_delta_x = self.vehicle_dynamics.compute_path_x(t, self.ref_num) - init_x
