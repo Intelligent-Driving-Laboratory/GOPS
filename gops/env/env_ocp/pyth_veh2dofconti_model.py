@@ -96,7 +96,7 @@ class VehicleDynamics(object):
 
     def compute_path_phi(self, t, num):
         phi = torch.where(num == 0, (1.5 * torch.sin(2 * torch.pi * (t + 0.001) / 10) - 1.5 * torch.sin(2 * torch.pi * t / 10))\
-                  / (10 * t + torch.cos(2 * np.pi * (t + 0.001) / 6) - 10 * t + torch.cos(2 * np.pi * t / 6)),
+                  / (10 * (t + 0.001) + torch.cos(2 * np.pi * (t + 0.001) / 6) - 10 * t - torch.cos(2 * np.pi * t / 6)),
                         torch.where(t <= 5, torch.as_tensor(0.),
                         torch.where(t <= 9, torch.as_tensor(((0.875 * (t + 0.001) - 4.375) - (0.875 * t - 4.375)) / (
                             self.vehicle_params['u'] * 0.001)),
@@ -140,7 +140,7 @@ class VehicleDynamics(object):
         punish_yaw_rate = -torch.square(w)
         punish_steer = -torch.square(steers)
         punish_vys = - torch.square(v)
-        rewards = 1.0 * devi_y + 0.5 * devi_phi + 0.2 * punish_yaw_rate + 0.1 * punish_steer + 0.1 * punish_vys
+        rewards = 0.5 * devi_y + 0.2 * devi_phi + 0.05 * punish_yaw_rate + 0.05 * punish_steer + 0.05 * punish_vys
         return rewards
 
 

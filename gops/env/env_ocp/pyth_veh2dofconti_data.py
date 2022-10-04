@@ -59,7 +59,7 @@ class VehicleDynamics(object):
         phi = np.zeros_like(t)
         if num == 0:
             phi = (1.5 * np.sin(2 * np.pi * (t + 0.001) / 10) - 1.5 * np.sin(2 * np.pi * t / 10))\
-                  / (10 * t + np.cos(2 * np.pi * (t + 0.001) / 6) - 10 * t + np.cos(2 * np.pi * t / 6))
+                  / (10 * (t + 0.001) + np.cos(2 * np.pi * (t + 0.001) / 6) - 10 * t - np.cos(2 * np.pi * t / 6))
         elif num == 1:
             if t <= 5:
                 phi = 0
@@ -122,7 +122,7 @@ class VehicleDynamics(object):
         punish_yaw_rate = -np.square(w)
         punish_steer = -np.square(steers)
         punish_vys = - np.square(v)
-        rewards = 1.0 * devi_y + 0.5 * devi_phi + 0.2 * punish_yaw_rate + 0.1 * punish_steer + 0.1 * punish_vys
+        rewards = 0.5 * devi_y + 0.2 * devi_phi + 0.05 * punish_yaw_rate + 0.05 * punish_steer + 0.05 * punish_vys
         return rewards
 
 
@@ -203,17 +203,13 @@ class SimuVeh2dofconti(gym.Env,):
         steer_norm = action
         action = steer_norm
         reward = self.vehicle_dynamics.compute_rewards(self.obs, action)
-        # print('state = ', self.state)
+        self.t = self.t + 1.0 / self.base_frequency
         self.state, self.obs = self.vehicle_dynamics.simulation(self.state, action,
                                              self.base_frequency, self.ref_num, self.t)
-        # print('next_state = ', self.state)
-        self.t = self.t + 1.0 / self.base_frequency
         self.done = self.judge_done(self.state, self.t)
         state = np.array(self.state, dtype=np.float32)
         y_ref = self.vehicle_dynamics.compute_path_y(self.t, self.ref_num)
         phi_ref = self.vehicle_dynamics.compute_path_phi(self.t, self.ref_num)
-        # print('y_ref = ', y_ref)
-        # print('phi_ref = ', phi_ref)
         info = {
             "state": state,
             "t": self.t,

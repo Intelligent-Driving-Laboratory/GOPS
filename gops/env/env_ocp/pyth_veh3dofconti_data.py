@@ -61,7 +61,7 @@ class VehicleDynamics(object):
         phi = np.zeros_like(t)
         if num == 0:
             phi = (1.5 * np.sin(2 * np.pi * (t + 0.001) / 10) - 1.5 * np.sin(2 * np.pi * t / 10)) \
-                  / (10 * t + np.cos(2 * np.pi * (t + 0.001) / 6) - 10 * t + np.cos(2 * np.pi * t / 6))
+                  / (10 * (t + 0.001) + np.cos(2 * np.pi * (t + 0.001) / 6) - 10 * t - np.cos(2 * np.pi * t / 6))
         elif num == 1:
             if t <= 5:
                 phi = 0
@@ -118,10 +118,10 @@ class VehicleDynamics(object):
             ref_obs = np.array([x - ref_x, y - ref_y, phi - ref_phi], dtype=np.float32)
             obs = np.hstack((obs, ref_obs))
 
-        if state_next[4] > np.pi:
-            state_next[4] -= 2 * np.pi
-        if state_next[4] <= -np.pi:
-            state_next[4] += 2 * np.pi
+        if state_next[2] > np.pi:
+            state_next[2] -= 2 * np.pi
+        if state_next[2] <= -np.pi:
+            state_next[2] += 2 * np.pi
 
         return state_next, obs
 
@@ -135,8 +135,8 @@ class VehicleDynamics(object):
         punish_steer = -np.square(steers)
         punish_a_x = -np.square(a_xs)
         punish_x = -np.square(delta_x)
-        rewards = 0.5 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
-                  0.2 * punish_steer + 0.2 * punish_a_x + 0.5 * punish_x
+        rewards = 0.5 * devi_y + 0.2 * devi_phi + 0.05 * punish_yaw_rate + \
+                  0.05 * punish_steer + 0.01 * punish_a_x + 0.1 * punish_x
 
         return rewards
 
@@ -185,14 +185,15 @@ class SimuVeh3dofconti(gym.Env,):
         obs = None
         if (init_state is None) & (t is None) & (ref_num is None):
             flag = [0, 1]
-            self.ref_num = self.np_random.choice(flag)
+            # self.ref_num = self.np_random.choice(flag)
+            self.ref_num = 0
             t = 20. * self.np_random.uniform(low=0., high=1.)
             self.t = t
-            init_delta_y = self.np_random.normal(0, 0.3)
-            init_y = self.vehicle_dynamics.compute_path_y(t, self.ref_num) + init_delta_y
             path_x = self.vehicle_dynamics.compute_path_x(t, self.ref_num)
             init_delta_x = self.np_random.normal(0, 2)
             init_x = path_x + init_delta_x
+            init_delta_y = self.np_random.normal(0, 0.3)
+            init_y = self.vehicle_dynamics.compute_path_y(t, self.ref_num) + init_delta_y
             init_delta_phi = self.np_random.normal(0, np.pi / 9)
             init_phi = self.vehicle_dynamics.compute_path_phi(t, self.ref_num) + init_delta_phi
             beta = self.np_random.normal(0, 0.15)
@@ -226,6 +227,7 @@ class SimuVeh3dofconti(gym.Env,):
         steer_norm, a_x_norm = action[0], action[1]
         action = np.stack([steer_norm, a_x_norm], 0)
         reward = self.vehicle_dynamics.compute_rewards(self.obs, action)
+        self.t = self.t + 1.0 / self.base_frequency
         self.state, self.obs = self.vehicle_dynamics.simulation(self.state, action,
                                                                 self.base_frequency, self.ref_num, self.t)
         self.done = self.judge_done(self.state, self.t)
@@ -249,7 +251,6 @@ class SimuVeh3dofconti(gym.Env,):
         done = (np.abs(y - self.vehicle_dynamics.compute_path_y(t, self.ref_num)) > 2) |\
                (np.abs(phi - self.vehicle_dynamics.compute_path_phi(t, self.ref_num)) > np.pi / 4.) | \
                (np.abs(x - self.vehicle_dynamics.compute_path_x(t, self.ref_num)) > 5)
-        # done = False
         return done
 
     def close(self):
