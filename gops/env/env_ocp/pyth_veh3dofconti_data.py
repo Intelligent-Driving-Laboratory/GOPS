@@ -185,8 +185,7 @@ class SimuVeh3dofconti(gym.Env,):
         obs = None
         if (init_state is None) & (t is None) & (ref_num is None):
             flag = [0, 1]
-            # self.ref_num = self.np_random.choice(flag)
-            self.ref_num = 0
+            self.ref_num = self.np_random.choice(flag)
             t = 20. * self.np_random.uniform(low=0., high=1.)
             self.t = t
             path_x = self.vehicle_dynamics.compute_path_x(t, self.ref_num)
