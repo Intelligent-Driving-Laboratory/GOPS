@@ -133,14 +133,14 @@ class VehicleDynamics(object):
         return x_next
 
     def compute_rewards(self, obs, actions):  # obses and actions are tensors
-        delta_ys, delta_phis, v_ys, rs = obs[:, 0], obs[:, 1], obs[:, 2], obs[:, 3]
-        devi_y = -torch.square(delta_ys)
-        devi_phi = -torch.square(delta_phis)
+        delta_y, delta_phi, v, w = obs[:, 0], obs[:, 1], obs[:, 2], obs[:, 3]
+        devi_y = -torch.square(delta_y)
+        devi_phi = -torch.square(delta_phi)
         steers = actions[:, 0]
-        punish_yaw_rate = -torch.square(rs)
+        punish_yaw_rate = -torch.square(w)
         punish_steer = -torch.square(steers)
-        punish_vys = - torch.square(v_ys)
-        rewards = 2.0 * devi_y + 0.1 * devi_phi + 0.2 * punish_yaw_rate + 5 * punish_steer + 0.1 * punish_vys
+        punish_vys = - torch.square(v)
+        rewards = 1.0 * devi_y + 0.5 * devi_phi + 0.2 * punish_yaw_rate + 0.1 * punish_steer + 0.1 * punish_vys
         return rewards
 
 

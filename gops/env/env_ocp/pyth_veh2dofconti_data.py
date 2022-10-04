@@ -108,21 +108,21 @@ class VehicleDynamics(object):
             ref_phi = self.compute_path_phi(t + (i + 1) / frequency, ref_num)
             ref_obs = np.array([y - ref_y, phi - ref_phi], dtype=np.float32)
             obs = np.hstack((obs, ref_obs))
-        if state_next[3] > np.pi:
-            state_next[3] -= 2 * np.pi
-        if state_next[3] <= -np.pi:
-            state_next[3] += 2 * np.pi
+        if state_next[1] > np.pi:
+            state_next[1] -= 2 * np.pi
+        if state_next[1] <= -np.pi:
+            state_next[1] += 2 * np.pi
         return state_next, obs
 
     def compute_rewards(self, obs, actions):  # obses and actions are tensors
-        v_ys, rs, delta_ys, delta_phis = obs[0], obs[1], obs[2], obs[3]
-        devi_y = -np.square(delta_ys)
-        devi_phi = -np.square(delta_phis)
+        delta_y, delta_phi, v, w = obs[0], obs[1], obs[2], obs[3]
+        devi_y = -np.square(delta_y)
+        devi_phi = -np.square(delta_phi)
         steers = actions[0]
-        punish_yaw_rate = -np.square(rs)
+        punish_yaw_rate = -np.square(w)
         punish_steer = -np.square(steers)
-        punish_vys = - np.square(v_ys)
-        rewards = 2.0 * devi_y + 0.1 * devi_phi + 0.2 * punish_yaw_rate + 5 * punish_steer + 0.1 * punish_vys
+        punish_vys = - np.square(v)
+        rewards = 1.0 * devi_y + 0.5 * devi_phi + 0.2 * punish_yaw_rate + 0.1 * punish_steer + 0.1 * punish_vys
         return rewards
 
 
@@ -203,12 +203,17 @@ class SimuVeh2dofconti(gym.Env,):
         steer_norm = action
         action = steer_norm
         reward = self.vehicle_dynamics.compute_rewards(self.obs, action)
+        # print('state = ', self.state)
         self.state, self.obs = self.vehicle_dynamics.simulation(self.state, action,
                                              self.base_frequency, self.ref_num, self.t)
+        # print('next_state = ', self.state)
+        self.t = self.t + 1.0 / self.base_frequency
         self.done = self.judge_done(self.state, self.t)
         state = np.array(self.state, dtype=np.float32)
         y_ref = self.vehicle_dynamics.compute_path_y(self.t, self.ref_num)
         phi_ref = self.vehicle_dynamics.compute_path_phi(self.t, self.ref_num)
+        # print('y_ref = ', y_ref)
+        # print('phi_ref = ', phi_ref)
         info = {
             "state": state,
             "t": self.t,
