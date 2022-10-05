@@ -180,6 +180,17 @@ class SimuVeh3dofconti(gym.Env,):
         self.action_space = gym.spaces.Box(low=np.array([-np.pi / 6, -3]),
                                            high=np.array([np.pi / 6, 3]),
                                            dtype=np.float32)
+
+        self.train_space = kwargs.get("train_space", None)
+        if self.train_space is None:
+            # Initial range of [delta_x, delta_y, delta_phi, delta_u, v, w]
+            init_high = np.array([6, 3, np.pi / 3, 5, self.expected_vs * 0.45, 0.9], dtype=np.float32)
+            init_low = -init_high
+            self.train_space = gym.spaces.Box(low=init_low, high=init_high)
+        self.work_space = kwargs.get("work_space", None)
+        if self.work_space is None:
+            self.work_space = self.train_space
+
         self.obs = None
         self.state = None
         self.state_dim = 6
@@ -209,22 +220,18 @@ class SimuVeh3dofconti(gym.Env,):
         init_x = None
         obs = None
         if (init_state == None) & (t == None) & (ref_num == None):
+            obs = self.np_random.uniform(low=self.train_space.low, high=self.train_space.high)
             flag = [0, 1]
             self.ref_num = self.np_random.choice(flag)
             t = 20. * self.np_random.uniform(low=0., high=1.)
             self.t = t
-            init_delta_y = self.np_random.normal(0, 1)
-            init_y = self.vehicle_dynamics.path.compute_path_y(t, self.ref_num) + init_delta_y
-            path_x = self.vehicle_dynamics.path.compute_path_x(t, self.ref_num)
-            init_delta_x = self.np_random.normal(0, 2)
-            init_x = path_x + init_delta_x
+            init_x = self.vehicle_dynamics.path.compute_path_x(t, self.ref_num) + obs[0]
+            init_y = self.vehicle_dynamics.path.compute_path_y(t, self.ref_num) + obs[1]
             init_delta_phi = self.np_random.normal(0, np.pi / 9)
-            init_phi = self.vehicle_dynamics.path.compute_path_phi(t, self.ref_num) + init_delta_phi
-            beta = self.np_random.normal(0, 0.15)
-            init_u = self.np_random.uniform(low=5., high=15.)
-            init_v = init_u * np.tan(beta)
-            init_w = self.np_random.normal(0, 0.3)
-            obs = np.array([init_delta_x, init_delta_y, init_delta_phi, init_u - self.expected_vs, init_v, init_w], dtype=np.float32)
+            init_phi = self.vehicle_dynamics.path.compute_path_phi(t, self.ref_num) + obs[2]
+            init_u = self.expected_vs + obs[3]
+            init_v = obs[4]
+            init_w = obs[5]
         elif (init_state != None) & (t != None) & (ref_num != None):
             flag = [0, 1]
             self.ref_num = self.np_random.choice(flag)
