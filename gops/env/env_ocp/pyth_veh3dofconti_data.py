@@ -196,7 +196,7 @@ class SimuVeh3dofconti(gym.Env,):
         init_w = None
         init_x = None
         obs = None
-        if (init_state == None) & (t == None) & (ref_num == None):
+        if (init_state is None) & (t is None) & (ref_num is None):
             obs = self.np_random.uniform(low=self.train_space.low, high=self.train_space.high)
             delta_x, delta_y, delta_phi, u, v, w = obs
             flag = [0, 1]
