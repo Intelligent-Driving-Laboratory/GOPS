@@ -95,7 +95,7 @@ def get_apprfunc_dict(key: str, type=None, **kwargs):
         if kwargs["action_type"] == "continu":
             if kwargs["policy_func_name"] == "StochaPolicy":  # todo: add TanhGauss
                 var["action_distirbution_cls"] = GaussDistribution
-            elif kwargs["policy_func_name"] == "DetermPolicy":
+            elif kwargs["policy_func_name"] == "DetermPolicy" or "FiniteHorizonPolicy":
                 var["action_distirbution_cls"] = DiracDistribution
         else:
             if kwargs["policy_func_name"] == "StochaPolicyDis":

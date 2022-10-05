@@ -160,14 +160,23 @@ class LqEnv(gym.Env):
         self.action_dim = self.action_space.shape[0]
         self.control_matrix = self.dynamics.compute_control_matrix()
 
-        self.train_space = kwargs.get("train_space", None)
-        if self.train_space is None:
+        train_range = kwargs.get("train_space", None)
+        if train_range is None:
             init_mean = np.array(self.config["init_mean"], dtype=np.float32)
             init_std = np.array(self.config["init_std"], dtype=np.float32)
             self.train_space = Box(low=init_mean - 3 * init_std, high=init_mean + 3 * init_std)
-        self.work_space = kwargs.get("work_space", None)
-        if self.work_space is None:
+        else:
+            low = np.array(train_range[0], dtype=np.float32)
+            high = np.array(train_range[1], dtype=np.float32)
+            self.train_space = Box(low=low, high=high)
+        self.init_space = self.train_space
+        work_range = kwargs.get("work_space", None)
+        if  work_range is None:
             self.work_space = self.train_space
+        else:
+            low = np.array(work_range[0], dtype=np.float32)
+            high = np.array(work_range[1], dtype=np.float32)
+            self.work_space = Box(low=low, high=high)
 
         self.seed()
 
@@ -188,17 +197,20 @@ class LqEnv(gym.Env):
     def control_policy(self,state):
         return -self.control_matrix@state
 
+    def test_mode(self):
+        self.init_space = self.work_space
+
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def reset(self, init_obs=None):
+    def reset(self, init_state=None):
         self.step_counter = 0
 
-        if init_obs is None:
-            self.obs = self.np_random.uniform(low=self.train_space.low, high=self.train_space.high)
+        if init_state is None:
+            self.obs = self.np_random.uniform(low=self.init_space.low, high=self.init_space.high)
         else:
-            self.obs = init_obs
+            self.obs = np.array(init_state ,dtype=np.float32)
 
         self.state_buffer[self.step_counter, :] = self.obs
 

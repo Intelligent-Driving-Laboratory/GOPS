@@ -21,4 +21,4 @@ def env_creator(**kwargs):
     else:
         raise RuntimeError("lq_config invalid")
     lq_configs.check_lq_config(config)
-    return TimeLimit(LqEnv(config), config['max_step'])
+    return TimeLimit(LqEnv(config, **kwargs), config['max_step'])
