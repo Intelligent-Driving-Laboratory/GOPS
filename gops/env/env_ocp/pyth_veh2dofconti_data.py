@@ -143,9 +143,12 @@ class SimuVeh2dofconti(gym.Env,):
 
         self.train_space = kwargs.get("train_space", None)
         if self.train_space is None:
-            # Initial range of [delta_y, delta_phi, v, w]
-            init_high = np.array([3, np.pi / 3, self.expected_vs * 0.45, 0.9], dtype=np.float32)
+            # Initial range of [delta_x, delta_y, delta_phi, u, v, w]
+            init_high = np.array([6, 3, np.pi / 3, 5, self.vehicle_dynamics.vehicle_params['u'] * 0.45, 0.9],
+                                 dtype=np.float32)
             init_low = -init_high
+            init_high[3] += self.vehicle_dynamics.vehicle_params['u']
+            init_low[3] += self.vehicle_dynamics.vehicle_params['u']
             self.train_space = gym.spaces.Box(low=init_low, high=init_high)
         self.work_space = kwargs.get("work_space", None)
         if self.work_space is None:
@@ -179,18 +182,15 @@ class SimuVeh2dofconti(gym.Env,):
         obs = None
         if (init_state == None) & (t == None) & (ref_num == None):
             obs = self.np_random.uniform(low=self.train_space.low, high=self.train_space.high)
+            delta_x, delta_y, delta_phi, u, v, w = obs
             flag = [0, 1]
             self.ref_num = self.np_random.choice(flag)
             t = 20. * self.np_random.uniform(low=0., high=1.)
             self.t = t
-            init_delta_y = self.np_random.normal(0, 0.3)
-            init_y = self.vehicle_dynamics.compute_path_y(t, self.ref_num) + init_delta_y
-            init_delta_phi = self.np_random.normal(0, np.pi / 9)
-            init_phi = self.vehicle_dynamics.compute_path_phi(t, self.ref_num) + init_delta_phi
-            beta = self.np_random.normal(0, 0.15)
-            init_v = self.vehicle_dynamics.vehicle_params['u'] * np.tan(beta)
-            init_w = self.np_random.normal(0, 0.3)
-            obs = np.array([init_delta_y, init_delta_phi, init_v, init_w], dtype=np.float32)
+            init_y = self.vehicle_dynamics.compute_path_y(t, self.ref_num) + delta_y
+            init_phi = self.vehicle_dynamics.compute_path_phi(t, self.ref_num) + delta_phi
+            init_v = v
+            init_w = w
         elif (init_state is not None) & (t is not None) & (ref_num is not None):
             self.ref_num = ref_num
             self.t = t
