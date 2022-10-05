@@ -1,6 +1,6 @@
 from gops.env.env_wrapper.shaping_reward import ShapingRewardData, ShapingRewardModel
 from gops.env.env_wrapper.scale_observation import ScaleObservationData, ScaleObservationModel
-
+from gops.env.env_wrapper.wrap_state import StateData
 
 def all_none(a, b):
     if (a is None) and (b is None):
@@ -10,6 +10,7 @@ def all_none(a, b):
 
 
 def wrapping_env(env, reward_shift=None, reward_scale=None, obs_shift=None, obs_scale=None):
+    env = StateData(env)
     if not all_none(reward_scale, reward_shift):
         reward_scale = 1.0 if reward_scale is None else reward_scale
         reward_shift = 0.0 if reward_shift is None else reward_shift
