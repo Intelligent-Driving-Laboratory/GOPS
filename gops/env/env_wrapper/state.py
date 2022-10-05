@@ -1,5 +1,4 @@
 import gym
-import numpy as np
 
 
 class StateData(gym.Wrapper):
@@ -11,8 +10,8 @@ class StateData(gym.Wrapper):
         super(StateData, self).__init__(env)
         self.current_obs = None
 
-    def reset(self):
-        obs = super(StateData, self).reset()
+    def reset(self, **kwargs):
+        obs = super(StateData, self).reset(**kwargs)
         self.current_obs = obs
         return obs
 
@@ -24,6 +23,6 @@ class StateData(gym.Wrapper):
     @property
     def state(self):
         if hasattr(self.env, "state"):
-            return np.array(self.env.state, dtype=np.float32)
+            return self.env.state
         else:
             return self.current_obs
