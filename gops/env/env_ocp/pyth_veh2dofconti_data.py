@@ -28,7 +28,7 @@ class VehicleDynamics(object):
         F_zf, F_zr = l_r * mass * g / (l_f + l_r), l_f * mass * g / (l_f + l_r)
         self.vehicle_params.update(dict(F_zf=F_zf,
                                         F_zr=F_zr))
-        self.prediction_horizon = kwargs["predictive_horizon"]
+        self.pre_horizon = kwargs["pre_horizon"]
 
     def compute_path_x(self, t, num):
         x = np.zeros_like(t)
@@ -103,7 +103,7 @@ class VehicleDynamics(object):
         path_y, path_phi = self.compute_path_y(t, ref_num), \
                            self.compute_path_phi(t, ref_num)
         obs = np.array([y - path_y, phi - path_phi, v, w], dtype=np.float32)
-        for i in range(self.prediction_horizon - 1):
+        for i in range(self.pre_horizon):
             ref_y = self.compute_path_y(t + (i + 1) / frequency, ref_num)
             ref_phi = self.compute_path_phi(t + (i + 1) / frequency, ref_num)
             ref_obs = np.array([y - ref_y, phi - ref_phi], dtype=np.float32)
@@ -130,7 +130,7 @@ class SimuVeh2dofconti(gym.Env,):
     def __init__(self, **kwargs):
         self.is_adversary = kwargs.get("is_adversary", False)
         self.is_constraint = kwargs.get("is_constraint", False)
-        self.prediction_horizon = kwargs["predictive_horizon"]
+        self.pre_horizon = kwargs["pre_horizon"]
         self.vehicle_dynamics = VehicleDynamics(**kwargs)
         self.base_frequency = 10
         self.observation_space = gym.spaces.Box(
@@ -189,7 +189,7 @@ class SimuVeh2dofconti(gym.Env,):
         else:
             print("reset error")
 
-        for i in range(self.prediction_horizon - 1):
+        for i in range(self.pre_horizon):
             ref_y = self.vehicle_dynamics.compute_path_y(t + (i + 1) / self.base_frequency, self.ref_num)
             ref_phi = self.vehicle_dynamics.compute_path_phi(t + (i + 1) / self.base_frequency, self.ref_num)
             ref_obs = np.array([init_y - ref_y, init_phi - ref_phi], dtype=np.float32)

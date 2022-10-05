@@ -37,7 +37,7 @@ class Veh3dofcontiModel(torch.nn.Module):
                                    self.vehicle_dynamics.compute_path_y(tc, ref_num), \
                                    self.vehicle_dynamics.compute_path_phi(tc, ref_num)
         obsc = torch.stack([xc - path_xc, yc - path_yc, phic - path_phic, uc, vc, wc], 1)
-        for i in range(self.vehicle_dynamics.prediction_horizon - 1):
+        for i in range(self.vehicle_dynamics.pre_horizon):
             ref_x = self.vehicle_dynamics.compute_path_x(tc + (i + 1) / self.base_frequency, ref_num)
             ref_y = self.vehicle_dynamics.compute_path_y(tc + (i + 1) / self.base_frequency, ref_num)
             ref_phi = self.vehicle_dynamics.compute_path_phi(tc + (i + 1) / self.base_frequency, ref_num)
@@ -57,7 +57,7 @@ class Veh3dofcontiModel(torch.nn.Module):
                                    self.vehicle_dynamics.compute_path_y(t, ref_num), \
                            self.vehicle_dynamics.compute_path_phi(t, ref_num)
         obs = torch.stack([x - path_x, y - path_y, phi - path_phi, u, v, w], 1)
-        for i in range(self.vehicle_dynamics.prediction_horizon - 1):
+        for i in range(self.vehicle_dynamics.pre_horizon):
             ref_x = self.vehicle_dynamics.compute_path_x(t + (i + 1) / self.base_frequency, ref_num)
             ref_y = self.vehicle_dynamics.compute_path_y(t + (i + 1) / self.base_frequency, ref_num)
             ref_phi = self.vehicle_dynamics.compute_path_phi(t + (i + 1) / self.base_frequency, ref_num)
@@ -86,7 +86,7 @@ class VehicleDynamics(object):
         F_zf, F_zr = l_r * mass * g / (l_f + l_r), l_f * mass * g / (l_f + l_r)
         self.vehicle_params.update(dict(F_zf=F_zf,
                                         F_zr=F_zr))
-        self.prediction_horizon = kwargs["predictive_horizon"]
+        self.pre_horizon = kwargs["pre_horizon"]
 
     def compute_path_x(self, t, num):
         x = torch.where(num == 0, 10 * t + np.cos(2 * np.pi * t / 6), self.vehicle_params['u'] * t)
