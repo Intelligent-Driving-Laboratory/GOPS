@@ -157,8 +157,8 @@ class VehicleDynamics(object):
         punish_steer = -torch.square(steers)
         punish_a_x = -torch.square(a_xs)
         punish_x = -torch.square(delta_x)
-        rewards = 0.5 * devi_y + 0.2 * devi_phi + 0.05 * punish_yaw_rate + \
-                  0.05 * punish_steer + 0.01 * punish_a_x + 0.1 * punish_x
+        rewards = 0.1 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
+                  0.05 * punish_steer + 0.01 * punish_a_x + 0.01 * punish_x
 
         return rewards
 
