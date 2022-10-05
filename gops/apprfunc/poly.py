@@ -19,6 +19,7 @@ __all__ = [
 import numpy as np
 import torch
 import torch.nn as nn
+from math import factorial
 from gops.utils.act_distribution_cls import Action_Distribution
 
 
@@ -48,6 +49,36 @@ def get_features_dim(input_dim, degree):
 
 def count_vars(module):
     return sum([np.prod(p.shape) for p in module.parameters()])
+
+
+def combination(m, n):
+    return int(factorial(m) / (factorial(n) * factorial(m - n)))
+
+
+def create_features(x, degree=2):
+    batch = x.shape[0]
+    obs_dim = x.shape[1]
+    if degree == 2:
+        features_dim = combination(degree + obs_dim - 1, degree)
+    else:
+        raise ValueError("Not set degree properly")
+    features = torch.zeros((batch, features_dim))
+
+    if degree == 2:
+        k = 0
+        for i in range(0, obs_dim):
+            for j in range(i, obs_dim):
+                features[:, k:k + 1] = torch.mul(x[:, i:i + 1], x[:, j:j + 1])
+                k = k + 1
+    else:
+        raise ValueError("Not set degree properly")
+
+    return features
+
+
+def count_features_dim(input_dim, degree):
+    x = torch.zeros([1, input_dim])
+    return create_features(x, degree).size(1)
 
 
 class DetermPolicy(nn.Module, Action_Distribution):
@@ -135,11 +166,15 @@ class StateValue(nn.Module, Action_Distribution):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
         self.degree = kwargs["degree"]
-        self.v = nn.Linear(get_features_dim(obs_dim, self.degree), 1)
+        if kwargs['norm_matrix'] is not None:
+            self.norm_matrix = torch.from_numpy(np.array(kwargs['norm_matrix'], dtype=np.float32))
+        else:
+            self.norm_matrix = torch.from_numpy(np.array([1.0] * obs_dim, dtype=np.float32))
+        self.v = nn.Linear(count_features_dim(obs_dim, self.degree), 1)
         self.action_distirbution_cls = kwargs["action_distirbution_cls"]
 
     def forward(self, obs):
-        obs = make_features(obs, self.degree)
+        obs = create_features(torch.mul(obs, self.norm_matrix), self.degree)
         return self.v(obs)
 
 
