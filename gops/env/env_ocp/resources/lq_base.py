@@ -160,6 +160,15 @@ class LqEnv(gym.Env):
         self.action_dim = self.action_space.shape[0]
         self.control_matrix = self.dynamics.compute_control_matrix()
 
+        self.train_space = kwargs.get("train_space", None)
+        if self.train_space is None:
+            init_mean = np.array(self.config["init_mean"], dtype=np.float32)
+            init_std = np.array(self.config["init_std"], dtype=np.float32)
+            self.train_space = Box(low=init_mean - 3 * init_std, high=init_mean + 3 * init_std)
+        self.work_space = kwargs.get("work_space", None)
+        if self.work_space is None:
+            self.work_space = self.train_space
+
         self.seed()
 
         # environment variable
@@ -187,9 +196,7 @@ class LqEnv(gym.Env):
         self.step_counter = 0
 
         if init_obs is None:
-            init_mean = np.array(self.config["init_mean"])
-            init_std = np.array(self.config["init_std"])
-            self.obs = self.np_random.randn(self.observation_dim) * init_std + init_mean
+            self.obs = self.np_random.uniform(low=self.train_space.low, high=self.train_space.high)
         else:
             self.obs = init_obs
 
