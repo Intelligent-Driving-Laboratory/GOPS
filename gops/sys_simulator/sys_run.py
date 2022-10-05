@@ -178,6 +178,7 @@ class PolicyRuner():
         policy_num = len(self.algorithm_list)
         if self.use_opt:
             policy_num += 1
+            self.algorithm_list.append("LQ")
 
         # Create initial list
         reward_list = []
@@ -186,16 +187,6 @@ class PolicyRuner():
         step_list = []
         state_ref_error_list = []
         constrain_list = []
-        # font form
-        font1 = {'family': 'Times New Roman',
-                 'weight': 'normal',
-                 'size': 9,
-                 'style': 'italic'
-                 }
-        font2 = {'family': 'Times New Roman',
-                 'weight': 'normal',
-                 'size': 8,
-                 }
         # Put data into list
         for i in range(policy_num):
             reward_list.append(np.array(self.eval_list[i]["reward_list"]))
@@ -448,7 +439,8 @@ class PolicyRuner():
             error_result = {}
             # action error
             for i in range(self.policy_num):
-                error_result.update({"Policy-{}".format(i+1): {}})
+                legend = self.legend_list[i] if len(self.legend_list) == policy_num else "Policy-{}".format(i+1)
+                error_result.update({legend: {}})
                 # action error
                 for j in range(action_dim):
                     action_error = {}
@@ -459,23 +451,24 @@ class PolicyRuner():
                         error_list.append(error)
                     action_error["Max_error"] = '{:.2f}%'.format(max(error_list)*100)
                     action_error["Mean_error"] = '{:.2f}%'.format(sum(error_list) / len(error_list)*100)
-                    error_result["Policy-{}".format(i+1)].update({"Action-{}".format(j + 1): action_error})
+                    error_result[legend].update({"Action-{}".format(j + 1): action_error})
                 # state error
                 for o in range(obs_dim):
                     state_error = {}
                     error_list = []
                     for q in range(100):
                         error = np.abs(self.error_dict["policy_{}".format(i)]["next_obs"][q, o] - self.error_dict["opt"]["next_obs"][q, o]) \
-                                / (np.max(self.error_dict["opt"]["next_obs"][:, o]) - np.min(self.error_dict["opt"]["next_obs"][:, j]))
+                                / (np.max(self.error_dict["opt"]["next_obs"][:, o]) - np.min(self.error_dict["opt"]["next_obs"][:, o]))
                         error_list.append(error)
                     state_error["Max_error"] = '{:.2f}%'.format(max(error_list)*100)
                     state_error["Mean_error"] = '{:.2f}%'.format(sum(error_list) / len(error_list)*100)
-                    error_result["Policy-{}".format(i+1)].update({"State-{}".format(o + 1): state_error})
+                    error_result[legend].update({"State-{}".format(o + 1): state_error})
 
             writer = pd.ExcelWriter('{}\\Error-result.xlsx'.format(self.save_path))
             for i in range(self.policy_num):
-                policy_result = pd.DataFrame(data=error_result["Policy-{}".format(i+1)])
-                policy_result.to_excel(writer, "Policy-{}".format(i+1))
+                legend = self.legend_list[i] if len(self.legend_list) == policy_num else "Policy-{}".format(i + 1)
+                policy_result = pd.DataFrame(data=error_result[legend])
+                policy_result.to_excel(writer, legend)
             writer.save()
             error_result_data = pd.DataFrame(data=error_result)
             # error_result_data.to_csv('{}\\Error-result.csv'.format(self.save_path), encoding='gbk')
