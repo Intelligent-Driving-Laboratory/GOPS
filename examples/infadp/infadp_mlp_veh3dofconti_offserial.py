@@ -33,7 +33,7 @@ if __name__ == "__main__":
     parser.add_argument("--env_id", type=str, default="pyth_veh3dofconti")
     parser.add_argument("--algorithm", type=str, default="INFADP")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
-    parser.add_argument("--predictive_horizon", type=int, default="10")
+    parser.add_argument("--pre_horizon", type=int, default="10")
 
     # 1. Parameters for environment
     parser.add_argument("--obsv_dim", type=int, default=None)
@@ -45,10 +45,10 @@ if __name__ == "__main__":
     parser.add_argument("--state_obs_scale", type=list, default=[1.0 / 200., 1.0, 1.0, 1.0 / 15.0, 1.0, 1.0])
     parser.add_argument("--one_step_scale", type=list, default=[1.0 / 20., 1.0 / 5.0, 1.0 / 2.0])
     state_obs_scale = parser.parse_known_args()[0].state_obs_scale
-    predictive_horizon = parser.parse_known_args()[0].predictive_horizon
+    pre_horizon = parser.parse_known_args()[0].pre_horizon
     one_step_scale = parser.parse_known_args()[0].one_step_scale
     obs_scale = state_obs_scale
-    for i in range(predictive_horizon - 1):
+    for i in range(pre_horizon - 1):
         obs_scale = np.hstack((obs_scale, one_step_scale))
     parser.add_argument("--obs_scale", type=list, default=obs_scale)
     parser.add_argument("--is_render", type=bool, default=False)
