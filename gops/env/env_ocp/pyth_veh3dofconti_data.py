@@ -135,8 +135,8 @@ class VehicleDynamics(object):
         punish_steer = -np.square(steers)
         punish_a_x = -np.square(a_xs)
         punish_x = -np.square(delta_x)
-        rewards = 0.1 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
-                  0.05 * punish_steer + 0.01 * punish_a_x + 0.01 * punish_x
+        rewards = 0.2 * devi_y + 0.1 * devi_phi + 0.05 * punish_yaw_rate + \
+                  0.05 * punish_steer + 0.01 * punish_a_x + 0.05 * punish_x
 
         return rewards
 
@@ -159,7 +159,7 @@ class SimuVeh3dofconti(gym.Env,):
         self.train_space = kwargs.get("train_space", None)
         if self.train_space is None:
             # Initial range of [delta_x, delta_y, delta_phi, u, v, w]
-            init_high = np.array([6, 3, np.pi / 3, 5, self.vehicle_dynamics.vehicle_params['u'] * 0.45, 0.9], dtype=np.float32)
+            init_high = np.array([2, 1, np.pi / 3, 5, self.vehicle_dynamics.vehicle_params['u'] * 0.25, 0.9], dtype=np.float32)
             init_low = -init_high
             init_high[3] += self.vehicle_dynamics.vehicle_params['u']
             init_low[3] += self.vehicle_dynamics.vehicle_params['u']

@@ -144,7 +144,7 @@ class SimuVeh2dofconti(gym.Env,):
         self.train_space = kwargs.get("train_space", None)
         if self.train_space is None:
             # Initial range of [delta_y, delta_phi, v, w]
-            init_high = np.array([3, np.pi / 3, self.vehicle_dynamics.vehicle_params['u'] * 0.45, 0.9],
+            init_high = np.array([1, np.pi / 3, self.vehicle_dynamics.vehicle_params['u'] * 0.25, 0.9],
                                  dtype=np.float32)
             init_low = -init_high
             self.train_space = gym.spaces.Box(low=init_low, high=init_high)
