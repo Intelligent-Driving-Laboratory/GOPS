@@ -140,6 +140,17 @@ class SimuVeh2dofconti(gym.Env,):
         self.action_space = gym.spaces.Box(low=np.array([-np.pi / 6]),
                                            high=np.array([np.pi / 6]),
                                            dtype=np.float32)
+
+        self.train_space = kwargs.get("train_space", None)
+        if self.train_space is None:
+            # Initial range of [delta_y, delta_phi, v, w]
+            init_high = np.array([3, np.pi / 3, self.expected_vs * 0.45, 0.9], dtype=np.float32)
+            init_low = -init_high
+            self.train_space = gym.spaces.Box(low=init_low, high=init_high)
+        self.work_space = kwargs.get("work_space", None)
+        if self.work_space is None:
+            self.work_space = self.train_space
+
         self.obs = None
         self.state = None
         self.state_dim = 4
@@ -166,12 +177,11 @@ class SimuVeh2dofconti(gym.Env,):
         init_v = None
         init_w = None
         obs = None
-        if (init_state is None) & (t is None) & (ref_num is None):
+        if (init_state == None) & (t == None) & (ref_num == None):
+            obs = self.np_random.uniform(low=self.train_space.low, high=self.train_space.high)
             flag = [0, 1]
             self.ref_num = self.np_random.choice(flag)
             t = 20. * self.np_random.uniform(low=0., high=1.)
-            # self.ref_num = 1
-            # t = 0
             self.t = t
             init_delta_y = self.np_random.normal(0, 0.3)
             init_y = self.vehicle_dynamics.compute_path_y(t, self.ref_num) + init_delta_y
