@@ -134,8 +134,8 @@ class VehicleDynamics(object):
         punish_steer = -np.square(steers)
         punish_a_x = -np.square(a_xs)
         punish_x = -np.square(delta_x)
-        rewards = 0.2 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
-                  0.05 * punish_steer + 0.01 * punish_a_x + 0.1 * punish_x
+        rewards = 0.1 * devi_y + 0.01 * devi_phi + 0.01 * punish_yaw_rate + \
+                  0.01 * punish_steer + 0.01 * punish_a_x + 0.05 * punish_x
 
         return rewards
 
