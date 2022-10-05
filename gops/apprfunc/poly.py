@@ -166,15 +166,11 @@ class StateValue(nn.Module, Action_Distribution):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
         self.degree = kwargs["degree"]
-        if kwargs['norm_matrix'] is not None:
-            self.norm_matrix = torch.from_numpy(np.array(kwargs['norm_matrix'], dtype=np.float32))
-        else:
-            self.norm_matrix = torch.from_numpy(np.array([1.0] * obs_dim, dtype=np.float32))
         self.v = nn.Linear(count_features_dim(obs_dim, self.degree), 1)
         self.action_distirbution_cls = kwargs["action_distirbution_cls"]
 
     def forward(self, obs):
-        obs = create_features(torch.mul(obs, self.norm_matrix), self.degree)
+        obs = create_features(obs, self.degree)
         return self.v(obs)
 
 

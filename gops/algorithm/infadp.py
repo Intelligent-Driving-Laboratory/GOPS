@@ -69,7 +69,6 @@ class INFADP(AlgorithmBase):
         self.pev_step = 1
         self.pim_step = 1
         self.forward_step = 10
-        self.reward_scale = 0.1
         self.tb_info = dict()
 
     @property
@@ -149,12 +148,12 @@ class INFADP(AlgorithmBase):
                 if step == 0:
                     a = self.networks.policy(o)
                     o2, r, d, info = self.envmodel.forward(o, a,info_init, d)
-                    backup = self.reward_scale * r
+                    backup =  r
                 else:
                     o = o2
                     a = self.networks.policy(o)
                     o2, r, d, info = self.envmodel.forward(o, a, info, d)
-                    backup += self.reward_scale * self.gamma ** step * r
+                    backup +=  self.gamma ** step * r
 
             backup += (
                     (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
@@ -178,12 +177,12 @@ class INFADP(AlgorithmBase):
             if step == 0:
                 a = self.networks.policy(o)
                 o2, r, d, info = self.envmodel.forward(o, a,info_init, d)
-                v_pi = self.reward_scale * r
+                v_pi =  r
             else:
                 o = o2
                 a = self.networks.policy(o)
                 o2, r, d, info = self.envmodel.forward(o, a,info, d)
-                v_pi += self.reward_scale * self.gamma ** step * r
+                v_pi +=  self.gamma ** step * r
         v_pi += (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
         for p in self.networks.v.parameters():
             p.requires_grad = True

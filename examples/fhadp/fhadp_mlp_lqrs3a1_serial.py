@@ -40,6 +40,8 @@ if __name__ == "__main__":
     parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--reward_scale", type=float, default=1)
     parser.add_argument("--reward_shift", type=float, default=0)
+    parser.add_argument("--obs_scale", type=float, default=[1,2,0.5])
+    parser.add_argument("--obs_shift", type=float, default=[1,1,1])
     parser.add_argument(
         "--action_type", type=str, default="continu", help="Options: continu/discret"
     )

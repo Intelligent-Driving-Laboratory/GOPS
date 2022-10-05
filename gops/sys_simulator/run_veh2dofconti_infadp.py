@@ -1,12 +1,13 @@
 from sys_run import PolicyRuner
+import numpy as np
 
 runer = PolicyRuner(
-    log_policy_dir_list=["../../results/INFADP/220929-103609"]*2,
-    trained_policy_iteration_list=['2000','3500'],
-    is_init_state=False,
-    init_state=[0.1,0.1,0.5,0.01,0],
+    log_policy_dir_list=["../../results/FHADP/220930-212359"],
+    trained_policy_iteration_list=['500'],
+    is_init_info=True,
+    init_info={"init_state":[1.,0.,0.,0.], "t":0.,"ref_num":1},
     save_render=False,
-    legend_list=[ 'INFADP-2000','INFADP-3500'],
+    legend_list=[ 'INFADP-500'],
     use_opt=False,
     constrained_env=False,
     is_tracking=True,
