@@ -122,7 +122,7 @@ class VehicleDynamics(object):
         punish_yaw_rate = -np.square(w)
         punish_steer = -np.square(steers)
         punish_vys = - np.square(v)
-        rewards = 0.5 * devi_y + 0.2 * devi_phi + 0.05 * punish_yaw_rate + 0.05 * punish_steer + 0.05 * punish_vys
+        rewards = 0.2 * devi_y + 0.1 * devi_phi + 0.05 * punish_yaw_rate + 0.05 * punish_steer + 0.05 * punish_vys
         return rewards
 
 
@@ -167,9 +167,11 @@ class SimuVeh2dofconti(gym.Env,):
         init_w = None
         obs = None
         if (init_state is None) & (t is None) & (ref_num is None):
-            flag = [0, 1]
-            self.ref_num = self.np_random.choice(flag)
-            t = 20. * self.np_random.uniform(low=0., high=1.)
+            # flag = [0, 1]
+            # self.ref_num = self.np_random.choice(flag)
+            # t = 20. * self.np_random.uniform(low=0., high=1.)
+            self.ref_num = 1
+            t = 0
             self.t = t
             init_delta_y = self.np_random.normal(0, 0.3)
             init_y = self.vehicle_dynamics.compute_path_y(t, self.ref_num) + init_delta_y
