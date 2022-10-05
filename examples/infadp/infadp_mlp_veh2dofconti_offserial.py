@@ -48,7 +48,7 @@ if __name__ == "__main__":
     pre_horizon = parser.parse_known_args()[0].pre_horizon
     one_step_scale = parser.parse_known_args()[0].one_step_scale
     obs_scale = state_obs_scale
-    for i in range(pre_horizon - 1):
+    for i in range(pre_horizon):
         obs_scale = np.hstack((obs_scale, one_step_scale))
     parser.add_argument("--obs_scale", type=list, default=obs_scale)
     parser.add_argument("--is_render", type=bool, default=False)

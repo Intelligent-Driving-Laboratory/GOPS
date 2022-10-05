@@ -149,8 +149,8 @@ class SimuVeh3dofconti(gym.Env,):
         self.vehicle_dynamics = VehicleDynamics(**kwargs)
         self.base_frequency = 10
         self.observation_space = gym.spaces.Box(
-            low=np.array([-np.inf] * (33)),
-            high=np.array([np.inf] * (33)),
+            low=np.array([-np.inf] * (36)),
+            high=np.array([np.inf] * (36)),
             dtype=np.float32)
         self.action_space = gym.spaces.Box(low=np.array([-np.pi / 6, -3]),
                                            high=np.array([np.pi / 6, 3]),
