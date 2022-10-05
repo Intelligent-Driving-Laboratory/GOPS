@@ -1,5 +1,5 @@
 import gym
-
+import numpy as np
 
 class StateData(gym.Wrapper):
     """
@@ -23,6 +23,6 @@ class StateData(gym.Wrapper):
     @property
     def state(self):
         if hasattr(self.env, "state"):
-            return self.env.state
+            return np.array(self.env.state,dtype=np.float32)
         else:
             return self.current_obs
