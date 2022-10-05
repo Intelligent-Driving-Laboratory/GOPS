@@ -307,7 +307,7 @@ class PolicyRuner():
             for j in range(self.ref_state_num):
 
                 # plot state and ref
-                path_tracking_state_fmt = os.path.join(self.save_path, "State-{} compare.{}".format(j + 1, default_cfg["img_fmt"]))
+                path_tracking_state_fmt = os.path.join(self.save_path, "State-{}.{}".format(j + 1, default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
                 # save tracking state data to csv
                 tracking_state_data = []
@@ -321,13 +321,13 @@ class PolicyRuner():
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
                 plt.xlabel(x_label, default_cfg["label_font"])
-                plt.ylabel("State-{} compare".format(j + 1), default_cfg["label_font"])
+                plt.ylabel("State-{}".format(j + 1), default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
                 plt.savefig(path_tracking_state_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
                 tracking_state_data = pd.DataFrame(data=np.array(tracking_state_data))
-                tracking_state_data.to_csv('{}\\State-{} compare.csv'.format(self.save_path, j + 1), encoding='gbk')
+                tracking_state_data.to_csv('{}\\State-{}.csv'.format(self.save_path, j + 1), encoding='gbk')
 
                 # plot state-ref error
                 path_tracking_error_fmt = os.path.join(self.save_path, "State-{} error.{}".format(j+1, default_cfg["img_fmt"]))
@@ -444,10 +444,12 @@ class PolicyRuner():
                 state_error_data = pd.DataFrame(data=state_error_array[:, :, j])
                 state_error_data.to_csv('{}\\State-{} error.csv'.format(self.save_path, j+1), encoding='gbk')
 
-            # compute relative error
+            # compute relative error with opt
             error_result = {}
             # action error
             for i in range(self.policy_num):
+                error_result.update({"Policy-{}".format(i+1): {}})
+                # action error
                 for j in range(action_dim):
                     action_error = {}
                     error_list = []
@@ -455,27 +457,35 @@ class PolicyRuner():
                         error = np.abs(self.error_dict["policy_{}".format(i)]["action"][q, j] - self.error_dict["opt"]["action"][q, j]) \
                                 / (np.max(self.error_dict["opt"]["action"][:, j]) - np.min(self.error_dict["opt"]["action"][:, j]))
                         error_list.append(error)
-                    action_error["max_error"] = '{:.2f}%'.format(max(error_list)*100)
-                    action_error["mean_error"] = '{:.2f}%'.format(sum(error_list) / len(error_list)*100)
-                    error_result["policy-{}-action-{} error".format(i+1, j+1)] = action_error
-            # state error
-            for i in range(self.policy_num):
-                for j in range(obs_dim):
+                    action_error["Max_error"] = '{:.2f}%'.format(max(error_list)*100)
+                    action_error["Mean_error"] = '{:.2f}%'.format(sum(error_list) / len(error_list)*100)
+                    error_result["Policy-{}".format(i+1)].update({"Action-{}".format(j + 1): action_error})
+                # state error
+                for o in range(obs_dim):
                     state_error = {}
                     error_list = []
                     for q in range(100):
-                        error = np.abs(self.error_dict["policy_{}".format(i)]["next_obs"][q, j] - self.error_dict["opt"]["next_obs"][q, j]) \
-                                / (np.max(self.error_dict["opt"]["next_obs"][:, j]) - np.min(self.error_dict["opt"]["next_obs"][:, j]))
+                        error = np.abs(self.error_dict["policy_{}".format(i)]["next_obs"][q, o] - self.error_dict["opt"]["next_obs"][q, o]) \
+                                / (np.max(self.error_dict["opt"]["next_obs"][:, o]) - np.min(self.error_dict["opt"]["next_obs"][:, j]))
                         error_list.append(error)
-                    state_error["max_error"] = '{:.2f}%'.format(max(error_list)*100)
-                    state_error["mean_error"] = '{:.2f}%'.format(sum(error_list) / len(error_list)*100)
-                    error_result["policy-{}-state-{} error".format(i+1, j+1)] = state_error
+                    state_error["Max_error"] = '{:.2f}%'.format(max(error_list)*100)
+                    state_error["Mean_error"] = '{:.2f}%'.format(sum(error_list) / len(error_list)*100)
+                    error_result["Policy-{}".format(i+1)].update({"State-{}".format(o + 1): state_error})
 
+            writer = pd.ExcelWriter('{}\\Error-result.xlsx'.format(self.save_path))
+            for i in range(self.policy_num):
+                policy_result = pd.DataFrame(data=error_result["Policy-{}".format(i+1)])
+                policy_result.to_excel(writer, "Policy-{}".format(i+1))
+            writer.save()
             error_result_data = pd.DataFrame(data=error_result)
-            error_result_data.to_csv('{}\\Error-result.csv'.format(self.save_path), encoding='gbk')
+            # error_result_data.to_csv('{}\\Error-result.csv'.format(self.save_path), encoding='gbk')
             pd.set_option('display.max_columns', None)
             pd.set_option('display.max_rows', None)
-            print(error_result_data)
+            for key, value in error_result_data.items():
+                print(key)
+                print("===========================================================")
+                for key, value in value.items():
+                    print(key, value)
 
 
 
@@ -538,11 +548,11 @@ class PolicyRuner():
             # mp4 to gif
             self.eval_list.append(eval_dict)
             self.tracking_list.append(tracking_dict)
-        if self.use_opt:
-            K = env.control_matrix
-            eval_dict_lqr, _ = self.run_an_episode(env, K, self.init_state, is_opt=True, render=False)
-            self.eval_list.append(eval_dict_lqr)
-            for i in range(self.policy_num):
+
+            if self.use_opt:
+                K = env.control_matrix
+                eval_dict_lqr, _ = self.run_an_episode(env, K, self.init_state, is_opt=True, render=False)
+                self.eval_list.append(eval_dict_lqr)
                 if i == 0:
                     self.obs_list = self.__get_init_obs(env, 100)
                     self.error_dict = {}
