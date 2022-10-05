@@ -114,8 +114,7 @@ class VehicleDynamics(object):
         for i in range(self.pre_horizon):
             ref_x = self.compute_path_x(t + (i + 1) / base_freq, ref_num)
             ref_y = self.compute_path_y(t + (i + 1) / base_freq, ref_num)
-            ref_phi = self.compute_path_phi(t + (i + 1) / base_freq, ref_num)
-            ref_obs = np.array([x - ref_x, y - ref_y, phi - ref_phi], dtype=np.float32)
+            ref_obs = np.array([x - ref_x, y - ref_y], dtype=np.float32)
             obs = np.hstack((obs, ref_obs))
 
         if state_next[2] > np.pi:
@@ -135,8 +134,8 @@ class VehicleDynamics(object):
         punish_steer = -np.square(steers)
         punish_a_x = -np.square(a_xs)
         punish_x = -np.square(delta_x)
-        rewards = 0.2 * devi_y + 0.1 * devi_phi + 0.05 * punish_yaw_rate + \
-                  0.05 * punish_steer + 0.01 * punish_a_x + 0.05 * punish_x
+        rewards = 0.2 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
+                  0.05 * punish_steer + 0.01 * punish_a_x + 0.1 * punish_x
 
         return rewards
 
@@ -149,8 +148,8 @@ class SimuVeh3dofconti(gym.Env,):
         self.vehicle_dynamics = VehicleDynamics(**kwargs)
         self.base_frequency = 10
         self.observation_space = gym.spaces.Box(
-            low=np.array([-np.inf] * (36)),
-            high=np.array([np.inf] * (36)),
+            low=np.array([-np.inf] * (26)),
+            high=np.array([np.inf] * (26)),
             dtype=np.float32)
         self.action_space = gym.spaces.Box(low=np.array([-np.pi / 6, -3]),
                                            high=np.array([np.pi / 6, 3]),
@@ -224,8 +223,7 @@ class SimuVeh3dofconti(gym.Env,):
         for i in range(self.pre_horizon):
             ref_x = self.vehicle_dynamics.compute_path_x(t + (i + 1) / self.base_frequency, self.ref_num)
             ref_y = self.vehicle_dynamics.compute_path_y(t + (i + 1) / self.base_frequency, self.ref_num)
-            ref_phi = self.vehicle_dynamics.compute_path_phi(t + (i + 1) / self.base_frequency, self.ref_num)
-            ref_obs = np.array([init_x - ref_x, init_y - ref_y, init_phi - ref_phi], dtype=np.float32)
+            ref_obs = np.array([init_x - ref_x, init_y - ref_y], dtype=np.float32)
             obs = np.hstack((obs, ref_obs))
         self.obs = obs
         self.state = np.array([init_x, init_y, init_phi, init_u, init_v, init_w], dtype=np.float32)
@@ -243,12 +241,11 @@ class SimuVeh3dofconti(gym.Env,):
         state = np.array(self.state, dtype=np.float32)
         x_ref = self.vehicle_dynamics.compute_path_x(self.t, self.ref_num)
         y_ref = self.vehicle_dynamics.compute_path_y(self.t, self.ref_num)
-        phi_ref = self.vehicle_dynamics.compute_path_phi(self.t, self.ref_num)
 
         info = {
             "state": state,
             "t": self.t,
-            "ref": [x_ref, y_ref, phi_ref, None, None, None],
+            "ref": [x_ref, y_ref, None, None, None, None],
             "ref_num": self.ref_num,
         }
         return self.obs, reward, self.done, info

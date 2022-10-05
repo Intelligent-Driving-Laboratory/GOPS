@@ -34,8 +34,7 @@ class Veh2dofcontiModel(torch.nn.Module):
         obsc = torch.stack([yc - path_yc, phic - path_phic, vc, wc], 1)
         for i in range(self.vehicle_dynamics.pre_horizon):
             ref_y = self.vehicle_dynamics.compute_path_y(tc + (i + 1) / self.base_frequency, ref_num)
-            ref_phi = self.vehicle_dynamics.compute_path_phi(tc + (i + 1) / self.base_frequency, ref_num)
-            ref_obs = torch.stack([yc - ref_y, phic - ref_phi], 1)
+            ref_obs = torch.stack([yc - ref_y], 1)
             obsc = torch.hstack((obsc, ref_obs))
         reward = self.vehicle_dynamics.compute_rewards(obsc, actions)
 
@@ -53,8 +52,7 @@ class Veh2dofcontiModel(torch.nn.Module):
         obs = torch.stack([y - path_y, phi - path_phi, v, w], 1)
         for i in range(self.vehicle_dynamics.pre_horizon):
             ref_y = self.vehicle_dynamics.compute_path_y(t + (i + 1) / self.base_frequency, ref_num)
-            ref_phi = self.vehicle_dynamics.compute_path_phi(t + (i + 1) / self.base_frequency, ref_num)
-            ref_obs = torch.stack([y - ref_y, phi - ref_phi], 1)
+            ref_obs = torch.stack([y - ref_y], 1)
             obs = torch.hstack((obs, ref_obs))
         info["state"] = state_next
         info["constraint"] = None

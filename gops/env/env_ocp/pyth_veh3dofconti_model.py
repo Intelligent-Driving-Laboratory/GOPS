@@ -40,8 +40,7 @@ class Veh3dofcontiModel(torch.nn.Module):
         for i in range(self.vehicle_dynamics.pre_horizon):
             ref_x = self.vehicle_dynamics.compute_path_x(tc + (i + 1) / self.base_frequency, ref_num)
             ref_y = self.vehicle_dynamics.compute_path_y(tc + (i + 1) / self.base_frequency, ref_num)
-            ref_phi = self.vehicle_dynamics.compute_path_phi(tc + (i + 1) / self.base_frequency, ref_num)
-            ref_obs = torch.stack([xc - ref_x, yc - ref_y, phic - ref_phi], 1)
+            ref_obs = torch.stack([xc - ref_x, yc - ref_y], 1)
             obsc = torch.hstack((obsc, ref_obs))
         reward = self.vehicle_dynamics.compute_rewards(obsc, actions)
         state_next = self.vehicle_dynamics.prediction(state, actions,
@@ -60,8 +59,7 @@ class Veh3dofcontiModel(torch.nn.Module):
         for i in range(self.vehicle_dynamics.pre_horizon):
             ref_x = self.vehicle_dynamics.compute_path_x(t + (i + 1) / self.base_frequency, ref_num)
             ref_y = self.vehicle_dynamics.compute_path_y(t + (i + 1) / self.base_frequency, ref_num)
-            ref_phi = self.vehicle_dynamics.compute_path_phi(t + (i + 1) / self.base_frequency, ref_num)
-            ref_obs = torch.stack([x - ref_x, y - ref_y, phi - ref_phi], 1)
+            ref_obs = torch.stack([x - ref_x, y - ref_y], 1)
             obs = torch.hstack((obs, ref_obs))
         info["state"] = state_next
         info["constraint"] = None
@@ -157,8 +155,8 @@ class VehicleDynamics(object):
         punish_steer = -torch.square(steers)
         punish_a_x = -torch.square(a_xs)
         punish_x = -torch.square(delta_x)
-        rewards = 0.1 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
-                  0.05 * punish_steer + 0.01 * punish_a_x + 0.01 * punish_x
+        rewards = 0.2 * devi_y + 0.05 * devi_phi + 0.05 * punish_yaw_rate + \
+                  0.05 * punish_steer + 0.01 * punish_a_x + 0.1 * punish_x
 
         return rewards
 

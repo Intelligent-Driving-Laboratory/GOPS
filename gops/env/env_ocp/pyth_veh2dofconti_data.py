@@ -105,8 +105,7 @@ class VehicleDynamics(object):
         obs = np.array([y - path_y, phi - path_phi, v, w], dtype=np.float32)
         for i in range(self.pre_horizon):
             ref_y = self.compute_path_y(t + (i + 1) / frequency, ref_num)
-            ref_phi = self.compute_path_phi(t + (i + 1) / frequency, ref_num)
-            ref_obs = np.array([y - ref_y, phi - ref_phi], dtype=np.float32)
+            ref_obs = np.array([y - ref_y], dtype=np.float32)
             obs = np.hstack((obs, ref_obs))
         if state_next[1] > np.pi:
             state_next[1] -= 2 * np.pi
@@ -134,8 +133,8 @@ class SimuVeh2dofconti(gym.Env,):
         self.vehicle_dynamics = VehicleDynamics(**kwargs)
         self.base_frequency = 10
         self.observation_space = gym.spaces.Box(
-            low=np.array([-np.inf] * (24)),
-            high=np.array([np.inf] * (24)),
+            low=np.array([-np.inf] * (14)),
+            high=np.array([np.inf] * (14)),
             dtype=np.float32)
         self.action_space = gym.spaces.Box(low=np.array([-np.pi / 6]),
                                            high=np.array([np.pi / 6]),
@@ -201,8 +200,7 @@ class SimuVeh2dofconti(gym.Env,):
 
         for i in range(self.pre_horizon):
             ref_y = self.vehicle_dynamics.compute_path_y(t + (i + 1) / self.base_frequency, self.ref_num)
-            ref_phi = self.vehicle_dynamics.compute_path_phi(t + (i + 1) / self.base_frequency, self.ref_num)
-            ref_obs = np.array([init_y - ref_y, init_phi - ref_phi], dtype=np.float32)
+            ref_obs = np.array([init_y - ref_y], dtype=np.float32)
             obs = np.hstack((obs, ref_obs))
         self.obs = obs
         self.state = np.array([init_y, init_phi, init_v, init_w], dtype=np.float32)
@@ -218,11 +216,10 @@ class SimuVeh2dofconti(gym.Env,):
         self.done = self.judge_done(self.state, self.t)
         state = np.array(self.state, dtype=np.float32)
         y_ref = self.vehicle_dynamics.compute_path_y(self.t, self.ref_num)
-        phi_ref = self.vehicle_dynamics.compute_path_phi(self.t, self.ref_num)
         info = {
             "state": state,
             "t": self.t,
-            "ref": [y_ref, phi_ref, None, None],
+            "ref": [y_ref, None, None, None],
             "ref_num": self.ref_num,
         }
 
@@ -230,7 +227,6 @@ class SimuVeh2dofconti(gym.Env,):
 
     def judge_done(self, state, t):
         y, phi, v, w = state[0], state[1], state[2], state[3]
-
         done = (np.abs(y - self.vehicle_dynamics.compute_path_y(t, self.ref_num)) > 3) | \
                (np.abs(phi - self.vehicle_dynamics.compute_path_phi(t, self.ref_num)) > np.pi / 4.)
         return done
