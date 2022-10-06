@@ -6,22 +6,31 @@
 #  Description: Oscillator Environment
 #
 
-from math import sin, cos, sqrt, exp, pi
-import xlrd
-import math
+from math import sin, cos, exp
+
 import gym
-from gym import spaces
-from gym.utils import seeding
 import numpy as np
+from gym import spaces
 from gym.wrappers.time_limit import TimeLimit
+
+from gops.env.env_ocp.pyth_base_data import PythBaseEnv
+
 gym.logger.setLevel(gym.logger.ERROR)
 
 
-class _GymOscillatorconti(gym.Env):
+class _GymOscillatorconti(PythBaseEnv):
     def __init__(self, **kwargs):
         """
         you need to define parameters here
         """
+        work_space = kwargs.pop("work_space", None)
+        if work_space is None:
+            # initial range of [battery_a, battery_b]
+            init_high = np.array([1.5, 1.5], dtype=np.float32)
+            init_low = -init_high
+            work_space = np.stack((init_low, init_high))
+        super(_GymOscillatorconti, self).__init__(work_space=work_space, **kwargs)
+
         # define common parameters here
         self.is_adversary = kwargs['is_adversary']
         self.state_dim = 2
@@ -40,10 +49,6 @@ class _GymOscillatorconti(gym.Env):
         self.gamma_atte = kwargs['gamma_atte']
 
         # state & action space
-        self.fixed_initial_state = kwargs['fixed_initial_state']  # for env_data & on_sampler
-        self.initial_state_range = kwargs['initial_state_range']  # for env_model
-        self.battery_a_initial = self.initial_state_range[0]
-        self.battery_b_initial = self.initial_state_range[1]
         self.state_threshold = kwargs['state_threshold']
         self.battery_a_threshold = self.state_threshold[0]
         self.battery_b_threshold = self.state_threshold[1]
@@ -56,10 +61,6 @@ class _GymOscillatorconti(gym.Env):
                                             high=np.array([self.battery_a_threshold, self.battery_b_threshold]),
                                             shape=(2,)
                                             )
-        # self.action_space = spaces.Box(low=np.array(self.min_action + self.min_adv_action),
-        #                                high=np.array(self.max_action + self.max_adv_action),
-        #                                shape=(2,)
-        #                                )
         self.action_space = spaces.Box(low=np.array(self.min_action),
                                        high=np.array(self.max_action),
                                        shape=(1,)
@@ -74,9 +75,11 @@ class _GymOscillatorconti(gym.Env):
         self.max_episode_steps = kwargs['max_episode_steps']  # original = 200
         self.steps = 0
 
-    def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+    def reset(self):
+        self.state = self.sample_initial_state()
+        self.steps_beyond_done = None
+        self.steps = 0
+        return self.state
 
     def stepPhysics(self, action, adv_action):
 
@@ -140,12 +143,6 @@ Any further steps are undefined behavior.
             + sin(time) ** 5 + sin(1.12 * time) ** 2 + sin(2.4 * time) ** 3 * cos(2.4 * time)
         return np.array([self.prob_intensity * exp(self.base_decline * time) * n, 0])
 
-    def reset(self):  # for on_sampler
-        self.state = self.fixed_initial_state
-        self.steps_beyond_done = None
-        self.steps = 0
-        return np.array(self.state)
-
     @staticmethod
     def init_obs():
         return np.array([0.4, 0.5], dtype="float32")  # [0.4, 0.5]
@@ -153,11 +150,8 @@ Any further steps are undefined behavior.
     @staticmethod
     def dist_func(time):
         t0 = 3.0  # 3.0
-        dist = [3.0 * math.exp(- 1.0 * (time - t0)) * math.cos(1.0 * (time - t0))] if time > t0 else [0.0]
+        dist = [3.0 * exp(- 1.0 * (time - t0)) * cos(1.0 * (time - t0))] if time > t0 else [0.0]
         return dist
-
-    # def dist_func(self, time):
-    #     return [3 * self.white_noise[int(time / self.tau)]]
 
     def render(self, mode='human'):
         pass

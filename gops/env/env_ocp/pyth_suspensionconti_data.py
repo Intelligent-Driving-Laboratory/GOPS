@@ -7,21 +7,30 @@
 #
 
 from math import sin, cos, sqrt, exp, pi
-import xlrd
-import math
+
 import gym
-from gym import spaces
-from gym.utils import seeding
 import numpy as np
+from gym import spaces
 from gym.wrappers.time_limit import TimeLimit
+
+from gops.env.env_ocp.pyth_base_data import PythBaseEnv
+
 gym.logger.setLevel(gym.logger.ERROR)
 
 
-class _GymSuspensionconti(gym.Env):
+class _GymSuspensionconti(PythBaseEnv):
     def __init__(self, **kwargs):
         """
         you need to define parameters here
         """
+        work_space = kwargs.pop("work_space", None)
+        if work_space is None:
+            # initial range of [pos_body, vel_body, pos_wheel, vel_wheel]
+            init_high = np.array([0.05, 0.5, 0.05, 1.0], dtype=np.float32)
+            init_low = -init_high
+            work_space = np.stack((init_low, init_high))
+        super(_GymSuspensionconti, self).__init__(work_space=work_space, **kwargs)
+
         # define common parameters here
         self.is_adversary = kwargs['is_adversary']
         self.state_dim = 4
@@ -62,12 +71,6 @@ class _GymSuspensionconti(gym.Env):
         self.gamma_atte = kwargs['gamma_atte']
 
         # state & action space
-        self.fixed_initial_state = kwargs['fixed_initial_state']  # for env_data & on_sampler
-        self.initial_state_range = kwargs['initial_state_range']  # for env_model
-        self.pos_body_initial = self.initial_state_range[0]
-        self.vel_body_initial = self.initial_state_range[1]
-        self.pos_wheel_initial = self.initial_state_range[2]
-        self.vel_wheel_initial = self.initial_state_range[3]
         self.state_threshold = kwargs['state_threshold']
         self.pos_body_threshold = self.state_threshold[0]
         self.vel_body_threshold = self.state_threshold[1]
@@ -84,10 +87,6 @@ class _GymSuspensionconti(gym.Env):
                                                            self.pos_wheel_threshold, self.vel_wheel_threshold]),
                                             shape=(self.state_dim,)
                                             )
-        # self.action_space = spaces.Box(low=np.array(self.min_action + self.min_adv_action),
-        #                                high=np.array(self.max_action + self.max_adv_action),
-        #                                shape=(2,)
-        #                                )
         self.action_space = spaces.Box(low=np.array(self.min_action),
                                        high=np.array(self.max_action),
                                        shape=(self.action_dim,)
@@ -102,9 +101,11 @@ class _GymSuspensionconti(gym.Env):
         self.max_episode_steps = kwargs['max_episode_steps']  # original = 200
         self.steps = 0
 
-    def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+    def reset(self):
+        self.state = self.sample_initial_state()
+        self.steps_beyond_done = None
+        self.steps = 0
+        return self.state
 
     def reload_para(self):  # reload uncertain parameters in env_data
         pass
@@ -193,12 +194,6 @@ Any further steps are undefined behavior.
         else:
             final_prob_intensity = self.prob_intensity * exp(self.base_decline * (time - self.time_start_decline))
         return np.array([final_prob_intensity * n, 0])
-
-    def reset(self):  # for on_sampler
-        self.state = self.fixed_initial_state
-        self.steps_beyond_done = None
-        self.steps = 0
-        return np.array(self.state)
 
     @staticmethod
     def init_obs():
