@@ -132,9 +132,10 @@ class SimuVeh2dofconti(gym.Env,):
         self.pre_horizon = kwargs["pre_horizon"]
         self.vehicle_dynamics = VehicleDynamics(**kwargs)
         self.base_frequency = 10
+        self.state_dim = 4
         self.observation_space = gym.spaces.Box(
-            low=np.array([-np.inf] * (14)),
-            high=np.array([np.inf] * (14)),
+            low=np.array([-np.inf] * (self.pre_horizon + self.state_dim)),
+            high=np.array([np.inf] * (self.pre_horizon + self.state_dim)),
             dtype=np.float32)
         self.action_space = gym.spaces.Box(low=np.array([-np.pi / 6]),
                                            high=np.array([np.pi / 6]),
@@ -153,7 +154,7 @@ class SimuVeh2dofconti(gym.Env,):
 
         self.obs = None
         self.state = None
-        self.state_dim = 4
+
         self.ref_num = None
         self.t = None
         self.info_dict = {
