@@ -1,6 +1,7 @@
 from gops.env.env_wrapper.shaping_reward import ShapingRewardData, ShapingRewardModel
 from gops.env.env_wrapper.scale_observation import ScaleObservationData, ScaleObservationModel
 from gops.env.env_wrapper.wrap_state import StateData
+from gops.env.env_wrapper.nosie_observation import NoiseData
 
 def all_none(a, b):
     if (a is None) and (b is None):
@@ -21,6 +22,10 @@ def wrapping_env(env, reward_shift=None, reward_scale=None, obs_shift=None, obs_
         obs_shift = 0.0 if obs_shift is None else obs_shift
         env = ScaleObservationData(env, obs_shift, obs_scale)
 
+    return env
+
+def noise_wrapper(env, noise_type=None, noise_data=[]):
+    env = NoiseData(env, noise_type, noise_data)
     return env
 
 
