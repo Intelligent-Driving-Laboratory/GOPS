@@ -172,35 +172,35 @@ class SimuVeh2dofconti(gym.Env,):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def reset(self, init_state=None, t=None, ref_num=None):
+    def reset(self, init_state=None, ref_init_time=None, ref_num=None):
         init_y = None
         init_phi = None
         init_v = None
         init_w = None
         obs = None
-        if (init_state is None) & (t is None) & (ref_num is None):
+        if (init_state is None) & (ref_init_time is None) & (ref_num is None):
             obs = self.np_random.uniform(low=self.train_space.low, high=self.train_space.high)
             delta_y, delta_phi, v, w = obs
             flag = [0, 1]
             self.ref_num = self.np_random.choice(flag)
-            t = 20. * self.np_random.uniform(low=0., high=1.)
-            self.t = t
-            init_y = self.vehicle_dynamics.compute_path_y(t, self.ref_num) + delta_y
-            init_phi = self.vehicle_dynamics.compute_path_phi(t, self.ref_num) + delta_phi
+            ref_init_time = 20. * self.np_random.uniform(low=0., high=1.)
+            self.t = ref_init_time
+            init_y = self.vehicle_dynamics.compute_path_y(self.t, self.ref_num) + delta_y
+            init_phi = self.vehicle_dynamics.compute_path_phi(self.t, self.ref_num) + delta_phi
             init_v = v
             init_w = w
-        elif (init_state is not None) & (t is not None) & (ref_num is not None):
+        elif (init_state is not None) & (ref_init_time is not None) & (ref_num is not None):
             self.ref_num = ref_num
-            self.t = t
+            self.t = ref_init_time
             init_y, init_phi, init_v, init_w = init_state[0], init_state[1], init_state[2], init_state[3]
-            init_delta_y = self.vehicle_dynamics.compute_path_y(t, self.ref_num) - init_y
-            init_delta_phi = self.vehicle_dynamics.compute_path_phi(t, self.ref_num) + init_phi
+            init_delta_y = self.vehicle_dynamics.compute_path_y(self.t, self.ref_num) - init_y
+            init_delta_phi = self.vehicle_dynamics.compute_path_phi(self.t, self.ref_num) + init_phi
             obs = np.array([init_delta_y, init_delta_phi, init_v, init_w], dtype=np.float32)
         else:
             print("reset error")
 
         for i in range(self.pre_horizon):
-            ref_y = self.vehicle_dynamics.compute_path_y(t + (i + 1) / self.base_frequency, self.ref_num)
+            ref_y = self.vehicle_dynamics.compute_path_y(self.t + (i + 1) / self.base_frequency, self.ref_num)
             ref_obs = np.array([init_y - ref_y], dtype=np.float32)
             obs = np.hstack((obs, ref_obs))
         self.obs = obs
