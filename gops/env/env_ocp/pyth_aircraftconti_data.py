@@ -42,6 +42,7 @@ class _GymAircraftconti(gym.Env):
         self.R = np.eye(self.action_dim)
         self.gamma = 1
         self.gamma_atte = kwargs['gamma_atte']
+        self.control_matrix = - np.array([[0.166065, 0.180362, -0.437060]], dtype=np.float32)
 
         # state & action space
         self.fixed_initial_state = kwargs['fixed_initial_state']  # for env_data & on_sampler
@@ -147,8 +148,11 @@ Any further steps are undefined behavior.
             + sin(time)**5 + sin(1.12 * time)**2 + sin(2.4 * time)**3 * cos(2.4 * time)
         return np.array([n, 0])
 
-    def reset(self):  # for on_sampler
-        self.state = self.fixed_initial_state
+    def reset(self, init_obs=None):  # for on_sampler
+        if init_obs is None:
+            self.state = self.fixed_initial_state
+        else:
+            self.state = init_obs
         self.steps_beyond_done = None
         self.steps = 0
         return np.array(self.state)
