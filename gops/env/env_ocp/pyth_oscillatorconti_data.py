@@ -75,8 +75,11 @@ class _GymOscillatorconti(PythBaseEnv):
         self.max_episode_steps = kwargs['max_episode_steps']  # original = 200
         self.steps = 0
 
-    def reset(self):
-        self.state = self.sample_initial_state()
+    def reset(self, init_obs=None):  # for on_sampler
+        if init_obs is None:
+            self.state = self.sample_initial_state()
+        else:
+            self.state = init_obs
         self.steps_beyond_done = None
         self.steps = 0
         return self.state
