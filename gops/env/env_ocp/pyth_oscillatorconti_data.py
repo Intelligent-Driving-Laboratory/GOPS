@@ -140,8 +140,11 @@ Any further steps are undefined behavior.
             + sin(time) ** 5 + sin(1.12 * time) ** 2 + sin(2.4 * time) ** 3 * cos(2.4 * time)
         return np.array([self.prob_intensity * exp(self.base_decline * time) * n, 0])
 
-    def reset(self):  # for on_sampler
-        self.state = self.fixed_initial_state
+    def reset(self, init_obs=None):  # for on_sampler
+        if init_obs is None:
+            self.state = self.fixed_initial_state
+        else:
+            self.state = init_obs
         self.steps_beyond_done = None
         self.steps = 0
         return np.array(self.state)
