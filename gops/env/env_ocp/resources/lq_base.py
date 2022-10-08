@@ -5,11 +5,11 @@ from typing import Union
 import gym
 import matplotlib.pyplot as plt
 import numpy as np
-
 import torch
 from gym.spaces import Box
-from gym.utils import seeding
 from scipy.linalg._solvers import solve_discrete_are
+
+from gops.env.env_ocp.pyth_base_data import PythBaseEnv
 
 warnings.filterwarnings("ignore")
 gym.logger.setLevel(gym.logger.ERROR)
@@ -137,12 +137,19 @@ class LQDynamics:
         return reward
 
 
-class LqEnv(gym.Env):
+class LqEnv(PythBaseEnv):
     metadata = {
         "render.modes": ["human", "rgb_array"],
     }
 
     def __init__(self, config, **kwargs):
+        work_space = kwargs.pop("work_space", None)
+        if work_space is None:
+            init_mean = np.array(config["init_mean"], dtype=np.float32)
+            init_std = np.array(config["init_std"], dtype=np.float32)
+            work_space = np.stack((init_mean - 3 * init_std, init_mean + 3 * init_std))
+        super(LqEnv, self).__init__(work_space=work_space, **kwargs)
+
         self.is_adversary = kwargs.get("is_adversary", False)
         self.is_constraint = kwargs.get("is_constraint", False)
 
@@ -160,24 +167,6 @@ class LqEnv(gym.Env):
         self.action_dim = self.action_space.shape[0]
         self.control_matrix = self.dynamics.compute_control_matrix()
 
-        train_range = kwargs.get("train_space", None)
-        if train_range is None:
-            init_mean = np.array(self.config["init_mean"], dtype=np.float32)
-            init_std = np.array(self.config["init_std"], dtype=np.float32)
-            self.train_space = Box(low=init_mean - 3 * init_std, high=init_mean + 3 * init_std)
-        else:
-            low = np.array(train_range[0], dtype=np.float32)
-            high = np.array(train_range[1], dtype=np.float32)
-            self.train_space = Box(low=low, high=high)
-        self.init_space = self.train_space
-        work_range = kwargs.get("work_space", None)
-        if  work_range is None:
-            self.work_space = self.train_space
-        else:
-            low = np.array(work_range[0], dtype=np.float32)
-            high = np.array(work_range[1], dtype=np.float32)
-            self.work_space = Box(low=low, high=high)
-
         self.seed()
 
         # environment variable
@@ -194,23 +183,17 @@ class LqEnv(gym.Env):
     @property
     def has_optimal_controller(self):
         return True
+
     def control_policy(self,state):
         return -self.control_matrix@state
-
-    def test_mode(self):
-        self.init_space = self.work_space
-
-    def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
 
     def reset(self, init_state=None):
         self.step_counter = 0
 
         if init_state is None:
-            self.obs = self.np_random.uniform(low=self.init_space.low, high=self.init_space.high)
+            self.obs = self.sample_initial_state()
         else:
-            self.obs = np.array(init_state ,dtype=np.float32)
+            self.obs = np.array(init_state, dtype=np.float32)
 
         self.state_buffer[self.step_counter, :] = self.obs
 

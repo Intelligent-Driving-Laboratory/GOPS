@@ -5,24 +5,33 @@
 #  Creator: iDLab
 
 import gym
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 from gym import spaces
-from gym.utils import seeding
 from gym.wrappers.time_limit import TimeLimit
-import numpy as np
-import matplotlib.pyplot as plt
 
+from gops.env.env_ocp.pyth_base_data import PythBaseEnv
 from gops.env.env_ocp.pyth_idpendulum_model import Dynamics
 
 gym.logger.setLevel(gym.logger.ERROR)
 plt.rcParams['toolbar'] = 'None'
 
-class PythInverteddoublependulum(gym.Env):
+
+class PythInverteddoublependulum(PythBaseEnv):
     metadata = {
         "render.modes": ["human", "rgb_array"],
     }
 
     def __init__(self, **kwargs):
+        work_space = kwargs.pop("work_space", None)
+        if work_space is None:
+            # initial range of [p, theta1, theta2, pdot, theta1dot, theta2dot]
+            init_high = np.array([0.1, 0.1, 0.1, 0.3, 0.3, 0.3], dtype=np.float32)
+            init_low = -init_high
+            work_space = np.stack((init_low, init_high))
+        super(PythInverteddoublependulum, self).__init__(work_space=work_space, **kwargs)
+
         self.is_adversary = kwargs.get("is_adversary", False)
         self.is_constraint = kwargs.get("is_constraint", False)
 
@@ -46,10 +55,6 @@ class PythInverteddoublependulum(gym.Env):
         self.seed()
         plt.ion()
         self.obs = None
-
-    def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
 
     def step(self, action: np.ndarray, adv_action=None):
         """
@@ -79,16 +84,10 @@ class PythInverteddoublependulum(gym.Env):
         """
         # define initial state distribution here
         if init_obs is None:
-            p = self.np_random.uniform(low=-0.1, high=0.1)
-            theta1 = self.np_random.uniform(low=-0.1, high=0.1)
-            theta2 = self.np_random.uniform(low=-0.1, high=0.1)
-            pdot = self.np_random.standard_normal() * 0.1
-            theta1dot = self.np_random.standard_normal() * 0.1
-            theta2dot = self.np_random.standard_normal() * 0.1
-            self.obs = np.array([p, theta1, theta2, pdot, theta1dot, theta2dot], dtype=np.float32)
+            self.obs = self.sample_initial_state()
         else:
             assert self.observation_space.contains(init_obs)
-            self.abs = init_obs
+            self.obs = init_obs
         return self.obs
 
     def render(self, mode="human"):

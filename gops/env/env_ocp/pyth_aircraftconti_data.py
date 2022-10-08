@@ -7,19 +7,30 @@
 #
 
 from math import sin, cos
-import numpy as np
+
 import gym
+import numpy as np
 from gym import spaces
-from gym.utils import seeding
 from gym.wrappers.time_limit import TimeLimit
+
+from gops.env.env_ocp.pyth_base_data import PythBaseEnv
+
 gym.logger.setLevel(gym.logger.ERROR)
 
 
-class _GymAircraftconti(gym.Env):
+class _GymAircraftconti(PythBaseEnv):
     def __init__(self, **kwargs):
         """
         you need to define parameters here
         """
+        work_space = kwargs.pop("work_space", None)
+        if work_space is None:
+            # initial range of [attack_ang, rate, elevator_ang]
+            init_high = np.array([0.3, 0.6, 0.3], dtype=np.float32)
+            init_low = -init_high
+            work_space = np.stack((init_low, init_high))
+        super(_GymAircraftconti, self).__init__(work_space=work_space, **kwargs)
+
         # define common parameters here
         self.is_adversary = kwargs['is_adversary']
         self.state_dim = 3
@@ -45,11 +56,6 @@ class _GymAircraftconti(gym.Env):
         self.control_matrix = - np.array([[0.166065, 0.180362, -0.437060]], dtype=np.float32)
 
         # state & action space
-        self.fixed_initial_state = kwargs['fixed_initial_state']  # for env_data & on_sampler
-        self.initial_state_range = kwargs['initial_state_range']  # for env_model
-        self.attack_ang_initial = self.initial_state_range[0]
-        self.rate_initial = self.initial_state_range[1]
-        self.elevator_ang_initial = self.initial_state_range[2]
         self.state_threshold = kwargs['state_threshold']
         self.attack_ang_threshold = self.state_threshold[0]
         self.rate_threshold = self.state_threshold[1]
@@ -59,18 +65,12 @@ class _GymAircraftconti(gym.Env):
         self.max_adv_action = [1.0 / self.gamma_atte]
         self.min_adv_action = [-1.0 / self.gamma_atte]
 
-        self.observation_space = spaces.Box(low=np.array([-self.attack_ang_threshold, -self.rate_threshold, -self.elevator_ang_threshold]),
-                                            high=np.array([self.attack_ang_threshold, self.rate_threshold, self.elevator_ang_threshold]),
-                                            shape=(3,)
-                                            )
-        # self.action_space = spaces.Box(low=np.array(self.min_action + self.min_adv_action),
-        #                                high=np.array(self.max_action + self.max_adv_action),
-        #                                shape=(2,)
-        #                                )
-        self.action_space = spaces.Box(low=np.array(self.min_action),
-                                       high=np.array(self.max_action),
-                                       shape=(1,)
-                                       )
+        self.observation_space = spaces.Box(
+            low=np.array([-self.attack_ang_threshold, -self.rate_threshold, -self.elevator_ang_threshold]),
+            high=np.array([self.attack_ang_threshold, self.rate_threshold, self.elevator_ang_threshold]),
+            shape=(3,)
+        )
+        self.action_space = spaces.Box(low=np.array(self.min_action), high=np.array(self.max_action), shape=(1,))
 
         self.seed()
         self.viewer = None
@@ -81,9 +81,14 @@ class _GymAircraftconti(gym.Env):
         self.max_episode_steps = kwargs['max_episode_steps']  # original = 200
         self.steps = 0
 
-    def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+    def reset(self, init_obs=None):
+        if init_obs is None:
+            self.state = self.sample_initial_state()
+        else:
+            self.state = init_obs
+        self.steps_beyond_done = None
+        self.steps = 0
+        return self.state
 
     def stepPhysics(self, action, adv_action):
 
@@ -147,15 +152,6 @@ Any further steps are undefined behavior.
         n = sin(time)**2 * cos(time) + sin(2 * time)**2 * cos(0.1 * time) + sin(1.2 * time)**2 * cos(0.5 * time) \
             + sin(time)**5 + sin(1.12 * time)**2 + sin(2.4 * time)**3 * cos(2.4 * time)
         return np.array([n, 0])
-
-    def reset(self, init_obs=None):  # for on_sampler
-        if init_obs is None:
-            self.state = self.fixed_initial_state
-        else:
-            self.state = init_obs
-        self.steps_beyond_done = None
-        self.steps = 0
-        return np.array(self.state)
 
     def render(self, mode='human'):
         pass

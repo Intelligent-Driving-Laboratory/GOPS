@@ -8,9 +8,10 @@
 
 
 import gym
-from gym.utils import seeding
 import numpy as np
 from gym.wrappers.time_limit import TimeLimit
+
+from gops.env.env_ocp.pyth_base_data import PythBaseEnv
 
 
 class VehicleDynamics(object):
@@ -140,12 +141,24 @@ class VehicleDynamics(object):
         return rewards
 
 
-class SimuVeh3dofconti(gym.Env,):
+class SimuVeh3dofconti(PythBaseEnv):
     def __init__(self, **kwargs):
+        self.vehicle_dynamics = VehicleDynamics(**kwargs)
+
+        work_space = kwargs.pop("work_space", None)
+        if work_space is None:
+            # initial range of [delta_x, delta_y, delta_phi, u, v, w]
+            u = self.vehicle_dynamics.vehicle_params["u"]
+            init_high = np.array([2, 1, np.pi / 3, 5, u * 0.25, 0.9], dtype=np.float32)
+            init_low = -init_high
+            init_high[3] += u
+            init_low[3] += u
+            work_space = np.stack((init_low, init_high))
+        super(SimuVeh3dofconti, self).__init__(work_space=work_space, **kwargs)
+
         self.is_adversary = kwargs.get("is_adversary", False)
         self.is_constraint = kwargs.get("is_constraint", False)
         self.pre_horizon = kwargs["pre_horizon"]
-        self.vehicle_dynamics = VehicleDynamics(**kwargs)
         self.base_frequency = 10
         self.state_dim = 6
         self.observation_space = gym.spaces.Box(
@@ -155,19 +168,6 @@ class SimuVeh3dofconti(gym.Env,):
         self.action_space = gym.spaces.Box(low=np.array([-np.pi / 6, -3]),
                                            high=np.array([np.pi / 6, 3]),
                                            dtype=np.float32)
-
-        self.train_space = kwargs.get("train_space", None)
-        if self.train_space is None:
-            # Initial range of [delta_x, delta_y, delta_phi, u, v, w]
-            init_high = np.array([2, 1, np.pi / 3, 5, self.vehicle_dynamics.vehicle_params['u'] * 0.25, 0.9], dtype=np.float32)
-            init_low = -init_high
-            init_high[3] += self.vehicle_dynamics.vehicle_params['u']
-            init_low[3] += self.vehicle_dynamics.vehicle_params['u']
-            self.train_space = gym.spaces.Box(low=init_low, high=init_high)
-        self.work_space = kwargs.get("work_space", None)
-        if self.work_space is None:
-            self.work_space = self.train_space
-
         self.obs = None
         self.state = None
         self.ref_num = None
@@ -183,10 +183,6 @@ class SimuVeh3dofconti(gym.Env,):
     def additional_info(self):
         return self.info_dict
 
-    def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
-
     def reset(self, init_state=None, ref_init_time=None, ref_num=None):
         init_y = None
         init_phi = None
@@ -196,7 +192,7 @@ class SimuVeh3dofconti(gym.Env,):
         init_x = None
         obs = None
         if (init_state is None) & (ref_init_time is None) & (ref_num is None):
-            obs = self.np_random.uniform(low=self.train_space.low, high=self.train_space.high)
+            obs = self.sample_initial_state()
             delta_x, delta_y, delta_phi, u, v, w = obs
             flag = [0, 1]
             self.ref_num = self.np_random.choice(flag)

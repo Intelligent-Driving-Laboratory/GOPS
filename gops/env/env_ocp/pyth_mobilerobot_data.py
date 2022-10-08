@@ -8,20 +8,38 @@
 #  Update Date: 2022-06-05, Baiyu Peng: create environment
 
 
-import numpy as np
-import torch
-import matplotlib.pyplot as plt
 import gym
+import matplotlib.pyplot as plt
+import numpy as np
 from gym import spaces
 from gym.utils import seeding
-from gym.wrappers.time_limit import TimeLimit
+
+from gops.env.env_ocp.pyth_base_data import PythBaseEnv
 
 gym.logger.setLevel(gym.logger.ERROR)
 
 
-class PythMobilerobot:
+class PythMobilerobot(PythBaseEnv):
     def __init__(self, **kwargs):
         self.n_obstacle = 1
+        work_space = kwargs.pop("work_space", None)
+        if work_space is None:
+            # initial range of robot state
+            robot_high = np.array([2.7, 1, 0.6, 0.3, 0], dtype=np.float32)
+            robot_low = np.array([0, -1, -0.6, 0, 0], dtype=np.float32)
+
+            # initial range of tracking error
+            error_high = np.zeros(3, dtype=np.float32)
+            error_low = np.zeros(3, dtype=np.float32)
+
+            # initial range of obstacle
+            obstacle_high = np.array([6, 3, 0.8, 0.5, 0], dtype=np.float32)
+            obstacle_low = np.array([3.5, -3, -0.8, 0, 0], dtype=np.float32)
+
+            init_high = np.concatenate([robot_high, error_high] + [obstacle_high] * self.n_obstacle)
+            init_low = np.concatenate([robot_low, error_low] + [obstacle_low] * self.n_obstacle)
+            work_space = np.stack((init_low, init_high))
+        super(PythMobilerobot, self).__init__(work_space=work_space, **kwargs)
 
         self.robot = Robot()
         self.obses = [Robot() for _ in range(self.n_obstacle)]
@@ -50,15 +68,25 @@ class PythMobilerobot:
 
         self.steps = 0
 
-    @staticmethod
-    def additional_info():
+    @property
+    def additional_info(self):
         info_dict = dict(
             constraint={"shape": (1,), "dtype": np.float64}
         )
         return info_dict
-    def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+
+    def reset(self, n_agent=1):
+        state = []
+        for i in range(n_agent):
+            state.append(self.sample_initial_state())
+        state = np.stack(state)
+        state[:, 5:8] = self.robot.tracking_error(state[:, :5])
+
+        self.steps_beyond_done = None
+        self.steps = 0
+        self.state = state
+
+        return self.state.reshape(-1)
 
     def step(self, action: np.ndarray):
         ################################################################################################################
@@ -118,37 +146,7 @@ class PythMobilerobot:
         info = {"TimeLimit.truncated": self.steps > 170, "constraint": constraint.reshape(-1)} # TODO is right
         return np.array(self.state.reshape(-1), dtype=np.float32), float(reward), isdone, info  # TODO is right
 
-    def reset(self, n_agent=1):
-        def uniform(low, high):
-            return self.np_random.random([n_agent]) * (high - low) + low
-
-        state = np.zeros([n_agent, self.state_dim])
-        for i in range(1 + self.n_obstacle):
-            if i == 0:
-                state[:, 0] = uniform(0, 2.7)
-                state[:, 1] = uniform(-1, 1)
-                state[:, 2] = uniform(-0.6, 0.6)
-                state[:, 3] = uniform(0, 0.3)
-                state[:, 4] = state[:, 4]
-                state[:, 4:7] = self.robot.tracking_error(state[:, :5])
-            else:
-                state[:, 3 + 5 * i] = uniform(3.5, 6)
-                state[:, 3 + 5 * i + 1] = uniform(-3, 3)
-                state[:, 3 + 5 * i + 2] = np.where(
-                    state[:, 3 + 5 * i + 1] > 0,
-                    state[:, 3 + 5 * i + 2] - np.pi / 2,
-                    state[:, 3 + 5 * i + 2] + np.pi / 2,
-                ) + uniform(-0.8, 0.8)
-                state[:, 3 + 5 * i + 3] = uniform(0.0, 0.5)
-                state[:, 3 + 5 * i + 4] = 0
-
-        self.steps_beyond_done = None
-        self.steps = 0
-        self.state = state
-
-        return np.array(self.state.reshape(-1), dtype=np.float32)  # TODO is right
-
-    def render(self, n_window=1):
+    def render(self, mode="human", n_window=1):
 
         if not hasattr(self, "artists"):
             self.render_init(n_window)
