@@ -54,7 +54,7 @@ class PolicyRuner:
         self.is_tracking = is_tracking
         self.dt = dt
         if self.use_opt:
-            self.legend_list.append('LQ')
+            self.legend_list.append('OPT')
         self.policy_num = len(self.log_policy_dir_list)
         if self.policy_num != len(self.trained_policy_iteration_list):
             raise RuntimeError("The lenth of policy number is not equal to the number of policy iteration")
@@ -135,7 +135,7 @@ class PolicyRuner:
                     if info["ref"][i] is not None:
                         state_with_ref_error["state-{}".format(i)].append(info["state"][i])
                         state_with_ref_error["ref-{}".format(i)].append(info["ref"][i])
-                        state_with_ref_error["state-{}-error".format(i)].append(abs(info["state"][i] - info["ref"][i]))
+                        state_with_ref_error["state-{}-error".format(i)].append(info["ref"][i] - info["state"][i])
 
         eval_dict = {
             "reward_list": reward_list,
@@ -175,7 +175,7 @@ class PolicyRuner:
         policy_num = len(self.algorithm_list)
         if self.use_opt:
             policy_num += 1
-            self.algorithm_list.append("LQ")
+            self.algorithm_list.append("OPT")
 
         # Create initial list
         reward_list = []
@@ -201,7 +201,7 @@ class PolicyRuner:
 
             for i in range(policy_num):
                 start_range = self.plot_range[0]
-                end_range = np.min(self.plot_range[1], reward_list[i].shape[0])
+                end_range = min(self.plot_range[1], reward_list[i].shape[0])
 
                 reward_list[i] = reward_list[i][start_range: end_range]
                 action_list[i] = action_list[i][start_range: end_range]
@@ -209,6 +209,9 @@ class PolicyRuner:
                 step_list[i] = step_list[i][start_range: end_range]
                 if self.constrained_env:
                     constrain_list[i] = constrain_list[i][start_range: end_range]
+                if self.is_tracking:
+                    for key, value in self.tracking_list[i].items():
+                        self.tracking_list[i][key] = value[start_range: end_range]
         else:
             raise NotImplementedError("The setting of plot range is wrong")
 
@@ -219,9 +222,9 @@ class PolicyRuner:
         step_array = np.array(step_list)
         state_ref_error_array = np.array(state_ref_error_list)
         x_label = "Time Step"
-        if self.dt != None:
+        if self.dt is not None:
             step_array = step_array * self.dt
-            x_label = "t"
+            x_label = "Time(s)"
 
         if self.constrained_env:
             constrain_array = np.array(constrain_list)[:, :, 0]  # todo:special for SPIL
@@ -318,7 +321,7 @@ class PolicyRuner:
                 tracking_state_data.to_csv('{}\\State-{}.csv'.format(self.save_path, j + 1), encoding='gbk')
 
                 # plot state-ref error
-                path_tracking_error_fmt = os.path.join(self.save_path, "State-{} error.{}".format(j+1, default_cfg["img_fmt"]))
+                path_tracking_error_fmt = os.path.join(self.save_path, "Ref - State-{}.{}".format(j+1, default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
                 # save tracking error data to csv
                 tracking_error_data = []
@@ -330,13 +333,13 @@ class PolicyRuner:
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
                 plt.xlabel(x_label, default_cfg["label_font"])
-                plt.ylabel("State-{} error".format(j+1), default_cfg["label_font"])
+                plt.ylabel("Ref $-$ State-{}".format(j+1), default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
                 plt.savefig(path_tracking_error_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
                 tracking_error_data = pd.DataFrame(data=np.array(tracking_error_data))
-                tracking_error_data.to_csv('{}\\State-{} error.csv'.format(self.save_path, j+1), encoding='gbk')
+                tracking_error_data.to_csv('{}\\Ref - State-{}.csv'.format(self.save_path, j+1), encoding='gbk')
 
         # plot constraint value
         if self.constrained_env:
@@ -359,7 +362,7 @@ class PolicyRuner:
             fig.tight_layout(pad=default_cfg["pad"])
             plt.savefig(path_constraint_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
-        # plot error
+        # plot error with opt
         if self.use_opt:
             # reward error
             path_reward_error_fmt = os.path.join(self.save_path, "Reward error.{}".format(default_cfg["img_fmt"]))
@@ -435,16 +438,16 @@ class PolicyRuner:
             # compute relative error with opt
             error_result = {}
             # action error
-            for i in range(self.policy_num):
+            for i in range(policy_num - 1):
                 legend = self.legend_list[i] if len(self.legend_list) == policy_num else "Policy-{}".format(i+1)
                 error_result.update({legend: {}})
                 # action error
                 for j in range(action_dim):
                     action_error = {}
                     error_list = []
-                    for q in range(100):
-                        error = np.abs(self.error_dict["policy_{}".format(i)]["action"][q, j] - self.error_dict["opt"]["action"][q, j]) \
-                                / (np.max(self.error_dict["opt"]["action"][:, j]) - np.min(self.error_dict["opt"]["action"][:, j]))
+                    for q in range(len(action_array[0])):
+                        error = np.abs(action_array[i, q, j] - action_array[-1, q, j]) \
+                                / (np.max(action_array[-1, :, j]) - np.min(action_array[-1, :, j]))
                         error_list.append(error)
                     action_error["Max_error"] = '{:.2f}%'.format(max(error_list)*100)
                     action_error["Mean_error"] = '{:.2f}%'.format(sum(error_list) / len(error_list)*100)
@@ -453,9 +456,9 @@ class PolicyRuner:
                 for o in range(state_dim):
                     state_error = {}
                     error_list = []
-                    for q in range(100):
-                        error = np.abs(self.error_dict["policy_{}".format(i)]["next_state"][q, o] - self.error_dict["opt"]["next_state"][q, o]) \
-                                / (np.max(self.error_dict["opt"]["next_state"][:, o]) - np.min(self.error_dict["opt"]["next_state"][:, o]))
+                    for q in range(len(state_array[0])):
+                        error = np.abs(state_array[i, q, j] - state_array[-1, q, j]) \
+                                / (np.max(state_array[-1, :, j]) - np.min(state_array[-1, :, j]))
                         error_list.append(error)
                     state_error["Max_error"] = '{:.2f}%'.format(max(error_list)*100)
                     state_error["Mean_error"] = '{:.2f}%'.format(sum(error_list) / len(error_list)*100)
@@ -472,8 +475,8 @@ class PolicyRuner:
             pd.set_option('display.max_columns', None)
             pd.set_option('display.max_rows', None)
             for key, value in error_result_data.items():
-                print(key)
                 print("===========================================================")
+                print(key)
                 for key, value in value.items():
                     print(key, value)
 
@@ -538,48 +541,44 @@ class PolicyRuner:
             self.eval_list.append(eval_dict)
             self.tracking_list.append(tracking_dict)
 
-            if self.use_opt:
-                env.test_mode()
-                K = env.control_matrix
-                eval_dict_lqr, _ = self.run_an_episode(env, K, self.init_info, is_opt=True, render=False)
-                self.eval_list.append(eval_dict_lqr)
-                if i == 0:
-                    self.state_list, self.obs_list = self.__get_init_info(env, 100)
-                    self.error_dict = {}
-                net_error_dict = self.__error_compute(env, self.state_list, self.obs_list, networks, 100, is_opt=False)
-                LQ_error_dict = self.__error_compute(env, self.state_list, self.obs_list, K, 100, is_opt=True)
-                self.error_dict["policy_{}".format(i)] = net_error_dict
-                self.error_dict["opt"] = LQ_error_dict
+        if self.use_opt:
+            env.test_mode()
+            K = env.control_matrix
+            eval_dict_lqr, _ = self.run_an_episode(env, K, self.init_info, is_opt=True, render=False)
+            self.eval_list.append(eval_dict_lqr)
+                # if i == 0:
+                #     self.obs_list = self.__get_init_obs(env, 100)
+                #     self.error_dict = {}
+                # net_error_dict = self.__error_compute(env, self.obs_list, networks, 100, is_opt=False)
+                # LQ_error_dict = self.__error_compute(env, self.obs_list, K, 100, is_opt=True)
+                # self.error_dict["policy_{}".format(i)] = net_error_dict
+                # self.error_dict["opt"] = LQ_error_dict
+
 
     def __get_init_info(self, env, init_state_nums):
         state_list = []
         obs_list = []
         for i in range(init_state_nums):
             obs = env.reset()
-            state = env.state
             obs_list.append(obs)
-            state_list.append(state)
-        return state_list, obs_list
-
-    def __error_compute(self, env, state_list, obs_list, controller, init_state_nums, is_opt):
+        return obs_list
+    def __error_compute(self, env, obs_list, controller, init_state_nums, is_opt):
         action_list = []
-        next_state_list = []
+        next_obs_list = []
         for i in range(init_state_nums):
             obs = obs_list[i]
-            state = state_list[i]
-            env.reset(**{'init_state': state})
+            env.reset(**{'init_obs': obs})
             if is_opt:
-                action = self.compute_action_lqr(state, controller)
+                action = self.compute_action_lqr(obs, controller)
             else:
                 action = self.compute_action(obs, controller)
 
             next_obs, reward, done, info = env.step(action)
-            next_state = env.state
             action_list.append(action)
-            next_state_list.append(next_state)
+            next_obs_list.append(next_obs)
         action_array = np.array(action_list)
-        next_state_array = np.array(next_state_list)
-        error_dict = {"action": action_array, "next_state": next_state_array}
+        next_obs_array = np.array(next_obs_list)
+        error_dict = {"action": action_array, "next_obs": next_obs_array}
 
         return error_dict
 
