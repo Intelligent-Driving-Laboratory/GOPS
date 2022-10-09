@@ -112,7 +112,7 @@ if __name__ == "__main__":
     ################################################
     # 8. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
-    parser.add_argument("--apprfunc_save_interval", type=int, default=5000)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=500)
     parser.add_argument("--log_save_interval", type=int, default=100)
 
     # Get parameter dictionary
