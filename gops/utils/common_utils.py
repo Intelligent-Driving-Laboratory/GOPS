@@ -84,8 +84,8 @@ def get_apprfunc_dict(key: str, type=None, **kwargs):
         raise NotImplementedError
 
     if kwargs["action_type"] == "continu":
-        var["act_high_lim"] = kwargs["action_high_limit"]
-        var["act_low_lim"] = kwargs["action_low_limit"]
+        var["act_high_lim"] = np.array(kwargs["action_high_limit"])
+        var["act_low_lim"] = np.array(kwargs["action_low_limit"])
         var["act_dim"] = kwargs["action_dim"]
 
     else:
