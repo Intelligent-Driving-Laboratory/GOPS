@@ -13,6 +13,7 @@ from gym import wrappers
 from gops.create_pkg.create_env import create_env
 from gops.utils.plot_evaluation import cm2inch
 from gops.utils.common_utils import get_args_from_json, mp4togif
+from gops.sys_simulator.sys_opt_controller import NNController
 
 default_cfg = dict()
 default_cfg["fig_size"] = (12, 9)
@@ -53,8 +54,6 @@ class PolicyRuner:
         self.constrained_env = constrained_env
         self.is_tracking = is_tracking
         self.dt = dt
-        if self.use_opt:
-            self.legend_list.append('OPT')
         self.policy_num = len(self.log_policy_dir_list)
         if self.policy_num != len(self.trained_policy_iteration_list):
             raise RuntimeError("The lenth of policy number is not equal to the number of policy iteration")
@@ -71,6 +70,10 @@ class PolicyRuner:
         self.__load_all_args()
         self.env_id = self.get_n_verify_env_id()
 
+        if self.use_opt:
+            self.legend_list.append('OPT')
+            self.opt_controller = NNController(self.args_list[0], self.log_policy_dir_list[0]) # TODO: replace with MPCController
+        
         # save path
         path = os.path.join(os.path.dirname(__file__), "..", "..", "policy_result")
         path = os.path.abspath(path)
@@ -98,7 +101,7 @@ class PolicyRuner:
             state_list.append(state)
 
             if is_opt:
-                action = self.compute_action_lqr(state, controller)
+                action = self.opt_controller(obs)
             else:
                 action = self.compute_action(obs, controller)
 
@@ -162,9 +165,11 @@ class PolicyRuner:
         action = action_distribution.mode()
         action = action.detach().numpy()[0]
         return action
+
     def compute_action_lqr(self, obs, K):
         action = -K @ obs
         return action
+
     def draw(self):
         fig_size = (
             default_cfg["fig_size"],
@@ -480,9 +485,6 @@ class PolicyRuner:
                 for key, value in value.items():
                     print(key, value)
 
-
-
-
     @staticmethod
     def __load_args(log_policy_dir):
         json_path = os.path.join(log_policy_dir, "config.json")
@@ -542,10 +544,9 @@ class PolicyRuner:
             self.tracking_list.append(tracking_dict)
 
         if self.use_opt:
-            env.test_mode()
-            K = env.control_matrix
-            eval_dict_lqr, _ = self.run_an_episode(env, K, self.init_info, is_opt=True, render=False)
-            self.eval_list.append(eval_dict_lqr)
+            eval_dict, tracking_dict = self.run_an_episode(env, self.opt_controller, self.init_info, is_opt=True, render=False)
+            self.eval_list.append(eval_dict)
+            self.tracking_list.append(tracking_dict)
                 # if i == 0:
                 #     self.obs_list = self.__get_init_obs(env, 100)
                 #     self.error_dict = {}
@@ -562,6 +563,7 @@ class PolicyRuner:
             obs = env.reset()
             obs_list.append(obs)
         return obs_list
+
     def __error_compute(self, env, obs_list, controller, init_state_nums, is_opt):
         action_list = []
         next_obs_list = []
