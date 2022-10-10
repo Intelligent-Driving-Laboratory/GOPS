@@ -64,16 +64,16 @@ A=[[1,1,0,0,0],
         [1],
         [1]
     ],
-    Q=[10, 20, 10, 20, 40],
-    R=[100],
-    dt=0.05,
+    Q=[50, 25, 5, 1, 0.5],
+    R=[0.01],
+    dt=0.1,
     init_mean=[0, 0, 0, 0, 0],
     init_std=[0.1, 0.1, 0.1, 0.1, 0.1],
-    state_high=[4]*5,
-    state_low=[-4]*5,
-    action_high=[10.0],
-    action_low=[-10.0],
-    max_step=100,
+    state_high=[5]*5,
+    state_low=[-5]*5,
+    action_high=[5],
+    action_low=[-5],
+    max_step=500,
     reward_scale=1,
     reward_shift=0,
 )
@@ -108,30 +108,30 @@ config_s4a2 = dict(
 config_s6a3 = dict(
     A=[
         [0, 1, 0, 0, 0, 0],
-        [30, 0, 0, 0, 0, 0],
-        [0, 0.0, 0, 1, 0, 0],
-        [25.5, 0, 0, 0, 0, 0],
+        [3, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0],
+        [2.5, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 1, 0],
-        [-20, 0, 0, 0, 0, 0]
+        [-2, 0, 0, 0, 0, 0]
     ],
     B=[
         [0, 0, 0],
-        [10.5, 10.5, 10.5],
+        [1.5, 1.5, 0],
         [0.0, 0, 0],
-        [1.5, 1.5, 1.5],
-        [0, 0, 0],
-        [23, 23, 23]
+        [0.5, 0.5, 0.5],
+        [0, 0, 1],
+        [2, 2, 2]
     ],
-    Q=[0, 20, 0, 20, 0, 50],
-    R=[1.0, 1.0, 1],
+    Q=[0, 2, 10, 10, 5, 5],
+    R=[1.0, 1.0, 1.0],
     dt=0.05,
-    init_mean=[0, 0, 0, 0,  0, 0],
+    init_mean=[0, 0, 0, 0, 0, 0],
     init_std=[0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
-    state_high=[np.inf, np.inf, np.inf, np.inf , np.inf, np.inf],
-    state_low=[-np.inf, -np.inf, -np.inf, -np.inf, -np.inf, -np.inf],
+    state_high=[5, 5, 5, 5, 5, 5],
+    state_low=[-5, -5, -5, -5, -5, -5],
     action_high=[1.0, 1.0, 1.0],
     action_low=[-1.0, -1.0, -1.0],
-    max_step=200,
+    max_step=500,
     reward_scale=1.0,
     reward_shift=0,
 )
@@ -191,7 +191,7 @@ def check_lq_config(cfg):
 def test_all_configs():
     check_lq_config(config_s3a1)
 
-    check_lq_config(config_s4a1)
+    # check_lq_config(config_s4a1)
 
     check_lq_config(config_s5a1)
 

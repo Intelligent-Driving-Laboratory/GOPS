@@ -46,7 +46,7 @@ if __name__ == "__main__":
     parser.add_argument("--action_high_limit", type=list, default=None)
     parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--action_type", type=str, default="continu")
-    parser.add_argument("--is_render", type=bool, default=True)
+    parser.add_argument("--is_render", type=bool, default=False)
     parser.add_argument("--is_adversary", type=bool, default=False)
 
     ################################################
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
     parser.add_argument(
-        "--max_iteration", type=int, default=200, help="Maximum iteration number"
+        "--max_iteration", type=int, default=10000, help="Maximum iteration number"
     )
     parser.add_argument("--ini_network_dir", type=str, default=None)
     trainer_type = parser.parse_known_args()[0].trainer

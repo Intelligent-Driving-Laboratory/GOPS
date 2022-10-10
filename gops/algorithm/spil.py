@@ -168,7 +168,7 @@ class SPIL:
             data["obs"],
             data["act"],
             data["rew"],
-            data["con"],
+            data["constraint"],
             data["obs2"],
             data["done"],
         )
@@ -201,7 +201,7 @@ class SPIL:
             data["obs"],
             data["act"],
             data["rew"],
-            data["con"],
+            data["constraint"],
             data["obs2"],
             data["done"],
         )  # TODO  解耦字典
