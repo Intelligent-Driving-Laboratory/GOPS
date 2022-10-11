@@ -64,45 +64,52 @@ class PythMobilerobot(PythBaseEnv):
         self.observation_space = spaces.Box(lb_state, hb_state)
 
         self.seed()
-        self.state = self.reset()
+        self._state = self.reset()
 
         self.steps = 0
 
     @property
     def additional_info(self):
         info_dict = dict(
-            constraint={"shape": (1,), "dtype": np.float64}
+            constraint={"shape": (1,), "dtype": np.float32}
         )
         return info_dict
 
-    def reset(self, n_agent=1):
-        state = []
-        for i in range(n_agent):
-            state.append(self.sample_initial_state())
-        state = np.stack(state)
-        state[:, 5:8] = self.robot.tracking_error(state[:, :5])
+    @property
+    def state(self):
+        return self._state.reshape(-1)
 
+    def reset(self, init_state=None):
+        if init_state is None:
+            state = [self.sample_initial_state()]
+        else:
+            state = [init_state]
+        state = np.array(state, dtype=np.float32)
+        state[:, 5:8] = self.robot.tracking_error(state[:, :5])
         self.steps_beyond_done = None
         self.steps = 0
-        self.state = state
+        self._state = state
 
-        return self.state.reshape(-1)
+
+
+
+        return self._state.reshape(-1)
 
     def step(self, action: np.ndarray):
         ################################################################################################################
         #  define your forward function here: the format is just like: state_next = f(state,action)
-        veh2vehdist = np.zeros((self.state.shape[0], self.n_obstacle))
+        veh2vehdist = np.zeros((self._state.shape[0], self.n_obstacle))
         action = action.reshape(1, -1)  # TODO is right
         for i in range(1 + self.n_obstacle):
             if i == 0:
-                robot_state = self.robot.f_xu(self.state[:, :5], action.reshape(1, -1), self.dt, "ego")
+                robot_state = self.robot.f_xu(self._state[:, :5], action.reshape(1, -1), self.dt, "ego")
                 tracking_error = self.robot.tracking_error(robot_state)
                 state_next = np.concatenate((robot_state, tracking_error), 1)
 
             else:
                 obs_state = self.robot.f_xu(
-                    self.state[:, 3 + i * 5 : 3 + i * 5 + 5],
-                    self.state[:, 3 + i * 5 + 3 : 3 + i * 5 + 5],
+                    self._state[:, 3 + i * 5: 3 + i * 5 + 5],
+                    self._state[:, 3 + i * 5 + 3: 3 + i * 5 + 5],
                     self.dt,
                     "obs",
                 )
@@ -120,7 +127,7 @@ class PythMobilerobot(PythBaseEnv):
                     ** 0.5
                 )
 
-        self.state = state_next
+        self._state = state_next
         ############################################################################################
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
         r_tracking = -1.4 * np.abs(tracking_error[:, 0]) - 1 * np.abs(tracking_error[:, 1]) - 16 * np.abs(tracking_error[:, 2])
@@ -136,21 +143,21 @@ class PythMobilerobot(PythBaseEnv):
 
         isdone = bool(
             dead.all(1)
-            + (self.state[:, 0] < -2)
-            + (self.state[:, 0] > 13)
-            + (self.state[:, 1] > 3)
-            + (self.state[:, 1] < -1)
+            + (self._state[:, 0] < -2)
+            + (self._state[:, 0] > 13)
+            + (self._state[:, 1] > 3)
+            + (self._state[:, 1] < -1)
         )
         ############################################################################################
         self.steps += 1
         info = {"TimeLimit.truncated": self.steps > 170, "constraint": constraint.reshape(-1)} # TODO is right
-        return np.array(self.state.reshape(-1), dtype=np.float32), float(reward), isdone, info  # TODO is right
+        return np.array(self._state.reshape(-1), dtype=np.float32), float(reward), isdone, info  # TODO is right
 
     def render(self, mode="human", n_window=1):
 
         if not hasattr(self, "artists"):
             self.render_init(n_window)
-        state = self.state
+        state = self._state
         r_rob = self.robot.robot_params["radius"]
         r_obs = self.obses[0].robot_params["radius"]
 

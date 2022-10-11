@@ -55,6 +55,7 @@ class PolicyRuner:
         self.dt = dt
         if self.use_opt:
             self.legend_list.append('OPT')
+            self.error_dict = {}
         self.policy_num = len(self.log_policy_dir_list)
         if self.policy_num != len(self.trained_policy_iteration_list):
             raise RuntimeError("The lenth of policy number is not equal to the number of policy iteration")
@@ -86,6 +87,7 @@ class PolicyRuner:
         action_list = []
         reward_list = []
         constrain_list = []
+        obs_list = []
         step = 0
         step_list = []
         obs = env.reset(**init_info)
@@ -96,7 +98,7 @@ class PolicyRuner:
         info = {"TimeLimit.truncated": False}
         while not (done or info["TimeLimit.truncated"]):
             state_list.append(state)
-
+            obs_list.append(obs)
             if is_opt:
                 action = self.compute_action_lqr(state, controller)
             else:
@@ -142,6 +144,7 @@ class PolicyRuner:
             "action_list": action_list,
             "state_list": state_list,
             "step_list": step_list,
+            "obs_list": obs_list,
         }
         if self.constrained_env:
             eval_dict.update({
@@ -172,6 +175,8 @@ class PolicyRuner:
         )
         action_dim = self.eval_list[0]["action_list"][0].shape[0]
         state_dim = self.eval_list[0]["state_list"][0].shape[0]
+        if self.constrained_env:
+            constrain_dim = self.eval_list[0]["constrain_list"][0].shape[0]
         policy_num = len(self.algorithm_list)
         if self.use_opt:
             policy_num += 1
@@ -227,7 +232,7 @@ class PolicyRuner:
             x_label = "Time(s)"
 
         if self.constrained_env:
-            constrain_array = np.array(constrain_list)[:, :, 0]  # todo:special for SPIL
+            constrain_array = np.array(constrain_list)
 
         # Plot reward
         path_reward_fmt = os.path.join(self.save_path, "Reward.{}".format(default_cfg["img_fmt"]))
@@ -343,24 +348,25 @@ class PolicyRuner:
 
         # plot constraint value
         if self.constrained_env:
-            path_constraint_fmt = os.path.join(self.save_path, "Constraint.{}".format(default_cfg["img_fmt"]))
-            fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
+            for j in range(constrain_dim):
+                path_constraint_fmt = os.path.join(self.save_path, "Constrain-{}.{}".format(j+1, default_cfg["img_fmt"]))
+                fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
 
-            # save reward data to csv
-            constrain_data = pd.DataFrame(data=constrain_array)
-            constrain_data.to_csv('{}\\Constrain.csv'.format(self.save_path), encoding='gbk')
+                # save reward data to csv
+                constrain_data = pd.DataFrame(data=constrain_array[:, :, j])
+                constrain_data.to_csv('{}\\Constrain-{}.csv'.format(self.save_path, j+1), encoding='gbk')
 
-            for i in range(policy_num):
-                legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
-                sns.lineplot(x=step_array[i], y=constrain_array[i], label="{}".format(legend))
-            plt.tick_params(labelsize=default_cfg["tick_size"])
-            labels = ax.get_xticklabels() + ax.get_yticklabels()
-            [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
-            plt.xlabel(x_label, default_cfg["label_font"])
-            plt.ylabel("Constraint value", default_cfg["label_font"])
-            plt.legend(loc="best", prop=default_cfg["legend_font"])
-            fig.tight_layout(pad=default_cfg["pad"])
-            plt.savefig(path_constraint_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+                for i in range(policy_num):
+                    legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
+                    sns.lineplot(x=step_array[i], y=constrain_array[i, :, j], label="{}".format(legend))
+                plt.tick_params(labelsize=default_cfg["tick_size"])
+                labels = ax.get_xticklabels() + ax.get_yticklabels()
+                [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
+                plt.xlabel(x_label, default_cfg["label_font"])
+                plt.ylabel("Constrain-{}".format(j+1), default_cfg["label_font"])
+                plt.legend(loc="best", prop=default_cfg["legend_font"])
+                fig.tight_layout(pad=default_cfg["pad"])
+                plt.savefig(path_constraint_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
         # plot error with opt
         if self.use_opt:
@@ -445,9 +451,9 @@ class PolicyRuner:
                 for j in range(action_dim):
                     action_error = {}
                     error_list = []
-                    for q in range(len(action_array[0])):
-                        error = np.abs(action_array[i, q, j] - action_array[-1, q, j]) \
-                                / (np.max(action_array[-1, :, j]) - np.min(action_array[-1, :, j]))
+                    for q in range(self.obs_nums):
+                        error = np.abs(self.error_dict["policy_{}".format(i)]["action"][q, j] - self.error_dict["opt"]["action"][q, j]) \
+                                / (np.max(self.error_dict["opt"]["action"][:, j]) - np.min(self.error_dict["opt"]["action"][:, j]))
                         error_list.append(error)
                     action_error["Max_error"] = '{:.2f}%'.format(max(error_list)*100)
                     action_error["Mean_error"] = '{:.2f}%'.format(sum(error_list) / len(error_list)*100)
@@ -456,9 +462,9 @@ class PolicyRuner:
                 for o in range(state_dim):
                     state_error = {}
                     error_list = []
-                    for q in range(len(state_array[0])):
-                        error = np.abs(state_array[i, q, j] - state_array[-1, q, j]) \
-                                / (np.max(state_array[-1, :, j]) - np.min(state_array[-1, :, j]))
+                    for q in range(self.obs_nums):
+                        error = np.abs(self.error_dict["policy_{}".format(i)]["next_state"][q, o] - self.error_dict["opt"]["next_state"][q, o]) \
+                                / (np.max(self.error_dict["opt"]["next_state"][:, o]) - np.min(self.error_dict["opt"]["next_state"][:, o]))
                         error_list.append(error)
                     state_error["Max_error"] = '{:.2f}%'.format(max(error_list)*100)
                     state_error["Mean_error"] = '{:.2f}%'.format(sum(error_list) / len(error_list)*100)
@@ -476,7 +482,7 @@ class PolicyRuner:
             pd.set_option('display.max_rows', None)
             for key, value in error_result_data.items():
                 print("===========================================================")
-                print(key)
+                print('Policy {}'.format(key))
                 for key, value in value.items():
                     print(key, value)
 
@@ -542,17 +548,23 @@ class PolicyRuner:
             self.tracking_list.append(tracking_dict)
 
         if self.use_opt:
-            env.test_mode()
+            env.set_mode('test')
             K = env.control_matrix
             eval_dict_lqr, _ = self.run_an_episode(env, K, self.init_info, is_opt=True, render=False)
             self.eval_list.append(eval_dict_lqr)
-                # if i == 0:
-                #     self.obs_list = self.__get_init_obs(env, 100)
-                #     self.error_dict = {}
-                # net_error_dict = self.__error_compute(env, self.obs_list, networks, 100, is_opt=False)
-                # LQ_error_dict = self.__error_compute(env, self.obs_list, K, 100, is_opt=True)
-                # self.error_dict["policy_{}".format(i)] = net_error_dict
-                # self.error_dict["opt"] = LQ_error_dict
+            opt_obs_list = eval_dict_lqr["obs_list"]
+            opt_state_list = eval_dict_lqr["state_list"]
+            self.obs_nums = len(opt_obs_list)
+            for i in range(self.policy_num):
+                log_policy_dir = self.log_policy_dir_list[i]
+                trained_policy_iteration = self.trained_policy_iteration_list[i]
+                self.args = self.args_list[i]
+                env = self.__load_env()
+                networks = self.__load_policy(log_policy_dir, trained_policy_iteration)
+                net_error_dict = self.__error_compute(env, opt_obs_list, opt_state_list, networks, self.obs_nums, is_opt=False)
+                LQ_error_dict = self.__error_compute(env, opt_obs_list, opt_state_list, K, self.obs_nums, is_opt=True)
+                self.error_dict["policy_{}".format(i)] = net_error_dict
+                self.error_dict["opt"] = LQ_error_dict
 
 
     def __get_init_info(self, env, init_state_nums):
@@ -562,23 +574,26 @@ class PolicyRuner:
             obs = env.reset()
             obs_list.append(obs)
         return obs_list
-    def __error_compute(self, env, obs_list, controller, init_state_nums, is_opt):
+    def __error_compute(self, env, obs_list, state_list, controller, init_state_nums, is_opt):
         action_list = []
-        next_obs_list = []
+        next_state_list = []
         for i in range(init_state_nums):
             obs = obs_list[i]
-            env.reset(**{'init_obs': obs})
+            state = state_list[i]
+            env.reset(**{"init_state": state})
+
             if is_opt:
-                action = self.compute_action_lqr(obs, controller)
+                action = self.compute_action_lqr(state, controller)
             else:
                 action = self.compute_action(obs, controller)
 
             next_obs, reward, done, info = env.step(action)
+            next_state = env.state
             action_list.append(action)
-            next_obs_list.append(next_obs)
+            next_state_list.append(next_state)
         action_array = np.array(action_list)
-        next_obs_array = np.array(next_obs_list)
-        error_dict = {"action": action_array, "next_obs": next_obs_array}
+        next_state_array = np.array(next_state_list)
+        error_dict = {"action": action_array, "next_state": next_state_array}
 
         return error_dict
 

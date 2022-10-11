@@ -9,7 +9,9 @@
 
 __all__ = ["OnSyncTrainer"]
 
+from cmath import inf
 import importlib
+import os
 import time
 import warnings
 
@@ -50,6 +52,7 @@ class OnSyncTrainer:
         self.log_save_interval = kwargs["log_save_interval"]
         self.apprfunc_save_interval = kwargs["apprfunc_save_interval"]
         self.eval_interval = kwargs["eval_interval"]
+        self.best_tar = -inf
         self.save_folder = kwargs["save_folder"]
         self.iteration = 0
 
@@ -98,6 +101,20 @@ class OnSyncTrainer:
             total_avg_return = ray.get(
                 self.evaluator.run_evaluation.remote(self.iteration)
             )
+
+            if total_avg_return > self.best_tar:
+                self.best_tar = total_avg_return
+                print('New best TAR = {}!'.format(str(self.best_tar)))
+
+                for filename in os.listdir(self.save_folder + "/apprfunc/"):
+                    if filename.endswith("_opt.pkl"):
+                        os.remove(self.save_folder + "/apprfunc/" + filename)
+                
+                torch.save(
+                    self.networks.state_dict(),
+                    self.save_folder + "/apprfunc/apprfunc_{}_opt.pkl".format(self.iteration),
+                )
+
             self.writer.add_scalar(
                 tb_tags["TAR of RL iteration"], total_avg_return, self.iteration
             )
