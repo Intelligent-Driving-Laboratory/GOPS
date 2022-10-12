@@ -1,4 +1,4 @@
-from gops.env.env_wrapper.nosie_observation import NoiseData
+from gops.env.env_wrapper.noise_observation import NoiseData
 from gops.env.env_wrapper.scale_observation import ScaleObservationData, ScaleObservationModel
 from gops.env.env_wrapper.shaping_reward import ShapingRewardData, ShapingRewardModel
 from gops.env.env_wrapper.wrap_state import StateData
