@@ -38,7 +38,7 @@ default_cfg["img_fmt"] = "png"
 class PolicyRuner:
     def __init__(self, log_policy_dir_list, trained_policy_iteration_list, save_render=False, plot_range=None,
                  is_init_info=False, init_info=None, legend_list=None, use_opt=False, constrained_env=False,
-                 is_tracking=False, dt=None) -> None:
+                 is_tracking=False, dt=None, obs_noise_type=None, obs_noise_data=None) -> None:
         self.log_policy_dir_list = log_policy_dir_list
         self.trained_policy_iteration_list = trained_policy_iteration_list
         self.save_render = save_render
@@ -59,6 +59,8 @@ class PolicyRuner:
         self.policy_num = len(self.log_policy_dir_list)
         if self.policy_num != len(self.trained_policy_iteration_list):
             raise RuntimeError("The lenth of policy number is not equal to the number of policy iteration")
+        self.obs_noise_type = obs_noise_type
+        self.obs_noise_data = obs_noise_data
 
         # data for plot
 
@@ -507,7 +509,12 @@ class PolicyRuner:
             self.algorithm_list.append(args["algorithm"])
 
     def __load_env(self):
-        env = create_env(**self.args)
+        env_args = {
+            **self.args,
+            "noise_type": self.obs_noise_type,
+            "noise_data": self.obs_noise_data,
+        }
+        env = create_env(**env_args)
         if self.save_render:
             video_path = os.path.join(self.save_path, "videos")
             env = wrappers.RecordVideo(env, video_path,

@@ -32,8 +32,18 @@ def create_env(**kwargs):
     reward_shift = kwargs.get("reward_shift", None)
     obs_scale = kwargs.get("obs_scale", None)
     obs_shift = kwargs.get("obs_shift", None)
-    env = wrapping_env(env, reward_shift, reward_scale, obs_shift, obs_scale)
-    # print("wrap_env with", reward_shift, reward_scale, obs_shift, obs_scale)
+    noise_type = kwargs.get("noise_type", None)
+    noise_data = kwargs.get("noise_data", None)
+    env = wrapping_env(
+        env=env,
+        reward_shift=reward_shift,
+        reward_scale=reward_scale,
+        obs_shift=obs_shift,
+        obs_scale=obs_scale,
+        noise_type=noise_type,
+        noise_data=noise_data
+    )
+
     print("Create environment successfully!")
     return env
 
