@@ -2,6 +2,7 @@ from typing import TypeVar, Tuple
 
 import gym
 import numpy as np
+from gym.utils import seeding
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
@@ -24,9 +25,9 @@ class NoiseData(gym.Wrapper):
         if self.noise_type is None:
             return observation
         elif self.noise_type == "normal":
-            return observation + np.random.normal(loc=self.noise_data[0], scale=self.noise_data[1])
+            return observation + self.np_random.normal(loc=self.noise_data[0], scale=self.noise_data[1])
         elif self.noise_type == "uniform":
-            return observation + np.random.uniform(low=self.noise_data[0], high=self.noise_data[1])
+            return observation + self.np_random.uniform(low=self.noise_data[0], high=self.noise_data[1])
 
     def reset(self, **kwargs):
         obs = super(NoiseData, self).reset(**kwargs)
@@ -37,3 +38,11 @@ class NoiseData(gym.Wrapper):
         obs, r, d, info = self.env.step(action)
         obs_noised = self.observation(obs)
         return obs_noised, r, d, info
+
+    def seed(self, seed=None):
+        # generate a new seed to avoid correlation between observation noise and environment randomness
+        np_random, _ = seeding.np_random(seed)
+        noise_seed = int(np_random.randint(2**31))
+        self.np_random, noise_seed = seeding.np_random(noise_seed)
+        seeds = self.env.seed(seed)
+        return seeds + [noise_seed]
