@@ -107,8 +107,6 @@ class PolicyRuner:
                 action = self.compute_action_lqr(state, controller)
             else:
                 action = self.compute_action(obs, controller)
-
-            action = self.__action_noise(env, action, self.action_noise_type, self.action_noise_data)
             next_obs, reward, done, info = env.step(action)
 
             action_list.append(action)
@@ -514,8 +512,10 @@ class PolicyRuner:
     def __load_env(self):
         env_args = {
             **self.args,
-            "noise_type": self.obs_noise_type,
-            "noise_data": self.obs_noise_data,
+            "obs_noise_type": self.obs_noise_type,
+            "obs_noise_data": self.obs_noise_data,
+            "action_noise_type": self.action_noise_type,
+            "action_noise_data": self.action_noise_data,
         }
         env = create_env(**env_args)
         if self.save_render:
@@ -608,7 +608,6 @@ class PolicyRuner:
             else:
                 action = self.compute_action(obs, controller)
 
-            action = self.__action_noise(env, action, self.action_noise_type, self.action_noise_data)
             next_obs, reward, done, info = env.step(action)
             next_state = env.state
             action_list.append(action)
