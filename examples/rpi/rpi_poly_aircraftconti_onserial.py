@@ -104,7 +104,7 @@ if __name__ == "__main__":
     # 7. Parameters for evaluator
     parser.add_argument('--evaluator_name', type=str, default='evaluator')
     parser.add_argument('--num_eval_episode', type=int, default=1)
-    parser.add_argument('--eval_interval', type=int, default=500000)
+    parser.add_argument('--eval_interval', type=int, default=2)
     parser.add_argument('--print_interval', type=int, default=1)
 
     ################################################

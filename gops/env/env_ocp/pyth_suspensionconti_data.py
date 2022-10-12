@@ -101,7 +101,7 @@ class _GymSuspensionconti(PythBaseEnv):
         self.max_episode_steps = kwargs['max_episode_steps']  # original = 200
         self.steps = 0
 
-    def reset(self):
+    def reset(self,**kwargs):
         self.state = self.sample_initial_state()
         self.steps_beyond_done = None
         self.steps = 0

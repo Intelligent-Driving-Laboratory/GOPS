@@ -187,7 +187,7 @@ class LqEnv(PythBaseEnv):
     def control_policy(self,state):
         return -self.control_matrix@state
 
-    def reset(self, init_state=None):
+    def reset(self, init_state=None, **kwargs):
         self.step_counter = 0
 
         if init_state is None:

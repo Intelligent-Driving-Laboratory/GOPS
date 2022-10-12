@@ -78,7 +78,7 @@ class PythInverteddoublependulum(PythBaseEnv):
         reward = reward.numpy()[0]
         return self.obs, reward, bool(done), info
 
-    def reset(self, *, init_obs=None):
+    def reset(self, *, init_obs=None,**kwargs):
         """
         self.obs: initial observation, datatype:numpy.ndarray, shape:[state_dim]
         """

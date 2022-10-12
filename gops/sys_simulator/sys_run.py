@@ -13,6 +13,7 @@ from gym import wrappers
 from gops.create_pkg.create_env import create_env
 from gops.utils.plot_evaluation import cm2inch
 from gops.utils.common_utils import get_args_from_json, mp4togif
+from gops.sys_simulator.sys_opt_controller import NNController
 
 default_cfg = dict()
 default_cfg["fig_size"] = (12, 9)
@@ -53,9 +54,6 @@ class PolicyRuner:
         self.constrained_env = constrained_env
         self.is_tracking = is_tracking
         self.dt = dt
-        if self.use_opt:
-            self.legend_list.append('OPT')
-            self.error_dict = {}
         self.policy_num = len(self.log_policy_dir_list)
         if self.policy_num != len(self.trained_policy_iteration_list):
             raise RuntimeError("The lenth of policy number is not equal to the number of policy iteration")
@@ -76,6 +74,11 @@ class PolicyRuner:
         self.__load_all_args()
         self.env_id = self.get_n_verify_env_id()
 
+        if self.use_opt:
+            self.legend_list.append('OPT')
+            self.error_dict = {}
+            self.opt_controller = NNController(self.args_list[0], self.log_policy_dir_list[0]) # TODO: replace with MPCController
+
         # save path
         path = os.path.join(os.path.dirname(__file__), "..", "..", "policy_result")
         path = os.path.abspath(path)
@@ -94,6 +97,7 @@ class PolicyRuner:
         obs_list = []
         step = 0
         step_list = []
+        info_list = [init_info]
         obs = env.reset(**init_info)
         state = env.state
         # plot tracking
@@ -104,14 +108,19 @@ class PolicyRuner:
             state_list.append(state)
             obs_list.append(obs)
             if is_opt:
-                action = self.compute_action_lqr(state, controller)
+                if env.has_optimal_controller:
+                    action = env.control_policy(state)
+                else:
+                    action = self.opt_controller(obs)
             else:
                 action = self.compute_action(obs, controller)
+                action = self.__action_noise(action)
             next_obs, reward, done, info = env.step(action)
 
             action_list.append(action)
             step_list.append(step)
             reward_list.append(reward)
+            info_list.append(info)
 
             obs = next_obs
             state = env.state
@@ -148,6 +157,7 @@ class PolicyRuner:
             "state_list": state_list,
             "step_list": step_list,
             "obs_list": obs_list,
+            "info_list": info_list
         }
         if self.constrained_env:
             eval_dict.update({
@@ -168,9 +178,7 @@ class PolicyRuner:
         action = action_distribution.mode()
         action = action.detach().numpy()[0]
         return action
-    def compute_action_lqr(self, obs, K):
-        action = -K @ obs
-        return action
+
     def draw(self):
         fig_size = (
             default_cfg["fig_size"],
@@ -534,12 +542,12 @@ class PolicyRuner:
         file = __import__(alg_file_name)
         ApproxContainer = getattr(file, "ApproxContainer")
         networks = ApproxContainer(**self.args)
-        print("Create {}-policy successfully!".format(alg_name))
+        # print("Create {}-policy successfully!".format(alg_name))
 
         # Load trained policy
         log_path = log_policy_dir + "/apprfunc/apprfunc_{}.pkl".format(trained_policy_iteration)
         networks.load_state_dict(torch.load(log_path))
-        print("Load {}-policy successfully!".format(alg_name))
+        # print("Load {}-policy successfully!".format(alg_name))
         return networks
 
     def __run_data(self):
@@ -559,11 +567,14 @@ class PolicyRuner:
 
         if self.use_opt:
             env.set_mode('test')
-            K = env.control_matrix
-            eval_dict_lqr, _ = self.run_an_episode(env, K, self.init_info, is_opt=True, render=False)
-            self.eval_list.append(eval_dict_lqr)
-            opt_obs_list = eval_dict_lqr["obs_list"]
-            opt_state_list = eval_dict_lqr["state_list"]
+            controller = self.opt_controller
+            eval_dict_opt, tracking_dict_opt = self.run_an_episode(env, controller, self.init_info, is_opt=True, render=False)
+            self.eval_list.append(eval_dict_opt)
+            if self.is_tracking:
+                self.tracking_list.append(tracking_dict_opt)
+            opt_obs_list = eval_dict_opt["obs_list"]
+            opt_state_list = eval_dict_opt["state_list"]
+            opt_info_list  = eval_dict_opt["info_list"]
             self.obs_nums = len(opt_obs_list)
             for i in range(self.policy_num):
                 log_policy_dir = self.log_policy_dir_list[i]
@@ -571,8 +582,8 @@ class PolicyRuner:
                 self.args = self.args_list[i]
                 env = self.__load_env()
                 networks = self.__load_policy(log_policy_dir, trained_policy_iteration)
-                net_error_dict = self.__error_compute(env, opt_obs_list, opt_state_list, networks, self.obs_nums, is_opt=False)
-                LQ_error_dict = self.__error_compute(env, opt_obs_list, opt_state_list, K, self.obs_nums, is_opt=True)
+                net_error_dict = self.__error_compute(env, opt_obs_list, opt_state_list,opt_info_list, networks, self.obs_nums, is_opt=False)
+                LQ_error_dict = self.__error_compute(env, opt_obs_list, opt_state_list,opt_info_list, controller, self.obs_nums, is_opt=True)
                 self.error_dict["policy_{}".format(i)] = net_error_dict
                 self.error_dict["opt"] = LQ_error_dict
 
@@ -585,28 +596,31 @@ class PolicyRuner:
             obs_list.append(obs)
         return obs_list
 
-    def __action_noise(self, env, action, noise_type, noise_data):
-        assert noise_type in ["normal", "uniform"]
-        assert len(noise_data) == 2 and len(noise_data[0]) == env.action_space.shape[0]
-        if noise_type is None:
+    def __action_noise(self, action):
+        if self.action_noise_type is None:
             return action
-        elif noise_type == "normal":
-            return action + np.random.normal(loc=noise_data[0], scale=noise_data[1])
-        elif noise_type == "uniform":
-            return action + np.random.uniform(low=noise_data[0], high=noise_data[1])
+        elif self.action_noise_type == "normal":
+            return action + np.random.normal(loc=self.action_noise_data[0], scale=self.action_noise_data[1])
+        elif self.action_noise_type == "uniform":
+            return action + np.random.uniform(low=self.action_noise_data[0], high=self.action_noise_data[1])
 
-    def __error_compute(self, env, obs_list, state_list, controller, init_state_nums, is_opt):
+    def __error_compute(self, env, obs_list, state_list,info_list, controller, init_state_nums, is_opt):
         action_list = []
         next_state_list = []
         for i in range(init_state_nums):
             obs = obs_list[i]
             state = state_list[i]
-            env.reset(**{"init_state": state})
+            info_list[i].update({'init_state':state,'init_obs':obs})
+            env.reset(**info_list[i])
 
             if is_opt:
-                action = self.compute_action_lqr(state, controller)
+                if env.has_optimal_controller:
+                    action = env.control_policy(state)
+                else:
+                    action = controller(obs)
             else:
                 action = self.compute_action(obs, controller)
+                action = self.__action_noise(action)
 
             next_obs, reward, done, info = env.step(action)
             next_state = env.state

@@ -23,6 +23,13 @@ class PythBaseEnv(gym.Env):
         self.mode = mode
 
     @property
+    def has_optimal_controller(self):
+        return False
+
+    def control_policy(self,state):
+        return NotImplementedError
+
+    @property
     def init_space(self):
         if self.mode == "train":
             return self.train_space

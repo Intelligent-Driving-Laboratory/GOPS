@@ -32,8 +32,8 @@ def wrapping_env(env,
     if obs_noise_type is not None:
         env = NoiseData(env, obs_noise_type, obs_noise_data)
 
-    if action_noise_type is not None:
-        env = NoiseAction(env, action_noise_type, action_noise_data)
+    # if action_noise_type is not None:
+    #     env = NoiseAction(env, action_noise_type, action_noise_data)
 
     if not all_none(obs_shift, obs_scale):
         obs_scale = 1.0 if obs_scale is None else obs_scale
