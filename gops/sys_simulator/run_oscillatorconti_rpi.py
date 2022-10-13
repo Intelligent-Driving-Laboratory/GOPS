@@ -1,13 +1,13 @@
 from sys_run import PolicyRuner
 
 runer = PolicyRuner(
-    log_policy_dir_list=["../../results/RPI/221008-160556"] * 2,
+    log_policy_dir_list=["../../results/RPI/221013-160059"] * 2,
     trained_policy_iteration_list=['40', '50'],
     is_init_info=True,
-    init_info={'init_state':[1, -1]},
+    init_info={'init_state': [1, -1]},
     save_render=False,
     legend_list=['RPI-40', 'RPI-50'],
-    use_opt=False,
+    use_opt=True,
     constrained_env=False,
     is_tracking=False,
     dt=None)
