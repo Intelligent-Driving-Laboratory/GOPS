@@ -8,7 +8,6 @@
 #  Update Date: 2022-04-20, Jiaxin Gao: modify veh2dof model
 #  Update Date: 2022-09-22, Jiaxin Gao: add reference information
 
-import numpy as np
 import torch
 
 
@@ -41,8 +40,8 @@ class Veh2dofcontiModel(torch.nn.Module):
         state_next = self.vehicle_dynamics.prediction(state, actions, self.base_frequency)
         y, phi, v, w = state_next[:, 0], state_next[:, 1], state_next[:, 2], state_next[:, 3]
         t = tc + 1 / self.base_frequency
-        phi = torch.where(phi > np.pi, phi - 2 * np.pi, phi)
-        phi = torch.where(phi <= -np.pi, phi + 2 * np.pi, phi)
+        phi = torch.where(phi > torch.pi, phi - 2 * torch.pi, phi)
+        phi = torch.where(phi <= -torch.pi, phi + 2 * torch.pi, phi)
         state_next = torch.stack([y, phi, v, w], 1)
 
         isdone = self.vehicle_dynamics.judge_done(state_next, ref_num, t)
@@ -81,11 +80,11 @@ class VehicleDynamics(object):
         self.pre_horizon = kwargs["pre_horizon"]
 
     def compute_path_x(self, t, num):
-        x = torch.where(num == 0, 10 * t + np.cos(2 * np.pi * t / 6), self.vehicle_params['u'] * t)
+        x = torch.where(num == 0, 10 * t + torch.cos(2 * torch.pi * t / 6), self.vehicle_params['u'] * t)
         return x
 
     def compute_path_y(self, t, num):
-        y = torch.where(num == 0, 1.5 * torch.sin(2 * np.pi * t / 10),
+        y = torch.where(num == 0, 1.5 * torch.sin(2 * torch.pi * t / 10),
                         torch.where(t < 5, torch.as_tensor(0.),
                                     torch.where(t < 9, 0.875 * t - 4.375,
                                     torch.where(t < 14, torch.as_tensor(3.5),
@@ -94,7 +93,7 @@ class VehicleDynamics(object):
 
     def compute_path_phi(self, t, num):
         phi = torch.where(num == 0, (1.5 * torch.sin(2 * torch.pi * (t + 0.001) / 10) - 1.5 * torch.sin(2 * torch.pi * t / 10))\
-                  / (10 * (t + 0.001) + torch.cos(2 * np.pi * (t + 0.001) / 6) - 10 * t - torch.cos(2 * np.pi * t / 6)),
+                  / (10 * (t + 0.001) + torch.cos(2 * torch.pi * (t + 0.001) / 6) - 10 * t - torch.cos(2 * torch.pi * t / 6)),
                         torch.where(t <= 5, torch.as_tensor(0.),
                         torch.where(t <= 9, torch.as_tensor(((0.875 * (t + 0.001) - 4.375) - (0.875 * t - 4.375)) / (
                             self.vehicle_params['u'] * 0.001)),
@@ -115,15 +114,15 @@ class VehicleDynamics(object):
         I_z = torch.tensor(self.vehicle_params['I_z'], dtype=torch.float32)
         next_state = torch.stack([y + delta_t * (u * phi + v),
                       phi + delta_t * w,
-                    (m * v * u + delta_t * (l_f * k_f - l_r * k_r) * w - delta_t * k_f * steer * u - delta_t * m * np.square(u) * w) / (m * u - delta_t * (k_f + k_r)),
-                    (I_z * w * u + delta_t * (l_f * k_f - l_r * k_r) * v - delta_t * l_f * k_f * steer * u) / (I_z * u - delta_t * (np.square(l_f) * k_f + np.square(l_r) * k_r))
+                    (m * v * u + delta_t * (l_f * k_f - l_r * k_r) * w - delta_t * k_f * steer * u - delta_t * m * torch.square(u) * w) / (m * u - delta_t * (k_f + k_r)),
+                    (I_z * w * u + delta_t * (l_f * k_f - l_r * k_r) * v - delta_t * l_f * k_f * steer * u) / (I_z * u - delta_t * (torch.square(l_f) * k_f + torch.square(l_r) * k_r))
                       ], dim=1)
         return next_state
 
     def judge_done(self, state, ref_num, t):
         y, phi, v, w = state[:, 0], state[:, 1], state[:, 2], state[:, 3]
         done = (torch.abs(y - self.compute_path_y(t, ref_num)) > 3) | \
-               (torch.abs(phi - self.compute_path_phi(t, ref_num)) > np.pi / 4.)
+               (torch.abs(phi - self.compute_path_phi(t, ref_num)) > torch.pi / 4.)
         return done
 
     def prediction(self, x_1, u_1, frequency):
