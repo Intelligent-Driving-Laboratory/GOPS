@@ -79,7 +79,7 @@ class PythMobilerobot(PythBaseEnv):
     def state(self):
         return self._state.reshape(-1)
 
-    def reset(self, init_state=None):
+    def reset(self, init_state=None,**kwargs):
         if init_state is None:
             state = [self.sample_initial_state()]
         else:

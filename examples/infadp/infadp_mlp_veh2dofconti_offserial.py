@@ -42,7 +42,7 @@ if __name__ == "__main__":
     parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--action_type", type=str, default="continu")
     parser.add_argument("--reward_scale", type=float, default=1.0)
-    parser.add_argument("--state_obs_scale", type=list, default=[1.0, 1.0, 1.0 / 2.5, 1.0])
+    parser.add_argument("--state_obs_scale", type=list, default=[1.0, 1.0, 1.0 , 1.0])
     parser.add_argument("--one_step_scale", type=list, default=[1.0 / 5.0])
     state_obs_scale = parser.parse_known_args()[0].state_obs_scale
     pre_horizon = parser.parse_known_args()[0].pre_horizon
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     ################################################
     # 8. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
-    parser.add_argument("--apprfunc_save_interval", type=int, default=100)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=500)
     parser.add_argument("--log_save_interval", type=int, default=100)
 
     # Get parameter dictionary
