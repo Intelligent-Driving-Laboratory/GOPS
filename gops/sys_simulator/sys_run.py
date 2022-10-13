@@ -38,7 +38,7 @@ default_cfg["img_fmt"] = "png"
 class PolicyRuner:
     def __init__(self, log_policy_dir_list, trained_policy_iteration_list, save_render=False, plot_range=None,
                  is_init_info=False, init_info=None, legend_list=None, use_opt=False, constrained_env=False,
-                 is_tracking=False, dt=None) -> None:
+                 is_tracking=False, dt=None, obs_noise_type=None, obs_noise_data=None, action_noise_type=None, action_noise_data=None) -> None:
         self.log_policy_dir_list = log_policy_dir_list
         self.trained_policy_iteration_list = trained_policy_iteration_list
         self.save_render = save_render
@@ -59,6 +59,10 @@ class PolicyRuner:
         self.policy_num = len(self.log_policy_dir_list)
         if self.policy_num != len(self.trained_policy_iteration_list):
             raise RuntimeError("The lenth of policy number is not equal to the number of policy iteration")
+        self.obs_noise_type = obs_noise_type
+        self.obs_noise_data = obs_noise_data
+        self.action_noise_type = action_noise_type
+        self.action_noise_data = action_noise_data
 
         # data for plot
 
@@ -103,7 +107,6 @@ class PolicyRuner:
                 action = self.compute_action_lqr(state, controller)
             else:
                 action = self.compute_action(obs, controller)
-
             next_obs, reward, done, info = env.step(action)
 
             action_list.append(action)
@@ -507,7 +510,14 @@ class PolicyRuner:
             self.algorithm_list.append(args["algorithm"])
 
     def __load_env(self):
-        env = create_env(**self.args)
+        env_args = {
+            **self.args,
+            "obs_noise_type": self.obs_noise_type,
+            "obs_noise_data": self.obs_noise_data,
+            "action_noise_type": self.action_noise_type,
+            "action_noise_data": self.action_noise_data,
+        }
+        env = create_env(**env_args)
         if self.save_render:
             video_path = os.path.join(self.save_path, "videos")
             env = wrappers.RecordVideo(env, video_path,
@@ -574,6 +584,17 @@ class PolicyRuner:
             obs = env.reset()
             obs_list.append(obs)
         return obs_list
+
+    def __action_noise(self, env, action, noise_type, noise_data):
+        assert noise_type in ["normal", "uniform"]
+        assert len(noise_data) == 2 and len(noise_data[0]) == env.action_space.shape[0]
+        if noise_type is None:
+            return action
+        elif noise_type == "normal":
+            return action + np.random.normal(loc=noise_data[0], scale=noise_data[1])
+        elif noise_type == "uniform":
+            return action + np.random.uniform(low=noise_data[0], high=noise_data[1])
+
     def __error_compute(self, env, obs_list, state_list, controller, init_state_nums, is_opt):
         action_list = []
         next_state_list = []
