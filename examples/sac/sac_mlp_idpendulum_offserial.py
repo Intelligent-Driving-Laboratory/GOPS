@@ -21,7 +21,7 @@ from gops.utils.init_args import init_args
 from gops.utils.plot_evaluation import plot_all
 from gops.utils.tensorboard_setup import start_tensorboard, save_tb_to_csv
 
-os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OMP_NUM_THREADS"] = "4"
 
 if __name__ == "__main__":
     # Parameters Setup
