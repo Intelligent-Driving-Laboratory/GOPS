@@ -43,8 +43,18 @@ class ApproxContainer(ApprBase):
             # weight initialization
             self.v.weight = Parameter(torch.tensor(initial_weight, dtype=torch.float32), requires_grad=True)
         else:
-            # zero initialization
-            self.value.v.weight.data.fill_(0)
+            if value_func_type == 'POLY':
+                # zero initialization
+                self.value.v.weight.data.fill_(0)
+            else:
+                for m in self.value.v:
+                    if isinstance(m, nn.Linear):
+                        weight_shape = list(m.weight.data.size())
+                        fan_in = weight_shape[1]
+                        fan_out = weight_shape[0]
+                        w_bound = np.sqrt(6. / (fan_in + fan_out))
+                        m.weight.data.uniform_(-w_bound, w_bound)
+                        m.bias.data.fill_(0)
         self.value_target = deepcopy(self.value)
 
     def policy(self, batch_obs):
@@ -141,12 +151,6 @@ class RPI(AlgorithmBase):
             self.grad_step[iteration, 0] = self.num_update_value
             print(f'Newton ite: {iteration}, grad step = {self.num_update_value:d}, '
                   f'loss value = {math.log10(loss_value.item()):.2f}')
-            if self.value_func_type == 'POLY':
-                weight = self.networks.value.v.weight.detach()[0]
-                print(f'weight = {weight}')
-                if self.networks.gt_weight is not None:
-                    gt = np.array(self.networks.gt_weight)
-                    print(f'error = {math.log10(np.linalg.norm(weight - gt) / np.linalg.norm(gt)):.2f}')
 
         return grad_info
 

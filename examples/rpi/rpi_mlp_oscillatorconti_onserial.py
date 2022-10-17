@@ -45,13 +45,18 @@ if __name__ == "__main__":
 
     ################################################
     # 2.1 Parameters of value approximate function
-    # 2.1 Parameters of value approximate function
     # Options: StateValue/ActionValue/ActionValueDis
-    parser.add_argument('--value_func_name', type=str, default='StateValue')
+    parser.add_argument("--value_func_name", type=str, default="StateValue")
     # Options: MLP/CNN/RNN/POLY/GAUSS
-    parser.add_argument('--value_func_type', type=str, default='POLY')
-    parser.add_argument('--value_degree', type=int, default=2)
-    parser.add_argument('--gt_weight', type=list, default=[2.0, 0.0, 1.0])
+    parser.add_argument("--value_func_type", type=str, default="MLP")
+    value_func_type = parser.parse_known_args()[0].value_func_type
+    # 2.1.1 MLP, CNN, RNN
+    if value_func_type == "MLP":
+        parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
+        # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
+        parser.add_argument("--value_hidden_activation", type=str, default="elu")
+        # Output Layer: linear
+        parser.add_argument("--value_output_activation", type=str, default="linear")
 
     # 2.2 Parameters of policy approximate function
     # Options: None/DetermPolicy/StochaPolicy
@@ -65,7 +70,7 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for algorithm
-    parser.add_argument('--learning_rate', type=float, default=1e-4)
+    parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--gamma_atte', type=float, default=2)
 
     ################################################
@@ -90,12 +95,12 @@ if __name__ == "__main__":
     parser.add_argument('--base_decline', type=float, default=0.0, help='the intensity of probing noise')
     # Initial state
     parser.add_argument('--fixed_initial_state', type=list, default=[0.5, -0.5], help='for env_data [0.5, -0.5]')
-    parser.add_argument('--initial_state_range', type=list, default=[1.5, 1.5], help='for env_model')
+    parser.add_argument('--initial_state_range', type=list, default=[1.2, 1.2], help='for env_model')
     # State threshold
     parser.add_argument('--state_threshold', type=list, default=[5.0, 5.0])
     # Rollout steps
-    parser.add_argument('--lower_step', type=int, default=200, help='for env_model')
-    parser.add_argument('--upper_step', type=int, default=700, help='for env_model')
+    parser.add_argument('--lower_step', type=int, default=100, help='for env_model')
+    parser.add_argument('--upper_step', type=int, default=200, help='for env_model')
     parser.add_argument('--max_episode_steps', type=int, default=200, help='for env_data')
 
     ################################################
@@ -107,8 +112,8 @@ if __name__ == "__main__":
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument('--evaluator_name', type=str, default='evaluator')
-    parser.add_argument('--num_eval_episode', type=int, default=50)
-    parser.add_argument('--eval_interval', type=int, default=2)
+    parser.add_argument('--num_eval_episode', type=int, default=1)
+    parser.add_argument('--eval_interval', type=int, default=500000)
     parser.add_argument('--print_interval', type=int, default=1)
 
     ################################################

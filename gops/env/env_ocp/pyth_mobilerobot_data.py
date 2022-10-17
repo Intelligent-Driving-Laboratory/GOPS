@@ -79,7 +79,7 @@ class PythMobilerobot(PythBaseEnv):
     def state(self):
         return self._state.reshape(-1)
 
-    def reset(self, init_state=None):
+    def reset(self, init_state=None,**kwargs):
         if init_state is None:
             state = [self.sample_initial_state()]
         else:
@@ -142,7 +142,7 @@ class PythMobilerobot(PythBaseEnv):
         # define the ending condition here the format is just like isdone = l(next_state)
 
         isdone = bool(
-            dead.all(1)
+            # dead.all(1)
             + (self._state[:, 0] < -2)
             + (self._state[:, 0] > 13)
             + (self._state[:, 1] > 3)
@@ -150,7 +150,7 @@ class PythMobilerobot(PythBaseEnv):
         )
         ############################################################################################
         self.steps += 1
-        info = {"TimeLimit.truncated": self.steps > 170, "constraint": constraint.reshape(-1)} # TODO is right
+        info = {"TimeLimit.truncated": self.steps > 199, "constraint": constraint.reshape(-1)}  # TODO is right
         return np.array(self._state.reshape(-1), dtype=np.float32), float(reward), isdone, info  # TODO is right
 
     def render(self, mode="human", n_window=1):

@@ -26,7 +26,7 @@ class Veh2dofcontiModel(torch.nn.Module):
         actions = steer_norm
         state = info["state"]
         ref_num = info["ref_num"]
-        tc = info["t"]
+        tc = info["ref_time"]
         yc, phic, vc, wc = state[:, 0], state[:, 1], state[:, 2], state[:, 3]
         path_yc, path_phic = self.vehicle_dynamics.compute_path_y(tc, ref_num), \
                            self.vehicle_dynamics.compute_path_phi(tc, ref_num)
@@ -56,7 +56,7 @@ class Veh2dofcontiModel(torch.nn.Module):
         info["state"] = state_next
         info["constraint"] = None
         info["ref_num"] = info["ref_num"]
-        info["t"] = t
+        info["ref_time"] = t
 
         return obs, reward, isdone, info
 

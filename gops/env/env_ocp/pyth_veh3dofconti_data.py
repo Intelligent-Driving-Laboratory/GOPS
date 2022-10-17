@@ -175,7 +175,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         self.info_dict = {
             "state": {"shape": self.state_dim, "dtype": np.float32},
             "ref_num": {"shape": (), "dtype": np.uint8},
-            "t": {"shape": (), "dtype": np.float32},
+            "ref_time": {"shape": (), "dtype": np.float32},
         }
         self.seed()
 
@@ -183,7 +183,7 @@ class SimuVeh3dofconti(PythBaseEnv):
     def additional_info(self):
         return self.info_dict
 
-    def reset(self, init_state=None, ref_init_time=None, ref_num=None):
+    def reset(self, init_state=None, ref_time=None, ref_num=None, **kwargs):
         init_y = None
         init_phi = None
         init_u = None
@@ -191,13 +191,13 @@ class SimuVeh3dofconti(PythBaseEnv):
         init_w = None
         init_x = None
         obs = None
-        if (init_state is None) & (ref_init_time is None) & (ref_num is None):
+        if (init_state is None) & (ref_time is None) & (ref_num is None):
             obs = self.sample_initial_state()
             delta_x, delta_y, delta_phi, u, v, w = obs
             flag = [0, 1]
             self.ref_num = self.np_random.choice(flag)
-            ref_init_time = 20. * self.np_random.uniform(low=0., high=1.)
-            self.t = ref_init_time
+            ref_time = 20. * self.np_random.uniform(low=0., high=1.)
+            self.t = ref_time
             path_x = self.vehicle_dynamics.compute_path_x(self.t, self.ref_num)
             init_x = path_x + delta_x
             init_y = self.vehicle_dynamics.compute_path_y(self.t, self.ref_num) + delta_y
@@ -205,9 +205,9 @@ class SimuVeh3dofconti(PythBaseEnv):
             init_u = u
             init_v = v
             init_w = w
-        elif (init_state is not None) & (ref_init_time is not None) & (ref_num is not None):
+        elif (init_state is not None) & (ref_time is not None) & (ref_num is not None):
             self.ref_num = ref_num
-            self.t = ref_init_time
+            self.t = ref_time
             init_x, init_y, init_phi, init_u, init_v, init_w = init_state[0], init_state[1], init_state[2], init_state[3], init_state[4], init_state[5]
             init_delta_x = self.vehicle_dynamics.compute_path_x(self.t, self.ref_num) - init_x
             init_delta_y = self.vehicle_dynamics.compute_path_y(self.t, self.ref_num) - init_y
@@ -233,6 +233,8 @@ class SimuVeh3dofconti(PythBaseEnv):
         self.state, self.obs = self.vehicle_dynamics.simulation(self.state, action,
                                                                 self.base_frequency, self.ref_num, self.t)
         self.done = self.judge_done(self.state, self.t)
+        if self.done:
+            reward = reward -100
 
         state = np.array(self.state, dtype=np.float32)
         x_ref = self.vehicle_dynamics.compute_path_x(self.t, self.ref_num)
@@ -240,7 +242,7 @@ class SimuVeh3dofconti(PythBaseEnv):
 
         info = {
             "state": state,
-            "t": self.t,
+            "ref_time": self.t,
             "ref": [x_ref, y_ref, None, None, None, None],
             "ref_num": self.ref_num,
         }
