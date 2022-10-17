@@ -78,16 +78,16 @@ class PythInverteddoublependulum(PythBaseEnv):
         reward = reward.numpy()[0]
         return self.obs, reward, bool(done), info
 
-    def reset(self, *, init_obs=None,**kwargs):
+    def reset(self, *, init_state=None, **kwargs):
         """
         self.obs: initial observation, datatype:numpy.ndarray, shape:[state_dim]
         """
         # define initial state distribution here
-        if init_obs is None:
+        if init_state is None:
             self.obs = self.sample_initial_state()
         else:
-            assert self.observation_space.contains(init_obs)
-            self.obs = init_obs
+            # assert self.observation_space.contains(init_obs)
+            self.obs = init_state
         return self.obs
 
     def render(self, mode="human"):
