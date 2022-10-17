@@ -123,7 +123,7 @@ class VehicleDynamics(object):
         punish_yaw_rate = -np.square(w)
         punish_steer = -np.square(steers)
         punish_vys = - np.square(v)
-        rewards = 0.2 * devi_y + 0.1 * devi_phi + 0.05 * punish_yaw_rate + 0.05 * punish_steer + 0.05 * punish_vys
+        rewards = 0.1 * devi_y + 0.01 * devi_phi + 0.01 * punish_yaw_rate + 0.01 * punish_steer + 0.01 * punish_vys
         return rewards
 
 
@@ -211,6 +211,8 @@ class SimuVeh2dofconti(PythBaseEnv):
         self.state, self.obs = self.vehicle_dynamics.simulation(self.state, action,
                                              self.base_frequency, self.ref_num, self.t)
         self.done = self.judge_done(self.state, self.t)
+        if self.done:
+            reward = reward - 100
         state = np.array(self.state, dtype=np.float32)
         y_ref = self.vehicle_dynamics.compute_path_y(self.t, self.ref_num)
         info = {
@@ -224,7 +226,7 @@ class SimuVeh2dofconti(PythBaseEnv):
 
     def judge_done(self, state, t):
         y, phi, v, w = state[0], state[1], state[2], state[3]
-        done = (np.abs(y - self.vehicle_dynamics.compute_path_y(t, self.ref_num)) > 3) | \
+        done = (np.abs(y - self.vehicle_dynamics.compute_path_y(t, self.ref_num)) > 2) | \
                (np.abs(phi - self.vehicle_dynamics.compute_path_phi(t, self.ref_num)) > np.pi / 4.)
         return done
 

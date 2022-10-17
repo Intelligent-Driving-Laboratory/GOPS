@@ -9,6 +9,7 @@ import seaborn as sns
 import torch
 import pandas as pd
 from gym import wrappers
+from copy import copy
 
 from gops.create_pkg.create_env import create_env
 from gops.utils.plot_evaluation import cm2inch
@@ -100,6 +101,8 @@ class PolicyRuner:
         info_list = [init_info]
         obs = env.reset(**init_info)
         state = env.state
+        print('The initial state is:')
+        print(self.__convert_format(state))
         # plot tracking
         state_with_ref_error = {}
         done = False
@@ -125,7 +128,7 @@ class PolicyRuner:
             obs = next_obs
             state = env.state
             step = step + 1
-            print("step:", step)
+            # print("step:", step)
 
             if "TimeLimit.truncated" not in info.keys():
                 info["TimeLimit.truncated"] = False
@@ -553,6 +556,19 @@ class PolicyRuner:
         # print("Load {}-policy successfully!".format(alg_name))
         return networks
 
+    def __convert_format(self,origin_data_list:list):
+        data_list = copy(origin_data_list)
+        for i in range(len(origin_data_list)):
+            if isinstance(origin_data_list[i],list) or isinstance(origin_data_list[i],np.ndarray) :
+                data_list[i]= self.__convert_format(origin_data_list[i])
+            else:
+                data_list[i] = '{:.2g}'.format(origin_data_list[i])
+        return(data_list)
+
+
+
+
+
     def __run_data(self):
         for i in range(self.policy_num):
             log_policy_dir = self.log_policy_dir_list[i]
@@ -560,6 +576,12 @@ class PolicyRuner:
 
             self.args = self.args_list[i]
             env = self.__load_env()
+            print('The environment for policy {}'.format(i+1))
+            if hasattr(env, 'train_space') and hasattr(env, 'work_space'):
+                print('The train space is')
+                print(self.__convert_format(env.train_space))
+                print('The work space is')
+                print(self.__convert_format(env.work_space))
             networks = self.__load_policy(log_policy_dir, trained_policy_iteration)
 
             # Run policy
@@ -571,6 +593,7 @@ class PolicyRuner:
         if self.use_opt:
             self.args = self.args_list[self.policy_num-1]
             env = self.__load_env(use_opt=True)
+            print('The environment for opt')
             env.set_mode('test')
             controller = self.opt_controller
             eval_dict_opt, tracking_dict_opt = self.run_an_episode(env, controller, self.init_info, is_opt=True, render=False)

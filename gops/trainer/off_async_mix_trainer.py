@@ -152,9 +152,9 @@ class OffAsyncTrainermix:
                     self.evaluator.run_evaluation.remote(self.iteration)
                 )
                 
-                if total_avg_return > self.best_tar:
+                if total_avg_return > self.best_tar and self.iteration >= self.max_iteration / 5:
                     self.best_tar = total_avg_return
-                    print('New best TAR = {}!'.format(str(self.best_tar)))
+                    print('Best return = {}!'.format(str(self.best_tar)))
 
                     for filename in os.listdir(self.save_folder + "/apprfunc/"):
                         if filename.endswith("_opt.pkl"):

@@ -41,7 +41,7 @@ if __name__ == "__main__":
     parser.add_argument("--action_high_limit", type=list, default=None)
     parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--action_type", type=str, default="continu")
-    parser.add_argument("--reward_scale", type=float, default=0.1)
+    parser.add_argument("--reward_scale", type=float, default=1)
     parser.add_argument("--reward_shift", type=float, default=0)
     parser.add_argument("--is_render", type=bool, default=False)
     parser.add_argument(
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
     parser.add_argument(
-        "--max_iteration", type=int, default=6400, help="Maximum iteration number"
+        "--max_iteration", type=int, default=10000, help="Maximum iteration number"
     )
     parser.add_argument("--ini_network_dir", type=str, default=None)
     trainer_type = parser.parse_known_args()[0].trainer
@@ -100,7 +100,7 @@ if __name__ == "__main__":
         type=dict,
         default={
             "mean": np.array([0], dtype=np.float32),
-            "std": np.array([0.0], dtype=np.float32),
+            "std": np.array([0.], dtype=np.float32),
         },
     )
 
@@ -109,6 +109,12 @@ if __name__ == "__main__":
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
     parser.add_argument("--num_eval_episode", type=int, default=5)
     parser.add_argument("--eval_interval", type=int, default=100)
+    # set work_space
+    parser.add_argument("--initial_distribution", type=str, default="normal")
+    init_mean = np.array([0, 0], dtype=np.float32)
+    init_std = np.array([0.5, 0.5], dtype=np.float32)
+    work_space = np.stack((init_mean - 3 * init_std, init_mean + 3 * init_std))
+    parser.add_argument("--work_space", type=np.array, default=work_space)
 
     ################################################
     # 8. Data savings
@@ -123,7 +129,7 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
-    alg.set_parameters({"reward_scale": 1, "gamma": 0.99, "tau": 0.2,"forward_step":30})
+    alg.set_parameters({"reward_scale": 1, "gamma": 0.99, "tau": 0.2,"forward_step":200})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)  # 调用alg里面的函数，创建自己的网络
     # Step 3: create buffer in trainer

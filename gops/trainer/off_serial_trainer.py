@@ -95,7 +95,7 @@ class OffSerialTrainer:
             with ModuleOnDevice(self.networks, "cpu"):
                 total_avg_return = self.evaluator.run_evaluation(self.iteration)
             
-            if total_avg_return > self.best_tar and self.iteration>= self.max_iteration/5:
+            if total_avg_return > self.best_tar and self.iteration >= self.max_iteration / 5:
                 self.best_tar = total_avg_return
                 print('Best return = {}!'.format(str(self.best_tar)))
 
