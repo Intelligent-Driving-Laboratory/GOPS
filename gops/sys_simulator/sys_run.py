@@ -463,8 +463,8 @@ class PolicyRuner:
                     action_error = {}
                     error_list = []
                     for q in range(self.obs_nums):
-                        error = np.abs(self.error_dict["policy_{}".format(i)]["action"][q, j] - self.error_dict["opt"]["action"][q, j]) \
-                                / (np.max(self.error_dict["opt"]["action"][:, j]) - np.min(self.error_dict["opt"]["action"][:, j]))
+                        error = np.abs(action_array[i, q, j] - action_array[-1, q, j]) \
+                                / (np.max(action_array[-1, :, j]) - np.min(action_array[-1, :, j]))
                         error_list.append(error)
                     action_error["Max_error"] = '{:.2f}%'.format(max(error_list)*100)
                     action_error["Mean_error"] = '{:.2f}%'.format(sum(error_list) / len(error_list)*100)
@@ -474,8 +474,8 @@ class PolicyRuner:
                     state_error = {}
                     error_list = []
                     for q in range(self.obs_nums):
-                        error = np.abs(self.error_dict["policy_{}".format(i)]["next_state"][q, o] - self.error_dict["opt"]["next_state"][q, o]) \
-                                / (np.max(self.error_dict["opt"]["next_state"][:, o]) - np.min(self.error_dict["opt"]["next_state"][:, o]))
+                        error = np.abs(state_array[i, q, j] - state_array[-1, q, j]) \
+                                / (np.max(state_array[-1, :, j]) - np.min(state_array[-1, :, j]))
                         error_list.append(error)
                     state_error["Max_error"] = '{:.2f}%'.format(max(error_list)*100)
                     state_error["Mean_error"] = '{:.2f}%'.format(sum(error_list) / len(error_list)*100)
