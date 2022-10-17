@@ -1,7 +1,7 @@
 from sys_run import PolicyRuner
 
 runer = PolicyRuner(
-    log_policy_dir_list=["../../results/RPI/221013-160059"] * 2,
+    log_policy_dir_list=["../../results/RPI/poly_oscillatorconti_221017-205535"] * 2,
     trained_policy_iteration_list=['40', '50'],
     is_init_info=True,
     init_info={'init_state': [1, -1]},
