@@ -233,6 +233,8 @@ class SimuVeh3dofconti(PythBaseEnv):
         self.state, self.obs = self.vehicle_dynamics.simulation(self.state, action,
                                                                 self.base_frequency, self.ref_num, self.t)
         self.done = self.judge_done(self.state, self.t)
+        if self.done:
+            reward = reward -100
 
         state = np.array(self.state, dtype=np.float32)
         x_ref = self.vehicle_dynamics.compute_path_x(self.t, self.ref_num)
