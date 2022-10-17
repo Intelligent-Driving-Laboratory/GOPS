@@ -77,9 +77,9 @@ class PythMobilerobot(PythBaseEnv):
 
     @property
     def state(self):
-        return self._state.reshape(-1)
+        return self._state.reshape(-1)[:5]
 
-    def reset(self, init_state=None,**kwargs):
+    def reset(self, init_state=None, **kwargs):
         if init_state is None:
             state = [self.sample_initial_state()]
         else:
@@ -143,10 +143,10 @@ class PythMobilerobot(PythBaseEnv):
 
         isdone = bool(
             # dead.all(1)
-            + (self._state[:, 0] < -2)
-            + (self._state[:, 0] > 13)
-            + (self._state[:, 1] > 3)
-            + (self._state[:, 1] < -1)
+            # + (self._state[:, 0] < -2)
+            # + (self._state[:, 0] > 13)
+            # + (self._state[:, 1] > 3)
+            # + (self._state[:, 1] < -1)
         )
         ############################################################################################
         self.steps += 1
