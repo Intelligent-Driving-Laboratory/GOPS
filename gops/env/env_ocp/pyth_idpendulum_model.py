@@ -141,7 +141,9 @@ class Dynamics(object):
             theta2
         ), point1y + self.l_rod2 * torch.cos(theta2)
 
-        return point2y <= 1.0
+        d1 = point2y <= 1.0
+        d2 = torch.abs(point1x) >= 15
+        return torch.logical_or(d1, d2) # point2y <= 1.0
 
 class PythInvertedpendulum(torch.nn.Module):
     def __init__(self,**kwargs):
