@@ -465,7 +465,7 @@ class PolicyRuner:
                 for j in range(action_dim):
                     action_error = {}
                     error_list = []
-                    for q in range(self.obs_nums):
+                    for q in range(len(action_array[0])):
                         error = np.abs(action_array[i, q, j] - action_array[-1, q, j]) \
                                 / (np.max(action_array[-1, :, j]) - np.min(action_array[-1, :, j]))
                         error_list.append(error)
@@ -476,7 +476,7 @@ class PolicyRuner:
                 for o in range(state_dim):
                     state_error = {}
                     error_list = []
-                    for q in range(self.obs_nums):
+                    for q in range(len(state_array[0])):
                         error = np.abs(state_array[i, q, o] - state_array[-1, q, o]) \
                                 / (np.max(state_array[-1, :, o]) - np.min(state_array[-1, :, o]))
                         error_list.append(error)
@@ -600,20 +600,20 @@ class PolicyRuner:
             self.eval_list.append(eval_dict_opt)
             if self.is_tracking:
                 self.tracking_list.append(tracking_dict_opt)
-            opt_obs_list = eval_dict_opt["obs_list"]
-            opt_state_list = eval_dict_opt["state_list"]
-            opt_info_list  = eval_dict_opt["info_list"]
-            self.obs_nums = len(opt_obs_list)
-            for i in range(self.policy_num):
-                log_policy_dir = self.log_policy_dir_list[i]
-                trained_policy_iteration = self.trained_policy_iteration_list[i]
-                self.args = self.args_list[i]
-                env = self.__load_env()
-                networks = self.__load_policy(log_policy_dir, trained_policy_iteration)
-                net_error_dict = self.__error_compute(env, opt_obs_list, opt_state_list,opt_info_list, networks, self.obs_nums, is_opt=False)
-                LQ_error_dict = self.__error_compute(env, opt_obs_list, opt_state_list,opt_info_list, controller, self.obs_nums, is_opt=True)
-                self.error_dict["policy_{}".format(i)] = net_error_dict
-                self.error_dict["opt"] = LQ_error_dict
+            # opt_obs_list = eval_dict_opt["obs_list"]
+            # opt_state_list = eval_dict_opt["state_list"]
+            # opt_info_list = eval_dict_opt["info_list"]
+            # self.obs_nums = len(opt_obs_list)
+            # for i in range(self.policy_num):
+            #     log_policy_dir = self.log_policy_dir_list[i]
+            #     trained_policy_iteration = self.trained_policy_iteration_list[i]
+            #     self.args = self.args_list[i]
+            #     env = self.__load_env()
+            #     networks = self.__load_policy(log_policy_dir, trained_policy_iteration)
+            #     net_error_dict = self.__error_compute(env, opt_obs_list, opt_state_list,opt_info_list, networks, self.obs_nums, is_opt=False)
+            #     LQ_error_dict = self.__error_compute(env, opt_obs_list, opt_state_list,opt_info_list, controller, self.obs_nums, is_opt=True)
+            #     self.error_dict["policy_{}".format(i)] = net_error_dict
+            #     self.error_dict["opt"] = LQ_error_dict
 
 
     def __get_init_info(self, env, init_state_nums):
