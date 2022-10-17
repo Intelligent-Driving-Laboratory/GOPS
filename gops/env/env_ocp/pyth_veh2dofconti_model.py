@@ -57,7 +57,7 @@ class Veh2dofcontiModel(torch.nn.Module):
         info["state"] = state_next
         info["constraint"] = None
         info["ref_num"] = info["ref_num"]
-        info["t"] = t
+        info["ref_time"] = t
 
         return obs, reward, isdone, info
 
