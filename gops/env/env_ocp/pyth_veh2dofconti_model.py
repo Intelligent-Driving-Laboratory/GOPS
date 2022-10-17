@@ -121,7 +121,7 @@ class VehicleDynamics(object):
 
     def judge_done(self, state, ref_num, t):
         y, phi, v, w = state[:, 0], state[:, 1], state[:, 2], state[:, 3]
-        done = (torch.abs(y - self.compute_path_y(t, ref_num)) > 3) | \
+        done = (torch.abs(y - self.compute_path_y(t, ref_num)) > 2) | \
                (torch.abs(phi - self.compute_path_phi(t, ref_num)) > torch.pi / 4.)
         return done
 
@@ -137,7 +137,7 @@ class VehicleDynamics(object):
         punish_yaw_rate = -torch.square(w)
         punish_steer = -torch.square(steers)
         punish_vys = - torch.square(v)
-        rewards = 0.2 * devi_y + 0.1 * devi_phi + 0.05 * punish_yaw_rate + 0.05 * punish_steer + 0.05 * punish_vys
+        rewards = 0.1 * devi_y + 0.01 * devi_phi + 0.01 * punish_yaw_rate + 0.01 * punish_steer + 0.01 * punish_vys
         return rewards
 
 

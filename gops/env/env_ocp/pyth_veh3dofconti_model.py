@@ -136,12 +136,11 @@ class VehicleDynamics(object):
         return state_next
 
     def judge_done(self, veh_state, ref_num, t):
-        # x, y, phi, u, v, w = veh_state[:, 0], veh_state[:, 1], veh_state[:, 2], \
-        #                                            veh_state[:, 3], veh_state[:, 4], veh_state[:, 5]
-        # done = (torch.abs(y - self.compute_path_y(t, ref_num)) > 2) |\
-        #        (torch.abs(phi - self.compute_path_phi(t, ref_num)) > torch.pi / 4.) | \
-        #        (torch.abs(x - self.compute_path_x(t, ref_num)) > 5)
-        done = False
+        x, y, phi, u, v, w = veh_state[:, 0], veh_state[:, 1], veh_state[:, 2], \
+                                                   veh_state[:, 3], veh_state[:, 4], veh_state[:, 5]
+        done = (torch.abs(y - self.compute_path_y(t, ref_num)) > 2) |\
+               (torch.abs(phi - self.compute_path_phi(t, ref_num)) > torch.pi / 4.) | \
+               (torch.abs(x - self.compute_path_x(t, ref_num)) > 5)
         return done
 
     def compute_rewards(self, obs, actions):  # obses and actions are tensors
@@ -156,7 +155,7 @@ class VehicleDynamics(object):
         punish_a_x = -torch.square(a_xs)
         punish_x = -torch.square(delta_x)
         rewards = 0.1 * devi_y + 0.01 * devi_phi + 0.01 * punish_yaw_rate + \
-                  0.01 * punish_steer + 0.01 * punish_a_x + 0.05 * punish_x
+                  0.01 * punish_steer + 0.01 * punish_a_x + 0.04 * punish_x
 
         return rewards
 
