@@ -136,7 +136,7 @@ class VehicleDynamics(object):
         punish_a_x = -np.square(a_xs)
         punish_x = -np.square(delta_x)
         rewards = 0.1 * devi_y + 0.01 * devi_phi + 0.01 * punish_yaw_rate + \
-                  0.01 * punish_steer + 0.01 * punish_a_x + 0.05 * punish_x
+                  0.01 * punish_steer + 0.01 * punish_a_x + 0.04 * punish_x
 
         return rewards
 
@@ -234,7 +234,7 @@ class SimuVeh3dofconti(PythBaseEnv):
                                                                 self.base_frequency, self.ref_num, self.t)
         self.done = self.judge_done(self.state, self.t)
         if self.done:
-            reward = reward -100
+            reward = reward - 100
 
         state = np.array(self.state, dtype=np.float32)
         x_ref = self.vehicle_dynamics.compute_path_x(self.t, self.ref_num)
@@ -252,8 +252,8 @@ class SimuVeh3dofconti(PythBaseEnv):
         x, y, phi, u, v, w = veh_state[0], veh_state[1], veh_state[2], \
                                                    veh_state[3], veh_state[4], veh_state[5]
         done = (np.abs(y - self.vehicle_dynamics.compute_path_y(t, self.ref_num)) > 2) |\
-               (np.abs(phi - self.vehicle_dynamics.compute_path_phi(t, self.ref_num)) > np.pi / 4.) | \
-               (np.abs(x - self.vehicle_dynamics.compute_path_x(t, self.ref_num)) > 5)
+               (np.abs(x - self.vehicle_dynamics.compute_path_x(t, self.ref_num)) > 5) |\
+               (np.abs(phi - self.vehicle_dynamics.compute_path_phi(t, self.ref_num)) > np.pi / 4.)
         return done
 
     def close(self):
