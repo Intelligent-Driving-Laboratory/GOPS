@@ -517,15 +517,18 @@ class PolicyRuner:
             self.env_id_list.append(env_id)
             self.algorithm_list.append(args["algorithm"])
 
-    def __load_env(self):
-        env_args = {
-            **self.args,
-            "obs_noise_type": self.obs_noise_type,
-            "obs_noise_data": self.obs_noise_data,
-            "action_noise_type": self.action_noise_type,
-            "action_noise_data": self.action_noise_data,
-        }
-        env = create_env(**env_args)
+    def __load_env(self,use_opt =False):
+        if use_opt:
+            env = create_env( **self.args)
+        else:
+            env_args = {
+                **self.args,
+                "obs_noise_type": self.obs_noise_type,
+                "obs_noise_data": self.obs_noise_data,
+                "action_noise_type": self.action_noise_type,
+                "action_noise_data": self.action_noise_data,
+            }
+            env = create_env(**env_args)
         if self.save_render:
             video_path = os.path.join(self.save_path, "videos")
             env = wrappers.RecordVideo(env, video_path,
@@ -566,6 +569,8 @@ class PolicyRuner:
             self.tracking_list.append(tracking_dict)
 
         if self.use_opt:
+            self.args = self.args_list[self.policy_num-1]
+            env = self.__load_env(use_opt=True)
             env.set_mode('test')
             controller = self.opt_controller
             eval_dict_opt, tracking_dict_opt = self.run_an_episode(env, controller, self.init_info, is_opt=True, render=False)
