@@ -9,6 +9,7 @@ runer = PolicyRuner(
     save_render=False,
     legend_list=['24000','27000'],
     dt=0.05,
+    plot_range=[0,50],
     use_opt=True
     )
 
