@@ -53,7 +53,7 @@ class _GymAircraftconti(PythBaseEnv):
         self.R = np.eye(self.action_dim)
         self.gamma = 1
         self.gamma_atte = kwargs['gamma_atte']
-        self.control_matrix = - np.array([[0.166065, 0.180362, -0.437060]], dtype=np.float32)
+        self.control_matrix = np.array([[0.166065, 0.180362, -0.437060]], dtype=np.float32)
 
         # state & action space
         self.state_threshold = kwargs['state_threshold']
@@ -80,6 +80,14 @@ class _GymAircraftconti(PythBaseEnv):
 
         self.max_episode_steps = kwargs['max_episode_steps']  # original = 200
         self.steps = 0
+
+    @property
+    def has_optimal_controller(self):
+        return True
+
+    def control_policy(self, obs):
+        action = self.control_matrix @ obs
+        return action
 
     def reset(self, init_state=None, **kwargs):
         if init_state is None:

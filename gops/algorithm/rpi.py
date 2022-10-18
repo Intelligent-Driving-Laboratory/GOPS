@@ -149,8 +149,7 @@ class RPI(AlgorithmBase):
 
         if iteration % self.print_interval == 0:
             self.grad_step[iteration, 0] = self.num_update_value
-            print(f'Newton ite: {iteration}, grad step = {self.num_update_value:d}, '
-                  f'loss value = {math.log10(loss_value.item()):.2f}')
+            print(f'Newton ite: {iteration}, grad step = {self.num_update_value:d}')
 
         return grad_info
 
