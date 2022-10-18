@@ -24,8 +24,8 @@ class OnSampler:
         # initialize necessary hyperparameters
         self.env = create_env(**kwargs)
         _, self.env = set_seed(kwargs["trainer"], kwargs["seed"], index + 200, self.env)
-        alg_name = kwargs["algorithm"]
-        alg_file_name = alg_name.lower()
+        self.alg_name = kwargs["algorithm"]
+        alg_file_name = self.alg_name.lower()
         file = __import__(alg_file_name)
         ApproxContainer = getattr(file, "ApproxContainer")
         self.networks = ApproxContainer(**kwargs)
@@ -125,6 +125,10 @@ class OnSampler:
                     self.done
                     or info["TimeLimit.truncated"]
                     or t == self.sample_batch_size - 1
+            )
+            and (
+                self.alg_name is not "FHADP"
+                and self.alg_name is not "INFADP"
             ):
                 last_obs_expand = torch.from_numpy(
                     np.expand_dims(next_obs, axis=0).astype("float32")
