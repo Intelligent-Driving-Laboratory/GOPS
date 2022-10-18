@@ -36,8 +36,9 @@ class LQDynamics:
 
 
     def compute_control_matrix(self):
+        gamma = 0.99
         A0 = self.A.numpy().astype('float64')
-        A = np.linalg.pinv(np.eye(A0.shape[0])-A0*self.time_step)
+        A = np.linalg.pinv(np.eye(A0.shape[0])-A0*self.time_step)*np.sqrt(gamma)
         B0=self.B.numpy().astype('float64')
         B = A@B0*self.time_step
         Q= np.diag(self.Q.numpy()).astype('float64')
@@ -217,7 +218,7 @@ class LqEnv(PythBaseEnv):
 
         done = self.is_done(self.obs)
         if done:
-            reward -= 100
+            reward -= 0
         info = {}
         self.step_counter += 1
         self.state_buffer[self.step_counter, :] = self.obs

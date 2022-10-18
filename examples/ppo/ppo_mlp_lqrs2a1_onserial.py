@@ -30,8 +30,8 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="pyth_linearquadratic")
-    parser.add_argument("--lq_config", type=str, default="s2a1")
+    parser.add_argument("--env_id", type=str, default="pyth_lq")
+    parser.add_argument("--lq_config", type=str, default="s3a1")
     parser.add_argument("--algorithm", type=str, default="PPO", help="")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
 
@@ -42,8 +42,8 @@ if __name__ == "__main__":
     parser.add_argument("--action_high_limit", type=list, default=None)
     parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--action_type", type=str, default="continu")
-    parser.add_argument("--reward_scale", type=float, default=1)
-    parser.add_argument("--reward_shift", type=float, default=0)
+    parser.add_argument("--reward_scale", type=float, default=0.01)
+    parser.add_argument("--reward_shift", type=float, default=10)
     parser.add_argument("--is_render", type=bool, default=False)
     parser.add_argument(
         "--is_adversary", type=bool, default=False, help="Adversary training"
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     value_func_type = parser.parse_known_args()[0].value_func_type
     if value_func_type == "MLP":
         parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
-    parser.add_argument("--value_hidden_activation", type=str, default="relu")
+    parser.add_argument("--value_hidden_activation", type=str, default="elu")
     parser.add_argument("--value_output_activation", type=str, default="linear")
 
     # 2.2 Parameters of policy approximate function
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     if policy_func_type == "MLP":
         parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
         parser.add_argument(
-            "--policy_hidden_activation", type=str, default="relu", help=""
+            "--policy_hidden_activation", type=str, default="elu", help=""
         )
         parser.add_argument(
             "--policy_output_activation", type=str, default="linear", help=""
@@ -86,14 +86,14 @@ if __name__ == "__main__":
     ################################################
     # 3. Parameters for algorithm
     parser.add_argument(
-        "--learning_rate", type=float, default=1e-3, help="3e-4 in the paper"
+        "--learning_rate", type=float, default=1e-4, help="3e-4 in the paper"
     )
-    parser.add_argument("--num_repeat", type=int, default=10, help="5")  # 5 repeat
+    parser.add_argument("--num_repeat", type=int, default=5, help="5")  # 5 repeat
     parser.add_argument(
         "--num_mini_batch", type=int, default=8, help="8"
     )  # 8 mini_batch
     parser.add_argument(
-        "--mini_batch_size", type=int, default=64, help="128"
+        "--mini_batch_size", type=int, default=200, help="128"
     )  # 8 mini_batch * 128 = 1024
     parser.add_argument(
         "--num_epoch",
@@ -108,7 +108,7 @@ if __name__ == "__main__":
     # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
     parser.add_argument("--trainer", type=str, default="on_serial_trainer")
     # Maximum iteration number
-    parser.add_argument("--max_iteration", type=int, default=100)
+    parser.add_argument("--max_iteration", type=int, default=500)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
 
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--sample_batch_size",
         type=int,
-        default=512,
+        default=1600,
         help="Batch size of sampler for buffer store = 1024",
     )  # 8 env * 128 step
     assert (
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=5)
+    parser.add_argument("--num_eval_episode", type=int, default=10)
     parser.add_argument("--eval_interval", type=int, default=1)
 
     ################################################
@@ -148,7 +148,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--apprfunc_save_interval",
         type=int,
-        default=20,
+        default=25,
         help="Save value/policy every N updates",
     )
     # Save key info every N updates
