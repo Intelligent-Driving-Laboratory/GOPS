@@ -40,7 +40,7 @@ default_cfg["img_fmt"] = "png"
 class PolicyRuner:
     def __init__(self, log_policy_dir_list, trained_policy_iteration_list, save_render=False, plot_range=None,
                  is_init_info=False, init_info=None, legend_list=None, use_opt=False, constrained_env=False,
-                 is_tracking=False, dt=None, obs_noise_type=None, obs_noise_data=None, action_noise_type=None, action_noise_data=None) -> None:
+                 is_tracking=False, use_dist=False, dt=None, obs_noise_type=None, obs_noise_data=None, action_noise_type=None, action_noise_data=None) -> None:
         self.log_policy_dir_list = log_policy_dir_list
         self.trained_policy_iteration_list = trained_policy_iteration_list
         self.save_render = save_render
@@ -53,6 +53,7 @@ class PolicyRuner:
         self.legend_list = legend_list
         self.use_opt = use_opt
         self.constrained_env = constrained_env
+        self.use_dist = use_dist
         self.is_tracking = is_tracking
         self.dt = dt
         self.policy_num = len(self.log_policy_dir_list)
@@ -118,6 +119,8 @@ class PolicyRuner:
             else:
                 action = self.compute_action(obs, controller)
                 action = self.__action_noise(action)
+            if self.use_dist:
+                action = np.hstack((action, env.dist_func(step * env.tau)))
             next_obs, reward, done, info = env.step(action)
 
             action_list.append(action)

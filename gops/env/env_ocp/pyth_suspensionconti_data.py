@@ -75,7 +75,7 @@ class _GymSuspensionconti(PythBaseEnv):
         self.pos_body_threshold = self.state_threshold[0]
         self.vel_body_threshold = self.state_threshold[1]
         self.pos_wheel_threshold = self.state_threshold[2]
-        self.vel_wheel_threshold = self.state_threshold[3]
+        self.vel_wheel_threshold = self.state_threshold[3] * 5
         self.min_action = [-1.2]
         self.max_action = [1.2]
         self.min_adv_action = [-2.0 / self.gamma_atte]
@@ -101,8 +101,11 @@ class _GymSuspensionconti(PythBaseEnv):
         self.max_episode_steps = kwargs['max_episode_steps']  # original = 200
         self.steps = 0
 
-    def reset(self,**kwargs):
-        self.state = self.sample_initial_state()
+    def reset(self, init_state=None, **kwargs):
+        if init_state is not None:
+            self.state = init_state
+        else:
+            self.state = self.sample_initial_state()
         self.steps_beyond_done = None
         self.steps = 0
         return self.state
@@ -202,7 +205,7 @@ Any further steps are undefined behavior.
     @staticmethod
     def dist_func(time):
         dist = [0.038 * (1 - cos(8 * pi * time))] if 0.5 <= time < 0.75 else [0.0]
-        return dist
+        return np.array(dist)
 
     def render(self, mode='human'):
         pass
