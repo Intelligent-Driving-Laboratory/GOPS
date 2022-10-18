@@ -218,7 +218,7 @@ class LqEnv(PythBaseEnv):
 
         done = self.is_done(self.obs)
         if done:
-            reward -= 0
+            reward -= 100
         info = {}
         self.step_counter += 1
         self.state_buffer[self.step_counter, :] = self.obs
