@@ -58,7 +58,7 @@ class DetermPolicy(nn.Module, Action_Distribution):
         self.register_buffer("act_low_lim", torch.from_numpy(act_low_lim))
         self.hidden_activation = get_activation_func(kwargs["hidden_activation"])
         self.output_activation = get_activation_func(kwargs["output_activation"])
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
         if conv_type == "type_1":
             # CNN+MLP Parameters
             conv_kernel_sizes = [8, 4, 3]
@@ -134,7 +134,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
         self.output_activation = get_activation_func(kwargs["output_activation"])
         self.min_log_std = kwargs["min_log_std"]
         self.max_log_std = kwargs["max_log_std"]
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
         if conv_type == "type_1":
             # CNN+MLP Parameters
@@ -213,7 +213,7 @@ class ActionValue(nn.Module, Action_Distribution):
         conv_type = kwargs["conv_type"]
         self.hidden_activation = get_activation_func(kwargs["hidden_activation"])
         self.output_activation = get_activation_func(kwargs["output_activation"])
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
         if conv_type == "type_1":
             # CNN+MLP Parameters
             conv_kernel_sizes = [8, 4, 3]
@@ -277,7 +277,7 @@ class ActionValueDis(nn.Module, Action_Distribution):
         conv_type = kwargs["conv_type"]
         self.hidden_activation = get_activation_func(kwargs["hidden_activation"])
         self.output_activation = get_activation_func(kwargs["output_activation"])
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
         if conv_type == "type_1":
             # CNN+MLP Parameters
             conv_kernel_sizes = [8, 4, 3]
@@ -341,7 +341,7 @@ class ActionValueDistri(nn.Module):
         conv_type = kwargs["conv_type"]
         self.hidden_activation = get_activation_func(kwargs["hidden_activation"])
         self.output_activation = get_activation_func(kwargs["output_activation"])
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
         self.min_log_std = kwargs["min_log_std"]
         self.max_log_std = kwargs["max_log_std"]
         self.denominator = max(abs(self.min_log_std), self.max_log_std)
@@ -424,7 +424,7 @@ class StateValue(nn.Module, Action_Distribution):
         conv_type = kwargs["conv_type"]
         self.hidden_activation = get_activation_func(kwargs["hidden_activation"])
         self.output_activation = get_activation_func(kwargs["output_activation"])
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
         if conv_type == "type_1":
             # CNN+MLP Parameters
             conv_kernel_sizes = [8, 4, 3]

@@ -92,7 +92,7 @@ class DetermPolicy(nn.Module, Action_Distribution):
         action_low_limit = kwargs["act_low_lim"]
         self.register_buffer("act_high_lim", torch.from_numpy(action_high_limit))
         self.register_buffer("act_low_lim", torch.from_numpy(action_low_limit))
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
         obs = make_features(obs, self.degree)
@@ -116,7 +116,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
         self.log_std = nn.Linear(get_features_dim(obs_dim, self.degree), act_dim)
         self.register_buffer("act_high_lim", torch.from_numpy(action_high_limit))
         self.register_buffer("act_low_lim", torch.from_numpy(action_low_limit))
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
         obs = make_features(obs, self.degree)
@@ -134,7 +134,7 @@ class ActionValue(nn.Module, Action_Distribution):
         act_dim = kwargs["act_dim"]
         self.degree = kwargs["degree"]
         self.q = nn.Linear(get_features_dim(obs_dim + act_dim, self.degree), act_dim)
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs, act):
         input = torch.cat([obs, act], dim=-1)
@@ -150,7 +150,7 @@ class ActionValueDis(nn.Module, Action_Distribution):
         act_num = kwargs["act_num"]
         self.degree = kwargs["degree"]
         self.q = nn.Linear(get_features_dim(obs_dim, self.degree), act_num)
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
         obs = make_features(obs, self.degree)
@@ -168,7 +168,7 @@ class StateValue(nn.Module, Action_Distribution):
         self.norm_matrix = torch.from_numpy(np.array(kwargs['norm_matrix'], dtype=np.float32))
         self.degree = kwargs["degree"]
         self.v = nn.Linear(count_features_dim(obs_dim, self.degree), 1)
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
         obs = create_features(torch.mul(obs, self.norm_matrix), self.degree)

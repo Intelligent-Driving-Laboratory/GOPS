@@ -61,9 +61,9 @@ if __name__ == "__main__":
         act_high_lim=np.ones(5, dtype=np.float32),
         act_low_lim=np.ones(5, dtype=np.float32) * -1.0,
         # DetermPolicy specific
-        # action_distirbution_cls=DiracDistribution,
+        # action_distribution_cls=DiracDistribution,
         # StochaPolicy specific
-        action_distirbution_cls=GaussDistribution,
+        action_distribution_cls=GaussDistribution,
         std_sype="mlp_shared",
         min_log_std=-20.0,
         max_log_std=2.0,

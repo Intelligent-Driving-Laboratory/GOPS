@@ -95,17 +95,17 @@ def get_apprfunc_dict(key: str, type=None, **kwargs):
     if kwargs["policy_act_distribution"] == "default":
         if kwargs["action_type"] == "continu":
             if kwargs["policy_func_name"] == "StochaPolicy":  # todo: add TanhGauss
-                var["action_distirbution_cls"] = GaussDistribution
+                var["action_distribution_cls"] = GaussDistribution
             elif kwargs["policy_func_name"] == "DetermPolicy" or "FiniteHorizonPolicy":
-                var["action_distirbution_cls"] = DiracDistribution
+                var["action_distribution_cls"] = DiracDistribution
         else:
             if kwargs["policy_func_name"] == "StochaPolicyDis":
-                var["action_distirbution_cls"] = CategoricalDistribution
+                var["action_distribution_cls"] = CategoricalDistribution
             elif kwargs["policy_func_name"] == "DetermPolicyDis":
-                var["action_distirbution_cls"] = ValueDiracDistribution
+                var["action_distribution_cls"] = ValueDiracDistribution
     else:
 
-        var["action_distirbution_cls"] = getattr(
+        var["action_distribution_cls"] = getattr(
             sys.modules[__name__], kwargs["policy_act_distribution"]
         )
 
