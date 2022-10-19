@@ -213,8 +213,8 @@ class LqEnv(PythBaseEnv):
         # define environment transition, reward,  done signal  and constraint function here
 
         self.action_buffer[self.step_counter] = action
-        self.obs = self.dynamics.prediction(self.obs, action)
         reward = self.dynamics.compute_reward(self.obs, action)
+        self.obs = self.dynamics.prediction(self.obs, action)
 
         done = self.is_done(self.obs)
         if done:
@@ -323,7 +323,7 @@ class LqModel(torch.nn.Module):
         self.lb_action = torch.tensor(lb_action, dtype=torch.float32)
         self.hb_action = torch.tensor(hb_action, dtype=torch.float32)
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor,info, beyond_done=None):
+    def forward(self, state: torch.Tensor, action: torch.Tensor, info, beyond_done=None):
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
@@ -364,7 +364,7 @@ class LqModel(torch.nn.Module):
         ############################################################################################
 
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
-        reward = self.dynamics.compute_reward(state_next, action).reshape(-1)
+        reward = self.dynamics.compute_reward(state, action).reshape(-1)
 
         ############################################################################################
         if beyond_done is None:
