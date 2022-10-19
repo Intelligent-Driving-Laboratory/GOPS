@@ -54,7 +54,7 @@ class DetermPolicy(nn.Module, Action_Distribution):
         )
         self.register_buffer("act_high_lim", torch.from_numpy(kwargs["act_high_lim"]))
         self.register_buffer("act_low_lim", torch.from_numpy(kwargs["act_low_lim"]))
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
         action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(
@@ -78,7 +78,7 @@ class FiniteHorizonPolicy(nn.Module, Action_Distribution):
         )
         self.register_buffer("act_high_lim", torch.from_numpy(kwargs["act_high_lim"]))
         self.register_buffer("act_low_lim", torch.from_numpy(kwargs["act_low_lim"]))
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs, virtual_t=1):
         virtual_t = virtual_t * torch.ones(size=[obs.shape[0], 1],dtype=torch.float32, device=obs.device)
@@ -130,7 +130,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
         self.max_log_std = kwargs["max_log_std"]
         self.register_buffer("act_high_lim", torch.from_numpy(kwargs["act_high_lim"]))
         self.register_buffer("act_low_lim", torch.from_numpy(kwargs["act_low_lim"]))
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
         if self.std_sype == "mlp_separated":
@@ -165,7 +165,7 @@ class ActionValue(nn.Module, Action_Distribution):
             get_activation_func(kwargs["hidden_activation"]),
             get_activation_func(kwargs["output_activation"]),
         )
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs, act):
         q = self.q(torch.cat([obs, act], dim=-1))
@@ -183,7 +183,7 @@ class ActionValueDis(nn.Module, Action_Distribution):
             get_activation_func(kwargs["hidden_activation"]),
             get_activation_func(kwargs["output_activation"]),
         )
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
         return self.q(obs)
@@ -236,7 +236,7 @@ class StateValue(nn.Module, Action_Distribution):
             get_activation_func(kwargs["hidden_activation"]),
             get_activation_func(kwargs["output_activation"]),
         )
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
         v = self.v(obs)

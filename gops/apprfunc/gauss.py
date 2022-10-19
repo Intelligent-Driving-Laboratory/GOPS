@@ -47,7 +47,7 @@ class DetermPolicy(nn.Module, Action_Distribution):
         self.pi = RBF(obs_dim, act_dim, num_kernel)
         self.register_buffer("act_high_lim", torch.from_numpy(kwargs["act_high_lim"]))
         self.register_buffer("act_low_lim", torch.from_numpy(kwargs["act_low_lim"]))
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
         action = (self.act_high_lim - self.act_low_lim) / 2 * self.pi.forward(obs) + (
@@ -69,7 +69,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
         self.max_log_std = kwargs["max_log_std"]
         self.register_buffer("act_high_lim", torch.from_numpy(kwargs["act_high_lim"]))
         self.register_buffer("act_low_lim", torch.from_numpy(kwargs["act_low_lim"]))
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
         action_mean = self.mean(obs)
@@ -86,7 +86,7 @@ class ActionValue(nn.Module, Action_Distribution):
         act_dim = kwargs["act_dim"]
         num_kernel = kwargs["num_kernel"]
         self.q = RBF(obs_dim + act_dim, 1, num_kernel)
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs, act):
         q = self.q.forward(torch.cat([obs, act], dim=-1))
@@ -100,7 +100,7 @@ class ActionValueDis(nn.Module, Action_Distribution):
         act_dim = kwargs["act_dim"]
         num_kernel = kwargs["num_kernel"]
         self.q = RBF(obs_dim, act_dim, num_kernel)
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
         return self.q.forward(obs)
@@ -112,7 +112,7 @@ class StateValue(nn.Module, Action_Distribution):
         obs_dim = kwargs["obs_dim"]
         num_kernel = kwargs["num_kernel"]
         self.v = RBF(obs_dim, 1, num_kernel)
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
         return self.v.forward(obs)

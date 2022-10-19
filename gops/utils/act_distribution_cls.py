@@ -23,7 +23,7 @@ class Action_Distribution:
         super().__init__()
 
     def get_act_dist(self, logits):
-        act_dist_cls = getattr(self, "action_distirbution_cls")
+        act_dist_cls = getattr(self, "action_distribution_cls")
         has_act_lim = hasattr(self, "act_high_lim")
 
         act_dist = act_dist_cls(logits)

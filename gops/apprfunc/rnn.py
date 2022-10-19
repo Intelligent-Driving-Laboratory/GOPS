@@ -52,7 +52,7 @@ class DetermPolicy(nn.Module, Action_Distribution):
         )
         self.register_buffer("act_high_lim", torch.from_numpy(action_high_limit))
         self.register_buffer("act_low_lim", torch.from_numpy(action_low_limit))
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
         _, h = self.rnn(obs)
@@ -72,7 +72,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
         action_low_limit = kwargs["act_low_lim"]
         self.min_log_std = kwargs["min_log_std"]
         self.max_log_std = kwargs["max_log_std"]
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
         pi_sizes = list(hidden_sizes) + [act_dim]
         self.rnn = nn.RNN(obs_dim, hidden_sizes[0], 1, batch_first=True)
@@ -110,7 +110,7 @@ class ActionValue(nn.Module, Action_Distribution):
             list([hidden_sizes[0] + act_dim]) + list(hidden_sizes[1:]) + [1],
             get_activation_func(kwargs["hidden_activation"]),
         )
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs, act):
         _, h = self.rnn(obs)
@@ -131,7 +131,7 @@ class ActionValueDis(nn.Module, Action_Distribution):
             get_activation_func(kwargs["hidden_activation"]),
             get_activation_func(kwargs["output_activation"]),
         )
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
         _, h = self.rnn(obs)
@@ -149,7 +149,7 @@ class StateValue(nn.Module, Action_Distribution):
             get_activation_func(kwargs["hidden_activation"]),
             get_activation_func(kwargs["output_activation"]),
         )
-        self.action_distirbution_cls = kwargs["action_distirbution_cls"]
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
         _, h = self.rnn(obs)
