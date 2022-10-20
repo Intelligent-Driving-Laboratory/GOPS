@@ -28,24 +28,22 @@ def create_env(**kwargs):
         raise NotImplementedError("This environment is not properly defined")
 
     # wrapping the env
+    max_episode_steps = kwargs.get("max_episode_steps", None)
     reward_scale = kwargs.get("reward_scale", None)
     reward_shift = kwargs.get("reward_shift", None)
     obs_scale = kwargs.get("obs_scale", None)
     obs_shift = kwargs.get("obs_shift", None)
     obs_noise_type = kwargs.get("obs_noise_type", None)
     obs_noise_data = kwargs.get("obs_noise_data", None)
-    action_noise_type = kwargs.get("action_noise_type", None)
-    action_noise_data = kwargs.get("action_noise_data", None)
     env = wrapping_env(
         env=env,
+        max_episode_steps=max_episode_steps,
         reward_shift=reward_shift,
         reward_scale=reward_scale,
         obs_shift=obs_shift,
         obs_scale=obs_scale,
         obs_noise_type=obs_noise_type,
         obs_noise_data=obs_noise_data,
-        action_noise_type=action_noise_type,
-        action_noise_data=action_noise_data
     )
 
     print("Create environment successfully!")
