@@ -24,7 +24,8 @@ def wrapping_env(env,
                  ):
     if max_episode_steps is None and hasattr(env, "max_episode_steps"):
         max_episode_steps = getattr(env, "max_episode_steps")
-    env = TimeLimit(env, max_episode_steps)
+    if max_episode_steps is not None:
+        env = TimeLimit(env, max_episode_steps)
 
     env = StateData(env)
 
