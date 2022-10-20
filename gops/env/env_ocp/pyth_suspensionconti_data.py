@@ -238,7 +238,7 @@ def dist_func_zero_noise(time):
 
 
 def env_creator(**kwargs):
-    return TimeLimit(_GymSuspensionconti(**kwargs), _GymSuspensionconti(**kwargs).max_episode_steps)  # original = 200
+    return _GymSuspensionconti(**kwargs)  # original = 200
 
 
 if __name__ == '__main__':

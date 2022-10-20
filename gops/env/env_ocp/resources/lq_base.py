@@ -155,6 +155,7 @@ class LqEnv(PythBaseEnv):
         self.is_constraint = kwargs.get("is_constraint", False)
 
         self.config = config
+        self.max_episode_steps = config['max_step']
         self.dynamics = LQDynamics(config)
 
         state_high = np.array(config["state_high"], dtype=np.float32)

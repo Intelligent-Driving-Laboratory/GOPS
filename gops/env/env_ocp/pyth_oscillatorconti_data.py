@@ -172,7 +172,7 @@ Any further steps are undefined behavior.
 
 
 def env_creator(**kwargs):
-    return TimeLimit(_GymOscillatorconti(**kwargs), _GymOscillatorconti(**kwargs).max_episode_steps)  # original = 200
+    return _GymOscillatorconti(**kwargs)  # original = 200
 
 
 if __name__ == '__main__':

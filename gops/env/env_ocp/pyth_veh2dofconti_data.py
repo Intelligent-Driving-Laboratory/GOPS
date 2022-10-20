@@ -152,6 +152,8 @@ class SimuVeh2dofconti(PythBaseEnv):
         self.action_space = gym.spaces.Box(low=np.array([-np.pi / 6]),
                                            high=np.array([np.pi / 6]),
                                            dtype=np.float32)
+
+        self.max_episode_steps = 200
         self.obs = None
         self.state = None
 
@@ -241,7 +243,7 @@ def env_creator(**kwargs):
     """
     make env `pyth_veh2dofconti`
     """
-    return TimeLimit(SimuVeh2dofconti(**kwargs), 200)
+    return SimuVeh2dofconti(**kwargs)
 
 if __name__ == "__main__":
     env = env_creator()
