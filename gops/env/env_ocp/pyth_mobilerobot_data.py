@@ -22,6 +22,7 @@ gym.logger.setLevel(gym.logger.ERROR)
 class PythMobilerobot(PythBaseEnv):
     def __init__(self, **kwargs):
         self.n_obstacle = 1
+        self.max_episode_steps = 200
         work_space = kwargs.pop("work_space", None)
         if work_space is None:
             # initial range of robot state
@@ -150,7 +151,7 @@ class PythMobilerobot(PythBaseEnv):
         )
         ############################################################################################
         self.steps += 1
-        info = {"TimeLimit.truncated": self.steps > 199, "constraint": constraint.reshape(-1)}  # TODO is right
+        info = { "constraint": constraint.reshape(-1)}  # TODO is right
         return np.array(self._state.reshape(-1), dtype=np.float32), float(reward), isdone, info  # TODO is right
 
     def render(self, mode="human", n_window=1):

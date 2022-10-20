@@ -170,7 +170,7 @@ Any further steps are undefined behavior.
 
 
 def env_creator(**kwargs):
-    return TimeLimit(_GymAircraftconti(**kwargs), _GymAircraftconti(**kwargs).max_episode_steps)  # original = 200
+    return _GymAircraftconti(**kwargs)
 
 
 if __name__ == '__main__':

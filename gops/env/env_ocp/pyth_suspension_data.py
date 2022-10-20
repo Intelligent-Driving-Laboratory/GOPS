@@ -203,5 +203,5 @@ def env_creator(**kwargs):
     """
     make env `pyth_suspension`
     """
-    return TimeLimit(_GymSuspension(**kwargs), 1000)
+    return _GymSuspension(**kwargs)
 

@@ -39,6 +39,7 @@ class PythInverteddoublependulum(PythBaseEnv):
 
         self.dynamics = Dynamics()
         self.tau = 0.05
+        self.max_episode_steps = 1000
         # define observation space here
         hb_observation = [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]
         self.observation_space = spaces.Box(
@@ -149,7 +150,7 @@ def env_creator(**kwargs):
     """
     make env `pyth_inverteddoublependulum`
     """
-    return TimeLimit(PythInverteddoublependulum(**kwargs), 1000)
+    return PythInverteddoublependulum(**kwargs)
 
 
 if __name__ == "__main__":
