@@ -1,5 +1,6 @@
+from gym.wrappers.time_limit import TimeLimit
+
 from gops.env.env_wrapper.noise_observation import NoiseData
-from gops.env.env_wrapper.noise_action import NoiseAction
 from gops.env.env_wrapper.scale_observation import ScaleObservationData, ScaleObservationModel
 from gops.env.env_wrapper.shaping_reward import ShapingRewardData, ShapingRewardModel
 from gops.env.env_wrapper.wrap_state import StateData
@@ -13,15 +14,18 @@ def all_none(a, b):
 
 
 def wrapping_env(env,
+                 max_episode_steps=None,
                  reward_shift=None,
                  reward_scale=None,
                  obs_shift=None,
                  obs_scale=None,
                  obs_noise_type=None,
                  obs_noise_data=None,
-                 action_noise_type=None,
-                 action_noise_data=None,
                  ):
+    if max_episode_steps is None and hasattr(env, "max_episode_steps"):
+        max_episode_steps = getattr(env, "max_episode_steps")
+    env = TimeLimit(env, max_episode_steps)
+
     env = StateData(env)
 
     if not all_none(reward_scale, reward_shift):
@@ -31,9 +35,6 @@ def wrapping_env(env,
 
     if obs_noise_type is not None:
         env = NoiseData(env, obs_noise_type, obs_noise_data)
-
-    # if action_noise_type is not None:
-    #     env = NoiseAction(env, action_noise_type, action_noise_data)
 
     if not all_none(obs_shift, obs_scale):
         obs_scale = 1.0 if obs_scale is None else obs_scale
