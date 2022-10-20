@@ -39,7 +39,6 @@ class OnSampler:
         self.obsv_dim = kwargs["obsv_dim"]
         self.act_dim = kwargs["action_dim"]
         self.gamma = 0.99
-        self.gae_lambda = 0.95
         self.reward_scale = 1.0
         self.obs_dim = self.obsv_dim
         if isinstance(self.obs_dim, int):
@@ -52,9 +51,12 @@ class OnSampler:
         self.mb_done = np.zeros(self.sample_batch_size, dtype=np.bool_)
         self.mb_tlim = np.zeros(self.sample_batch_size, dtype=np.bool_)
         self.mb_logp = np.zeros(self.sample_batch_size, dtype=np.float32)
-        self.mb_val = np.zeros(self.sample_batch_size, dtype=np.float32)
-        self.mb_adv = np.zeros(self.sample_batch_size, dtype=np.float32)
-        self.mb_ret = np.zeros(self.sample_batch_size, dtype=np.float32)
+        self.need_value_flag = not(alg_name is "FHADP" or alg_name is "INFADP")
+        if self.need_value_flag:
+            self.gae_lambda = 0.95
+            self.mb_val = np.zeros(self.sample_batch_size, dtype=np.float32)
+            self.mb_adv = np.zeros(self.sample_batch_size, dtype=np.float32)
+            self.mb_ret = np.zeros(self.sample_batch_size, dtype=np.float32)
         self.mb_additional = {}
         for k, v in kwargs["additional_info"].items():
             self.mb_additional[k] = np.zeros((self.sample_batch_size, *v["shape"]), dtype=v["dtype"])
@@ -93,29 +95,46 @@ class OnSampler:
                 action_clip = action
             # interact with the environment
             next_obs, reward, self.done, info = self.env.step(action_clip)
-            value = self.networks.value(obs_expand).detach().item()
-            reward *= self.reward_scale
             if "TimeLimit.truncated" not in info.keys():
                 info["TimeLimit.truncated"] = False
             if info["TimeLimit.truncated"]:
                 self.done = False
-            (
-                self.mb_obs[t],
-                self.mb_act[t],
-                self.mb_rew[t],
-                self.mb_done[t],
-                self.mb_tlim[t],
-                self.mb_logp[t],
-                self.mb_val[t],
-            ) = (
-                self.obs.copy(),
-                action,
-                reward,
-                self.done,
-                info["TimeLimit.truncated"],
-                logp,
-                value,
-            )
+            reward *= self.reward_scale
+            if self.need_value_flag:
+                value = self.networks.value(obs_expand).detach().item()
+                (
+                    self.mb_obs[t],
+                    self.mb_act[t],
+                    self.mb_rew[t],
+                    self.mb_done[t],
+                    self.mb_tlim[t],
+                    self.mb_logp[t],
+                    self.mb_val[t],
+                ) = (
+                    self.obs.copy(),
+                    action,
+                    reward,
+                    self.done,
+                    info["TimeLimit.truncated"],
+                    logp,
+                    value,
+                )
+            else:
+                (
+                    self.mb_obs[t],
+                    self.mb_act[t],
+                    self.mb_rew[t],
+                    self.mb_done[t],
+                    self.mb_tlim[t],
+                    self.mb_logp[t],
+                ) = (
+                    self.obs.copy(),
+                    action,
+                    reward,
+                    self.done,
+                    info["TimeLimit.truncated"],
+                    logp,
+                )
             for k in self.mb_additional.keys():
                 self.mb_additional[k][t] = info[k]
             self.obs = next_obs
@@ -125,7 +144,7 @@ class OnSampler:
                     self.done
                     or info["TimeLimit.truncated"]
                     or t == self.sample_batch_size - 1
-            ):
+            ) and self.need_value_flag:
                 last_obs_expand = torch.from_numpy(
                     np.expand_dims(next_obs, axis=0).astype("float32")
                 )
@@ -138,16 +157,26 @@ class OnSampler:
         end_time = time.perf_counter()
         tb_info[tb_tags["sampler_time"]] = (end_time - start_time) * 1000
         # wrap collected data into replay format
-        mb_data = {
-            "obs": torch.from_numpy(self.mb_obs),
-            "act": torch.from_numpy(self.mb_act),
-            "rew": torch.from_numpy(self.mb_rew),
-            "done": torch.from_numpy(self.mb_done),
-            "logp": torch.from_numpy(self.mb_logp),
-            "time_limited": torch.from_numpy(self.mb_tlim),
-            "ret": torch.from_numpy(self.mb_ret),
-            "adv": torch.from_numpy(self.mb_adv),
-        }
+        if self.need_value_flag:
+            mb_data = {
+                "obs": torch.from_numpy(self.mb_obs),
+                "act": torch.from_numpy(self.mb_act),
+                "rew": torch.from_numpy(self.mb_rew),
+                "done": torch.from_numpy(self.mb_done),
+                "logp": torch.from_numpy(self.mb_logp),
+                "time_limited": torch.from_numpy(self.mb_tlim),
+                "ret": torch.from_numpy(self.mb_ret),
+                "adv": torch.from_numpy(self.mb_adv),
+            }
+        else:
+            mb_data = {
+                "obs": torch.from_numpy(self.mb_obs),
+                "act": torch.from_numpy(self.mb_act),
+                "rew": torch.from_numpy(self.mb_rew),
+                "done": torch.from_numpy(self.mb_done),
+                "logp": torch.from_numpy(self.mb_logp),
+                "time_limited": torch.from_numpy(self.mb_tlim),
+            }
         for k, v in self.mb_additional.items():
             mb_data[k] = torch.from_numpy(v)
         return mb_data, tb_info
