@@ -37,6 +37,7 @@ setup(
         'numpy<=1.22.1',
         'ray>=1.0.0,<=1.9.2',
         'gym==0.23.1',
+        'pygame<=2.1.2',
         'box2d<=2.4.1',
         'pandas<=1.5.0',
         'tensorboard<=2.8.0',
