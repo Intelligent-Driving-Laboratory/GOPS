@@ -33,7 +33,7 @@ setup(
         'gops.env': find_data_packages('gops/env')
     },
     install_requires=[
-        'torch>=1.4.0',
+        'torch>=1.6.0',
         'numpy>1.16.0',
         'ray>=1.0.0',
         'gym==0.23.1',
