@@ -59,8 +59,9 @@ class ApproxContainer(ApprBase):
         return self.policy.get_act_dist(logits)
 
 
-class SPIL:
+class SPIL(AlgorithmBase):
     def __init__(self, **kwargs):
+        super().__init__(index=0, **kwargs)
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
         self.use_gpu = kwargs["use_gpu"]
