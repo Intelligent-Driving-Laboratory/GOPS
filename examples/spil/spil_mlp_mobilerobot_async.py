@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="gym_mobilerobot")
+    parser.add_argument("--env_id", type=str, default="pyth_mobilerobot")
     parser.add_argument("--algorithm", type=str, default="SPIL")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
 
