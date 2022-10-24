@@ -88,10 +88,6 @@ class DQN(AlgorithmBase):
                 warning_msg = "param '" + key + "'is not defined in algorithm!"
                 warnings.warn(warning_msg)
 
-    def get_parameters(self):
-        params = super().get_parameters()
-        return params
-
     def __compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
         tb_info = dict()
         start_time = time.perf_counter()
