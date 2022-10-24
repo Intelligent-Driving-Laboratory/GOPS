@@ -47,12 +47,11 @@ class FHADP(AlgorithmBase):
         self.use_gpu = kwargs["use_gpu"]
         if self.use_gpu:
             self.envmodel = self.envmodel.cuda()
-        self.reward_scale = 0.1
         self.tb_info = dict()
 
     @property
     def adjustable_parameters(self):
-        para_tuple = "reward_scale"
+        para_tuple = "forward_step"
         return para_tuple
 
     def local_update(self, data, iteration: int):
@@ -96,22 +95,19 @@ class FHADP(AlgorithmBase):
         )
         info_init = data
         v_pi =0
-        if hasattr(self.envmodel,'forward_n_step'):
-            next_state_list, v_pi, done_list = self.envmodel.forward_n_step(
-                o, self.networks.policy, self.forward_step, d)
-        else:
-            for step in range(self.forward_step):
-                if step == 0:
-                    a = self.networks.policy(o)
-                    o2, r, d, info = self.envmodel.forward(o, a,info_init, d)
-                    v_pi =  r
-                else:
-                    o = o2
-                    a = self.networks.policy(o)
-                    o2, r, d, info = self.envmodel.forward(o, a,info, d)
-                    v_pi += r
 
-        return -(v_pi * self.reward_scale).mean()
+        for step in range(self.forward_step):
+            if step == 0:
+                a = self.networks.policy(o)
+                o2, r, d, info = self.envmodel.forward(o, a,info_init, d)
+                v_pi =  r
+            else:
+                o = o2
+                a = self.networks.policy(o)
+                o2, r, d, info = self.envmodel.forward(o, a,info, d)
+                v_pi += r
+
+        return -(v_pi).mean()
 
 
 if __name__ == "__main__":
