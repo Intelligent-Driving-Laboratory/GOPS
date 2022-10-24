@@ -5,6 +5,7 @@
 #  Creator: iDLab
 #  Description: Infinite ADP algorithm in continute version of Cartpole Enviroment
 #  Update Date: 2020-11-10, Wenxuan Wang: adjust parameters
+#  Update Date: 2022-10-24, Xujie Song  : ensure control precison
 
 
 import argparse
@@ -31,7 +32,7 @@ if __name__ == "__main__":
     ################################################
     # Key Parameters for users
     parser.add_argument("--env_id", type=str, default="pyth_lq")
-    parser.add_argument("--lq_config", type=str, default="s2a1")
+    parser.add_argument("--lq_config", type=str, default="s6a3")
     parser.add_argument("--algorithm", type=str, default="INFADP")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
 
@@ -56,7 +57,7 @@ if __name__ == "__main__":
     parser.add_argument("--value_func_type", type=str, default="MLP")
     value_func_type = parser.parse_known_args()[0].value_func_type
     if value_func_type == "MLP":
-        parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
+        parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64, 64])
         parser.add_argument("--value_hidden_activation", type=str, default="gelu")
         parser.add_argument("--value_output_activation", type=str, default="linear")
     # 2.2 Parameters of policy approximate function
@@ -65,7 +66,7 @@ if __name__ == "__main__":
     parser.add_argument("--policy_act_distribution", type=str, default="default")
     policy_func_type = parser.parse_known_args()[0].policy_func_type
     if policy_func_type == "MLP":
-        parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
+        parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64, 64])
         parser.add_argument(
             "--policy_hidden_activation", type=str, default="gelu", help=""
         )
@@ -81,7 +82,7 @@ if __name__ == "__main__":
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
     parser.add_argument(
-        "--max_iteration", type=int, default=10000, help="Maximum iteration number"
+        "--max_iteration", type=int, default=100000, help="Maximum iteration number"
     )
     parser.add_argument("--ini_network_dir", type=str, default=None)
     trainer_type = parser.parse_known_args()[0].trainer
@@ -100,7 +101,7 @@ if __name__ == "__main__":
         type=dict,
         default={
             "mean": np.array([0], dtype=np.float32),
-            "std": np.array([0.], dtype=np.float32),
+            "std": np.array([0.0], dtype=np.float32),
         },
     )
 
@@ -109,11 +110,13 @@ if __name__ == "__main__":
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
     parser.add_argument("--num_eval_episode", type=int, default=5)
     parser.add_argument("--eval_interval", type=int, default=100)
-    # set work_space
-    parser.add_argument("--initial_distribution", type=str, default="normal")
-    init_mean = np.array([0, 0], dtype=np.float32)
-    init_std = np.array([0.5, 0.5], dtype=np.float32)
-    work_space = np.stack((init_mean - 3 * init_std, init_mean + 3 * init_std))
+    # set train_space & work_space
+    parser.add_argument("--initial_distribution", type=str, default="uniform")
+    init_mean = np.array([0, 0, 0, 0, 0, 0], dtype=np.float32)
+    init_std = np.array([0.3, 0.3, 0.3, 0.3, 0.3, 0.3], dtype=np.float32)
+    train_space = np.stack((init_mean - 1 * init_std, init_mean + 1 * init_std))
+    work_space = np.stack((init_mean - 0.5 * init_std, init_mean + 0.5 * init_std))
+    parser.add_argument("--train_space", type=np.array, default=train_space)
     parser.add_argument("--work_space", type=np.array, default=work_space)
 
     ################################################
@@ -129,9 +132,9 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
-    alg.set_parameters({"reward_scale": 1, "gamma": 0.99, "tau": 0.2,"forward_step":200})
+    alg.set_parameters({"gamma": 0.99, "tau": 0.2,"forward_step":200})
     # Step 2: create sampler in trainer
-    sampler = create_sampler(**args)  # 调用alg里面的函数，创建自己的网络
+    sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
     buffer = create_buffer(**args)
     # Step 4: create evaluator in trainer
