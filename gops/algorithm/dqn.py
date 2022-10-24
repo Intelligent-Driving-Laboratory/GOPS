@@ -67,7 +67,6 @@ class DQN(AlgorithmBase):
         """
         super().__init__(index, **kwargs)
         self.gamma = 0.99
-        self.use_gpu = kwargs["use_gpu"]
         self.tau = 0.005
         self.reward_scale = 1
         self.networks = ApproxContainer(**kwargs)
@@ -89,11 +88,6 @@ class DQN(AlgorithmBase):
                 warning_msg = "param '" + key + "'is not defined in algorithm!"
                 warnings.warn(warning_msg)
 
-    def get_parameters(self):
-        params = super().get_parameters()
-        params["use_gpu"] = self.use_gpu
-        return params
-
     def __compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
         tb_info = dict()
         start_time = time.perf_counter()
@@ -107,15 +101,6 @@ class DQN(AlgorithmBase):
                 data["obs2"],
                 data["done"],
             )
-            if self.use_gpu:
-                self.networks.cuda()
-                o, a, r, o2, d = (
-                    o.cuda(),
-                    a.cuda(),
-                    r.cuda(),
-                    o2.cuda(),
-                    d.cuda(),
-                )
             loss_q = self.__compute_loss_q(o, a, r, o2, d)
             loss_q.backward()
         else:
@@ -128,22 +113,8 @@ class DQN(AlgorithmBase):
                 data["idx"],
                 data["weight"]
             )
-            if self.use_gpu:
-                self.networks.cuda()
-                o, a, r, o2, d, idx, weight = (
-                    o.cuda(),
-                    a.cuda(),
-                    r.cuda(),
-                    o2.cuda(),
-                    d.cuda(),
-                    idx.cuda(),
-                    weight.cuda()
-                )
             loss_q, abs_err = self.__compute_loss_per(o, a, r, o2, d, idx, weight)
             loss_q.backward()
-
-        if self.use_gpu:
-            self.networks.cpu()
 
         end_time = time.perf_counter()
 
