@@ -37,7 +37,7 @@ default_cfg["label_font"] = {
 default_cfg["img_fmt"] = "png"
 
 
-class PolicyRuner:
+class PolicyRunner:
     def __init__(self, log_policy_dir_list, trained_policy_iteration_list, save_render=False, plot_range=None,
                  is_init_info=False, init_info=None, legend_list=None, use_opt=False, constrained_env=False,
                  is_tracking=False, use_dist=False, dt=None, obs_noise_type=None, obs_noise_data=None, action_noise_type=None, action_noise_data=None) -> None:

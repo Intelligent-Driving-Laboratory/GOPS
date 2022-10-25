@@ -1,7 +1,6 @@
-from sys_run import PolicyRuner
+from sys_run import PolicyRunner
 
-
-runer = PolicyRuner(
+runner = PolicyRunner(
     log_policy_dir_list=["../../results/INFADP/s5a1"]*2,
     trained_policy_iteration_list=['180000', '190000'],
     is_init_info=True,
@@ -10,4 +9,4 @@ runer = PolicyRuner(
     legend_list=['INFADP-180000', 'INFADP-190000'],
     use_opt=True)
 
-runer.run()
+runner.run()
