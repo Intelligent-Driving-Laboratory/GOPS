@@ -13,7 +13,7 @@ class PythBaseModel(nn.Module):
                  action_upper_bound,
                  clamp_obs: bool = True,
                  clamp_action: bool = True,
-                 done_mask: bool = True,
+                 done_mask: bool = False,
                  ):
         super(PythBaseModel, self).__init__()
         self.obs_lower_bound = torch.tensor(obs_lower_bound, dtype=torch.float32)
@@ -28,13 +28,13 @@ class PythBaseModel(nn.Module):
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
         if self.clamp_obs:
             obs_clamp = obs.clamp(self.obs_lower_bound, self.obs_upper_bound)
-            if obs_clamp != obs:
+            if not torch.equal(obs_clamp, obs):
                 warnings.warn("Observation out of space!")
             obs = obs_clamp
 
         if self.clamp_action:
             action_clamp = action.clamp(self.action_lower_bound, self.action_upper_bound)
-            if action_clamp != action:
+            if not torch.equal(action_clamp, action):
                 warnings.warn("Action out of space!")
             action = action_clamp
 
