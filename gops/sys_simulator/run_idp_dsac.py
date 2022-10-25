@@ -1,7 +1,7 @@
-from sys_run import PolicyRuner
+from sys_run import PolicyRunner
 import numpy as np
 
-runer = PolicyRuner(
+runner = PolicyRunner(
     log_policy_dir_list=["../../results/DSAC/idp_221017-215802"]*1,
     trained_policy_iteration_list=['33000'],
     is_init_info=True,
@@ -13,4 +13,4 @@ runer = PolicyRuner(
     use_opt=True
     )
 
-runer.run()
+runner.run()

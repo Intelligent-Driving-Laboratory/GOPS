@@ -1,7 +1,7 @@
-from sys_run import PolicyRuner
+from sys_run import PolicyRunner
 import numpy as np
 
-runer = PolicyRuner(
+runner = PolicyRunner(
     log_policy_dir_list=["../../results/INFADP/veh3dofconti_221017-210557"]*2,
     trained_policy_iteration_list=['3000','4000'],
     is_init_info=True,
@@ -17,4 +17,4 @@ runer = PolicyRuner(
     # action_noise_type='normal',
     dt=None)
 
-runer.run()
+runner.run()
