@@ -37,13 +37,15 @@ class OptController:
         self.__reset_statistics()
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
-        res = opt.minimize(
+        res = minimize_ipopt(
             fun=self.__cost_fcn, 
             x0=self.initial_guess,
             args=(x,),
-            jac=True,
-            method="SLSQP",
-            bounds=self.bounds,
+            jac=self.__cost_jac,
+            # method="SLSQP",
+            # bounds=self.bounds,
+            # bounds=[(self.model.action_lower_bound, self.model.action_upper_bound)] * num_pred_step,
+            bounds=opt._constraints.new_bounds_to_old(self.bounds.lb, self.bounds.ub, num_pred_step * self.action_dim),
             # constraints=[{
             #     "type": "ineq", 
             #     "fun": self.__constraint_fcn,
@@ -52,11 +54,11 @@ class OptController:
             # }],
             options=self.minimize_options
         )
-        self.initial_guess = res.x
+        self.initial_guess = np.concatenate((res.x[:-self.action_dim], np.zeros(self.action_dim)))
         self.__print_statistics(res)
         return res.x.reshape((self.action_dim, -1))[:, 0]
 
-    def __cost_fcn(self, inputs: np.ndarray, x: np.ndarray) -> Tuple[float, np.ndarray]:
+    def __cost_fcn(self, inputs: np.ndarray, x: np.ndarray) -> float:
 
         x = torch.tensor(x, dtype=torch.float32)
         inputs = torch.tensor(
@@ -67,16 +69,32 @@ class OptController:
         states, rewards = self.__rollout(inputs, x)
 
         # sum up the intergral costs from timestep 0 to T-1
-        cost = sum(rewards)
+        cost = torch.sum(rewards)
 
         # Terminal cost for timestep T
         terminal_cost = self.model.get_terminal_cost(states[:, -1])
-        cost += terminal_cost if terminal_cost is not None else torch.tensor([0.])
+        cost += terminal_cost if terminal_cost is not None else torch.tensor(0)
         
-        jac = torch.autograd.grad(cost, inputs)[0]
-    
+        return cost.detach().item()
 
-        return cost.detach().item(), jac.numpy().astype("d")
+    def __cost_jac(self, inputs: np.ndarray, x: np.ndarray) -> np.ndarray:
+
+        x = torch.tensor(x, dtype=torch.float32)
+        inputs = torch.tensor(
+            inputs, 
+            dtype=torch.float32, 
+            requires_grad=True
+        )
+        states, rewards = self.__rollout(inputs, x)
+
+        # sum up the intergral costs from timestep 0 to T-1
+        cost = torch.sum(rewards)
+
+        # Terminal cost for timestep T
+        terminal_cost = self.model.get_terminal_cost(states[:, -1])
+        cost += terminal_cost if terminal_cost is not None else torch.tensor(0)
+        jac = torch.autograd.grad(cost, inputs)[0]
+        return jac.numpy().astype("d")
 
     def __constraint_fcn(self, inputs: np.ndarray, x: np.ndarray) -> torch.Tensor:
         self.constraint_evaluations += 1
@@ -105,14 +123,14 @@ class OptController:
             dtype=torch.float32, 
             requires_grad=True
         )
-        jac = F.jacobian(self.__constraint_fcn, (inputs, x))
-        return jac[0].numpy().astype("d")
+        jac = F.jacobian(self.__constraint_fcn, (inputs, x))[0]
+        return jac.numpy().astype("d")
 
     def __rollout(self, inputs: torch.Tensor, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, List]:
         self.system_simulations += 1
         inputs_reshaped = inputs.reshape((self.action_dim , -1))
         states = torch.zeros((self.state_dim, self.num_pred_step + 1))
-        rewards = []
+        rewards = torch.zeros(self.num_pred_step)
         states[:, 0] = x
 
         # rollout the states and rewards
@@ -127,7 +145,7 @@ class OptController:
                     info={}
                 )
             states[:, i + 1] = next_x
-            rewards.append(-reward)
+            rewards[i] = -reward
         return states, rewards
 
     def __reset_statistics(self):
@@ -200,7 +218,8 @@ if __name__ == "__main__":
         max_action_errs = []
         mean_action_errs = []
     
-    num_pred_steps = range(70, 80, 20)
+    # num_pred_steps = range(50, 60, 20)
+    num_pred_steps = (50,)
     for num_pred_step in num_pred_steps:
         if args["env_id"] == "pyth_lq":
             A_conti = env_model.dynamics.A.numpy()
@@ -222,10 +241,13 @@ if __name__ == "__main__":
             ctrl_dt=ctrl_dt, 
             num_pred_step=num_pred_step, 
             minimize_options={
-                "maxiter": 200, 
-                "ftol": 1e-16,
-                "disp": True,
-                "iprint": 2
+                "max_iter": 200, 
+                "tol": 1e-5,
+                # "acceptable_tol": 1e-3,
+                # "ftol": 1e-8,
+                # "disp": True,
+                # "iprint": 2
+                # "print_level": 5,
             }
         )
 
