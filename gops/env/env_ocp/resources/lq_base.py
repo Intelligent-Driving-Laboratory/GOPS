@@ -18,22 +18,24 @@ MAX_BUFFER = 20100
 
 
 class LQDynamics:
-    def __init__(self, config):
-
-        self.A = torch.as_tensor(config["A"], dtype=torch.float32)
-        self.B = torch.as_tensor(config["B"], dtype=torch.float32)
-        self.Q = torch.as_tensor(config["Q"], dtype=torch.float32)  # diag vector
-        self.R = torch.as_tensor(config["R"], dtype=torch.float32)  # diag vector
+    def __init__(self,
+                 config: dict,
+                 device: Union[torch.device, str, None] = None,
+                 ):
+        self.A = torch.as_tensor(config["A"], dtype=torch.float32, device=device)
+        self.B = torch.as_tensor(config["B"], dtype=torch.float32, device=device)
+        self.Q = torch.as_tensor(config["Q"], dtype=torch.float32, device=device)  # diag vector
+        self.R = torch.as_tensor(config["R"], dtype=torch.float32, device=device)  # diag vector
         self.reward_scale = config["reward_scale"]
         self.reward_shift = config["reward_shift"]
         self.state_dim = self.A.shape[0]
 
         self.time_step = config["dt"]
         # IA = (1 - A * dt)
-        with torch.no_grad():
-            IA = torch.eye(self.state_dim) - self.A * self.time_step
-            IA = IA.numpy()
-        self.inv_IA = torch.as_tensor(np.linalg.pinv(IA), dtype=torch.float32)
+        IA = torch.eye(self.state_dim, device=device) - self.A * self.time_step
+        self.inv_IA = torch.linalg.pinv(IA)
+
+        self.device = device
 
     def compute_control_matrix(self):
         gamma = 0.99
@@ -97,8 +99,8 @@ class LQDynamics:
                    ) -> Union[torch.Tensor, np.ndarray]:
         numpy_flag = False
         if isinstance(x_t, np.ndarray):
-            x_t = torch.as_tensor(x_t, dtype=torch.float32).unsqueeze(0)
-            u_t = torch.as_tensor(u_t, dtype=torch.float32).unsqueeze(0)
+            x_t = torch.as_tensor(x_t, dtype=torch.float32, device=self.device).unsqueeze(0)
+            u_t = torch.as_tensor(u_t, dtype=torch.float32, device=self.device).unsqueeze(0)
             numpy_flag = True
 
         tmp = torch.mm(self.B, u_t.T) * self.time_step + x_t.T
@@ -126,8 +128,8 @@ class LQDynamics:
         """
         numpy_flag = False
         if isinstance(x_t, np.ndarray):
-            x_t = torch.as_tensor(x_t, dtype=torch.float32).unsqueeze(0)
-            u_t = torch.as_tensor(u_t, dtype=torch.float32).unsqueeze(0)
+            x_t = torch.as_tensor(x_t, dtype=torch.float32, device=self.device).unsqueeze(0)
+            u_t = torch.as_tensor(u_t, dtype=torch.float32, device=self.device).unsqueeze(0)
             numpy_flag = True
         reward_state = torch.sum(torch.pow(x_t, 2) * self.Q, dim=-1)
         reward_action = torch.sum(torch.pow(u_t, 2) * self.R, dim=-1)
@@ -301,33 +303,38 @@ class LqEnv(PythBaseEnv):
 
 
 class LqModel(PythBaseModel):
-    def __init__(self, config, **kwargs):
+    def __init__(self,
+                 config: dict,
+                 device: Union[torch.device, str, None] = None,
+                 ):
         """
         you need to define parameters here
         """
-        # define your custom parameters here
-        self.dynamics = LQDynamics(config)
-        # define common parameters here
-        self.state_dim = len(config["state_high"])
-        self.action_dim = len(config["action_high"])
         lb_state = np.array(config["state_low"])
         hb_state = np.array(config["state_high"])
         lb_action = np.array(config["action_low"])
         hb_action = np.array(config["action_high"])
-        self.dt = config["dt"]  # seconds between state updates
-
         super().__init__(
             obs_lower_bound=lb_state,
             obs_upper_bound=hb_state,
             action_lower_bound=lb_action,
             action_upper_bound=hb_action,
+            device=device,
         )
+
+        # define your custom parameters here
+        self.dynamics = LQDynamics(config, device)
+        # define common parameters here
+        self.state_dim = len(config["state_high"])
+        self.action_dim = len(config["action_high"])
+        self.dt = config["dt"]  # seconds between state updates
+        self.device = device
 
     def step(self, obs: torch.Tensor, action: torch.Tensor, info: dict) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
         next_obs = self.dynamics.prediction(obs, action)
         reward = self.dynamics.compute_reward(obs, action).reshape(-1)
-        done = torch.full([obs.size()[0]], False, dtype=torch.bool)
+        done = torch.full([obs.size()[0]], False, dtype=torch.bool, device=self.device)
         info = {"constraint": None}
         return next_obs, reward, done, info
 
