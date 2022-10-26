@@ -4,7 +4,7 @@ from gops.env.env_ocp.resources.lq_base import LqModel
 
 def env_model_creator(**kwargs):
     """
-    make env model `pyth_linearquadratic`
+    make env model `pyth_lq`
     """
     lqc = kwargs.get("lq_config", None)
     if lqc is None:
@@ -18,4 +18,9 @@ def env_model_creator(**kwargs):
     else:
         raise RuntimeError("lq_config invalid")
 
-    return LqModel(config)
+    if kwargs.get("use_gpu", False):
+        device = "cuda"
+    else:
+        device = "cpu"
+
+    return LqModel(config, device)

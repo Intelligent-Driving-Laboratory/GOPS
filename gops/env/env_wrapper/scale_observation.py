@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from typing import TypeVar, Tuple, Union
-import numpy as np
-import gym
-import torch
-import torch.nn as nn
 
+import gym
+import numpy as np
+import torch
+
+from gops.env.env_ocp.pyth_base_model import PythBaseModel
 from gops.env.env_wrapper.base import ModelWrapper
 from gops.utils.gops_typing import InfoDict
-
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
@@ -58,20 +58,21 @@ class ScaleObservationModel(ModelWrapper):
             parser.add_argument("--obs_shift", default=np.array([0, 0, 0, 0]))
     """
     def __init__(self,
-                 model: nn.Module,
+                 model: PythBaseModel,
                  shift: Union[np.ndarray, float, list] = 0.0,
                  scale: Union[np.ndarray, float, list] = 1.0
                  ):
         super(ScaleObservationModel, self).__init__(model)
         if isinstance(shift, np.ndarray) or isinstance(shift, list):
-            shift = torch.as_tensor(shift, dtype=torch.float32)
+            shift = torch.as_tensor(shift, dtype=torch.float32, device=self.model.device)
         if isinstance(scale, np.ndarray) or isinstance(scale, list):
-            scale = torch.as_tensor(scale, dtype=torch.float32)
+            scale = torch.as_tensor(scale, dtype=torch.float32, device=self.model.device)
         self.shift = shift
         self.scale = scale
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor, info: InfoDict,  beyond_done=None):
-        unscaled_state = state / self.scale - self.shift
-        s, r, d, info = self.model.forward(unscaled_state, action, info, beyond_done)
-        scaled_state = (s + self.shift) * self.scale
-        return scaled_state, r, d, info
+    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+        unscaled_obs = obs / self.scale - self.shift
+        next_obs, reward, next_done, next_info = self.model.forward(unscaled_obs, action, done, info)
+        scaled_next_obs = (next_obs + self.shift) * self.scale
+        return scaled_next_obs, reward, next_done, next_info
