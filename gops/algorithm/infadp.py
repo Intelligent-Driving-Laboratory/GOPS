@@ -61,9 +61,6 @@ class INFADP(AlgorithmBase):
         super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
-        self.use_gpu = kwargs["use_gpu"]
-        if self.use_gpu:
-            self.envmodel = self.envmodel.cuda()
         self.gamma = 0.99
         self.tau = 0.005
         self.pev_step = 1
