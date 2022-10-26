@@ -328,7 +328,6 @@ class LqModel(PythBaseModel):
         self.state_dim = len(config["state_high"])
         self.action_dim = len(config["action_high"])
         self.dt = config["dt"]  # seconds between state updates
-        self.device = device
 
     def step(self, obs: torch.Tensor, action: torch.Tensor, info: dict) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:

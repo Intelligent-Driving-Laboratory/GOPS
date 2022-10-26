@@ -44,9 +44,6 @@ class FHADP(AlgorithmBase):
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
         self.forward_step = kwargs["pre_horizon"]
-        self.use_gpu = kwargs["use_gpu"]
-        if self.use_gpu:
-            self.envmodel = self.envmodel.cuda()
         self.tb_info = dict()
 
     @property

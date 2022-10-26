@@ -3,6 +3,8 @@ from typing import Tuple, Union
 
 import torch
 
+from gops.utils.gops_typing import InfoDict
+
 
 class PythBaseModel:
     def __init__(self,
@@ -23,9 +25,10 @@ class PythBaseModel:
         self.clamp_obs = clamp_obs
         self.clamp_action = clamp_action
         self.done_mask = done_mask
+        self.device = device
 
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: dict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
+    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         if self.clamp_obs:
             obs_clamp = obs.clamp(self.obs_lower_bound, self.obs_upper_bound)
             if not torch.equal(obs_clamp, obs):
@@ -46,8 +49,8 @@ class PythBaseModel:
 
         return next_obs, reward, next_done, next_info
 
-    def step(self, obs: torch.Tensor, action: torch.Tensor, info: dict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
+    def step(self, obs: torch.Tensor, action: torch.Tensor, info: InfoDict) \
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         raise NotImplementedError
 
     def get_terminal_cost(self, obs: torch.Tensor) -> Union[torch.Tensor, None]:
