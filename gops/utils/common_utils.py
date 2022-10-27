@@ -57,7 +57,7 @@ def get_apprfunc_dict(key: str, type=None, **kwargs):
     var["min_log_std"] = kwargs.get(key + "_min_log_std", float("-inf"))
     var["max_log_std"] = kwargs.get(key + "_max_log_std", float("inf"))
     var["std_sype"] = kwargs.get(key + "_std_sype", "mlp_shared")
-#  var["norm_matrix"] = kwargs.get("norm_matrix", [1.0] * var["obs_dim"])
+    var["norm_matrix"] = kwargs.get("norm_matrix", None)
 
     apprfunc_type = kwargs[key + "_func_type"]
     if apprfunc_type == "MLP" or apprfunc_type == "RNN":
