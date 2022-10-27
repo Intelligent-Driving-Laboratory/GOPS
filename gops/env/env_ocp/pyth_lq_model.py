@@ -18,9 +18,4 @@ def env_model_creator(**kwargs):
     else:
         raise RuntimeError("lq_config invalid")
 
-    if kwargs.get("use_gpu", False):
-        device = "cuda"
-    else:
-        device = "cpu"
-
-    return LqModel(config, device)
+    return LqModel(config, kwargs["device"])
