@@ -11,6 +11,7 @@ from scipy.linalg._solvers import solve_discrete_are
 
 from gops.env.env_ocp.pyth_base_data import PythBaseEnv
 from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.utils.gops_typing import InfoDict
 
 warnings.filterwarnings("ignore")
 gym.logger.setLevel(gym.logger.ERROR)
@@ -332,8 +333,8 @@ class LqModel(PythBaseModel):
         self.action_dim = len(config["action_high"])
         self.dt = config["dt"]  # seconds between state updates
 
-    def step(self, obs: torch.Tensor, action: torch.Tensor, info: dict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
+    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         next_obs = self.dynamics.prediction(obs, action)
         reward = self.dynamics.compute_reward(obs, action).reshape(-1)
         done = torch.full([obs.size()[0]], False, dtype=torch.bool, device=self.device)

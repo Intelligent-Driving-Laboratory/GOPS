@@ -29,7 +29,19 @@ def create_env_model(**kwargs):
     reward_shift = kwargs.get("reward_shift", None)
     obs_scale = kwargs.get("obs_scale", None)
     obs_shift = kwargs.get("obs_shift", None)
-    env_model = wrapping_model(env_model, reward_shift, reward_scale, obs_shift, obs_scale)
+    clip_obs = kwargs.get("clip_obs", True)
+    clip_action = kwargs.get("clip_action", True)
+    mask_at_done = kwargs.get("mask_at_done", True)
+    env_model = wrapping_model(
+        model=env_model,
+        reward_shift=reward_shift,
+        reward_scale=reward_scale,
+        obs_shift=obs_shift,
+        obs_scale=obs_scale,
+        clip_obs=clip_obs,
+        clip_action=clip_action,
+        mask_at_done=mask_at_done,
+    )
     # print("wrap_model with", reward_shift, reward_scale, obs_shift, obs_scale)
     print("Create environment model successfully!")
     return env_model

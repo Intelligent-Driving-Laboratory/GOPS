@@ -1,4 +1,4 @@
-import warnings
+from abc import ABCMeta, abstractmethod
 from typing import Tuple, Union
 
 import torch
@@ -6,7 +6,7 @@ import torch
 from gops.utils.gops_typing import InfoDict
 
 
-class PythBaseModel:
+class PythBaseModel(metaclass=ABCMeta):
     def __init__(self,
                  obs_dim: int,
                  action_dim: int,
@@ -33,31 +33,10 @@ class PythBaseModel:
         self.done_mask = done_mask
         self.device = device
 
+    @abstractmethod
     def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
-        if self.clamp_obs:
-            obs_clamp = obs.clamp(self.obs_lower_bound, self.obs_upper_bound)
-            if not torch.equal(obs_clamp, obs):
-                warnings.warn("Observation out of space!")
-            obs = obs_clamp
-
-        if self.clamp_action:
-            action_clamp = action.clamp(self.action_lower_bound, self.action_upper_bound)
-            if not torch.equal(action_clamp, action):
-                warnings.warn("Action out of space!")
-            action = action_clamp
-
-        next_obs, reward, next_done, next_info = self.step(obs, action, info)
-
-        if self.done_mask:
-            next_obs = ~done * next_obs + done * obs
-            reward = ~done * reward
-
-        return next_obs, reward, next_done, next_info
-
-    def step(self, obs: torch.Tensor, action: torch.Tensor, info: InfoDict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
-        raise NotImplementedError
+        pass
 
     def get_terminal_cost(self, obs: torch.Tensor) -> Union[torch.Tensor, None]:
         return None
