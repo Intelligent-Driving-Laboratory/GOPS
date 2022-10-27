@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, Union
+from typing import Callable, Tuple, Union
 
 import torch
 
@@ -32,8 +32,16 @@ class PythBaseModel(metaclass=ABCMeta):
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         pass
 
-    def get_terminal_cost(self, obs: torch.Tensor) -> Union[torch.Tensor, None]:
-        return None
+    # Define get_constraint as a value of type Callable
+    # A trick for faster constraint evaluations
+    # The subclass can realize it like:
+    #   def get_constraint(self, obs: torch.Tensor) -> torch.Tensor:
+    #       ...
+    # This function should return a Tensor of shape [1],
+    # each element of which will be required to be greater than or equal to 0
+    get_constraint: Callable[[torch.Tensor], torch.Tensor] = None
 
-    def get_constraint(self, obs: torch.Tensor) -> Union[torch.Tensor, None]:
-        return None
+    # Just like get_constraint,
+    # define a function returning a Tensor of shape [] in the subclass
+    # if you need
+    get_terminal_cost: Callable[[torch.Tensor], torch.Tensor] = None
