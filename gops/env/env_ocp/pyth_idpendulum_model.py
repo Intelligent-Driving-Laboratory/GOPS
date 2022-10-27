@@ -184,8 +184,4 @@ def env_model_creator(**kwargs):
     """
     make env model `pyth_invertedpendulum`
     """
-    if kwargs.get("use_gpu", False):
-        device = "cuda"
-    else:
-        device = "cpu"
-    return PythInvertedpendulum(device)
+    return PythInvertedpendulum(kwargs["device"])

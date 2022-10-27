@@ -14,6 +14,12 @@ def create_env_model(**kwargs):
     except NotImplementedError:
         raise NotImplementedError("This environment does not have differential model")
 
+    if "device" not in kwargs.keys():
+        if kwargs.get("use_gpu", False):
+            kwargs["device"] = "cuda"
+        else:
+            kwargs["device"] = "cpu"
+
     env_name_camel = formatter(env_model_name)
 
     if hasattr(file, "env_model_creator"):
