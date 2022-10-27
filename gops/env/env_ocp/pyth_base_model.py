@@ -15,9 +15,6 @@ class PythBaseModel(metaclass=ABCMeta):
                  obs_upper_bound,
                  action_lower_bound,
                  action_upper_bound,
-                 clamp_obs: bool = True,
-                 clamp_action: bool = True,
-                 done_mask: bool = False,
                  device: Union[torch.device, str, None] = None,
                  ):
         super(PythBaseModel, self).__init__()
@@ -28,9 +25,6 @@ class PythBaseModel(metaclass=ABCMeta):
         self.obs_upper_bound = torch.tensor(obs_upper_bound, dtype=torch.float32, device=device)
         self.action_lower_bound = torch.tensor(action_lower_bound, dtype=torch.float32, device=device)
         self.action_upper_bound = torch.tensor(action_upper_bound, dtype=torch.float32, device=device)
-        self.clamp_obs = clamp_obs
-        self.clamp_action = clamp_action
-        self.done_mask = done_mask
         self.device = device
 
     @abstractmethod
