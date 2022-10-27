@@ -166,8 +166,6 @@ class PythInvertedpendulum(PythBaseModel):
             obs_upper_bound=hb_state,
             action_lower_bound=lb_action,
             action_upper_bound=hb_action,
-            clamp_obs=False,
-            clamp_action=False,
             device=device,
         )
         # define your custom parameters here
