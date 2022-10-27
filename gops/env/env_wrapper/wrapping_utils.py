@@ -1,5 +1,8 @@
 from gym.wrappers.time_limit import TimeLimit
 
+from gops.env.env_wrapper.clip_action import ClipActionModel
+from gops.env.env_wrapper.clip_observation import ClipObservationModel
+from gops.env.env_wrapper.mask_at_done import MaskAtDoneModel
 from gops.env.env_wrapper.noise_observation import NoiseData
 from gops.env.env_wrapper.scale_observation import ScaleObservationData, ScaleObservationModel
 from gops.env.env_wrapper.shaping_reward import ShapingRewardData, ShapingRewardModel
@@ -45,7 +48,15 @@ def wrapping_env(env,
     return env
 
 
-def wrapping_model(model, reward_shift=None, reward_scale=None, obs_shift=None, obs_scale=None):
+def wrapping_model(model,
+                   reward_shift=None,
+                   reward_scale=None,
+                   obs_shift=None,
+                   obs_scale=None,
+                   clip_obs=True,
+                   clip_action=True,
+                   mask_at_done=True,
+                   ):
     if not all_none(reward_scale, reward_shift):
         reward_scale = 1.0 if reward_scale is None else reward_scale
         reward_shift = 0.0 if reward_shift is None else reward_shift
@@ -55,6 +66,15 @@ def wrapping_model(model, reward_shift=None, reward_scale=None, obs_shift=None, 
         obs_scale = 1.0 if obs_scale is None else obs_scale
         obs_shift = 0.0 if obs_shift is None else obs_shift
         model = ScaleObservationModel(model, obs_shift, obs_scale)
+
+    if clip_obs:
+        model = ClipObservationModel(model)
+
+    if clip_action:
+        model = ClipActionModel(model)
+
+    if mask_at_done:
+        model = MaskAtDoneModel(model)
 
     return model
 

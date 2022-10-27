@@ -173,7 +173,7 @@ class PythInvertedpendulum(PythBaseModel):
         # define your custom parameters here
         self.dynamics = Dynamics()
 
-    def step(self, obs: torch.Tensor, action: torch.Tensor, info: InfoDict) \
+    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         next_obs = self.dynamics.f_xu(obs, 500 * action, self.dt)
         reward = self.dynamics.compute_rewards(next_obs).reshape(-1)
