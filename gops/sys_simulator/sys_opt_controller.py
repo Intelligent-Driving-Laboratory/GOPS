@@ -54,7 +54,7 @@ class OptController:
             # }],
             options=self.minimize_options
         )
-        self.initial_guess = np.concatenate((res.x[:-self.action_dim], np.zeros(self.action_dim)))
+        self.initial_guess = np.concatenate((res.x[self.action_dim:], np.zeros(self.action_dim)))
         self.__print_statistics(res)
         return res.x.reshape((self.action_dim, -1))[:, 0]
 
@@ -219,7 +219,7 @@ if __name__ == "__main__":
         mean_action_errs = []
     
     # num_pred_steps = range(50, 60, 20)
-    num_pred_steps = (50,)
+    num_pred_steps = (70,)
     for num_pred_step in num_pred_steps:
         if args["env_id"] == "pyth_lq":
             A_conti = env_model.dynamics.A.numpy()
@@ -242,12 +242,12 @@ if __name__ == "__main__":
             num_pred_step=num_pred_step, 
             minimize_options={
                 "max_iter": 200, 
-                "tol": 1e-5,
-                # "acceptable_tol": 1e-3,
+                "tol": 1e-3,
+                "acceptable_tol": 1e-1,
                 # "ftol": 1e-8,
                 # "disp": True,
                 # "iprint": 2
-                # "print_level": 5,
+                "print_level": 5,
             }
         )
 
