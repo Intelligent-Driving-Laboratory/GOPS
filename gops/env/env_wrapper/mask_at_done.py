@@ -10,6 +10,7 @@ class MaskAtDoneModel(ModelWrapper):
     def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         next_obs, reward, next_done, next_info = super().forward(obs, action, done, info)
-        next_obs = ~done * next_obs + done * obs
+        done = done.bool()
+        next_obs = ~done.unsqueeze(1) * next_obs + done.unsqueeze(1) * obs
         reward = ~done * reward
         return next_obs, reward, next_done, next_info
