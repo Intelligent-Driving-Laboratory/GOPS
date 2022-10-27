@@ -328,10 +328,6 @@ class LqModel(PythBaseModel):
 
         # define your custom parameters here
         self.dynamics = LQDynamics(config, device)
-        # define common parameters here
-        self.state_dim = len(config["state_high"])
-        self.action_dim = len(config["action_high"])
-        self.dt = config["dt"]  # seconds between state updates
 
     def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
