@@ -151,11 +151,17 @@ class PythInvertedpendulum(PythBaseModel):
         """
         you need to define parameters here
         """
-        lb_state = [-np.inf, -np.inf, -np.inf, -np.inf, -np.inf, -np.inf]
-        hb_state = [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]
+        obs_dim = 6
+        action_dim = 1
+        dt = 0.05
+        lb_state = [-np.inf] * obs_dim
+        hb_state = [np.inf] * obs_dim
         lb_action = [-1.0]
         hb_action = [1.0]
         super().__init__(
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            dt=dt,
             obs_lower_bound=lb_state,
             obs_upper_bound=hb_state,
             action_lower_bound=lb_action,
@@ -166,10 +172,6 @@ class PythInvertedpendulum(PythBaseModel):
         )
         # define your custom parameters here
         self.dynamics = Dynamics()
-        # define common parameters here
-        self.state_dim = 6
-        self.action_dim = 1
-        self.dt = 0.05  # seconds between state updates
 
     def step(self, obs: torch.Tensor, action: torch.Tensor, info: InfoDict) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:

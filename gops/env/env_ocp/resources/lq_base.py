@@ -315,6 +315,9 @@ class LqModel(PythBaseModel):
         lb_action = np.array(config["action_low"])
         hb_action = np.array(config["action_high"])
         super().__init__(
+            obs_dim=lb_state.shape[0],
+            action_dim=lb_action.shape[0],
+            dt=config["dt"],
             obs_lower_bound=lb_state,
             obs_upper_bound=hb_state,
             action_lower_bound=lb_action,
