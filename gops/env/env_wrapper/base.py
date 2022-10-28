@@ -10,9 +10,13 @@ class ModelWrapper:
     def __init__(self, model: PythBaseModel):
         self.model = model
 
-    def __getattr__(self, name):
-        return getattr(self.model, name)
-
     def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         return self.model.forward(obs, action, done, info)
+
+    def __getattr__(self, name):
+        return getattr(self.model, name)
+
+    @property
+    def unwrapped(self):
+        return self.model.unwrapped

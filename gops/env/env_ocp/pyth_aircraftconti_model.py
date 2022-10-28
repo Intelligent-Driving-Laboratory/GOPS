@@ -6,16 +6,19 @@
 #  Description: Aircraft Environment
 #
 
-import warnings
-import torch
+from typing import Tuple, Union
+
 import numpy as np
+import torch
 
-pi = torch.tensor(np.pi, dtype=torch.float32)
+from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.utils.gops_typing import InfoDict
 
 
-class PythAircraftcontiModel(torch.nn.Module):
-    def __init__(self, **kwargs):
-        super().__init__()
+class PythAircraftcontiModel(PythBaseModel):
+    def __init__(self,
+                 device: Union[torch.device, str, None] = None,
+                 **kwargs):
         """
         you need to define parameters here
         """
@@ -73,6 +76,17 @@ class PythAircraftcontiModel(torch.nn.Module):
         self.max_step_per_episode = self.max_step()
         self.step_per_episode = self.initial_step()
 
+        super().__init__(
+            obs_dim=self.state_dim,
+            action_dim=self.action_dim,
+            dt=self.dt,
+            obs_lower_bound=self.lb_state,
+            obs_upper_bound=self.hb_state,
+            action_lower_bound=self.lb_action,
+            action_upper_bound=self.hb_action,
+            device=device,
+        )
+
     def max_step(self):
         return torch.from_numpy(np.floor(np.random.uniform(self.lower_step, self.upper_step, [self.sample_batch_size])))
 
@@ -120,15 +134,16 @@ class PythAircraftcontiModel(torch.nn.Module):
 
         return self.parallel_state, reward, done, info
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)):
+    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
         notice that all the variables contains the batch dim you need to remember this point
         when constructing your function
-        :param state: datatype:torch.Tensor, shape:[batch_size, state_dim]
+        :param obs: datatype:torch.Tensor, shape:[batch_size, state_dim]
         :param action: datatype:torch.Tensor, shape:[batch_size, action_dim]
-        :param beyond_done: flag indicate the state is already done which means it will not be calculated by the model
+        :param done: flag indicate the state is already done which means it will not be calculated by the model
         :return:
                 next_state:  datatype:torch.Tensor, shape:[batch_size, state_dim]
                               the state will not change anymore when the corresponding flag done is set to True
@@ -137,15 +152,7 @@ class PythAircraftcontiModel(torch.nn.Module):
                          flag done will be set to true when the model reaches the max_iteration or the next state
                          satisfies ending condition
         """
-        warning_msg = "action out of action space!"
-        if not ((action <= self.hb_action).all() and (action >= self.lb_action).all()):
-            # warnings.warn(warning_msg)
-            action = clip_by_tensor(action, self.lb_action, self.hb_action)
-
-        warning_msg = "state out of state space!"
-        if not ((state <= self.hb_state).all() and (state >= self.lb_state).all()):
-            # warnings.warn(warning_msg)
-            state = clip_by_tensor(state, self.lb_state, self.hb_state)
+        state = obs
 
         dt = self.dt
         A_attack_ang = self.A_attack_ang
@@ -168,12 +175,7 @@ class PythAircraftcontiModel(torch.nn.Module):
         # define the ending condation here the format is just like isdone = l(next_state)
         isdone = state[:, 0].new_zeros(size=[state.size()[0]], dtype=torch.bool)
 
-        ############################################################################################
-        # beyond_done = beyond_done.bool()
-        # mask = isdone * beyond_done
-        # mask = torch.unsqueeze(mask, -1)
-        # state_next = ~mask * state_next + mask * state
-        return delta_state, reward, isdone
+        return delta_state, reward, isdone, {}
 
     def f_x(self, state):
         batch_size = state.size()[0]
@@ -232,16 +234,3 @@ class PythAircraftcontiModel(torch.nn.Module):
             adv = 0.5 / (self.gamma_atte ** 2) * torch.mm(kx.t(), delta_value.t())
 
         return adv.detach()
-
-
-def clip_by_tensor(t, t_min, t_max):
-    """
-    clip_by_tensor
-    :param t: tensor
-    :param t_min: min
-    :param t_max: max
-    :return: cliped tensor
-    """
-    result = (t >= t_min) * t + (t < t_min) * t_min
-    result = (result <= t_max) * result + (result > t_max) * t_max
-    return result

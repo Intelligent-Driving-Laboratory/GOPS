@@ -45,3 +45,7 @@ class PythBaseModel(metaclass=ABCMeta):
     # define a function returning a Tensor of shape [] in the subclass
     # if you need
     get_terminal_cost: Callable[[torch.Tensor], torch.Tensor] = None
+
+    @property
+    def unwrapped(self):
+        return self
