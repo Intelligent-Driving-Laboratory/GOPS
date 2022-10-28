@@ -1,6 +1,6 @@
-from sys_run import PolicyRuner
+from sys_run import PolicyRunner
 
-runer = PolicyRuner(
+runner = PolicyRunner(
     log_policy_dir_list=["../../results/SPIL/mobile_robot_221017-145318"]*2,
     trained_policy_iteration_list=['7700', '7900'],
     is_init_info=True,
@@ -10,4 +10,4 @@ runer = PolicyRuner(
     use_opt=True,
     constrained_env=True)
 
-runer.run()
+runner.run()

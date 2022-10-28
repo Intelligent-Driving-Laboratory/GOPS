@@ -7,7 +7,7 @@ from gops.env.env_wrapper.noise_observation import NoiseData
 from gops.env.env_wrapper.scale_observation import ScaleObservationData, ScaleObservationModel
 from gops.env.env_wrapper.shaping_reward import ShapingRewardData, ShapingRewardModel
 from gops.env.env_wrapper.wrap_state import StateData
-
+from gops.env.env_wrapper.convert_type import ConvertType
 
 def all_none(a, b):
     if (a is None) and (b is None):
@@ -29,7 +29,7 @@ def wrapping_env(env,
         max_episode_steps = getattr(env, "max_episode_steps")
     if max_episode_steps is not None:
         env = TimeLimit(env, max_episode_steps)
-
+    env = ConvertType(env)
     env = StateData(env)
 
     if not all_none(reward_scale, reward_shift):
