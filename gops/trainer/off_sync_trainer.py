@@ -144,35 +144,45 @@ class OffSyncTrainer:
             tb_dict.append(alg_tb_dict)
             update_info.append(update_information)
 
-            self.iteration += 1
-
             if self.use_gpu:
                 for k, v in update_information.items():
                     if isinstance(v, list):
                         for i in range(len(v)):
                             update_information[k][i] = v[i].cpu()
 
+        self.iteration += 1
         num = np.shape(update_info)[0]
         values_last_time = None
         for _ in range(num):
             if _ == 0:
                 values_last_time = list(update_info[0].values())
             else:
-                values_last_time = [
-                    a + b for a, b in zip(values_last_time, list(update_info[_].values()))
-                ]
+                values_list = []
+                for a, b in zip(values_last_time, list(update_info[_].values())):
+                    if _ == 1:
+                        if isinstance(a, list):
+                            values_list.append([(i + j) / num for i, j in zip(a, b)])
+                        else:
+                            values_list.append((a + b)/ num)
+                    else:
+                        if isinstance(a, list):
+                            values_list.append([i + j / num for i, j in zip(a, b)])
+                        else:
+                            values_list.append(a + b / num)
+                values_last_time = values_list
+
         keys = update_info[0].keys()
         update_info = dict(zip(keys, values_last_time))
         self.networks.remote_update(update_info)
 
         # log
-        if self.iteration % (self.log_save_interval * num) == 0:
+        if self.iteration % (self.log_save_interval) == 0:
             print("Iter = ", self.iteration)
             add_scalars(alg_tb_dict, self.writer, step=self.iteration)
             add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
 
         # evaluate
-        if self.iteration % (self.eval_interval * num) == 0:
+        if self.iteration % (self.eval_interval) == 0:
             self.evaluator.load_state_dict.remote(self.networks.state_dict())
             total_avg_return = ray.get(
                 self.evaluator.run_evaluation.remote(self.iteration)
@@ -223,7 +233,7 @@ class OffSyncTrainer:
             )
 
         # save
-        if self.iteration % (self.apprfunc_save_interval * num) == 0:
+        if self.iteration % (self.apprfunc_save_interval) == 0:
             self.save_apprfunc()
 
     def train(self):

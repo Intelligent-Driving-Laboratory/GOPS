@@ -1,6 +1,6 @@
-from sys_run import PolicyRuner
+from sys_run import PolicyRunner
 
-runer = PolicyRuner(
+runner = PolicyRunner(
     log_policy_dir_list=["../../results/RPI/poly_oscillatorconti_221017-205535"] * 2,
     trained_policy_iteration_list=['40', '50'],
     is_init_info=True,
@@ -12,4 +12,4 @@ runer = PolicyRuner(
     is_tracking=False,
     dt=None)
 
-runer.run()
+runner.run()
