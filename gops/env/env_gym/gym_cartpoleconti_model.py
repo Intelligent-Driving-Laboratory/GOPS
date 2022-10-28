@@ -58,7 +58,7 @@ class GymCartpolecontiModel(torch.nn.Module):
         self.register_buffer("lb_action", torch.tensor(lb_action, dtype=torch.float32))
         self.register_buffer("hb_action", torch.tensor(hb_action, dtype=torch.float32))
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor, info: InfoDict, beyond_done=torch.tensor(1)):
+    def forward(self, obs: torch.Tensor, action: torch.Tensor, info: InfoDict, beyond_done=torch.tensor(1)):
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
@@ -85,7 +85,7 @@ class GymCartpolecontiModel(torch.nn.Module):
             warnings.warn(warning_msg)
             action = clip_by_tensor(action, self.lb_action, self.hb_action)
 
-        state = info["state"]
+        state = obs
 
         warning_msg = "state out of state space!"
         if not ((state <= self.hb_state).all() and (state >= self.lb_state).all()):
