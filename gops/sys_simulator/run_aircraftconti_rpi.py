@@ -1,6 +1,6 @@
-from sys_run import PolicyRuner
+from sys_run import PolicyRunner
 
-runer = PolicyRuner(
+runner = PolicyRunner(
     log_policy_dir_list=["../../results/RPI/poly_aircraftconti_221017-233026"] * 2,
     trained_policy_iteration_list=['40', '50'],
     is_init_info=True,
@@ -17,4 +17,4 @@ runer = PolicyRuner(
 
     dt=None)
 
-runer.run()
+runner.run()
