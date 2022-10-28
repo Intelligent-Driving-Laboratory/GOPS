@@ -101,7 +101,7 @@ class RPI(AlgorithmBase):
         self.env_model = create_env_model(**kwargs)
         self.obs = self.env_model.reset()
         self.done = None
-        self.env_model.parallel_state = self.obs.clone()
+        self.env_model.unwrapped.parallel_state = self.obs.clone()
 
         self.networks = ApproxContainer(**kwargs)
         self.learning_rate = kwargs["learning_rate"]
@@ -165,7 +165,9 @@ class RPI(AlgorithmBase):
         batch_value = self.networks.value(batch_observation)
         batch_delta_value, = torch.autograd.grad(torch.sum(batch_value), batch_observation, create_graph=True)
         batch_observation.requires_grad_(False)
-        batch_delta_state, batch_utility, _ = self.env_model.forward(batch_observation, batch_input)
+        done = torch.zeros(obs.shape[0], device=obs.device).bool()
+        info = {}
+        batch_delta_state, batch_utility, _, _ = self.env_model.forward(batch_observation, batch_input, done, info)
         loss_value = self.__value_loss_function(batch_delta_value, batch_utility.detach(), batch_delta_state.detach())
 
         return loss_value
@@ -180,7 +182,9 @@ class RPI(AlgorithmBase):
         batch_value = self.networks.value(batch_observation)
         batch_delta_value, = torch.autograd.grad(torch.sum(batch_value), batch_observation, create_graph=True)
         batch_observation.requires_grad_(False)
-        batch_delta_state, batch_utility, _ = self.env_model.forward(batch_observation, batch_input)
+        done = torch.zeros(set_state.shape[0], device=set_state.device).bool()
+        info = {}
+        batch_delta_state, batch_utility, _, _ = self.env_model.forward(batch_observation, batch_input, done, info)
         hamiltonian = self.__value_loss_function(batch_delta_value, batch_utility.detach(), batch_delta_state.detach())
 
         return hamiltonian.detach().item()
@@ -218,7 +222,7 @@ class RPI(AlgorithmBase):
         reset_signal = self.done | info['TimeLimit.truncated']
         self.obs = torch.where(reset_signal.unsqueeze(dim=-1).repeat(1, self.obsv_dim),
                                reset_obs, self.obs)
-        self.env_model.parallel_state = self.obs.clone()
+        self.env_model.unwrapped.parallel_state = self.obs.clone()
         self.env_model.step_per_episode = torch.where(self.done | info['TimeLimit.truncated'],
                                                       self.env_model.initial_step(), self.env_model.step_per_episode)
 
