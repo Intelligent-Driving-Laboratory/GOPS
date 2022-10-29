@@ -54,8 +54,12 @@ class PythOscillatorcontiModel(PythBaseModel):
 
         self.lb_state = torch.tensor([-self.battery_a_threshold, -self.battery_b_threshold], dtype=torch.float32)
         self.hb_state = torch.tensor([self.battery_a_threshold, self.battery_b_threshold], dtype=torch.float32)
-        self.lb_action = torch.tensor(self.min_action + self.min_adv_action, dtype=torch.float32)  # action & adversary
-        self.hb_action = torch.tensor(self.max_action + self.max_adv_action, dtype=torch.float32)
+        if self.is_adversary:
+            self.lb_action = torch.tensor(self.min_action + self.min_adv_action, dtype=torch.float32)
+            self.hb_action = torch.tensor(self.max_action + self.max_adv_action, dtype=torch.float32)
+        else:
+            self.lb_action = torch.tensor(self.min_action, dtype=torch.float32)  # action & adversary
+            self.hb_action = torch.tensor(self.max_action, dtype=torch.float32)
 
         self.ones_ = torch.ones(self.sample_batch_size)
         self.zeros_ = torch.zeros(self.sample_batch_size)
@@ -142,7 +146,10 @@ class PythOscillatorcontiModel(PythBaseModel):
         dt = self.dt
         battery_a, battery_b = state[:, 0], state[:, 1]
         memristor = action[:, 0]  # memristor
-        noise = action[:, 1]      # noise
+        if self.is_adversary:
+            noise = action[:, 1]      # noise
+        else:
+            noise = torch.zeros_like(memristor)
 
         deri_battery_a = - 0.25 * battery_a
         deri_battery_b = 0.5 * torch.mul(battery_a ** 2, battery_b) - 1 / (2 * self.gamma_atte ** 2) * battery_b ** 3 \

@@ -63,8 +63,12 @@ class PythAircraftcontiModel(PythBaseModel):
 
         self.lb_state = torch.tensor([-self.attack_ang_threshold, -self.rate_threshold, -self.elevator_ang_threshold], dtype=torch.float32)
         self.hb_state = torch.tensor([self.attack_ang_threshold, self.rate_threshold, self.elevator_ang_threshold], dtype=torch.float32)
-        self.lb_action = torch.tensor(self.min_action + self.min_adv_action, dtype=torch.float32)  # action & adversary
-        self.hb_action = torch.tensor(self.max_action + self.max_adv_action, dtype=torch.float32)
+        if self.is_adversary:
+            self.lb_action = torch.tensor(self.min_action + self.min_adv_action, dtype=torch.float32)
+            self.hb_action = torch.tensor(self.max_action + self.max_adv_action, dtype=torch.float32)
+        else:
+            self.lb_action = torch.tensor(self.min_action, dtype=torch.float32)  # action & adversary
+            self.hb_action = torch.tensor(self.max_action, dtype=torch.float32)
 
         self.ones_ = torch.ones(self.sample_batch_size)
         self.zeros_ = torch.zeros(self.sample_batch_size)
@@ -111,7 +115,10 @@ class PythAircraftcontiModel(PythBaseModel):
         state = self.parallel_state
         attack_ang, rate, elevator_ang = self.parallel_state[:, 0], self.parallel_state[:, 1], self.parallel_state[:, 2]
         elevator_vol = action[:, 0]  # the elevator actuator voltage
-        wind_attack_angle = action[:, 1]  # wind gusts on angle of attack
+        if self.is_adversary:
+            wind_attack_angle = action[:, 1]  # wind gusts on angle of attack
+        else:
+            wind_attack_angle = torch.zeros_like(elevator_vol)
 
         deri_attack_ang = torch.mm(state, A_attack_ang).squeeze() + wind_attack_angle
         deri_rate = torch.mm(state, A_rate).squeeze()

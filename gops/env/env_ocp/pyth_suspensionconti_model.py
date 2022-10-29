@@ -74,8 +74,12 @@ class PythSuspensioncontiModel(PythBaseModel):
                                       -self.pos_wheel_threshold, -self.vel_wheel_threshold], dtype=torch.float32)
         self.hb_state = torch.tensor([self.pos_body_threshold, self.vel_body_threshold,
                                       self.pos_wheel_threshold, self.vel_wheel_threshold], dtype=torch.float32)
-        self.lb_action = torch.tensor(self.min_action + self.min_adv_action, dtype=torch.float32)  # action & adversary
-        self.hb_action = torch.tensor(self.max_action + self.max_adv_action, dtype=torch.float32)
+        if self.is_adversary:
+            self.lb_action = torch.tensor(self.min_action + self.min_adv_action, dtype=torch.float32)
+            self.hb_action = torch.tensor(self.max_action + self.max_adv_action, dtype=torch.float32)
+        else:
+            self.lb_action = torch.tensor(self.min_action, dtype=torch.float32)  # action & adversary
+            self.hb_action = torch.tensor(self.max_action, dtype=torch.float32)
 
         self.ones_ = torch.ones(self.sample_batch_size)
         self.zeros_ = torch.zeros(self.sample_batch_size)
@@ -185,7 +189,10 @@ class PythSuspensioncontiModel(PythBaseModel):
         control_gain = self.control_gain
         pos_body, vel_body, pos_wheel, vel_wheel = state[:, 0], state[:, 1], state[:, 2], state[:, 3]
         force = action[:, 0]     # the control force of the hydraulic actuator [kN]
-        pos_road = action[:, 1]  # the road disturbance
+        if self.is_adversary:
+            pos_road = action[:, 1]  # the road disturbance
+        else:
+            pos_road = torch.zeros_like(force)
 
         deri_pos_body = vel_body
         deri_vel_body = - (K_a * (pos_body - pos_wheel) + K_n * torch.pow(pos_body - pos_wheel, 3) +
