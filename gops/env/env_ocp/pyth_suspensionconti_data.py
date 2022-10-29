@@ -102,10 +102,10 @@ class _GymSuspensionconti(PythBaseEnv):
         self.steps = 0
 
     def reset(self, init_state=None, **kwargs):
-        if init_state is not None:
-            self.state = init_state
-        else:
+        if init_state is None:
             self.state = self.sample_initial_state()
+        else:
+            self.state = np.array(init_state, dtype=np.float32)
         self.steps_beyond_done = None
         self.steps = 0
         return self.state

@@ -88,6 +88,7 @@ class RPI(AlgorithmBase):
         self.print_interval = kwargs['print_interval']
         self.obsv_dim = kwargs['obsv_dim']
         self.act_dim = kwargs['action_dim']
+        self.gt_weight = kwargs.get('gt_weight', None)
 
         self.num_update_value = 0
         self.norm_hamiltonian_before = 0
@@ -149,7 +150,14 @@ class RPI(AlgorithmBase):
 
         if iteration % self.print_interval == 0:
             self.grad_step[iteration, 0] = self.num_update_value
-            print(f'Newton ite: {iteration}, grad step = {self.num_update_value:d}')
+            print(f'Newton ite: {iteration}, grad step = {self.num_update_value:d}, '
+                  f'loss value = {math.log10(loss_value.item()):.2f}')
+            if self.value_func_type == 'POLY' or self.value_func_type == 'POLYNOMIAL':
+                weight = self.networks.value.v.weight.detach()[0]
+                print(f'weight = {weight}')
+                if self.gt_weight is not None:
+                    gt = np.array(self.gt_weight)
+                    print(f'error = {math.log10(np.linalg.norm(weight - gt) / np.linalg.norm(gt)):.2f}')
 
         return grad_info
 
@@ -167,7 +175,8 @@ class RPI(AlgorithmBase):
         batch_observation.requires_grad_(False)
         done = torch.zeros(obs.shape[0], device=obs.device).bool()
         info = {}
-        batch_delta_state, batch_utility, _, _ = self.env_model.forward(batch_observation, batch_input, done, info)
+        _, batch_utility, _, next_info = self.env_model.forward(batch_observation, batch_input, done, info)
+        batch_delta_state = next_info['delta_state']
         loss_value = self.__value_loss_function(batch_delta_value, batch_utility.detach(), batch_delta_state.detach())
 
         return loss_value
@@ -184,7 +193,8 @@ class RPI(AlgorithmBase):
         batch_observation.requires_grad_(False)
         done = torch.zeros(set_state.shape[0], device=set_state.device).bool()
         info = {}
-        batch_delta_state, batch_utility, _, _ = self.env_model.forward(batch_observation, batch_input, done, info)
+        _, batch_utility, _, next_info = self.env_model.forward(batch_observation, batch_input, done, info)
+        batch_delta_state = next_info['delta_state']
         hamiltonian = self.__value_loss_function(batch_delta_value, batch_utility.detach(), batch_delta_state.detach())
 
         return hamiltonian.detach().item()

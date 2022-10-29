@@ -6,16 +6,20 @@
 #  Description: Suspension Environment
 #
 
-import warnings
+from typing import Tuple, Union
+
 import torch
 import numpy as np
 
+from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.utils.gops_typing import InfoDict
 pi = torch.tensor(np.pi, dtype=torch.float32)
 
 
-class PythSuspensioncontiModel(torch.nn.Module):
-    def __init__(self, **kwargs):
-        super().__init__()
+class PythSuspensioncontiModel(PythBaseModel):
+    def __init__(self,
+                 device: Union[torch.device, str, None] = None,
+                 **kwargs):
         """
         you need to define parameters here
         """
@@ -70,8 +74,12 @@ class PythSuspensioncontiModel(torch.nn.Module):
                                       -self.pos_wheel_threshold, -self.vel_wheel_threshold], dtype=torch.float32)
         self.hb_state = torch.tensor([self.pos_body_threshold, self.vel_body_threshold,
                                       self.pos_wheel_threshold, self.vel_wheel_threshold], dtype=torch.float32)
-        self.lb_action = torch.tensor(self.min_action + self.min_adv_action, dtype=torch.float32)  # action & adversary
-        self.hb_action = torch.tensor(self.max_action + self.max_adv_action, dtype=torch.float32)
+        if self.is_adversary:
+            self.lb_action = torch.tensor(self.min_action + self.min_adv_action, dtype=torch.float32)
+            self.hb_action = torch.tensor(self.max_action + self.max_adv_action, dtype=torch.float32)
+        else:
+            self.lb_action = torch.tensor(self.min_action, dtype=torch.float32)  # action & adversary
+            self.hb_action = torch.tensor(self.max_action, dtype=torch.float32)
 
         self.ones_ = torch.ones(self.sample_batch_size)
         self.zeros_ = torch.zeros(self.sample_batch_size)
@@ -82,6 +90,17 @@ class PythSuspensioncontiModel(torch.nn.Module):
         self.upper_step = kwargs['upper_step']
         self.max_step_per_episode = self.max_step()
         self.step_per_episode = self.initial_step()
+
+        super().__init__(
+            obs_dim=self.state_dim,
+            action_dim=self.action_dim,
+            dt=self.dt,
+            obs_lower_bound=self.lb_state,
+            obs_upper_bound=self.hb_state,
+            action_lower_bound=self.lb_action,
+            action_upper_bound=self.hb_action,
+            device=device,
+        )
 
     def max_step(self):
         return torch.from_numpy(np.floor(np.random.uniform(self.lower_step, self.upper_step, [self.sample_batch_size])))
@@ -140,15 +159,16 @@ class PythSuspensioncontiModel(torch.nn.Module):
 
         return self.parallel_state, reward, done, info
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)):
+    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
         notice that all the variables contains the batch dim you need to remember this point
         when constructing your function
-        :param state: datatype:torch.Tensor, shape:[batch_size, state_dim]
+        :param obs: datatype:torch.Tensor, shape:[batch_size, state_dim]
         :param action: datatype:torch.Tensor, shape:[batch_size, action_dim]
-        :param beyond_done: flag indicate the state is already done which means it will not be calculated by the model
+        :param done: flag indicate the state is already done which means it will not be calculated by the model
         :return:
                 next_state:  datatype:torch.Tensor, shape:[batch_size, state_dim]
                               the state will not change anymore when the corresponding flag done is set to True
@@ -157,17 +177,7 @@ class PythSuspensioncontiModel(torch.nn.Module):
                          flag done will be set to true when the model reaches the max_iteration or the next state
                          satisfies ending condition
         """
-        """
-        warning_msg = "action out of action space!"
-        if not ((action <= self.hb_action).all() and (action >= self.lb_action).all()):
-            # warnings.warn(warning_msg)
-            action = clip_by_tensor(action, self.lb_action, self.hb_action)
-
-        warning_msg = "state out of state space!"
-        if not ((state <= self.hb_state).all() and (state >= self.lb_state).all()):
-            # warnings.warn(warning_msg)
-            state = clip_by_tensor(state, self.lb_state, self.hb_state)
-        """
+        state = obs
 
         dt = self.dt
         M_b = self.M_b
@@ -179,7 +189,10 @@ class PythSuspensioncontiModel(torch.nn.Module):
         control_gain = self.control_gain
         pos_body, vel_body, pos_wheel, vel_wheel = state[:, 0], state[:, 1], state[:, 2], state[:, 3]
         force = action[:, 0]     # the control force of the hydraulic actuator [kN]
-        pos_road = action[:, 1]  # the road disturbance
+        if self.is_adversary:
+            pos_road = action[:, 1]  # the road disturbance
+        else:
+            pos_road = torch.zeros_like(force)
 
         deri_pos_body = vel_body
         deri_vel_body = - (K_a * (pos_body - pos_wheel) + K_n * torch.pow(pos_body - pos_wheel, 3) +
@@ -203,7 +216,7 @@ class PythSuspensioncontiModel(torch.nn.Module):
         # mask = isdone * beyond_done
         # mask = torch.unsqueeze(mask, -1)
         # state_next = ~mask * state_next + mask * state
-        return delta_state, reward, isdone
+        return state_next, reward, isdone, {'delta_state': delta_state}
 
     def f_x(self, state, batch_size):
 
