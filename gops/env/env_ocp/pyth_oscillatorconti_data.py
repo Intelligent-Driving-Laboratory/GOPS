@@ -86,7 +86,7 @@ class _GymOscillatorconti(PythBaseEnv):
         if init_state is None:
             self.state = self.sample_initial_state()
         else:
-            self.state = init_state
+            self.state = np.array(init_state, dtype=np.float32)
         self.steps_beyond_done = None
         self.steps = 0
         return self.state
