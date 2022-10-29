@@ -175,7 +175,7 @@ class PythAircraftcontiModel(PythBaseModel):
         # define the ending condation here the format is just like isdone = l(next_state)
         isdone = state[:, 0].new_zeros(size=[state.size()[0]], dtype=torch.bool)
 
-        return delta_state, reward, isdone, {}
+        return state_next, reward, isdone, {'delta_state': delta_state}
 
     def f_x(self, state):
         batch_size = state.size()[0]
