@@ -9,21 +9,32 @@
 from gops.env.env_matlab.resources.simu_lqs2a1.lqs2a1 import GymEnv
 from gops.env.env_matlab.resources.simu_lqs2a1.lqs2a1._env import EnvSpec
 from gops.env.env_matlab.resources.simu_lqs2a1 import lqs2a1
+from gops.env.env_ocp.pyth_base_data import PythBaseEnv
 
 from gym import spaces
 import gym
 from gym.utils import seeding
 import numpy as np
 
-class Lqs2a1(gym.Env):
+class Lqs2a1(PythBaseEnv):
     def __init__(self, **kwargs):
+        work_space = kwargs.pop("work_space", None)
+        if work_space is None:
+            # initial range of [p, theta1, theta2, pdot, theta1dot, theta2dot]
+            init_high = np.array([1, 1], dtype=np.float32)
+            init_low = -init_high
+            work_space = np.stack((init_low, init_high))
+        super(Lqs2a1, self).__init__(work_space=work_space, **kwargs)
+
         spec = EnvSpec(
             id="SimuLqs2a1Conti-v0",
-            max_episode_steps=kwargs["Max_step"],
             terminal_bonus_reward=kwargs["punish_done"],
             strict_reset=True
         )
         self.env = GymEnv(spec)
+
+        # max step
+        self.max_episode_steps = kwargs['max_episode_steps']
 
         # Inherit or override with a user provided space
         self.observation_space = self.env.observation_space
@@ -40,12 +51,15 @@ class Lqs2a1(gym.Env):
         self.seed()
         self.reset()
     
-    def reset(self):
+    def reset(self, *, init_state=None, **kwargs):
         def callback():
             """Custom reset logic goes here."""
             # Modify your parameter
             # e.g. self.env.model_class.foo_InstP.your_parameter
-            self._state = np.random.uniform(low=self.rand_low, high=self.rand_high) ##todo
+            if init_state is None:
+                self._state = self.sample_initial_state() # np.random.uniform(low=self.rand_low, high=self.rand_high) ##todo
+            else:
+                self._state = init_state
             self.env.model_class.lqs2a1_InstP.x_ini[:] = self._state
             self.env.model_class.lqs2a1_InstP.Q[:] = self.Q
             self.env.model_class.lqs2a1_InstP.R = self.R
@@ -74,7 +88,6 @@ if __name__ == "__main__":
     import numpy as np
     import time
     env_config = {
-                  "Max_step": 200,
                   "rand_center": [0, 0],
                   "rand_bias": [1, 1],
                   "punish_Q": [2, 1],
