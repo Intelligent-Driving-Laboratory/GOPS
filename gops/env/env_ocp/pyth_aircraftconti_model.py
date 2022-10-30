@@ -117,9 +117,9 @@ class PythAircraftcontiModel(PythBaseModel):
         elevator_vol = action[:, 0]  # the elevator actuator voltage
         wind_attack_angle = action[:, 1]  # wind gusts on angle of attack
 
-        deri_attack_ang = torch.mm(state, A_attack_ang).squeeze() + wind_attack_angle
-        deri_rate = torch.mm(state, A_rate).squeeze()
-        deri_elevator_ang = torch.mm(state, A_elevator_ang).squeeze() + elevator_vol
+        deri_attack_ang = torch.mm(state, A_attack_ang).squeeze(-1) + wind_attack_angle
+        deri_rate = torch.mm(state, A_rate).squeeze(-1)
+        deri_elevator_ang = torch.mm(state, A_elevator_ang).squeeze(-1) + elevator_vol
 
         delta_state = torch.stack([deri_attack_ang, deri_rate, deri_elevator_ang], dim=-1)
         self.parallel_state = self.parallel_state + delta_state * dt
@@ -169,9 +169,9 @@ class PythAircraftcontiModel(PythBaseModel):
         else:
             wind_attack_angle = torch.zeros_like(elevator_vol)
 
-        deri_attack_ang = torch.mm(state, A_attack_ang).squeeze() + wind_attack_angle
-        deri_rate = torch.mm(state, A_rate).squeeze()
-        deri_elevator_ang = torch.mm(state, A_elevator_ang).squeeze() + elevator_vol
+        deri_attack_ang = torch.mm(state, A_attack_ang).squeeze(-1) + wind_attack_angle
+        deri_rate = torch.mm(state, A_rate).squeeze(-1)
+        deri_elevator_ang = torch.mm(state, A_elevator_ang).squeeze(-1) + elevator_vol
 
         delta_state = torch.stack([deri_attack_ang, deri_rate, deri_elevator_ang], dim=-1)
         state_next = state + delta_state * dt
