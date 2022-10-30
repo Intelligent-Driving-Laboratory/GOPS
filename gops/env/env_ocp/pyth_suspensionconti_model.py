@@ -203,9 +203,10 @@ class PythSuspensioncontiModel(PythBaseModel):
 
         delta_state = torch.stack([deri_pos_body, deri_vel_body, deri_pos_wheel, deri_vel_wheel], dim=-1)
         state_next = state + delta_state * dt
-        reward = (self.Q[0][0] * pos_body ** 2 + self.Q[1][1] * vel_body ** 2
-                  + self.Q[2][2] * pos_wheel ** 2 + self.Q[3][3] * vel_wheel ** 2
-                  + self.R[0][0] * (force ** 2).squeeze(-1) - self.gamma_atte ** 2 * (pos_road ** 2).squeeze(-1))
+        cost = (self.Q[0][0] * pos_body ** 2 + self.Q[1][1] * vel_body ** 2
+                + self.Q[2][2] * pos_wheel ** 2 + self.Q[3][3] * vel_wheel ** 2
+                + self.R[0][0] * (force ** 2).squeeze(-1) - self.gamma_atte ** 2 * (pos_road ** 2).squeeze(-1))
+        reward = - cost
         ############################################################################################
 
         # define the ending condation here the format is just like isdone = l(next_state)

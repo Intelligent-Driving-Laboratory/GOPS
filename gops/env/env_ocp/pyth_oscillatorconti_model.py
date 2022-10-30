@@ -157,8 +157,9 @@ class PythOscillatorcontiModel(PythBaseModel):
 
         delta_state = torch.stack([deri_battery_a, deri_battery_b], dim=-1)
         state_next = state + delta_state * dt
-        reward = (self.Q[0][0] * battery_a ** 2 + self.Q[1][1] * battery_b ** 2
-                  + self.R[0][0] * (memristor ** 2).squeeze(-1) - self.gamma_atte ** 2 * (noise ** 2).squeeze(-1))
+        cost = (self.Q[0][0] * battery_a ** 2 + self.Q[1][1] * battery_b ** 2
+                + self.R[0][0] * (memristor ** 2).squeeze(-1) - self.gamma_atte ** 2 * (noise ** 2).squeeze(-1))
+        reward = - cost
         ############################################################################################
 
         # define the ending condation here the format is just like isdone = l(next_state)

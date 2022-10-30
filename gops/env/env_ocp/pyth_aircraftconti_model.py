@@ -115,10 +115,7 @@ class PythAircraftcontiModel(PythBaseModel):
         state = self.parallel_state
         attack_ang, rate, elevator_ang = self.parallel_state[:, 0], self.parallel_state[:, 1], self.parallel_state[:, 2]
         elevator_vol = action[:, 0]  # the elevator actuator voltage
-        if self.is_adversary:
-            wind_attack_angle = action[:, 1]  # wind gusts on angle of attack
-        else:
-            wind_attack_angle = torch.zeros_like(elevator_vol)
+        wind_attack_angle = action[:, 1]  # wind gusts on angle of attack
 
         deri_attack_ang = torch.mm(state, A_attack_ang).squeeze() + wind_attack_angle
         deri_rate = torch.mm(state, A_rate).squeeze()
@@ -167,7 +164,10 @@ class PythAircraftcontiModel(PythBaseModel):
         A_elevator_ang = self.A_elevator_ang
         attack_ang, rate, elevator_ang = state[:, 0], state[:, 1], state[:, 2]
         elevator_vol = action[:, 0]       # the elevator actuator voltage
-        wind_attack_angle = action[:, 1]  # wind gusts on angle of attack
+        if self.is_adversary:
+            wind_attack_angle = action[:, 1]  # wind gusts on angle of attack
+        else:
+            wind_attack_angle = torch.zeros_like(elevator_vol)
 
         deri_attack_ang = torch.mm(state, A_attack_ang).squeeze() + wind_attack_angle
         deri_rate = torch.mm(state, A_rate).squeeze()
@@ -175,8 +175,9 @@ class PythAircraftcontiModel(PythBaseModel):
 
         delta_state = torch.stack([deri_attack_ang, deri_rate, deri_elevator_ang], dim=-1)
         state_next = state + delta_state * dt
-        reward = (self.Q[0][0] * attack_ang ** 2 + self.Q[1][1] * rate ** 2 + self.Q[2][2] * elevator_ang ** 2
-                  + self.R[0][0] * (elevator_vol ** 2).squeeze(-1) - self.gamma_atte ** 2 * (wind_attack_angle ** 2).squeeze(-1))
+        cost = (self.Q[0][0] * attack_ang ** 2 + self.Q[1][1] * rate ** 2 + self.Q[2][2] * elevator_ang ** 2
+                + self.R[0][0] * (elevator_vol ** 2).squeeze(-1) - self.gamma_atte ** 2 * (wind_attack_angle ** 2).squeeze(-1))
+        reward = - cost
         ############################################################################################
 
         # define the ending condation here the format is just like isdone = l(next_state)
