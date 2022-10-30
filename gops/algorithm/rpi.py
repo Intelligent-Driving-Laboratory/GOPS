@@ -37,7 +37,6 @@ class ApproxContainer(ApprBase):
         value_func_type = kwargs['value_func_type']
         value_args = get_apprfunc_dict('value', value_func_type, **kwargs)
         self.value = create_apprfunc(**value_args)
-        self.gt_weight = kwargs.get('gt_weight', None)
         initial_weight = kwargs.get('initial_weight', None)
         if initial_weight is not None:
             # weight initialization
@@ -150,14 +149,7 @@ class RPI(AlgorithmBase):
 
         if iteration % self.print_interval == 0:
             self.grad_step[iteration, 0] = self.num_update_value
-            print(f'Newton ite: {iteration}, grad step = {self.num_update_value:d}, '
-                  f'loss value = {math.log10(loss_value.item()):.2f}')
-            if self.value_func_type == 'POLY' or self.value_func_type == 'POLYNOMIAL':
-                weight = self.networks.value.v.weight.detach()[0]
-                print(f'weight = {weight}')
-                if self.gt_weight is not None:
-                    gt = np.array(self.gt_weight)
-                    print(f'error = {math.log10(np.linalg.norm(weight - gt) / np.linalg.norm(gt)):.2f}')
+            print(f'Newton ite: {iteration}, grad step = {self.num_update_value:d}')
 
         return grad_info
 
@@ -169,15 +161,7 @@ class RPI(AlgorithmBase):
         batch_input = torch.cat((act, adv), dim=1)
 
         # value loss
-        batch_observation.requires_grad_(True)
-        batch_value = self.networks.value(batch_observation)
-        batch_delta_value, = torch.autograd.grad(torch.sum(batch_value), batch_observation, create_graph=True)
-        batch_observation.requires_grad_(False)
-        done = torch.zeros(obs.shape[0], device=obs.device).bool()
-        info = {}
-        _, batch_utility, _, next_info = self.env_model.forward(batch_observation, batch_input, done, info)
-        batch_delta_state = next_info['delta_state']
-        loss_value = self.__value_loss_function(batch_delta_value, batch_utility.detach(), batch_delta_state.detach())
+        loss_value = self.__calculate_hamiltonian(batch_observation, batch_input)
 
         return loss_value
 
@@ -187,17 +171,25 @@ class RPI(AlgorithmBase):
         batch_input = self.networks.action_and_adversary(set_state)
 
         # hamiltonian
+        hamiltonian = self.__calculate_hamiltonian(batch_observation, batch_input)
+
+        return hamiltonian.detach().item()
+
+    def __calculate_hamiltonian(self, batch_observation, batch_input):
         batch_observation.requires_grad_(True)
         batch_value = self.networks.value(batch_observation)
         batch_delta_value, = torch.autograd.grad(torch.sum(batch_value), batch_observation, create_graph=True)
         batch_observation.requires_grad_(False)
-        done = torch.zeros(set_state.shape[0], device=set_state.device).bool()
+
+        done = torch.zeros(batch_observation.shape[0], device=batch_observation.device).bool()
         info = {}
-        _, batch_utility, _, next_info = self.env_model.forward(batch_observation, batch_input, done, info)
+        _, batch_reward, _, next_info = self.env_model.forward(batch_observation, batch_input, done, info)
+
+        batch_utility = - batch_reward
         batch_delta_state = next_info['delta_state']
         hamiltonian = self.__value_loss_function(batch_delta_value, batch_utility.detach(), batch_delta_state.detach())
 
-        return hamiltonian.detach().item()
+        return hamiltonian
 
     @staticmethod
     def __value_loss_function(delta_value, utility, delta_state):
