@@ -1,4 +1,5 @@
 import argparse
+import time
 from typing import List, Tuple
 from gops.create_pkg.create_env import create_env
 from gops.create_pkg.create_env_model import create_env_model
@@ -17,7 +18,8 @@ class OptController:
         model: PythBaseModel, 
         ctrl_dt: float, 
         num_pred_step: int, 
-        minimize_options: dict={}
+        minimize_options: dict={},
+        verbose=True,
     ):
 
         self.model = model
@@ -32,6 +34,7 @@ class OptController:
             np.tile(self.model.action_lower_bound, (num_pred_step,)), 
             np.tile(self.model.action_upper_bound, (num_pred_step,))
         )
+        self.verbose = verbose
         self.__reset_statistics()
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
@@ -40,7 +43,7 @@ class OptController:
             x0=self.initial_guess,
             args=(x,),
             jac=self.__cost_jac,
-            bounds=opt._constraints.new_bounds_to_old(self.bounds.lb, self.bounds.ub, num_pred_step * self.action_dim),
+            bounds=opt._constraints.new_bounds_to_old(self.bounds.lb, self.bounds.ub, self.num_pred_step * self.action_dim),
             constraints=[{
                 "type": "ineq", 
                 "fun": self.__constraint_fcn,
@@ -49,8 +52,12 @@ class OptController:
             }],
             options=self.minimize_options
         )
-        self.initial_guess = np.concatenate((res.x[self.action_dim:], np.zeros(self.action_dim)))
-        self.__print_statistics(res)
+        self.initial_guess = np.concatenate((
+            res.x[self.action_dim:], 
+            np.zeros(self.action_dim)
+        ))
+        if self.verbose:
+            self.__print_statistics(res)
         return res.x.reshape((self.action_dim, -1))[:, 0]
 
     def __cost_fcn(self, inputs: np.ndarray, x: np.ndarray) -> float:
@@ -180,21 +187,48 @@ class NNController:
 if __name__ == "__main__":
     # Parameters Setup
     parser = argparse.ArgumentParser()
-    parser.add_argument("--env_id", type=str, default="pyth_lq")
+    env_id = "pyth_oscillatorconti"
+    parser.add_argument("--env_id", type=str, default=env_id)
     parser.add_argument("--lq_config", type=str, default="s4a2")
     parser.add_argument('--clip_action', type=bool, default=True)
-    parser.add_argument('--clip_obs', type=bool, default=True)
+    parser.add_argument('--clip_obs', type=bool, default=False)
     parser.add_argument('--mask_at_done', type=bool, default=True)
-    # parser.add_argument(
-    #     "--is_adversary", type=bool, default=False, help="Adversary training"
-    # )
-    # parser.add_argument('--sample_batch_size', type=int, default=64, help='Batch size of sampler for buffer store = 64')
-    # parser.add_argument('--gamma_atte', type=float, default=5)
-    # parser.add_argument('--fixed_initial_state', type=list, default=[1.0, 1.5, 1.0], help='for env_data')
-    # parser.add_argument('--initial_state_range', type=list, default=[0.1, 0.2, 0.1], help='for env_model')
-    # parser.add_argument('--state_threshold', type=list, default=[2.0, 2.0, 2.0])
-    # parser.add_argument('--lower_step', type=int, default=200, help='for env_model')
-    # parser.add_argument('--upper_step', type=int, default=700, help='for env_model')
+    parser.add_argument(
+        "--is_adversary", type=bool, default=False, help="Adversary training"
+    )
+    parser.add_argument('--sample_batch_size', type=int, default=64, help='Batch size of sampler for buffer store = 64')
+
+    if env_id == "pyth_aircraftconti":
+        parser.add_argument('--max_episode_steps', type=int, default=200)
+        parser.add_argument('--gamma_atte', type=float, default=5)
+        parser.add_argument('--fixed_initial_state', type=list, default=[1.0, 1.5, 1.0], help='for env_data')
+        parser.add_argument('--initial_state_range', type=list, default=[0.1, 0.2, 0.1], help='for env_model')
+        parser.add_argument('--state_threshold', type=list, default=[2.0, 2.0, 2.0])
+        parser.add_argument('--lower_step', type=int, default=200, help='for env_model')
+        parser.add_argument('--upper_step', type=int, default=700, help='for env_model')
+    
+    if env_id == "pyth_oscillatorconti":
+        parser.add_argument('--max_episode_steps', type=int, default=200)
+        parser.add_argument('--gamma_atte', type=float, default=2)
+        parser.add_argument('--fixed_initial_state', type=list, default=[0.5, -0.5], help='for env_data [0.5, -0.5]')
+        parser.add_argument('--initial_state_range', type=list, default=[1.5, 1.5], help='for env_model')
+        parser.add_argument('--state_threshold', type=list, default=[5.0, 5.0])
+        parser.add_argument('--lower_step', type=int, default=200, help='for env_model')
+        parser.add_argument('--upper_step', type=int, default=700, help='for env_model')
+
+    if env_id == "pyth_suspensionconti":
+        parser.add_argument('--gamma_atte', type=float, default=30)
+        parser.add_argument('--state_weight', type=list, default=[1000.0, 3.0, 100.0, 0.1])
+        parser.add_argument('--control_weight', type=list, default=[1.0])
+        parser.add_argument('--fixed_initial_state', type=list, default=[0, 0, 0, 0], help='for env_data')
+        parser.add_argument('--initial_state_range', type=list, default=[0.05, 0.5, 0.05, 1.0], help='for env_model')
+        # State threshold
+        parser.add_argument('--state_threshold', type=list, default=[0.08, 0.8, 0.1, 1.6])
+        parser.add_argument('--lower_step', type=int, default=200, help='for env_model')
+        parser.add_argument('--upper_step', type=int, default=500, help='for env_model')  # shorter, faster but more error
+        parser.add_argument('--max_episode_steps', type=int, default=1500, help='for env_data')
+        parser.add_argument('--max_newton_iteration', type=int, default=50)
+        parser.add_argument('--max_iteration', type=int, default=parser.parse_args().max_newton_iteration)
 
     args = vars(parser.parse_args())
     env_model = create_env_model(**args)
@@ -209,37 +243,43 @@ if __name__ == "__main__":
         mean_action_errs = []
         K = env_model.dynamics.compute_control_matrix()
     
-    num_pred_steps = range(15, 40, 15)
-    # num_pred_steps = (30,)
+    times = []
+    # num_pred_steps = range(70, 100, 10)
+    num_pred_steps = (70,)
     for num_pred_step in num_pred_steps:
         controller = OptController(
             env_model, 
             ctrl_dt=ctrl_dt, 
             num_pred_step=num_pred_step, 
             minimize_options={
-                "max_iter": 500, 
-                "tol": 1e-3,
-                "acceptable_tol": 1e-1,
-                "acceptable_iter": 10,
-                "print_level": 5,
+                "max_iter": 200, 
+                "tol": 1e-5,
+                # "acceptable_tol": 1e-1,
+                # "acceptable_iter": 10,
+                # "print_level": 5,
             }
         )
 
         env = create_env(**args)
         env.seed(0)
         x = env.reset()
-        sim_num = 50
+        sim_num = 2500
         sim_horizon = np.arange(sim_num)
         xs = []
         us= []
+        ts = []
         for i in sim_horizon:
             print(f"step: {i + 1}")
+            t1 = time.time()
             u = controller(x.astype(np.float32))
+            t2 = time.time()
             xs.append(x)
             us.append(u)
+            ts.append(t2 - t1)
             x, _, _, _ = env.step(u)
         xs = np.stack(xs)
         us = np.stack(us)
+        times.append(ts)
 
         if args["env_id"] == "pyth_lq":
             env.seed(0)
@@ -300,6 +340,16 @@ if __name__ == "__main__":
         plt.savefig(f"Action-{args['env_id']}-{args['lq_config']}.png")
     else:
         plt.savefig(f"Action-{args['env_id']}.png")
+
+    #=======MPC solving times=======#
+    plt.figure()
+    plt.boxplot(times, labels=num_pred_steps, showfliers=False)
+    plt.xlabel("num pred step")
+    plt.ylabel(f"Time (s)")
+    if args["env_id"] == "pyth_lq":
+        plt.savefig(f"MPC-solving-time-{args['env_id']}-{args['lq_config']}.png")
+    else:
+        plt.savefig(f"MPC-solving-time-{args['env_id']}.png")
 
     #=======error-predstep=======#
     if args["env_id"] == "pyth_lq":
