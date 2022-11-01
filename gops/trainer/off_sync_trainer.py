@@ -24,6 +24,7 @@ from torch.utils.tensorboard import SummaryWriter
 from gops.utils.parallel_task_manager import TaskPool
 from gops.utils.tensorboard_setup import add_scalars
 from gops.utils.tensorboard_setup import tb_tags
+from gops.utils.common_utils import random_choice_with_index
 
 warnings.filterwarnings("ignore")
 
@@ -90,7 +91,9 @@ class OffSyncTrainer:
                 self.sample_tasks.add(
                     sampler, sampler.sample.remote()
                 )
-
+        
+        self.learn_tasks = TaskPool()
+        self._set_algs()
         self.use_gpu = kwargs["use_gpu"]
         if self.use_gpu:
             for alg in self.algs:
@@ -103,12 +106,24 @@ class OffSyncTrainer:
         for sampler in self.samplers:
             sampler.load_state_dict.remote(weights)
             self.sample_tasks.add(sampler, sampler.sample.remote())
+    
+    def _set_algs(self):
+        weights = self.networks.state_dict()
+        for alg in self.algs:
+            alg.load_state_dict.remote(weights)
+            buffer, _ = random_choice_with_index(self.buffers)
+            data = ray.get(
+                buffer.sample_batch.remote(self.replay_batch_size)
+            )
+            self.learn_tasks.add(
+                alg, alg.get_remote_update_info.remote(data, self.iteration)
+            )
 
     def step(self):
         # sampling
         sampler_tb_dict = {}
         if self.iteration % self.sample_interval == 0:
-            if self.sample_tasks.completed() is not None:
+            if self.sample_tasks.completed_num > 0:
                 weights = ray.put(self.networks.state_dict())
                 for sampler, objID in self.sample_tasks.completed():
                     batch_data, sampler_tb_dict = ray.get(objID)
@@ -119,122 +134,126 @@ class OffSyncTrainer:
                     self.sample_tasks.add(sampler, sampler.sample.remote())
 
         # learning
-        weights = ray.put(self.networks.state_dict())
-        tb_dict = []
         update_info = []
+        tb_dict = []
         alg_tb_dict = {}
-        for alg in self.algs:
-            alg.load_state_dict.remote(weights)
+        if self.learn_tasks.completed_num == len(self.algs):
+            for alg, objID in self.learn_tasks.completed():
+                if self.per_flag:
+                    extra_info, update_information = ray.get(objID)
+                    alg_tb_dict, idx, new_priority = extra_info
+                    self.buffers[0].update_batch.remote(idx, new_priority)
+                else:
+                    alg_tb_dict, update_information = ray.get(objID)
 
-            # replay
-            data = ray.get(random.choice(self.buffers).sample_batch.remote(
-                self.replay_batch_size
-            ))
-            if self.use_gpu:
-                for k, v in data.items():
-                    data[k] = v.cuda()
-            if self.per_flag:
-                alg_tb_dict, idx, new_priority,update_information =\
-                    ray.get(alg.get_remote_update_info.remote(data, self.iteration))
+                # replay
+                data = ray.get(random.choice(self.buffers).sample_batch.remote(
+                    self.replay_batch_size
+                ))
+                if self.use_gpu:
+                    for k, v in data.items():
+                        data[k] = v.cuda()
 
-                self.buffers[0].update_batch.remote(idx, new_priority)
-            else:
-                alg_tb_dict, update_information = ray.get(alg.get_remote_update_info.remote(data, self.iteration))
+                weights = ray.put(self.networks.state_dict())
+                alg.load_state_dict.remote(weights)
+                self.learn_tasks.add(
+                    alg, alg.get_remote_update_info.remote(data, self.iteration)
+                )
+                if self.use_gpu:
+                    for k, v in update_information.items():
+                        if isinstance(v, list):
+                            for i in range(len(v)):
+                                update_information[k][i] = v[i].cpu()
 
-            tb_dict.append(alg_tb_dict)
-            update_info.append(update_information)
+                tb_dict.append(alg_tb_dict)
+                update_info.append(update_information)
 
-            if self.use_gpu:
-                for k, v in update_information.items():
-                    if isinstance(v, list):
-                        for i in range(len(v)):
-                            update_information[k][i] = v[i].cpu()
-
-        self.iteration += 1
-        num = np.shape(update_info)[0]
-        values_last_time = None
-        for _ in range(num):
-            if _ == 0:
-                values_last_time = list(update_info[0].values())
-            else:
-                values_list = []
-                for a, b in zip(values_last_time, list(update_info[_].values())):
-                    if _ == 1:
-                        if isinstance(a, list):
-                            values_list.append([(i + j) / num for i, j in zip(a, b)])
+            self.iteration += 1        
+            
+            num = np.shape(update_info)[0]
+            values_last_time = None
+            for _ in range(num):
+                if _ == 0:
+                    values_last_time = list(update_info[0].values())
+                else:
+                    values_list = []
+                    for a, b in zip(values_last_time, list(update_info[_].values())):
+                        if _ == 1:
+                            if isinstance(a, list):
+                                values_list.append([(i + j) / num for i, j in zip(a, b)])
+                            else:
+                                values_list.append((a + b)/ num)
                         else:
-                            values_list.append((a + b)/ num)
-                    else:
-                        if isinstance(a, list):
-                            values_list.append([i + j / num for i, j in zip(a, b)])
-                        else:
-                            values_list.append(a + b / num)
-                values_last_time = values_list
+                            if isinstance(a, list):
+                                values_list.append([i + j / num for i, j in zip(a, b)])
+                            else:
+                                values_list.append(a + b / num)
+                    values_last_time = values_list
 
-        keys = update_info[0].keys()
-        update_info = dict(zip(keys, values_last_time))
-        self.networks.remote_update(update_info)
+            keys = update_info[0].keys()
+            update_info = dict(zip(keys, values_last_time))
+            self.networks.remote_update(update_info)
 
-        # log
-        if self.iteration % (self.log_save_interval) == 0:
-            print("Iter = ", self.iteration)
-            add_scalars(alg_tb_dict, self.writer, step=self.iteration)
-            add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
+            # log
+            if self.iteration % (self.log_save_interval) == 0:
+                print("Iter = ", self.iteration)
+                add_scalars(alg_tb_dict, self.writer, step=self.iteration)
+                add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
 
-        # evaluate
-        if self.iteration % (self.eval_interval) == 0:
-            self.evaluator.load_state_dict.remote(self.networks.state_dict())
-            total_avg_return = ray.get(
-                self.evaluator.run_evaluation.remote(self.iteration)
-            )
-
-            if total_avg_return > self.best_tar and self.iteration >= self.max_iteration / 5:
-                self.best_tar = total_avg_return
-                print('Best return = {}!'.format(str(self.best_tar)))
-
-                for filename in os.listdir(self.save_folder + "/apprfunc/"):
-                    if filename.endswith("_opt.pkl"):
-                        os.remove(self.save_folder + "/apprfunc/" + filename)
-                
-                torch.save(
-                    self.networks.state_dict(),
-                    self.save_folder + "/apprfunc/apprfunc_{}_opt.pkl".format(self.iteration),
+            # evaluate
+            if self.iteration % (self.eval_interval) == 0:
+                self.evaluator.load_state_dict.remote(self.networks.state_dict())
+                total_avg_return = ray.get(
+                    self.evaluator.run_evaluation.remote(self.iteration)
                 )
 
-            self.writer.add_scalar(
-                tb_tags["Buffer RAM of RL iteration"],
-                sum(ray.get([buffer.__get_RAM__.remote() for buffer in self.buffers])),
-                self.iteration,
-            )
-            self.writer.add_scalar(
-                tb_tags["TAR of RL iteration"], total_avg_return, self.iteration
-            )
-            self.writer.add_scalar(
-                tb_tags["TAR of replay samples"],
-                total_avg_return,
-                self.iteration * self.replay_batch_size,
-            )
-            self.writer.add_scalar(
-                tb_tags["TAR of total time"],
-                total_avg_return,
-                int(time.time() - self.start_time),
-            )
-            self.writer.add_scalar(
-                tb_tags["TAR of collected samples"],
-                total_avg_return,
-                sum(
-                    ray.get(
-                        [
-                            sampler.get_total_sample_number.remote()
-                            for sampler in self.samplers
-                        ]
-                    )
-                ),
-            )
+                if total_avg_return > self.best_tar and self.iteration >= self.max_iteration / 5:
+                    self.best_tar = total_avg_return
+                    print('Best return = {}!'.format(str(self.best_tar)))
 
-        # save
-        if self.iteration % (self.apprfunc_save_interval) == 0:
-            self.save_apprfunc()
+                    for filename in os.listdir(self.save_folder + "/apprfunc/"):
+                        if filename.endswith("_opt.pkl"):
+                            os.remove(self.save_folder + "/apprfunc/" + filename)
+                    
+                    torch.save(
+                        self.networks.state_dict(),
+                        self.save_folder + "/apprfunc/apprfunc_{}_opt.pkl".format(self.iteration),
+                    )
+
+                self.writer.add_scalar(
+                    tb_tags["Buffer RAM of RL iteration"],
+                    sum(ray.get([buffer.__get_RAM__.remote() for buffer in self.buffers])),
+                    self.iteration,
+                )
+                self.writer.add_scalar(
+                    tb_tags["TAR of RL iteration"], total_avg_return, self.iteration
+                )
+                self.writer.add_scalar(
+                    tb_tags["TAR of replay samples"],
+                    total_avg_return,
+                    self.iteration * self.replay_batch_size * len(self.algs),
+                )
+                self.writer.add_scalar(
+                    tb_tags["TAR of total time"],
+                    total_avg_return,
+                    int(time.time() - self.start_time),
+                )
+                self.writer.add_scalar(
+                    tb_tags["TAR of collected samples"],
+                    total_avg_return,
+                    sum(
+                        ray.get(
+                            [
+                                sampler.get_total_sample_number.remote()
+                                for sampler in self.samplers
+                            ]
+                        )
+                    ),
+                )
+
+            # save
+            if self.iteration % (self.apprfunc_save_interval) == 0:
+                self.save_apprfunc()
 
     def train(self):
         while self.iteration < self.max_iteration:
