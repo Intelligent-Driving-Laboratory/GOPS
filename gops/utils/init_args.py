@@ -59,8 +59,8 @@ def init_args(env, **args):
             if len(env.action_space.shape) == 1
             else env.action_space.shape
         )
-        args["action_high_limit"] = env.action_space.high
-        args["action_low_limit"] = env.action_space.low
+        args["action_high_limit"] = env.action_space.high.astype('float32')
+        args["action_low_limit"] = env.action_space.low.astype('float32')
     else:
         args["action_num"] = env.action_space.n
         args["noise_params"]["action_num"] = args["action_num"]
