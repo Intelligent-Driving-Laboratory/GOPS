@@ -34,6 +34,13 @@ class TaskPool(object):
                 ready, _ = ray.wait(pending, num_returns=1, timeout=10.0)
             for obj_id in ready:
                 yield self._tasks.pop(obj_id), self._objects.pop(obj_id)
+    
+    @property
+    def completed_num(self):  #
+        pending = list(self._tasks)
+        if pending:
+            ready, _ = ray.wait(pending, num_returns=len(pending), timeout=0)
+        return len(ready)
 
     @property
     def count(self):
