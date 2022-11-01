@@ -194,66 +194,66 @@ class OffSyncTrainer:
             update_info = dict(zip(keys, values_last_time))
             self.networks.remote_update(update_info)
 
-        # log
-        if self.iteration % (self.log_save_interval) == 0:
-            print("Iter = ", self.iteration)
-            add_scalars(alg_tb_dict, self.writer, step=self.iteration)
-            add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
+            # log
+            if self.iteration % (self.log_save_interval) == 0:
+                print("Iter = ", self.iteration)
+                add_scalars(alg_tb_dict, self.writer, step=self.iteration)
+                add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
 
-        # evaluate
-        if self.iteration % (self.eval_interval) == 0:
-            self.evaluator.load_state_dict.remote(self.networks.state_dict())
-            total_avg_return = ray.get(
-                self.evaluator.run_evaluation.remote(self.iteration)
-            )
-
-            if total_avg_return > self.best_tar and self.iteration >= self.max_iteration / 5:
-                self.best_tar = total_avg_return
-                print('Best return = {}!'.format(str(self.best_tar)))
-
-                for filename in os.listdir(self.save_folder + "/apprfunc/"):
-                    if filename.endswith("_opt.pkl"):
-                        os.remove(self.save_folder + "/apprfunc/" + filename)
-                
-                torch.save(
-                    self.networks.state_dict(),
-                    self.save_folder + "/apprfunc/apprfunc_{}_opt.pkl".format(self.iteration),
+            # evaluate
+            if self.iteration % (self.eval_interval) == 0:
+                self.evaluator.load_state_dict.remote(self.networks.state_dict())
+                total_avg_return = ray.get(
+                    self.evaluator.run_evaluation.remote(self.iteration)
                 )
 
-            self.writer.add_scalar(
-                tb_tags["Buffer RAM of RL iteration"],
-                sum(ray.get([buffer.__get_RAM__.remote() for buffer in self.buffers])),
-                self.iteration,
-            )
-            self.writer.add_scalar(
-                tb_tags["TAR of RL iteration"], total_avg_return, self.iteration
-            )
-            self.writer.add_scalar(
-                tb_tags["TAR of replay samples"],
-                total_avg_return,
-                self.iteration * self.replay_batch_size * len(self.algs),
-            )
-            self.writer.add_scalar(
-                tb_tags["TAR of total time"],
-                total_avg_return,
-                int(time.time() - self.start_time),
-            )
-            self.writer.add_scalar(
-                tb_tags["TAR of collected samples"],
-                total_avg_return,
-                sum(
-                    ray.get(
-                        [
-                            sampler.get_total_sample_number.remote()
-                            for sampler in self.samplers
-                        ]
-                    )
-                ),
-            )
+                if total_avg_return > self.best_tar and self.iteration >= self.max_iteration / 5:
+                    self.best_tar = total_avg_return
+                    print('Best return = {}!'.format(str(self.best_tar)))
 
-        # save
-        if self.iteration % (self.apprfunc_save_interval) == 0:
-            self.save_apprfunc()
+                    for filename in os.listdir(self.save_folder + "/apprfunc/"):
+                        if filename.endswith("_opt.pkl"):
+                            os.remove(self.save_folder + "/apprfunc/" + filename)
+                    
+                    torch.save(
+                        self.networks.state_dict(),
+                        self.save_folder + "/apprfunc/apprfunc_{}_opt.pkl".format(self.iteration),
+                    )
+
+                self.writer.add_scalar(
+                    tb_tags["Buffer RAM of RL iteration"],
+                    sum(ray.get([buffer.__get_RAM__.remote() for buffer in self.buffers])),
+                    self.iteration,
+                )
+                self.writer.add_scalar(
+                    tb_tags["TAR of RL iteration"], total_avg_return, self.iteration
+                )
+                self.writer.add_scalar(
+                    tb_tags["TAR of replay samples"],
+                    total_avg_return,
+                    self.iteration * self.replay_batch_size * len(self.algs),
+                )
+                self.writer.add_scalar(
+                    tb_tags["TAR of total time"],
+                    total_avg_return,
+                    int(time.time() - self.start_time),
+                )
+                self.writer.add_scalar(
+                    tb_tags["TAR of collected samples"],
+                    total_avg_return,
+                    sum(
+                        ray.get(
+                            [
+                                sampler.get_total_sample_number.remote()
+                                for sampler in self.samplers
+                            ]
+                        )
+                    ),
+                )
+
+            # save
+            if self.iteration % (self.apprfunc_save_interval) == 0:
+                self.save_apprfunc()
 
     def train(self):
         while self.iteration < self.max_iteration:
