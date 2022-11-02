@@ -30,9 +30,9 @@ class NoiseData(gym.Wrapper):
             return observation + self.np_random.uniform(low=self.noise_data[0], high=self.noise_data[1])
 
     def reset(self, **kwargs):
-        obs = super(NoiseData, self).reset(**kwargs)
+        obs, info = self.env.reset(**kwargs)
         obs_noised = self.observation(obs)
-        return obs_noised
+        return obs_noised, info
 
     def step(self, action: ActType) -> Tuple[ObsType, float, bool, dict]:
         obs, r, d, info = self.env.step(action)

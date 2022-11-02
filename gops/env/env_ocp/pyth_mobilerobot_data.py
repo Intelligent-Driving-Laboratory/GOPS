@@ -71,10 +71,9 @@ class PythMobilerobot(PythBaseEnv):
 
     @property
     def additional_info(self):
-        info_dict = dict(
-            constraint={"shape": (1,), "dtype": np.float32}
-        )
-        return info_dict
+        return {
+            "constraint": {"shape": (1,), "dtype": np.float32},
+        }
 
     @property
     def state(self):
@@ -91,15 +90,11 @@ class PythMobilerobot(PythBaseEnv):
         self.steps = 0
         self._state = state
 
-
-
-
-        return self._state.reshape(-1)
+        return self._state.reshape(-1), {"constraint": self.get_constraint()}
 
     def step(self, action: np.ndarray):
         ################################################################################################################
         #  define your forward function here: the format is just like: state_next = f(state,action)
-        veh2vehdist = np.zeros((self._state.shape[0], self.n_obstacle))
         action = action.reshape(1, -1)  # TODO is right
         for i in range(1 + self.n_obstacle):
             if i == 0:
@@ -116,18 +111,6 @@ class PythMobilerobot(PythBaseEnv):
                 )
                 state_next = np.concatenate((state_next, obs_state), 1)
 
-                safe_dis = self.robot.robot_params["radius"] + self.obses[i - 1].robot_params["radius"] + 0.15  # 0.35
-                veh2vehdist[:, i - 1] = (
-                    safe_dis
-                    - (
-                        (
-                            (state_next[:, 3 + i * 5] - state_next[:, 0]) ** 2
-                            + (state_next[:, 3 + i * 5 + 1] - state_next[:, 1]) ** 2
-                        )
-                    )
-                    ** 0.5
-                )
-
         self._state = state_next
         ############################################################################################
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
@@ -137,8 +120,8 @@ class PythMobilerobot(PythBaseEnv):
         ############################################################################################
         # define the constraint here
 
-        constraint = veh2vehdist
-        dead = veh2vehdist > 0
+        constraint = self.get_constraint()
+        dead = constraint > 0
         ################################################################################################################
         # define the ending condition here the format is just like isdone = l(next_state)
 
@@ -151,8 +134,16 @@ class PythMobilerobot(PythBaseEnv):
         )
         ############################################################################################
         self.steps += 1
-        info = { "constraint": constraint.reshape(-1)}  # TODO is right
+        info = {"constraint": constraint}  # TODO is right
         return np.array(self._state.reshape(-1), dtype=np.float32), float(reward), isdone, info  # TODO is right
+
+    def get_constraint(self):
+        constraint = np.zeros((self._state.shape[0], self.n_obstacle))
+        for i in range(self.n_obstacle):
+            safe_dis = self.robot.robot_params["radius"] + self.obses[i].robot_params["radius"] + 0.15  # 0.35
+            constraint[:, i] = safe_dis - (((self._state[:, 8 + i * 5] - self._state[:, 0]) ** 2 +
+                                            (self._state[:, 9 + i * 5] - self._state[:, 1]) ** 2)) ** 0.5
+        return constraint.reshape(-1)
 
     def render(self, mode="human", n_window=1):
 
@@ -272,19 +263,6 @@ def env_creator(**kwargs):
     make env `pyth_mobilerobot`
     """
     return PythMobilerobot(**kwargs)
-
-
-def clip_by_tensor(t, t_min, t_max):
-    """
-    clip_by_tensor
-    :param t: tensor
-    :param t_min: min
-    :param t_max: max
-    :return: cliped tensor
-    """
-    result = (t >= t_min) * t + (t < t_min) * t_min
-    result = (result <= t_max) * result + (result > t_max) * t_max
-    return result
 
 
 if __name__ == "__main__":
