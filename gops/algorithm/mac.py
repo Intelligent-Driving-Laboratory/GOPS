@@ -132,12 +132,12 @@ class MAC(AlgorithmBase):
     def dynamic_model_forward(self, o, a, d):
         if self.delta is not None:
             self.delta = torch.zeros_like(o)
-        o2, r, d, _ = self.envmodel.forward(o, a, d)
+        o2, r, d, _ = self.envmodel.forward(o, a, d, {})
         o2 = o2 + self.delta
         return o2, r, d
 
     def update_ibe_model(self, o, a, d, o2):
-        data = o2 - self.envmodel.forward(o, a, d)[0]
+        data = o2 - self.envmodel.forward(o, a, d, {})[0]
         zero_prior_mean = torch.zeros_like(data[0])
         diag_variance = 0.5 * torch.ones_like(torch.diag(data[0]))
         self.delta = self.iterative_bayes_estimator(
