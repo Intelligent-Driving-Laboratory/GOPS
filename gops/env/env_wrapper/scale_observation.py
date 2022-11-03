@@ -24,9 +24,9 @@ class ScaleObservationData(gym.Wrapper):
     """
     def __init__(self, env, shift: Union[np.ndarray, float, list] = 0.0, scale: Union[np.ndarray, float, list] = 1.0):
         super(ScaleObservationData, self).__init__(env)
-        if  isinstance(shift, list):
+        if isinstance(shift, list):
             shift = np.array(shift, dtype=np.float32)
-        if  isinstance(scale, list):
+        if isinstance(scale, list):
             scale = np.array(scale, dtype=np.float32)
         self.shift = shift
         self.scale = scale
@@ -35,13 +35,10 @@ class ScaleObservationData(gym.Wrapper):
         return (observation + self.shift) * self.scale
 
     def reset(self, **kwargs):
-        if kwargs.get("return_info", False):
-            obs, info = self.env.reset(**kwargs)
-            obs_scaled = self.observation(obs)
-            info["raw_obs"] = obs
-            return obs_scaled, info
-        else:
-            return self.observation(self.env.reset(**kwargs))
+        obs, info = self.env.reset(**kwargs)
+        obs_scaled = self.observation(obs)
+        info["raw_obs"] = obs
+        return obs_scaled, info
 
     def step(self, action: ActType) -> Tuple[ObsType, float, bool, dict]:
         obs, r, d, info = self.env.step(action)
