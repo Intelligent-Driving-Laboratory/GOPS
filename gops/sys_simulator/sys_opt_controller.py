@@ -1,5 +1,7 @@
 import argparse
-from typing import List, Tuple
+import time
+from typing import Callable, List, Optional, Tuple
+import warnings
 from gops.create_pkg.create_env import create_env
 from gops.create_pkg.create_env_model import create_env_model
 from gops.env.env_ocp.pyth_base_model import PythBaseModel
@@ -15,23 +17,39 @@ class OptController:
     def __init__(
         self, 
         model: PythBaseModel, 
-        ctrl_dt: float, 
         num_pred_step: int, 
-        minimize_options: dict={}
+        ctrl_dt: Optional[float]=None, 
+        gamma: float=1,
+        use_terminal_cost: bool=False,
+        terminal_cost: Optional[Callable[[torch.Tensor], torch.Tensor]]=None,
+        minimize_options: Optional[dict]=None,
+        verbose: int=0,
     ):
 
         self.model = model
-        self.ctrl_dt = ctrl_dt
+        self.ctrl_dt = ctrl_dt if ctrl_dt is not None else model.dt
+        self.gamma = gamma
         self.sim_dt = model.dt
         self.obs_dim = model.obs_dim
         self.action_dim = model.action_dim
         self.num_pred_step = num_pred_step
+        if use_terminal_cost:
+            if terminal_cost is not None:
+                self.terminal_cost = terminal_cost
+            else:
+                self.terminal_cost = model.get_terminal_cost
+            assert self.terminal_cost is not None, "Choose to use terminal cost, but there is no available terminal cost function."
+        else:
+            if terminal_cost is not None:
+                warnings.warn("Choose not to use terminal cost, but a terminal cost function is given. This will be ignored.")
+            self.terminal_cost = None
         self.initial_guess = np.zeros(self.action_dim * num_pred_step)
         self.minimize_options = minimize_options
         self.bounds = opt.Bounds(
             np.tile(self.model.action_lower_bound, (num_pred_step,)), 
             np.tile(self.model.action_upper_bound, (num_pred_step,))
         )
+        self.verbose = verbose
         self.__reset_statistics()
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
@@ -40,7 +58,7 @@ class OptController:
             x0=self.initial_guess,
             args=(x,),
             jac=self.__cost_jac,
-            bounds=opt._constraints.new_bounds_to_old(self.bounds.lb, self.bounds.ub, num_pred_step * self.action_dim),
+            bounds=opt._constraints.new_bounds_to_old(self.bounds.lb, self.bounds.ub, self.num_pred_step * self.action_dim),
             constraints=[{
                 "type": "ineq", 
                 "fun": self.__constraint_fcn,
@@ -49,8 +67,12 @@ class OptController:
             }],
             options=self.minimize_options
         )
-        self.initial_guess = np.concatenate((res.x[self.action_dim:], np.zeros(self.action_dim)))
-        self.__print_statistics(res)
+        self.initial_guess = np.concatenate((
+            res.x[self.action_dim:], 
+            np.zeros(self.action_dim)
+        ))
+        if self.verbose > 0:
+            self.__print_statistics(res)
         return res.x.reshape((self.action_dim, -1))[:, 0]
 
     def __cost_fcn(self, inputs: np.ndarray, x: np.ndarray) -> float:
@@ -102,25 +124,25 @@ class OptController:
 
     def __rollout(self, inputs: torch.Tensor, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, List]:
         self.system_simulations += 1
-        inputs_reshaped = inputs.reshape((self.action_dim , -1))
+        inputs_repeated = inputs.reshape((self.action_dim , -1)).repeat_interleave(int(self.ctrl_dt / self.sim_dt), dim=1)
         states = torch.zeros((self.obs_dim, self.num_pred_step + 1))
         rewards = torch.zeros(self.num_pred_step)
         states[:, 0] = x
         done = torch.tensor([False])
         info = {}
 
+        next_x = x.clone().unsqueeze(0)
         for i in range(self.num_pred_step):
-            next_x = states[:, i].clone().unsqueeze(0)
-            u = inputs_reshaped[:, i].unsqueeze(0)
-            for _ in range(int(self.ctrl_dt / self.sim_dt)):
-                next_x, reward, done, info = self.model.forward(
-                    next_x, 
-                    u,
-                    done=done,
-                    info=info
-                )
+            u = inputs_repeated[:, i].unsqueeze(0)
+            next_x, reward, done, info = self.model.forward(
+                next_x, 
+                u,
+                done=done,
+                info=info
+            )
+            rewards[i] = -reward * (self.gamma ** i)
             states[:, i + 1] = next_x
-            rewards[i] = -reward
+        
         return states, rewards
     
     def __compute_cost(self, inputs: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
@@ -131,8 +153,9 @@ class OptController:
         cost = torch.sum(rewards)
 
         # Terminal cost for timestep T
-        if self.model.get_terminal_cost is not None:
-            cost += self.model.get_terminal_cost(states[:, -1])
+        if self.terminal_cost is not None:
+            terminal_cost = self.terminal_cost(states[:, -1])
+            cost += terminal_cost * (self.gamma ** self.num_pred_step)
         return cost
 
     def __reset_statistics(self):
@@ -180,21 +203,48 @@ class NNController:
 if __name__ == "__main__":
     # Parameters Setup
     parser = argparse.ArgumentParser()
-    parser.add_argument("--env_id", type=str, default="pyth_lq")
-    parser.add_argument("--lq_config", type=str, default="s4a2")
+    env_id = "pyth_lq"
+    parser.add_argument("--env_id", type=str, default=env_id)
+    parser.add_argument("--lq_config", type=str, default="s2a1")
     parser.add_argument('--clip_action', type=bool, default=True)
-    parser.add_argument('--clip_obs', type=bool, default=True)
+    parser.add_argument('--clip_obs', type=bool, default=False)
     parser.add_argument('--mask_at_done', type=bool, default=True)
-    # parser.add_argument(
-    #     "--is_adversary", type=bool, default=False, help="Adversary training"
-    # )
-    # parser.add_argument('--sample_batch_size', type=int, default=64, help='Batch size of sampler for buffer store = 64')
-    # parser.add_argument('--gamma_atte', type=float, default=5)
-    # parser.add_argument('--fixed_initial_state', type=list, default=[1.0, 1.5, 1.0], help='for env_data')
-    # parser.add_argument('--initial_state_range', type=list, default=[0.1, 0.2, 0.1], help='for env_model')
-    # parser.add_argument('--state_threshold', type=list, default=[2.0, 2.0, 2.0])
-    # parser.add_argument('--lower_step', type=int, default=200, help='for env_model')
-    # parser.add_argument('--upper_step', type=int, default=700, help='for env_model')
+    parser.add_argument(
+        "--is_adversary", type=bool, default=False, help="Adversary training"
+    )
+    parser.add_argument('--sample_batch_size', type=int, default=64, help='Batch size of sampler for buffer store = 64')
+
+    if env_id == "pyth_aircraftconti":
+        parser.add_argument('--max_episode_steps', type=int, default=200)
+        parser.add_argument('--gamma_atte', type=float, default=5)
+        parser.add_argument('--fixed_initial_state', type=list, default=[1.0, 1.5, 1.0], help='for env_data')
+        parser.add_argument('--initial_state_range', type=list, default=[0.1, 0.2, 0.1], help='for env_model')
+        parser.add_argument('--state_threshold', type=list, default=[2.0, 2.0, 2.0])
+        parser.add_argument('--lower_step', type=int, default=200, help='for env_model')
+        parser.add_argument('--upper_step', type=int, default=700, help='for env_model')
+    
+    if env_id == "pyth_oscillatorconti":
+        parser.add_argument('--max_episode_steps', type=int, default=200)
+        parser.add_argument('--gamma_atte', type=float, default=2)
+        parser.add_argument('--fixed_initial_state', type=list, default=[0.5, -0.5], help='for env_data [0.5, -0.5]')
+        parser.add_argument('--initial_state_range', type=list, default=[1.5, 1.5], help='for env_model')
+        parser.add_argument('--state_threshold', type=list, default=[5.0, 5.0])
+        parser.add_argument('--lower_step', type=int, default=200, help='for env_model')
+        parser.add_argument('--upper_step', type=int, default=700, help='for env_model')
+
+    if env_id == "pyth_suspensionconti":
+        parser.add_argument('--gamma_atte', type=float, default=30)
+        parser.add_argument('--state_weight', type=list, default=[1000.0, 3.0, 100.0, 0.1])
+        parser.add_argument('--control_weight', type=list, default=[1.0])
+        parser.add_argument('--fixed_initial_state', type=list, default=[0, 0, 0, 0], help='for env_data')
+        parser.add_argument('--initial_state_range', type=list, default=[0.05, 0.5, 0.05, 1.0], help='for env_model')
+        # State threshold
+        parser.add_argument('--state_threshold', type=list, default=[0.08, 0.8, 0.1, 1.6])
+        parser.add_argument('--lower_step', type=int, default=200, help='for env_model')
+        parser.add_argument('--upper_step', type=int, default=500, help='for env_model')  # shorter, faster but more error
+        parser.add_argument('--max_episode_steps', type=int, default=1500, help='for env_data')
+        parser.add_argument('--max_newton_iteration', type=int, default=50)
+        parser.add_argument('--max_iteration', type=int, default=parser.parse_args().max_newton_iteration)
 
     args = vars(parser.parse_args())
     env_model = create_env_model(**args)
@@ -207,43 +257,50 @@ if __name__ == "__main__":
         mean_state_errs = []
         max_action_errs = []
         mean_action_errs = []
-        K = env_model.dynamics.compute_control_matrix()
+        K = env_model.dynamics.K
     
-    num_pred_steps = range(15, 40, 15)
-    # num_pred_steps = (30,)
+    times = []
+    # num_pred_steps = range(70, 100, 10)
+    num_pred_steps = (30,)
     for num_pred_step in num_pred_steps:
         controller = OptController(
             env_model, 
             ctrl_dt=ctrl_dt, 
             num_pred_step=num_pred_step, 
+            gamma=0.99,
             minimize_options={
-                "max_iter": 500, 
+                "max_iter": 200, 
                 "tol": 1e-3,
-                "acceptable_tol": 1e-1,
+                "acceptable_tol": 1e-0,
                 "acceptable_iter": 10,
-                "print_level": 5,
-            }
+                # "print_level": 5,
+            },
         )
 
         env = create_env(**args)
         env.seed(0)
-        x = env.reset()
+        x, _ = env.reset()
         sim_num = 50
         sim_horizon = np.arange(sim_num)
         xs = []
         us= []
+        ts = []
         for i in sim_horizon:
             print(f"step: {i + 1}")
+            t1 = time.time()
             u = controller(x.astype(np.float32))
+            t2 = time.time()
             xs.append(x)
             us.append(u)
+            ts.append(t2 - t1)
             x, _, _, _ = env.step(u)
         xs = np.stack(xs)
         us = np.stack(us)
+        times.append(ts)
 
         if args["env_id"] == "pyth_lq":
             env.seed(0)
-            x = env.reset()
+            x, _ = env.reset()
             xs_lqr = []
             us_lqr= []
             for i in sim_horizon:
@@ -300,6 +357,16 @@ if __name__ == "__main__":
         plt.savefig(f"Action-{args['env_id']}-{args['lq_config']}.png")
     else:
         plt.savefig(f"Action-{args['env_id']}.png")
+
+    #=======MPC solving times=======#
+    plt.figure()
+    plt.boxplot(times, labels=num_pred_steps, showfliers=False)
+    plt.xlabel("num pred step")
+    plt.ylabel(f"Time (s)")
+    if args["env_id"] == "pyth_lq":
+        plt.savefig(f"MPC-solving-time-{args['env_id']}-{args['lq_config']}.png")
+    else:
+        plt.savefig(f"MPC-solving-time-{args['env_id']}.png")
 
     #=======error-predstep=======#
     if args["env_id"] == "pyth_lq":
