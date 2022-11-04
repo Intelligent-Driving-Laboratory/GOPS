@@ -1,6 +1,7 @@
 import argparse
 import time
-from typing import List, Tuple
+from typing import Callable, List, Optional, Tuple
+import warnings
 from gops.create_pkg.create_env import create_env
 from gops.create_pkg.create_env_model import create_env_model
 from gops.env.env_ocp.pyth_base_model import PythBaseModel
@@ -16,18 +17,32 @@ class OptController:
     def __init__(
         self, 
         model: PythBaseModel, 
-        ctrl_dt: float, 
         num_pred_step: int, 
-        minimize_options: dict={},
-        verbose=True,
+        ctrl_dt: Optional[float]=None, 
+        gamma: float=1,
+        use_terminal_cost: bool=False,
+        terminal_cost: Optional[Callable[[torch.Tensor], torch.Tensor]]=None,
+        minimize_options: Optional[dict]=None,
+        verbose: int=0,
     ):
 
         self.model = model
-        self.ctrl_dt = ctrl_dt
+        self.ctrl_dt = ctrl_dt if ctrl_dt is not None else model.dt
+        self.gamma = gamma
         self.sim_dt = model.dt
         self.obs_dim = model.obs_dim
         self.action_dim = model.action_dim
         self.num_pred_step = num_pred_step
+        if use_terminal_cost:
+            if terminal_cost is not None:
+                self.terminal_cost = terminal_cost
+            else:
+                self.terminal_cost = model.get_terminal_cost
+            assert self.terminal_cost is not None, "Choose to use terminal cost, but there is no available terminal cost function."
+        else:
+            if terminal_cost is not None:
+                warnings.warn("Choose not to use terminal cost, but a terminal cost function is given. This will be ignored.")
+            self.terminal_cost = None
         self.initial_guess = np.zeros(self.action_dim * num_pred_step)
         self.minimize_options = minimize_options
         self.bounds = opt.Bounds(
@@ -56,7 +71,7 @@ class OptController:
             res.x[self.action_dim:], 
             np.zeros(self.action_dim)
         ))
-        if self.verbose:
+        if self.verbose > 0:
             self.__print_statistics(res)
         return res.x.reshape((self.action_dim, -1))[:, 0]
 
@@ -109,25 +124,25 @@ class OptController:
 
     def __rollout(self, inputs: torch.Tensor, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, List]:
         self.system_simulations += 1
-        inputs_reshaped = inputs.reshape((self.action_dim , -1))
+        inputs_repeated = inputs.reshape((self.action_dim , -1)).repeat_interleave(int(self.ctrl_dt / self.sim_dt), dim=1)
         states = torch.zeros((self.obs_dim, self.num_pred_step + 1))
         rewards = torch.zeros(self.num_pred_step)
         states[:, 0] = x
         done = torch.tensor([False])
         info = {}
 
+        next_x = x.clone().unsqueeze(0)
         for i in range(self.num_pred_step):
-            next_x = states[:, i].clone().unsqueeze(0)
-            u = inputs_reshaped[:, i].unsqueeze(0)
-            for _ in range(int(self.ctrl_dt / self.sim_dt)):
-                next_x, reward, done, info = self.model.forward(
-                    next_x, 
-                    u,
-                    done=done,
-                    info=info
-                )
+            u = inputs_repeated[:, i].unsqueeze(0)
+            next_x, reward, done, info = self.model.forward(
+                next_x, 
+                u,
+                done=done,
+                info=info
+            )
+            rewards[i] = -reward * (self.gamma ** i)
             states[:, i + 1] = next_x
-            rewards[i] = -reward
+        
         return states, rewards
     
     def __compute_cost(self, inputs: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
@@ -138,8 +153,9 @@ class OptController:
         cost = torch.sum(rewards)
 
         # Terminal cost for timestep T
-        if self.model.get_terminal_cost is not None:
-            cost += self.model.get_terminal_cost(states[:, -1])
+        if self.terminal_cost is not None:
+            terminal_cost = self.terminal_cost(states[:, -1])
+            cost += terminal_cost * (self.gamma ** self.num_pred_step)
         return cost
 
     def __reset_statistics(self):
@@ -187,9 +203,9 @@ class NNController:
 if __name__ == "__main__":
     # Parameters Setup
     parser = argparse.ArgumentParser()
-    env_id = "pyth_oscillatorconti"
+    env_id = "pyth_lq"
     parser.add_argument("--env_id", type=str, default=env_id)
-    parser.add_argument("--lq_config", type=str, default="s4a2")
+    parser.add_argument("--lq_config", type=str, default="s2a1")
     parser.add_argument('--clip_action', type=bool, default=True)
     parser.add_argument('--clip_obs', type=bool, default=False)
     parser.add_argument('--mask_at_done', type=bool, default=True)
@@ -241,29 +257,30 @@ if __name__ == "__main__":
         mean_state_errs = []
         max_action_errs = []
         mean_action_errs = []
-        K = env_model.dynamics.compute_control_matrix()
+        K = env_model.dynamics.K
     
     times = []
     # num_pred_steps = range(70, 100, 10)
-    num_pred_steps = (70,)
+    num_pred_steps = (30,)
     for num_pred_step in num_pred_steps:
         controller = OptController(
             env_model, 
             ctrl_dt=ctrl_dt, 
             num_pred_step=num_pred_step, 
+            gamma=0.99,
             minimize_options={
                 "max_iter": 200, 
-                "tol": 1e-5,
-                # "acceptable_tol": 1e-1,
-                # "acceptable_iter": 10,
+                "tol": 1e-3,
+                "acceptable_tol": 1e-0,
+                "acceptable_iter": 10,
                 # "print_level": 5,
-            }
+            },
         )
 
         env = create_env(**args)
         env.seed(0)
-        x = env.reset()
-        sim_num = 2500
+        x, _ = env.reset()
+        sim_num = 50
         sim_horizon = np.arange(sim_num)
         xs = []
         us= []
@@ -283,7 +300,7 @@ if __name__ == "__main__":
 
         if args["env_id"] == "pyth_lq":
             env.seed(0)
-            x = env.reset()
+            x, _ = env.reset()
             xs_lqr = []
             us_lqr= []
             for i in sim_horizon:
