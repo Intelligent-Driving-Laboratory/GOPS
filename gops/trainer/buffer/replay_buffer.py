@@ -48,6 +48,7 @@ class ReplayBuffer:
         self.additional_info = kwargs["additional_info"]
         for k, v in self.additional_info.items():
             self.buf[k] = np.zeros(combined_shape(self.max_size, v["shape"]), dtype=v["dtype"])
+            self.buf["next_" + k] = np.zeros(combined_shape(self.max_size, v["shape"]), dtype=v["dtype"])
         self.ptr, self.size, = (
             0,
             0,
@@ -62,12 +63,13 @@ class ReplayBuffer:
     def store(
             self,
             obs: np.ndarray,
+            info: dict,
             act: np.ndarray,
             rew: float,
             next_obs: np.ndarray,
             done: bool,
             logp: np.ndarray,
-            info: dict
+            next_info: dict
     ):
         self.buf["obs"][self.ptr] = obs
         self.buf["obs2"][self.ptr] = next_obs
@@ -77,6 +79,7 @@ class ReplayBuffer:
         self.buf["logp"][self.ptr] = logp
         for k in self.additional_info.keys():
             self.buf[k][self.ptr] = info[k]
+            self.buf["next_" + k][self.ptr] = next_info[k]
         self.ptr = (self.ptr + 1) % self.max_size
         self.size = min(self.size + 1, self.max_size)
 

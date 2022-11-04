@@ -7,22 +7,11 @@
 #  Update Date: 2021-05-10, Yang Guan: renew environment parameters
 
 
-import datetime
-import os
-
-import time
-
 import numpy as np
 import torch
+
 from gops.create_pkg.create_env import create_env
 from gops.utils.common_utils import set_seed
-
-from gops.utils.act_distribution import (
-    GaussDistribution,
-    DiracDistribution,
-    ValueDiracDistribution,
-    CategoricalDistribution,
-)
 
 
 class Evaluator:
@@ -59,19 +48,20 @@ class Evaluator:
         obs_list = []
         action_list = []
         reward_list = []
-        obs = self.env.reset()
+        obs, info = self.env.reset()
         done = 0
-        info = {"TimeLimit.truncated": False}
+        info["TimeLimit.truncated"] = False
         while not (done or info["TimeLimit.truncated"]):
             batch_obs = torch.from_numpy(np.expand_dims(obs, axis=0).astype("float32"))
             logits = self.networks.policy(batch_obs)
             action_distribution = self.networks.create_action_distributions(logits)
             action = action_distribution.mode()
             action = action.detach().numpy()[0]
-            next_obs, reward, done, info = self.env.step(action)
+            next_obs, reward, done, next_info = self.env.step(action)
             obs_list.append(obs)
             action_list.append(action)
             obs = next_obs
+            info = next_info
             if "TimeLimit.truncated" not in info.keys():
                 info["TimeLimit.truncated"] = False
             # Draw environment animation
@@ -100,5 +90,3 @@ class Evaluator:
 
     def run_evaluation(self, iteration):
         return self.run_n_episodes(self.num_eval_episode, iteration)
-
-        # add self.writer:

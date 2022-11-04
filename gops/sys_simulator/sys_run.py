@@ -257,7 +257,7 @@ class PolicyRunner:
 
         # save reward data to csv
         reward_data = pd.DataFrame(data=reward_array)
-        reward_data.to_csv('{}\\Reward.csv'.format(self.save_path), encoding='gbk')
+        reward_data.to_csv(os.path.join(self.save_path, 'Reward.csv'), encoding='gbk')
 
         for i in range(policy_num):
             legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
@@ -278,7 +278,7 @@ class PolicyRunner:
 
             # save action data to csv
             action_data = pd.DataFrame(data=action_array[:, :, j])
-            action_data.to_csv('{}\\Action-{}.csv'.format(self.save_path, j+1), encoding='gbk')
+            action_data.to_csv(os.path.join(self.save_path, 'Action-{}.csv'.format(j+1)), encoding='gbk')
 
             for i in range(policy_num):
                 legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
@@ -300,7 +300,7 @@ class PolicyRunner:
 
             # save state data to csv
             state_data = pd.DataFrame(data=state_array[:, :, j])
-            state_data.to_csv('{}\\State-{}.csv'.format(self.save_path, j+1), encoding='gbk')
+            state_data.to_csv(os.path.join(self.save_path, 'State-{}.csv'.format(j+1)), encoding='gbk')
 
             for i in range(policy_num):
                 legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
@@ -340,7 +340,7 @@ class PolicyRunner:
                 plt.savefig(path_tracking_state_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
                 tracking_state_data = pd.DataFrame(data=np.array(tracking_state_data))
-                tracking_state_data.to_csv('{}\\State-{}.csv'.format(self.save_path, j + 1), encoding='gbk')
+                tracking_state_data.to_csv(os.path.join(self.save_path, 'State-{}.csv'.format(j+1)), encoding='gbk')
 
                 # plot state-ref error
                 path_tracking_error_fmt = os.path.join(self.save_path, "Ref - State-{}.{}".format(j+1, default_cfg["img_fmt"]))
@@ -361,7 +361,7 @@ class PolicyRunner:
                 plt.savefig(path_tracking_error_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
                 tracking_error_data = pd.DataFrame(data=np.array(tracking_error_data))
-                tracking_error_data.to_csv('{}\\Ref - State-{}.csv'.format(self.save_path, j+1), encoding='gbk')
+                tracking_error_data.to_csv(os.path.join(self.save_path, 'Ref - State-{}.csv'.format(j+1)), encoding='gbk')
 
         # plot constraint value
         if self.constrained_env:
@@ -371,7 +371,7 @@ class PolicyRunner:
 
                 # save reward data to csv
                 constrain_data = pd.DataFrame(data=constrain_array[:, :, j])
-                constrain_data.to_csv('{}\\Constrain-{}.csv'.format(self.save_path, j+1), encoding='gbk')
+                constrain_data.to_csv(os.path.join(self.save_path, 'Constrain-{}.csv'.format(j+1)), encoding='gbk')
 
                 for i in range(policy_num):
                     legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
@@ -394,7 +394,7 @@ class PolicyRunner:
             # save reward error data to csv
             reward_error_array = reward_array[:-1] - reward_array[-1]
             reward_error_data = pd.DataFrame(data=reward_error_array)
-            reward_error_data.to_csv('{}\\Reward error.csv'.format(self.save_path), encoding='gbk')
+            reward_error_data.to_csv(os.path.join(self.save_path, 'Reward error.csv'), encoding='gbk')
 
             for i in range(policy_num - 1):
                 legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
@@ -431,7 +431,7 @@ class PolicyRunner:
 
                 # save action error data to csv
                 action_error_data = pd.DataFrame(data=action_error_array[:, :, j])
-                action_error_data.to_csv('{}\\Action-{} error.csv'.format(self.save_path, j+1), encoding='gbk')
+                action_error_data.to_csv(os.path.join(self.save_path, 'Action-{} error.csv'.format(j+1)), encoding='gbk')
 
             # state error
             for j in range(state_dim):
@@ -456,7 +456,7 @@ class PolicyRunner:
 
                 # save state data to csv
                 state_error_data = pd.DataFrame(data=state_error_array[:, :, j])
-                state_error_data.to_csv('{}\\State-{} error.csv'.format(self.save_path, j+1), encoding='gbk')
+                state_error_data.to_csv(os.path.join(self.save_path, 'State-{} error.csv'.format(j+1)), encoding='gbk')
 
             # compute relative error with opt
             error_result = {}
@@ -487,14 +487,14 @@ class PolicyRunner:
                     state_error["Mean_error"] = '{:.2f}%'.format(sum(error_list) / len(error_list)*100)
                     error_result[legend].update({"State-{}".format(o + 1): state_error})
 
-            writer = pd.ExcelWriter('{}\\Error-result.xlsx'.format(self.save_path))
+            writer = pd.ExcelWriter(os.path.join(self.save_path, 'Error-result.xlsx'))
             for i in range(self.policy_num):
                 legend = self.legend_list[i] if len(self.legend_list) == policy_num else "Policy-{}".format(i + 1)
                 policy_result = pd.DataFrame(data=error_result[legend])
                 policy_result.to_excel(writer, legend)
             writer.save()
             error_result_data = pd.DataFrame(data=error_result)
-            # error_result_data.to_csv('{}\\Error-result.csv'.format(self.save_path), encoding='gbk')
+            # error_result_data.to_csv(os.path.join(self.save_path, 'Error-result.csv'), encoding='gbk')
             pd.set_option('display.max_columns', None)
             pd.set_option('display.max_rows', None)
             for key, value in error_result_data.items():

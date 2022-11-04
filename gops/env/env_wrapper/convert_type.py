@@ -13,9 +13,9 @@ class ConvertType(gym.Wrapper):
         self.gops_data_type = np.float32
 
     def reset(self, **kwargs):
-        obs = super(ConvertType, self).reset(**kwargs)
+        obs, info = self.env.reset(**kwargs)
         obs = obs.astype(self.gops_data_type)
-        return obs
+        return obs, info
 
     def step(self, action):
         action = action.astype(self.act_data_type)

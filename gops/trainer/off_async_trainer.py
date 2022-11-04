@@ -124,7 +124,7 @@ class OffAsyncTrainer:
         # sampling
         sampler_tb_dict = {}
         if self.iteration % self.sample_interval == 0:
-            if self.sample_tasks.completed() is not None:
+            if self.sample_tasks.completed_num > 0:
                 weights = ray.put(self.networks.state_dict())
                 for sampler, objID in self.sample_tasks.completed():
                     batch_data, sampler_tb_dict = ray.get(objID)

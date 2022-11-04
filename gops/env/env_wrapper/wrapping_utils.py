@@ -2,12 +2,14 @@ from gym.wrappers.time_limit import TimeLimit
 
 from gops.env.env_wrapper.clip_action import ClipActionModel
 from gops.env.env_wrapper.clip_observation import ClipObservationModel
+from gops.env.env_wrapper.convert_type import ConvertType
 from gops.env.env_wrapper.mask_at_done import MaskAtDoneModel
 from gops.env.env_wrapper.noise_observation import NoiseData
+from gops.env.env_wrapper.reset_info import ResetInfoData
 from gops.env.env_wrapper.scale_observation import ScaleObservationData, ScaleObservationModel
 from gops.env.env_wrapper.shaping_reward import ShapingRewardData, ShapingRewardModel
 from gops.env.env_wrapper.wrap_state import StateData
-from gops.env.env_wrapper.convert_type import ConvertType
+
 
 def all_none(a, b):
     if (a is None) and (b is None):
@@ -25,10 +27,13 @@ def wrapping_env(env,
                  obs_noise_type=None,
                  obs_noise_data=None,
                  ):
+    env = ResetInfoData(env)
+
     if max_episode_steps is None and hasattr(env, "max_episode_steps"):
         max_episode_steps = getattr(env, "max_episode_steps")
     if max_episode_steps is not None:
         env = TimeLimit(env, max_episode_steps)
+
     env = ConvertType(env)
     env = StateData(env)
 

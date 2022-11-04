@@ -31,16 +31,15 @@ class OnSampler:
         self.networks = ApproxContainer(**kwargs)
         self.noise_params = kwargs["noise_params"]
         self.sample_batch_size = kwargs["batch_size_per_sampler"]
-        self.obs = self.env.reset()
+        self.obs, self.info = self.env.reset()
         self.has_render = hasattr(self.env, "render")
         self.policy_func_name = kwargs["policy_func_name"]
         self.action_type = kwargs["action_type"]
         self.total_sample_number = 0
-        self.obsv_dim = kwargs["obsv_dim"]
+        self.obs_dim = kwargs["obsv_dim"]
         self.act_dim = kwargs["action_dim"]
         self.gamma = 0.99
         self.reward_scale = 1.0
-        self.obs_dim = self.obsv_dim
         if isinstance(self.obs_dim, int):
             self.obs_dim = (self.obs_dim,)
         self.mb_obs = np.zeros(
@@ -60,6 +59,7 @@ class OnSampler:
         self.mb_additional = {}
         for k, v in kwargs["additional_info"].items():
             self.mb_additional[k] = np.zeros((self.sample_batch_size, *v["shape"]), dtype=v["dtype"])
+            self.mb_additional["next_" + k] = np.zeros((self.sample_batch_size, *v["shape"]), dtype=v["dtype"])
         if self.noise_params is not None:
             if self.action_type == "continu":
                 self.noise_processor = GaussNoise(**self.noise_params)
@@ -94,10 +94,10 @@ class OnSampler:
             else:
                 action_clip = action
             # interact with the environment
-            next_obs, reward, self.done, info = self.env.step(action_clip)
-            if "TimeLimit.truncated" not in info.keys():
-                info["TimeLimit.truncated"] = False
-            if info["TimeLimit.truncated"]:
+            next_obs, reward, self.done, next_info = self.env.step(action_clip)
+            if "TimeLimit.truncated" not in next_info.keys():
+                next_info["TimeLimit.truncated"] = False
+            if next_info["TimeLimit.truncated"]:
                 self.done = False
             reward *= self.reward_scale
             if self.need_value_flag:
@@ -115,7 +115,7 @@ class OnSampler:
                     action,
                     reward,
                     self.done,
-                    info["TimeLimit.truncated"],
+                    next_info["TimeLimit.truncated"],
                     logp,
                     value,
                 )
@@ -132,17 +132,19 @@ class OnSampler:
                     action,
                     reward,
                     self.done,
-                    info["TimeLimit.truncated"],
+                    next_info["TimeLimit.truncated"],
                     logp,
                 )
             for k in self.mb_additional.keys():
-                self.mb_additional[k][t] = info[k]
+                self.mb_additional[k][t] = self.info[k]
+                self.mb_additional["next_" + k][t] = next_info[k]
             self.obs = next_obs
-            if self.done or info["TimeLimit.truncated"]:
-                self.obs = self.env.reset()
+            self.info = next_info
+            if self.done or next_info["TimeLimit.truncated"]:
+                self.obs, self.info = self.env.reset()
             if (
                     self.done
-                    or info["TimeLimit.truncated"]
+                    or next_info["TimeLimit.truncated"]
                     or t == self.sample_batch_size - 1
             ) and self.need_value_flag:
                 last_obs_expand = torch.from_numpy(
@@ -179,6 +181,7 @@ class OnSampler:
             }
         for k, v in self.mb_additional.items():
             mb_data[k] = torch.from_numpy(v)
+            mb_data["next_" + k] = torch.from_numpy(v)
         return mb_data, tb_info
 
     def get_total_sample_number(self):
