@@ -10,7 +10,7 @@ class PythBaseModel(metaclass=ABCMeta):
     def __init__(self,
                  obs_dim: int,
                  action_dim: int,
-                 dt: float,
+                 dt: Optional[float] = None,
                  obs_lower_bound: Optional[Sequence] = None,
                  obs_upper_bound: Optional[Sequence] = None,
                  action_lower_bound: Optional[Sequence] = None,

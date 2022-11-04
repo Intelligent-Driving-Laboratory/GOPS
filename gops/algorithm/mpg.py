@@ -241,18 +241,19 @@ class MPG(AlgorithmBase):
             data["obs2"],
             data["done"],
         )
-        info_init  = data
+        info = data
+        done = torch.zeros(o.shape[0]).bool()
         data_return = self.networks.q1(o, self.networks.policy(o))
         model_return = torch.zeros(1)
         for step in range(self.forward_step):
             if step == 0:
                 a = self.networks.policy(o)
-                o2, r, _, info = self.envmodel.forward(o, a, info_init, torch.tensor(0))
+                o2, r, done, info = self.envmodel.forward(o, a, done, info)
                 model_return = self.reward_scale * r
             else:
                 o = o2
                 a = self.networks.policy4rollout(o)
-                o2, r, _, info = self.envmodel.forward(o, a,info, torch.tensor(0))
+                o2, r, done, info = self.envmodel.forward(o, a, done, info)
                 model_return += self.reward_scale * self.gamma ** step * r
         model_return += self.gamma ** self.forward_step * self.networks.q1_target(o2, self.networks.policy(o2))
         if self.pge_method == "mixed_weight":
