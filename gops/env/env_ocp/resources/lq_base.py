@@ -27,11 +27,14 @@ class LQDynamics:
         self.B = torch.as_tensor(config["B"], dtype=torch.float32, device=device)
         self.Q = torch.as_tensor(config["Q"], dtype=torch.float32, device=device)  # diag vector
         self.R = torch.as_tensor(config["R"], dtype=torch.float32, device=device)  # diag vector
+        
+        self.time_step = config["dt"]
+        self.K, self.P = self.compute_control_matrix()
+
         self.reward_scale = config["reward_scale"]
         self.reward_shift = config["reward_shift"]
         self.state_dim = self.A.shape[0]
 
-        self.time_step = config["dt"]
         # IA = (1 - A * dt)
         IA = torch.eye(self.state_dim, device=device) - self.A * self.time_step
         self.inv_IA = torch.linalg.pinv(IA)
@@ -48,7 +51,7 @@ class LQDynamics:
         R = np.diag(self.R.numpy()).astype('float64')
         P = solve_discrete_are(A, B, Q, R)
         K = np.linalg.pinv(R + B.T @ P @ B) @ B.T @ P @ A
-        return K
+        return K, P
 
     def f_xu_old(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         """
@@ -169,7 +172,7 @@ class LqEnv(PythBaseEnv):
         action_low = np.array(config["action_low"], dtype=np.float32)
         self.action_space = Box(low=action_low, high=action_high)
         self.action_dim = self.action_space.shape[0]
-        self.control_matrix = self.dynamics.compute_control_matrix()
+        self.control_matrix = self.dynamics.K
 
         self.seed()
 
@@ -328,6 +331,7 @@ class LqModel(PythBaseModel):
 
         # define your custom parameters here
         self.dynamics = LQDynamics(config, device)
+        self.P = torch.as_tensor(self.dynamics.P, dtype=torch.float32)
 
     def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
@@ -336,6 +340,9 @@ class LqModel(PythBaseModel):
         done = torch.full([obs.size()[0]], False, dtype=torch.bool, device=self.device)
         info = {"constraint": None}
         return next_obs, reward, done, info
+
+    def get_terminal_cost(self, obs: torch.Tensor) -> torch.Tensor:
+        return obs @ self.P @ obs.T
 
 
 def test_check():
