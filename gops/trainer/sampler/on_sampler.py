@@ -56,10 +56,11 @@ class OnSampler:
             self.mb_val = np.zeros(self.sample_batch_size, dtype=np.float32)
             self.mb_adv = np.zeros(self.sample_batch_size, dtype=np.float32)
             self.mb_ret = np.zeros(self.sample_batch_size, dtype=np.float32)
-        self.mb_additional = {}
+        self.mb_info = {}
+        self.info_keys = kwargs["additional_info"].keys()
         for k, v in kwargs["additional_info"].items():
-            self.mb_additional[k] = np.zeros((self.sample_batch_size, *v["shape"]), dtype=v["dtype"])
-            self.mb_additional["next_" + k] = np.zeros((self.sample_batch_size, *v["shape"]), dtype=v["dtype"])
+            self.mb_info[k] = np.zeros((self.sample_batch_size, *v["shape"]), dtype=v["dtype"])
+            self.mb_info["next_" + k] = np.zeros((self.sample_batch_size, *v["shape"]), dtype=v["dtype"])
         if self.noise_params is not None:
             if self.action_type == "continu":
                 self.noise_processor = GaussNoise(**self.noise_params)
@@ -135,9 +136,9 @@ class OnSampler:
                     next_info["TimeLimit.truncated"],
                     logp,
                 )
-            for k in self.mb_additional.keys():
-                self.mb_additional[k][t] = self.info[k]
-                self.mb_additional["next_" + k][t] = next_info[k]
+            for k in self.info_keys:
+                self.mb_info[k][t] = self.info[k]
+                self.mb_info["next_" + k][t] = next_info[k]
             self.obs = next_obs
             self.info = next_info
             if self.done or next_info["TimeLimit.truncated"]:
@@ -179,9 +180,8 @@ class OnSampler:
                 "logp": torch.from_numpy(self.mb_logp),
                 "time_limited": torch.from_numpy(self.mb_tlim),
             }
-        for k, v in self.mb_additional.items():
+        for k, v in self.mb_info.items():
             mb_data[k] = torch.from_numpy(v)
-            mb_data["next_" + k] = torch.from_numpy(v)
         return mb_data, tb_info
 
     def get_total_sample_number(self):

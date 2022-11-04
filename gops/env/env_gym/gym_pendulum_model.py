@@ -39,6 +39,7 @@ class GymPendulumModel(PythBaseModel):
         super().__init__(
             obs_dim=3,
             action_dim=1,
+            dt=0.05,
             obs_lower_bound=lb_state,
             obs_upper_bound=hb_state,
             action_lower_bound=lb_action,
