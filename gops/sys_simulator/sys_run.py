@@ -2,6 +2,7 @@ import argparse
 import datetime
 import glob
 import os
+from gops.create_pkg.create_env_model import create_env_model
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,7 +15,7 @@ from copy import copy
 from gops.create_pkg.create_env import create_env
 from gops.utils.plot_evaluation import cm2inch
 from gops.utils.common_utils import get_args_from_json, mp4togif
-from gops.sys_simulator.sys_opt_controller import NNController
+from gops.sys_simulator.sys_opt_controller import OptController
 
 default_cfg = dict()
 default_cfg["fig_size"] = (12, 9)
@@ -39,7 +40,7 @@ default_cfg["img_fmt"] = "png"
 
 class PolicyRunner:
     def __init__(self, log_policy_dir_list, trained_policy_iteration_list, save_render=False, plot_range=None,
-                 is_init_info=False, init_info=None, legend_list=None, use_opt=False, constrained_env=False,
+                 is_init_info=False, init_info=None, legend_list=None, use_opt=False, opt_args=None, constrained_env=False,
                  is_tracking=False, use_dist=False, dt=None, obs_noise_type=None, obs_noise_data=None, action_noise_type=None, action_noise_data=None) -> None:
         self.log_policy_dir_list = log_policy_dir_list
         self.trained_policy_iteration_list = trained_policy_iteration_list
@@ -52,6 +53,7 @@ class PolicyRunner:
             self.init_info = {}
         self.legend_list = legend_list
         self.use_opt = use_opt
+        self.opt_args = opt_args
         self.constrained_env = constrained_env
         self.use_dist = use_dist
         self.is_tracking = is_tracking
@@ -75,12 +77,7 @@ class PolicyRunner:
 
         self.__load_all_args()
         self.env_id = self.get_n_verify_env_id()
-
-        if self.use_opt:
-            self.legend_list.append('OPT')
-            self.error_dict = {}
-            self.opt_controller = NNController(self.args_list[0], self.log_policy_dir_list[0]) # TODO: replace with MPCController
-
+   
         # save path
         path = os.path.join(os.path.dirname(__file__), "..", "..", "policy_result")
         path = os.path.abspath(path)
@@ -100,22 +97,19 @@ class PolicyRunner:
         step = 0
         step_list = []
         info_list = [init_info]
-        obs = env.reset(**init_info)
+        obs, info = env.reset(**init_info)
         state = env.state
         print('The initial state is:')
         print(self.__convert_format(state))
         # plot tracking
         state_with_ref_error = {}
         done = False
-        info = {"TimeLimit.truncated": False}
+        info.update({"TimeLimit.truncated": False})
         while not (done or info["TimeLimit.truncated"]):
             state_list.append(state)
             obs_list.append(obs)
             if is_opt:
-                if env.has_optimal_controller:
-                    action = env.control_policy(state)
-                else:
-                    action = self.opt_controller(obs)
+                action = controller(obs)
             else:
                 action = self.compute_action(obs, controller)
                 action = self.__action_noise(action)
@@ -131,7 +125,7 @@ class PolicyRunner:
             obs = next_obs
             state = env.state
             step = step + 1
-            # print("step:", step)
+            print("step:", step)
 
             if "TimeLimit.truncated" not in info.keys():
                 info["TimeLimit.truncated"] = False
@@ -197,7 +191,16 @@ class PolicyRunner:
         policy_num = len(self.algorithm_list)
         if self.use_opt:
             policy_num += 1
-            self.algorithm_list.append("OPT")
+            if self.opt_args['opt_controller_type'] == 'OPT':
+                legend = 'OPT'
+            elif self.opt_args['opt_controller_type'] == 'MPC':
+                legend = 'MPC-' + str(self.opt_args['num_pred_step'])
+                if 'use_terminal_cost' not in self.opt_args.keys() or \
+                    self.opt_args['use_terminal_cost'] == False:
+                    legend += "(w/o TC)"
+                else:
+                    legend += "(w/ TC)"
+            self.algorithm_list.append(legend)
 
         # Create initial list
         reward_list = []
@@ -523,9 +526,9 @@ class PolicyRunner:
             self.env_id_list.append(env_id)
             self.algorithm_list.append(args["algorithm"])
 
-    def __load_env(self,use_opt =False):
+    def __load_env(self, use_opt = False):
         if use_opt:
-            env = create_env( **self.args)
+            env = create_env(**self.args)
         else:
             env_args = {
                 **self.args,
@@ -578,6 +581,7 @@ class PolicyRunner:
             trained_policy_iteration = self.trained_policy_iteration_list[i]
 
             self.args = self.args_list[i]
+            print('Using policy {}'.format(i+1))
             env = self.__load_env()
             print('The environment for policy {}'.format(i+1))
             if hasattr(env, 'train_space') and hasattr(env, 'work_space'):
@@ -589,17 +593,50 @@ class PolicyRunner:
 
             # Run policy
             eval_dict, tracking_dict = self.run_an_episode(env, networks, self.init_info, is_opt=False, render=False)
+            print("Successfully run an episode with policy {}".format(i+1))
+            print("===========================================================\n")
             # mp4 to gif
             self.eval_list.append(eval_dict)
             self.tracking_list.append(tracking_dict)
 
         if self.use_opt:
             self.args = self.args_list[self.policy_num-1]
+            print('Using optimal controller')
             env = self.__load_env(use_opt=True)
             print('The environment for opt')
             env.set_mode('test')
-            controller = self.opt_controller
-            eval_dict_opt, tracking_dict_opt = self.run_an_episode(env, controller, self.init_info, is_opt=True, render=False)
+
+            assert self.opt_args is not None, "Choose to use optimal controller, but the opt_args is None."
+
+            if self.opt_args['opt_controller_type'] == 'OPT':
+                assert env.has_optimal_controller, "The environment has no theoretical optimal controller."
+                opt_controller = env.control_policy
+                legend = 'OPT'
+            
+            elif self.opt_args['opt_controller_type'] == 'MPC':
+                model = create_env_model(**self.args_list[self.policy_num-1])
+                opt_args = self.opt_args.copy()
+                opt_args.pop('opt_controller_type')
+                opt_controller = OptController(
+                    model,
+                    **opt_args,                
+                )
+                legend = 'MPC-' + str(self.opt_args['num_pred_step'])
+                if 'use_terminal_cost' not in self.opt_args.keys() or \
+                    self.opt_args['use_terminal_cost'] == False:
+                    legend += "(w/o TC)"
+                else:
+                    legend += "(w/ TC)"
+
+            else:
+                raise ValueError("The optimal controller type should be either 'OPT' or 'MPC'.")
+            
+            self.legend_list.append(legend)
+            self.error_dict = {}
+
+            eval_dict_opt, tracking_dict_opt = self.run_an_episode(env, opt_controller, self.init_info, is_opt=True, render=False)
+            print("Successfully run an episode with optimal controller!")
+            print("===========================================================\n")
             self.eval_list.append(eval_dict_opt)
             if self.is_tracking:
                 self.tracking_list.append(tracking_dict_opt)
@@ -618,15 +655,6 @@ class PolicyRunner:
             #     self.error_dict["policy_{}".format(i)] = net_error_dict
             #     self.error_dict["opt"] = LQ_error_dict
 
-
-    def __get_init_info(self, env, init_state_nums):
-        state_list = []
-        obs_list = []
-        for i in range(init_state_nums):
-            obs = env.reset()
-            obs_list.append(obs)
-        return obs_list
-
     def __action_noise(self, action):
         if self.action_noise_type is None:
             return action
@@ -634,34 +662,6 @@ class PolicyRunner:
             return action + np.random.normal(loc=self.action_noise_data[0], scale=self.action_noise_data[1])
         elif self.action_noise_type == "uniform":
             return action + np.random.uniform(low=self.action_noise_data[0], high=self.action_noise_data[1])
-
-    def __error_compute(self, env, obs_list, state_list,info_list, controller, init_state_nums, is_opt):
-        action_list = []
-        next_state_list = []
-        for i in range(init_state_nums):
-            obs = obs_list[i]
-            state = state_list[i]
-            info_list[i].update({'init_state':state,'init_obs':obs})
-            env.reset(**info_list[i])
-
-            if is_opt:
-                if env.has_optimal_controller:
-                    action = env.control_policy(state)
-                else:
-                    action = controller(obs)
-            else:
-                action = self.compute_action(obs, controller)
-                action = self.__action_noise(action)
-
-            next_obs, reward, done, info = env.step(action)
-            next_state = env.state
-            action_list.append(action)
-            next_state_list.append(next_state)
-        action_array = np.array(action_list)
-        next_state_array = np.array(next_state_list)
-        error_dict = {"action": action_array, "next_state": next_state_array}
-
-        return error_dict
 
     def __save_mp4_as_gif(self):
         if self.save_render:
