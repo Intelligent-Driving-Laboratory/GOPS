@@ -1,22 +1,22 @@
+from typing import Tuple
+
 import torch
 
-import torch.nn as nn
-
+from gops.env.env_ocp.pyth_base_model import PythBaseModel
 from gops.utils.gops_typing import InfoDict
 
 
-class ModelWrapper(nn.Module):
-    def __init__(self, model: nn.Module):
-        super(ModelWrapper, self).__init__()
+class ModelWrapper:
+    def __init__(self, model: PythBaseModel):
         self.model = model
 
-    # def __getattr__(self, name):
-    #     if name.startswith("_"):
-    #         raise AttributeError(f"attempted to get missing private attribute '{name}'")
-    #     return getattr(self.model, name)
+    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+        return self.model.forward(obs, action, done, info)
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor,info: InfoDict, beyond_done=None):
-        return self.model.forward(state, action,info, beyond_done)
+    def __getattr__(self, name):
+        return getattr(self.model, name)
 
-    # def forward_n_step(self, func, n, state: torch.Tensor):
-    #     return self.model.forward_n_step(func, n, state)
+    @property
+    def unwrapped(self):
+        return self.model.unwrapped

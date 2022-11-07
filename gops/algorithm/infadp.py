@@ -61,9 +61,6 @@ class INFADP(AlgorithmBase):
         super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
-        self.use_gpu = kwargs["use_gpu"]
-        if self.use_gpu:
-            self.envmodel = self.envmodel.cuda()
         self.gamma = 0.99
         self.tau = 0.005
         self.pev_step = 1
@@ -147,12 +144,12 @@ class INFADP(AlgorithmBase):
             for step in range(self.forward_step):
                 if step == 0:
                     a = self.networks.policy(o)
-                    o2, r, d, info = self.envmodel.forward(o, a,info_init, d)
+                    o2, r, d, info = self.envmodel.forward(o, a, d, info_init)
                     backup =  r
                 else:
                     o = o2
                     a = self.networks.policy(o)
-                    o2, r, d, info = self.envmodel.forward(o, a, info, d)
+                    o2, r, d, info = self.envmodel.forward(o, a, d, info)
                     backup +=  self.gamma ** step * r
 
             backup += (
@@ -176,12 +173,12 @@ class INFADP(AlgorithmBase):
         for step in range(self.forward_step):
             if step == 0:
                 a = self.networks.policy(o)
-                o2, r, d, info = self.envmodel.forward(o, a,info_init, d)
+                o2, r, d, info = self.envmodel.forward(o, a, d, info_init)
                 v_pi =  r
             else:
                 o = o2
                 a = self.networks.policy(o)
-                o2, r, d, info = self.envmodel.forward(o, a,info, d)
+                o2, r, d, info = self.envmodel.forward(o, a, d, info)
                 v_pi +=  self.gamma ** step * r
         v_pi += (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
         for p in self.networks.v.parameters():

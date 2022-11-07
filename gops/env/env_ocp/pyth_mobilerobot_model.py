@@ -6,15 +6,23 @@
 #  Description: Mobile Robot Environment
 #  Update Date: 2022-06-05, Baiyu Peng: create environment
 
+from typing import Tuple, Union
 
-import warnings
 import numpy as np
 import torch
 
+from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.utils.gops_typing import InfoDict
 
-class PythMobilerobotModel(torch.nn.Module):
-    def __init__(self, **kwargs):
-        super().__init__()
+
+def env_model_creator(**kwargs):
+    return PythMobilerobotModel(kwargs["device"])
+
+
+class PythMobilerobotModel(PythBaseModel):
+    def __init__(self,
+                 device: Union[torch.device, str, None] = None,
+                 ):
         """
         you need to define parameters here
         """
@@ -39,24 +47,20 @@ class PythMobilerobotModel(torch.nn.Module):
         lb_action = [-0.4, -np.pi / 3]
         hb_action = [0.4, np.pi / 3]
 
-        # do not change the following section
-        self.register_buffer("lb_state", torch.tensor(lb_state, dtype=torch.float32))
-        self.register_buffer("hb_state", torch.tensor(hb_state, dtype=torch.float32))
-        self.register_buffer("lb_action", torch.tensor(lb_action, dtype=torch.float32))
-        self.register_buffer("hb_action", torch.tensor(hb_action, dtype=torch.float32))
+        super().__init__(
+            obs_dim=len(lb_state),
+            action_dim=len(lb_action),
+            dt=self.dt,
+            obs_lower_bound=lb_state,
+            obs_upper_bound=hb_state,
+            action_lower_bound=lb_action,
+            action_upper_bound=hb_action,
+            device=device,
+        )
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done: torch.Tensor):
-
-        warning_msg = "action out of action space!"
-        if not ((action <= self.hb_action).all() and (action >= self.lb_action).all()):
-            warnings.warn(warning_msg)
-            action = clip_by_tensor(action, self.lb_action, self.hb_action)
-
-        warning_msg = "state out of state space!"
-        if not ((state <= self.hb_state).all() and (state >= self.lb_state).all()):
-            warnings.warn(warning_msg)
-            state = clip_by_tensor(state, self.lb_state, self.hb_state)
-        ################################################################################################################
+    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+        state = obs
         #  define your forward function here: the format is just like: state_next = f(state,action)
         veh2vehdist = torch.zeros(state.shape[0], self.n_obstacle)
         for i in range(1 + self.n_obstacle):
@@ -97,11 +101,10 @@ class PythMobilerobotModel(torch.nn.Module):
         ################################################################################################################
         # define the ending condition here the format is just like isdone = l(next_state)
 
-        isdone = dead
+        isdone = dead.squeeze(1)
         ############################################################################################
 
         return state_next, reward, isdone, info
-
 
 
 class Robot:
@@ -174,6 +177,7 @@ class Robot:
         )
         return tracking
 
+
 class ReferencePath(object):
     def __init__(self):
         pass
@@ -185,18 +189,3 @@ class ReferencePath(object):
     def compute_path_phi(self, x):
         deriv = 1/30 * torch.cos(1/30 * x)
         return torch.arctan(deriv)
-
-
-def clip_by_tensor(t, t_min, t_max):
-    """
-    clip_by_tensor
-    :param t: tensor
-    :param t_min: min
-    :param t_max: max
-    :return: cliped tensor
-    """
-    result = (t >= t_min) * t + (t < t_min) * t_min
-    result = (result <= t_max) * result + (result > t_max) * t_max
-    return result
-
-

@@ -6,16 +6,19 @@
 #  Description: Aircraft Environment
 #
 
-import warnings
-import torch
+from typing import Tuple, Union
+
 import numpy as np
+import torch
 
-pi = torch.tensor(np.pi, dtype=torch.float32)
+from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.utils.gops_typing import InfoDict
 
 
-class PythAircraftcontiModel(torch.nn.Module):
-    def __init__(self, **kwargs):
-        super().__init__()
+class PythAircraftcontiModel(PythBaseModel):
+    def __init__(self,
+                 device: Union[torch.device, str, None] = None,
+                 **kwargs):
         """
         you need to define parameters here
         """
@@ -60,8 +63,12 @@ class PythAircraftcontiModel(torch.nn.Module):
 
         self.lb_state = torch.tensor([-self.attack_ang_threshold, -self.rate_threshold, -self.elevator_ang_threshold], dtype=torch.float32)
         self.hb_state = torch.tensor([self.attack_ang_threshold, self.rate_threshold, self.elevator_ang_threshold], dtype=torch.float32)
-        self.lb_action = torch.tensor(self.min_action + self.min_adv_action, dtype=torch.float32)  # action & adversary
-        self.hb_action = torch.tensor(self.max_action + self.max_adv_action, dtype=torch.float32)
+        if self.is_adversary:
+            self.lb_action = torch.tensor(self.min_action + self.min_adv_action, dtype=torch.float32)
+            self.hb_action = torch.tensor(self.max_action + self.max_adv_action, dtype=torch.float32)
+        else:
+            self.lb_action = torch.tensor(self.min_action, dtype=torch.float32)  # action & adversary
+            self.hb_action = torch.tensor(self.max_action, dtype=torch.float32)
 
         self.ones_ = torch.ones(self.sample_batch_size)
         self.zeros_ = torch.zeros(self.sample_batch_size)
@@ -72,6 +79,17 @@ class PythAircraftcontiModel(torch.nn.Module):
         self.upper_step = kwargs['upper_step']
         self.max_step_per_episode = self.max_step()
         self.step_per_episode = self.initial_step()
+
+        super().__init__(
+            obs_dim=self.state_dim,
+            action_dim=self.action_dim,
+            dt=self.dt,
+            obs_lower_bound=self.lb_state,
+            obs_upper_bound=self.hb_state,
+            action_lower_bound=self.lb_action,
+            action_upper_bound=self.hb_action,
+            device=device,
+        )
 
     def max_step(self):
         return torch.from_numpy(np.floor(np.random.uniform(self.lower_step, self.upper_step, [self.sample_batch_size])))
@@ -99,9 +117,9 @@ class PythAircraftcontiModel(torch.nn.Module):
         elevator_vol = action[:, 0]  # the elevator actuator voltage
         wind_attack_angle = action[:, 1]  # wind gusts on angle of attack
 
-        deri_attack_ang = torch.mm(state, A_attack_ang).squeeze() + wind_attack_angle
-        deri_rate = torch.mm(state, A_rate).squeeze()
-        deri_elevator_ang = torch.mm(state, A_elevator_ang).squeeze() + elevator_vol
+        deri_attack_ang = torch.mm(state, A_attack_ang).squeeze(-1) + wind_attack_angle
+        deri_rate = torch.mm(state, A_rate).squeeze(-1)
+        deri_elevator_ang = torch.mm(state, A_elevator_ang).squeeze(-1) + elevator_vol
 
         delta_state = torch.stack([deri_attack_ang, deri_rate, deri_elevator_ang], dim=-1)
         self.parallel_state = self.parallel_state + delta_state * dt
@@ -120,15 +138,16 @@ class PythAircraftcontiModel(torch.nn.Module):
 
         return self.parallel_state, reward, done, info
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor, beyond_done=torch.tensor(1)):
+    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
         notice that all the variables contains the batch dim you need to remember this point
         when constructing your function
-        :param state: datatype:torch.Tensor, shape:[batch_size, state_dim]
+        :param obs: datatype:torch.Tensor, shape:[batch_size, state_dim]
         :param action: datatype:torch.Tensor, shape:[batch_size, action_dim]
-        :param beyond_done: flag indicate the state is already done which means it will not be calculated by the model
+        :param done: flag indicate the state is already done which means it will not be calculated by the model
         :return:
                 next_state:  datatype:torch.Tensor, shape:[batch_size, state_dim]
                               the state will not change anymore when the corresponding flag done is set to True
@@ -137,15 +156,7 @@ class PythAircraftcontiModel(torch.nn.Module):
                          flag done will be set to true when the model reaches the max_iteration or the next state
                          satisfies ending condition
         """
-        warning_msg = "action out of action space!"
-        if not ((action <= self.hb_action).all() and (action >= self.lb_action).all()):
-            # warnings.warn(warning_msg)
-            action = clip_by_tensor(action, self.lb_action, self.hb_action)
-
-        warning_msg = "state out of state space!"
-        if not ((state <= self.hb_state).all() and (state >= self.lb_state).all()):
-            # warnings.warn(warning_msg)
-            state = clip_by_tensor(state, self.lb_state, self.hb_state)
+        state = obs
 
         dt = self.dt
         A_attack_ang = self.A_attack_ang
@@ -153,27 +164,26 @@ class PythAircraftcontiModel(torch.nn.Module):
         A_elevator_ang = self.A_elevator_ang
         attack_ang, rate, elevator_ang = state[:, 0], state[:, 1], state[:, 2]
         elevator_vol = action[:, 0]       # the elevator actuator voltage
-        wind_attack_angle = action[:, 1]  # wind gusts on angle of attack
+        if self.is_adversary:
+            wind_attack_angle = action[:, 1]  # wind gusts on angle of attack
+        else:
+            wind_attack_angle = torch.zeros_like(elevator_vol)
 
-        deri_attack_ang = torch.mm(state, A_attack_ang).squeeze() + wind_attack_angle
-        deri_rate = torch.mm(state, A_rate).squeeze()
-        deri_elevator_ang = torch.mm(state, A_elevator_ang).squeeze() + elevator_vol
+        deri_attack_ang = torch.mm(state, A_attack_ang).squeeze(-1) + wind_attack_angle
+        deri_rate = torch.mm(state, A_rate).squeeze(-1)
+        deri_elevator_ang = torch.mm(state, A_elevator_ang).squeeze(-1) + elevator_vol
 
         delta_state = torch.stack([deri_attack_ang, deri_rate, deri_elevator_ang], dim=-1)
         state_next = state + delta_state * dt
-        reward = (self.Q[0][0] * attack_ang ** 2 + self.Q[1][1] * rate ** 2 + self.Q[2][2] * elevator_ang ** 2
-                  + self.R[0][0] * (elevator_vol ** 2).squeeze(-1) - self.gamma_atte ** 2 * (wind_attack_angle ** 2).squeeze(-1))
+        cost = (self.Q[0][0] * attack_ang ** 2 + self.Q[1][1] * rate ** 2 + self.Q[2][2] * elevator_ang ** 2
+                + self.R[0][0] * (elevator_vol ** 2).squeeze(-1) - self.gamma_atte ** 2 * (wind_attack_angle ** 2).squeeze(-1))
+        reward = - cost
         ############################################################################################
 
         # define the ending condation here the format is just like isdone = l(next_state)
         isdone = state[:, 0].new_zeros(size=[state.size()[0]], dtype=torch.bool)
 
-        ############################################################################################
-        # beyond_done = beyond_done.bool()
-        # mask = isdone * beyond_done
-        # mask = torch.unsqueeze(mask, -1)
-        # state_next = ~mask * state_next + mask * state
-        return delta_state, reward, isdone
+        return state_next, reward, isdone, {'delta_state': delta_state}
 
     def f_x(self, state):
         batch_size = state.size()[0]
@@ -232,16 +242,3 @@ class PythAircraftcontiModel(torch.nn.Module):
             adv = 0.5 / (self.gamma_atte ** 2) * torch.mm(kx.t(), delta_value.t())
 
         return adv.detach()
-
-
-def clip_by_tensor(t, t_min, t_max):
-    """
-    clip_by_tensor
-    :param t: tensor
-    :param t_min: min
-    :param t_max: max
-    :return: cliped tensor
-    """
-    result = (t >= t_min) * t + (t < t_min) * t_min
-    result = (result <= t_max) * result + (result > t_max) * t_max
-    return result

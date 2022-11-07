@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="pyth_veh2dofconti")
+    parser.add_argument("--env_id", type=str, default="pyth_idpendulum")
     parser.add_argument("--algorithm", type=str, default="FHADP")
     parser.add_argument("--pre_horizon", type=int, default=30)
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")

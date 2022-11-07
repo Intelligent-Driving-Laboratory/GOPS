@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from typing import TypeVar, Tuple, Union
+
 import gym
 import torch
-import torch.nn as nn
 
+from gops.env.env_ocp.pyth_base_model import PythBaseModel
 from gops.env.env_wrapper.base import ModelWrapper
 from gops.utils.gops_typing import InfoDict
 
@@ -39,8 +40,9 @@ class ShapingRewardModel(ModelWrapper):
             parser.add_argument("--reward_scale", default=0.5)
             parser.add_argument("--reward_shift", default=0)
     """
+
     def __init__(self,
-                 model: nn.Module,
+                 model: PythBaseModel,
                  shift: Union[torch.Tensor, float] = 0.0,
                  scale: Union[torch.Tensor, float] = 1.0
                  ):
@@ -48,8 +50,8 @@ class ShapingRewardModel(ModelWrapper):
         self.shift = shift
         self.scale = scale
 
-    def forward(self, state: torch.Tensor, action: torch.Tensor, info: InfoDict,  beyond_done=None):
-        s, r, d, info = self.model.forward(state, action, info, beyond_done)
-        r_scaled = (r + self.shift) * self.scale
-        return s, r_scaled, d, info
-
+    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+        next_obs, reward, next_done, next_info = self.model.forward(obs, action, done, info)
+        reward_scaled = (reward + self.shift) * self.scale
+        return next_obs, reward_scaled, next_done, next_info

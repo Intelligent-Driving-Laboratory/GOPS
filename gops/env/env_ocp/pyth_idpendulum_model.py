@@ -4,10 +4,11 @@
 #
 #  Creator: iDLab
 
-import warnings
+from typing import Tuple, Union
 import torch
-import matplotlib.pyplot as plt
 import numpy as np
+from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.utils.gops_typing import InfoDict
 
 
 class Dynamics(object):
@@ -145,105 +146,42 @@ class Dynamics(object):
         d2 = torch.abs(point1x) >= 15
         return torch.logical_or(d1, d2) # point2y <= 1.0
 
-class PythInvertedpendulum(torch.nn.Module):
-    def __init__(self,**kwargs):
-        super().__init__()
+class PythInvertedpendulum(PythBaseModel):
+    def __init__(self, device: Union[torch.device, str, None] = None):
         """
         you need to define parameters here
         """
-        # define your custom parameters here
-        self.dynamics = Dynamics()
-        # define common parameters here
-        self.state_dim = 6
-        self.action_dim = 1
-        lb_state = [-np.inf, -np.inf, -np.inf, -np.inf, -np.inf, -np.inf]
-        hb_state = [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]
+        obs_dim = 6
+        action_dim = 1
+        dt = 0.05
+        lb_state = [-np.inf] * obs_dim
+        hb_state = [np.inf] * obs_dim
         lb_action = [-1.0]
         hb_action = [1.0]
-        self.dt = 0.05  # seconds between state updates
+        super().__init__(
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            dt=dt,
+            obs_lower_bound=lb_state,
+            obs_upper_bound=hb_state,
+            action_lower_bound=lb_action,
+            action_upper_bound=hb_action,
+            device=device,
+        )
+        # define your custom parameters here
+        self.dynamics = Dynamics()
 
-        # do not change the following section
-        self.lb_state = torch.tensor(lb_state, dtype=torch.float32)
-        self.hb_state = torch.tensor(hb_state, dtype=torch.float32)
-        self.lb_action = torch.tensor(lb_action, dtype=torch.float32)
-        self.hb_action = torch.tensor(hb_action, dtype=torch.float32)
-
-    def forward(self, state: torch.Tensor, action: torch.Tensor, info_init=None, beyond_done=None):
-        """
-        rollout the model one step, notice this method will not change the value of self.state
-        you need to define your own state transition  function here
-        notice that all the variables contains the batch dim you need to remember this point
-        when constructing your function
-        :param state: datatype:torch.Tensor, shape:[batch_size, state_dim]
-        :param action: datatype:torch.Tensor, shape:[batch_size, action_dim]
-        :param beyond_done: flag indicate the state is already done which means it will not be calculated by the model
-        :return:
-                next_state:  datatype:torch.Tensor, shape:[batch_size, state_dim]
-                              the state will not change anymore when the corresponding flag done is set to True
-                reward:  datatype:torch.Tensor, shape:[batch_size,]
-                isdone:   datatype:torch.Tensor, shape:[batch_size,]
-                         flag done will be set to true when the model reaches the max_iteration or the next state
-                         satisfies ending condition
-
-                info: datatype: dict, any useful information for debug or training, including constraint
-                        {"constraint": None}
-        """
-        warning_msg = "action out of action space!"
-        if not ((action <= self.hb_action).all() and (action >= self.lb_action).all()):
-            warnings.warn(warning_msg)
-            action = clip_by_tensor(action, self.lb_action, self.hb_action)
-
-        warning_msg = "state out of state space!"
-        if not ((state <= self.hb_state).all() and (state >= self.lb_state).all()):
-            warnings.warn(warning_msg)
-            state = clip_by_tensor(state, self.lb_state, self.hb_state)
-
-        #  define your forward function here: the format is just like: state_next = f(state,action)
-        state_next = self.dynamics.f_xu(state, 500 * action, self.dt)
-
-        ############################################################################################
-
-        # define the ending condation here the format is just like isdone = l(next_state)
-        isdone = self.dynamics.get_done(state_next)
-
-        ############################################################################################
-
-        # define the reward function here the format is just like: reward = l(state,state_next,reward)
-        reward = self.dynamics.compute_rewards(state_next)
-
-        ############################################################################################
-        if beyond_done is None:
-            beyond_done = torch.full([state.size()[0]], False, dtype=torch.float32)
-
-        beyond_done = beyond_done.bool()
-        mask = isdone | beyond_done
-        mask = torch.unsqueeze(mask, -1)
-        state_next = ~mask * state_next + mask * state
-        reward = ~(beyond_done) * reward
-        return state_next, reward, mask.squeeze(), {}
-
-    def forward_n_step(self, func, n, state: torch.Tensor):
-        raise NotImplementedError
-
-
-def clip_by_tensor(t, t_min, t_max):
-    """
-    clip_by_tensor
-    :param t: tensor
-    :param t_min: min
-    :param t_max: max
-    :return: cliped tensor
-    """
-    result = (t >= t_min) * t + (t < t_min) * t_min
-    result = (result <= t_max) * result + (result > t_max) * t_max
-    return result
+    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+        next_obs = self.dynamics.f_xu(obs, 500 * action, self.dt)
+        reward = self.dynamics.compute_rewards(next_obs).reshape(-1)
+        done = torch.full([obs.size()[0]], False, dtype=torch.bool, device=self.device)
+        info = {"constraint": None}
+        return next_obs, reward, done, info
 
 
 def env_model_creator(**kwargs):
     """
     make env model `pyth_invertedpendulum`
     """
-    return PythInvertedpendulum(**kwargs)
-
-
-
+    return PythInvertedpendulum(kwargs["device"])

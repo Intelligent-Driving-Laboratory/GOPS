@@ -55,17 +55,13 @@ class _GymCartpoleconti(gym.Env):
         self.seed()
         self.viewer = None
         self.state = None
-        self.state_dim = self.observation_space.shape
-        self.info_dict = {"state":{"shape": self.state_dim, "dtype": np.float32}}
-
         self.steps_beyond_done = None
-
-        # self.max_episode_steps = 200
-        self.steps = 0
 
     @property
     def additional_info(self):
-        return self.info_dict
+        return {
+            "state": {"shape": self.observation_space.shape, "dtype": np.float32}
+        }
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -104,12 +100,6 @@ class _GymCartpoleconti(gym.Env):
         )
         done = bool(done)
 
-        # -----------------
-        self.steps += 1
-        # if self.steps >=self.max_episode_steps:
-        #     done = True
-        # ---------------
-
         if not done:
             reward = 1.0
         elif self.steps_beyond_done is None:
@@ -129,13 +119,12 @@ class _GymCartpoleconti(gym.Env):
             reward = 0.0
 
         state = np.array(self.state, dtype=np.float32)
-        return state, reward, done, {"state":state}
+        return state, reward, done, {"state": state}
 
     def reset(self):
         self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
-        self.steps = 0
-        return np.array(self.state, dtype=np.float32)
+        return np.array(self.state, dtype=np.float32), {"state": self.state.astype(np.float32)}
 
     def render(self, mode="human"):
         screen_width = 600

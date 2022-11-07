@@ -4,7 +4,7 @@ from gops.env.env_ocp.resources.lq_base import LqModel
 
 def env_model_creator(**kwargs):
     """
-    make env model `pyth_linearquadratic`
+    make env model `pyth_lq`
     """
     lqc = kwargs.get("lq_config", None)
     if lqc is None:
@@ -18,4 +18,4 @@ def env_model_creator(**kwargs):
     else:
         raise RuntimeError("lq_config invalid")
 
-    return LqModel(config)
+    return LqModel(config, kwargs["device"])
