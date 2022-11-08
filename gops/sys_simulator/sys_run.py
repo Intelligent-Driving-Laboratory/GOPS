@@ -2,6 +2,7 @@ import argparse
 import datetime
 import glob
 import os
+from gops.create_pkg.create_env_model import create_env_model
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,7 +15,7 @@ from copy import copy
 from gops.create_pkg.create_env import create_env
 from gops.utils.plot_evaluation import cm2inch
 from gops.utils.common_utils import get_args_from_json, mp4togif
-from gops.sys_simulator.sys_opt_controller import NNController
+from gops.sys_simulator.sys_opt_controller import NNController, OptController
 
 default_cfg = dict()
 default_cfg["fig_size"] = (12, 9)
@@ -39,7 +40,7 @@ default_cfg["img_fmt"] = "png"
 
 class PolicyRunner:
     def __init__(self, log_policy_dir_list, trained_policy_iteration_list, save_render=False, plot_range=None,
-                 is_init_info=False, init_info=None, legend_list=None, use_opt=False, constrained_env=False,
+                 is_init_info=False, init_info=None, legend_list=None, use_opt=False, opt_args=None, constrained_env=False,
                  is_tracking=False, use_dist=False, dt=None, obs_noise_type=None, obs_noise_data=None, action_noise_type=None, action_noise_data=None) -> None:
         self.log_policy_dir_list = log_policy_dir_list
         self.trained_policy_iteration_list = trained_policy_iteration_list
@@ -52,6 +53,7 @@ class PolicyRunner:
             self.init_info = {}
         self.legend_list = legend_list
         self.use_opt = use_opt
+        self.opt_args = opt_args
         self.constrained_env = constrained_env
         self.use_dist = use_dist
         self.is_tracking = is_tracking
@@ -75,12 +77,7 @@ class PolicyRunner:
 
         self.__load_all_args()
         self.env_id = self.get_n_verify_env_id()
-
-        if self.use_opt:
-            self.legend_list.append('OPT')
-            self.error_dict = {}
-            self.opt_controller = NNController(self.args_list[0], self.log_policy_dir_list[0]) # TODO: replace with MPCController
-
+   
         # save path
         path = os.path.join(os.path.dirname(__file__), "..", "..", "policy_result")
         path = os.path.abspath(path)
@@ -112,10 +109,7 @@ class PolicyRunner:
             state_list.append(state)
             obs_list.append(obs)
             if is_opt:
-                if env.has_optimal_controller:
-                    action = env.control_policy(state)
-                else:
-                    action = self.opt_controller(obs)
+                action = controller(obs)
             else:
                 action = self.compute_action(obs, controller)
                 action = self.__action_noise(action)
@@ -131,7 +125,7 @@ class PolicyRunner:
             obs = next_obs
             state = env.state
             step = step + 1
-            # print("step:", step)
+            print("step:", step)
 
             if "TimeLimit.truncated" not in info.keys():
                 info["TimeLimit.truncated"] = False
@@ -197,7 +191,16 @@ class PolicyRunner:
         policy_num = len(self.algorithm_list)
         if self.use_opt:
             policy_num += 1
-            self.algorithm_list.append("OPT")
+            if self.opt_args['opt_controller_type'] == 'OPT':
+                legend = 'OPT'
+            elif self.opt_args['opt_controller_type'] == 'MPC':
+                legend = 'MPC-' + str(self.opt_args['num_pred_step'])
+                if 'use_terminal_cost' not in self.opt_args.keys() or \
+                    self.opt_args['use_terminal_cost'] == False:
+                    legend += "(w/o TC)"
+                else:
+                    legend += "(w/ TC)"
+            self.algorithm_list.append(legend)
 
         # Create initial list
         reward_list = []
@@ -257,7 +260,7 @@ class PolicyRunner:
 
         # save reward data to csv
         reward_data = pd.DataFrame(data=reward_array)
-        reward_data.to_csv('{}\\Reward.csv'.format(self.save_path), encoding='gbk')
+        reward_data.to_csv(os.path.join(self.save_path, 'Reward.csv'), encoding='gbk')
 
         for i in range(policy_num):
             legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
@@ -278,7 +281,7 @@ class PolicyRunner:
 
             # save action data to csv
             action_data = pd.DataFrame(data=action_array[:, :, j])
-            action_data.to_csv('{}\\Action-{}.csv'.format(self.save_path, j+1), encoding='gbk')
+            action_data.to_csv(os.path.join(self.save_path, 'Action-{}.csv'.format(j+1)), encoding='gbk')
 
             for i in range(policy_num):
                 legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
@@ -300,7 +303,7 @@ class PolicyRunner:
 
             # save state data to csv
             state_data = pd.DataFrame(data=state_array[:, :, j])
-            state_data.to_csv('{}\\State-{}.csv'.format(self.save_path, j+1), encoding='gbk')
+            state_data.to_csv(os.path.join(self.save_path, 'State-{}.csv'.format(j+1)), encoding='gbk')
 
             for i in range(policy_num):
                 legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
@@ -340,7 +343,7 @@ class PolicyRunner:
                 plt.savefig(path_tracking_state_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
                 tracking_state_data = pd.DataFrame(data=np.array(tracking_state_data))
-                tracking_state_data.to_csv('{}\\State-{}.csv'.format(self.save_path, j + 1), encoding='gbk')
+                tracking_state_data.to_csv(os.path.join(self.save_path, 'State-{}.csv'.format(j+1)), encoding='gbk')
 
                 # plot state-ref error
                 path_tracking_error_fmt = os.path.join(self.save_path, "Ref - State-{}.{}".format(j+1, default_cfg["img_fmt"]))
@@ -361,7 +364,7 @@ class PolicyRunner:
                 plt.savefig(path_tracking_error_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
                 tracking_error_data = pd.DataFrame(data=np.array(tracking_error_data))
-                tracking_error_data.to_csv('{}\\Ref - State-{}.csv'.format(self.save_path, j+1), encoding='gbk')
+                tracking_error_data.to_csv(os.path.join(self.save_path, 'Ref - State-{}.csv'.format(j+1)), encoding='gbk')
 
         # plot constraint value
         if self.constrained_env:
@@ -371,7 +374,7 @@ class PolicyRunner:
 
                 # save reward data to csv
                 constrain_data = pd.DataFrame(data=constrain_array[:, :, j])
-                constrain_data.to_csv('{}\\Constrain-{}.csv'.format(self.save_path, j+1), encoding='gbk')
+                constrain_data.to_csv(os.path.join(self.save_path, 'Constrain-{}.csv'.format(j+1)), encoding='gbk')
 
                 for i in range(policy_num):
                     legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
@@ -394,7 +397,7 @@ class PolicyRunner:
             # save reward error data to csv
             reward_error_array = reward_array[:-1] - reward_array[-1]
             reward_error_data = pd.DataFrame(data=reward_error_array)
-            reward_error_data.to_csv('{}\\Reward error.csv'.format(self.save_path), encoding='gbk')
+            reward_error_data.to_csv(os.path.join(self.save_path, 'Reward error.csv'), encoding='gbk')
 
             for i in range(policy_num - 1):
                 legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
@@ -431,7 +434,7 @@ class PolicyRunner:
 
                 # save action error data to csv
                 action_error_data = pd.DataFrame(data=action_error_array[:, :, j])
-                action_error_data.to_csv('{}\\Action-{} error.csv'.format(self.save_path, j+1), encoding='gbk')
+                action_error_data.to_csv(os.path.join(self.save_path, 'Action-{} error.csv'.format(j+1)), encoding='gbk')
 
             # state error
             for j in range(state_dim):
@@ -456,7 +459,7 @@ class PolicyRunner:
 
                 # save state data to csv
                 state_error_data = pd.DataFrame(data=state_error_array[:, :, j])
-                state_error_data.to_csv('{}\\State-{} error.csv'.format(self.save_path, j+1), encoding='gbk')
+                state_error_data.to_csv(os.path.join(self.save_path, 'State-{} error.csv'.format(j+1)), encoding='gbk')
 
             # compute relative error with opt
             error_result = {}
@@ -487,14 +490,14 @@ class PolicyRunner:
                     state_error["Mean_error"] = '{:.2f}%'.format(sum(error_list) / len(error_list)*100)
                     error_result[legend].update({"State-{}".format(o + 1): state_error})
 
-            writer = pd.ExcelWriter('{}\\Error-result.xlsx'.format(self.save_path))
+            writer = pd.ExcelWriter(os.path.join(self.save_path, 'Error-result.xlsx'))
             for i in range(self.policy_num):
                 legend = self.legend_list[i] if len(self.legend_list) == policy_num else "Policy-{}".format(i + 1)
                 policy_result = pd.DataFrame(data=error_result[legend])
                 policy_result.to_excel(writer, legend)
             writer.save()
             error_result_data = pd.DataFrame(data=error_result)
-            # error_result_data.to_csv('{}\\Error-result.csv'.format(self.save_path), encoding='gbk')
+            # error_result_data.to_csv(os.path.join(self.save_path, 'Error-result.csv'), encoding='gbk')
             pd.set_option('display.max_columns', None)
             pd.set_option('display.max_rows', None)
             for key, value in error_result_data.items():
@@ -523,9 +526,9 @@ class PolicyRunner:
             self.env_id_list.append(env_id)
             self.algorithm_list.append(args["algorithm"])
 
-    def __load_env(self,use_opt =False):
+    def __load_env(self, use_opt = False):
         if use_opt:
-            env = create_env( **self.args)
+            env = create_env(**self.args)
         else:
             env_args = {
                 **self.args,
@@ -578,6 +581,7 @@ class PolicyRunner:
             trained_policy_iteration = self.trained_policy_iteration_list[i]
 
             self.args = self.args_list[i]
+            print('Using policy {}'.format(i+1))
             env = self.__load_env()
             print('The environment for policy {}'.format(i+1))
             if hasattr(env, 'train_space') and hasattr(env, 'work_space'):
@@ -589,17 +593,50 @@ class PolicyRunner:
 
             # Run policy
             eval_dict, tracking_dict = self.run_an_episode(env, networks, self.init_info, is_opt=False, render=False)
+            print("Successfully run an episode with policy {}".format(i+1))
+            print("===========================================================\n")
             # mp4 to gif
             self.eval_list.append(eval_dict)
             self.tracking_list.append(tracking_dict)
 
         if self.use_opt:
             self.args = self.args_list[self.policy_num-1]
+            print('Using optimal controller')
             env = self.__load_env(use_opt=True)
             print('The environment for opt')
             env.set_mode('test')
-            controller = self.opt_controller
-            eval_dict_opt, tracking_dict_opt = self.run_an_episode(env, controller, self.init_info, is_opt=True, render=False)
+
+            assert self.opt_args is not None, "Choose to use optimal controller, but the opt_args is None."
+
+            if self.opt_args['opt_controller_type'] == 'OPT':
+                assert env.has_optimal_controller, "The environment has no theoretical optimal controller."
+                opt_controller = env.control_policy
+                legend = 'OPT'
+            
+            elif self.opt_args['opt_controller_type'] == 'MPC':
+                model = create_env_model(**self.args_list[self.policy_num-1])
+                opt_args = self.opt_args.copy()
+                opt_args.pop('opt_controller_type')
+                opt_controller = OptController(
+                    model,
+                    **opt_args,                
+                )
+                legend = 'MPC-' + str(self.opt_args['num_pred_step'])
+                if 'use_terminal_cost' not in self.opt_args.keys() or \
+                    self.opt_args['use_terminal_cost'] == False:
+                    legend += "(w/o TC)"
+                else:
+                    legend += "(w/ TC)"
+
+            else:
+                raise ValueError("The optimal controller type should be either 'OPT' or 'MPC'.")
+            
+            self.legend_list.append(legend)
+            self.error_dict = {}
+
+            eval_dict_opt, tracking_dict_opt = self.run_an_episode(env, opt_controller, self.init_info, is_opt=True, render=False)
+            print("Successfully run an episode with optimal controller!")
+            print("===========================================================\n")
             self.eval_list.append(eval_dict_opt)
             if self.is_tracking:
                 self.tracking_list.append(tracking_dict_opt)

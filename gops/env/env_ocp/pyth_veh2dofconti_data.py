@@ -9,7 +9,6 @@
 
 import gym
 import numpy as np
-from gym.wrappers.time_limit import TimeLimit
 
 from gops.env.env_ocp.pyth_base_data import PythBaseEnv
 
@@ -26,7 +25,7 @@ class VehicleDynamics(object):
                                    g=9.81,  # acceleration of gravity [m/s^2]
                                    u=10.)
         l_f, l_r, mass, g = self.vehicle_params['l_f'], self.vehicle_params['l_r'], \
-                        self.vehicle_params['m'], self.vehicle_params['g']
+                            self.vehicle_params['m'], self.vehicle_params['g']
         F_zf, F_zr = l_r * mass * g / (l_f + l_r), l_f * mass * g / (l_f + l_r)
         self.vehicle_params.update(dict(F_zf=F_zf,
                                         F_zr=F_zr))
@@ -60,7 +59,7 @@ class VehicleDynamics(object):
     def compute_path_phi(self, t, num):
         phi = np.zeros_like(t)
         if num == 0:
-            phi = (1.5 * np.sin(2 * np.pi * (t + 0.001) / 10) - 1.5 * np.sin(2 * np.pi * t / 10))\
+            phi = (1.5 * np.sin(2 * np.pi * (t + 0.001) / 10) - 1.5 * np.sin(2 * np.pi * t / 10)) \
                   / (10 * (t + 0.001) + np.cos(2 * np.pi * (t + 0.001) / 6) - 10 * t - np.cos(2 * np.pi * t / 6))
         elif num == 1:
             if t <= 5:
@@ -89,10 +88,14 @@ class VehicleDynamics(object):
         m = self.vehicle_params['m']
         I_z = self.vehicle_params['I_z']
         next_state = np.stack([y + delta_t * (u * phi + v),
-                      phi + delta_t * w,
-                    (m * v * u + delta_t * (l_f * k_f - l_r * k_r) * w - delta_t * k_f * steer * u - delta_t * m * np.square(u) * w) / (m * u - delta_t * (k_f + k_r)),
-                    (I_z * w * u + delta_t * (l_f * k_f - l_r * k_r) * v - delta_t * l_f * k_f * steer * u) / (I_z * u - delta_t * (np.square(l_f) * k_f + np.square(l_r) * k_r))
-                      ])
+                               phi + delta_t * w,
+                               (m * v * u + delta_t * (
+                                       l_f * k_f - l_r * k_r) * w - delta_t * k_f * steer * u - delta_t * m * np.square(
+                                   u) * w) / (m * u - delta_t * (k_f + k_r)),
+                               (I_z * w * u + delta_t * (
+                                       l_f * k_f - l_r * k_r) * v - delta_t * l_f * k_f * steer * u) / (
+                                       I_z * u - delta_t * (np.square(l_f) * k_f + np.square(l_r) * k_r))
+                               ])
         return next_state
 
     def prediction(self, x_1, u_1, frequency):
@@ -156,11 +159,11 @@ class SimuVeh2dofconti(PythBaseEnv):
         self.max_episode_steps = 200
         self.obs = None
         self.state = None
-
         self.ref_num = None
         self.t = None
         self.info_dict = {
-            "state": {"shape": self.state_dim, "dtype": np.float32},
+            "state": {"shape": (self.state_dim,), "dtype": np.float32},
+            "ref": {"shape": (1,), "dtype": np.float32},
             "ref_num": {"shape": (), "dtype": np.uint8},
             "ref_time": {"shape": (), "dtype": np.float32},
         }
@@ -203,28 +206,20 @@ class SimuVeh2dofconti(PythBaseEnv):
             obs = np.hstack((obs, ref_obs))
         self.obs = obs
         self.state = np.array([init_y, init_phi, init_v, init_w], dtype=np.float32)
-        return self.obs
+        return self.obs, self.info
 
     def step(self, action: np.ndarray, adv_action=None):  # think of action is in range [-1, 1]
         steer_norm = action
         action = steer_norm
         reward = self.vehicle_dynamics.compute_rewards(self.obs, action)
         self.t = self.t + 1.0 / self.base_frequency
-        self.state, self.obs = self.vehicle_dynamics.simulation(self.state, action,
-                                             self.base_frequency, self.ref_num, self.t)
+        self.state, self.obs = self.vehicle_dynamics.simulation(
+            self.state, action, self.base_frequency, self.ref_num, self.t)
         self.done = self.judge_done(self.state, self.t)
         if self.done:
             reward = reward - 100
-        state = np.array(self.state, dtype=np.float32)
-        y_ref = self.vehicle_dynamics.compute_path_y(self.t, self.ref_num)
-        info = {
-            "state": state,
-            "ref_time": self.t,
-            "ref": [y_ref, None, None, None],
-            "ref_num": self.ref_num,
-        }
 
-        return self.obs, reward, self.done, info
+        return self.obs, reward, self.done, self.info
 
     def judge_done(self, state, t):
         y, phi, v, w = state[0], state[1], state[2], state[3]
@@ -232,11 +227,17 @@ class SimuVeh2dofconti(PythBaseEnv):
                (np.abs(phi - self.vehicle_dynamics.compute_path_phi(t, self.ref_num)) > np.pi / 4.)
         return done
 
-    def close(self):
-        pass
-
-    def render(self, mode='human'):
-        pass
+    @property
+    def info(self):
+        state = np.array(self.state, dtype=np.float32)
+        y_ref = self.vehicle_dynamics.compute_path_y(self.t, self.ref_num)
+        ref = np.array([y_ref], dtype=np.float32)
+        return {
+            "state": state,
+            "ref": ref,
+            "ref_num": self.ref_num,
+            "ref_time": self.t,
+        }
 
 
 def env_creator(**kwargs):
@@ -244,6 +245,7 @@ def env_creator(**kwargs):
     make env `pyth_veh2dofconti`
     """
     return SimuVeh2dofconti(**kwargs)
+
 
 if __name__ == "__main__":
     env = env_creator()

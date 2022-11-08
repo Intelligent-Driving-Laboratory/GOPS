@@ -119,7 +119,7 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
     env = create_env(**args)
     args = init_args(env, **args)
-    # start_tensorboard(args["save_folder"])
+    start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
     alg.set_parameters({"reward_scale": 0.1, "gamma": 0.99, "tau": 0.05})

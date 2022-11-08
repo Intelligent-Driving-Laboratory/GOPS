@@ -35,13 +35,13 @@ def self_plot(
     ncol=1,
     figsize_scalar=1,
     display=True,
+    category='plot',
 ):
     """
     plot a single figure containing several curves.
     """
     default_cfg = dict()
-
-    default_cfg["fig_size"] = (8.5, 6.5)
+    default_cfg["fig_size"] = (12, 9)
     default_cfg["dpi"] = 300
     default_cfg["pad"] = 0.5
 
@@ -58,6 +58,8 @@ def self_plot(
         "weight": "normal",
     }
 
+    default_cfg["img_fmt"] = "png"
+    
     # pre-process
     assert isinstance(data, (dict, list, tuple))
 
@@ -78,7 +80,12 @@ def self_plot(
 
     # plot figure
     for (i, d) in enumerate(data):
-        plt.plot(d["x"], d["y"], color=color_list[i])
+        if category == 'plot':
+            plt.plot(d["x"], d["y"], color=color_list[i])
+        elif category == 'scatter':
+            plt.scatter(d["x"], d["y"], color=color_list[0], s=1)
+        else:
+            raise NotImplemented
 
     # legend
     plt.tick_params(labelsize=default_cfg["tick_size"])
