@@ -8,20 +8,40 @@
 #  Update Date: 2022-04-20, Jiaxin Gao: modify veh2dof model
 #  Update Date: 2022-09-22, Jiaxin Gao: add reference information
 
+from typing import Tuple, Union
+
+import numpy as np
 import torch
 
+from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.utils.gops_typing import InfoDict
 
-class Veh2dofcontiModel(torch.nn.Module):
-    def __init__(self, **kwargs):
-        super().__init__()
+
+class Veh2dofcontiModel(PythBaseModel):
+    def __init__(self,
+                 pre_horizon: int,
+                 device: Union[torch.device, str, None] = None,
+                 ):
         """
         you need to define parameters here
         """
-        self.vehicle_dynamics = VehicleDynamics(**kwargs)
+        self.vehicle_dynamics = VehicleDynamics()
         self.base_frequency = 10.
+        self.pre_horizon = pre_horizon
+
+        state_dim = 4
+        super().__init__(
+            obs_dim=state_dim + pre_horizon * 1,
+            action_dim=1,
+            dt=1 / self.base_frequency,
+            action_lower_bound=[-np.pi / 6],
+            action_upper_bound=[np.pi / 6],
+            device=device,
+        )
 
     # obs is o2 in data
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, info: dict, beyond_done=torch.tensor(1)):
+    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         steer_norm = action
         actions = steer_norm
         state = info["state"]
@@ -31,7 +51,7 @@ class Veh2dofcontiModel(torch.nn.Module):
         path_yc, path_phic = self.vehicle_dynamics.compute_path_y(tc, ref_num), \
                            self.vehicle_dynamics.compute_path_phi(tc, ref_num)
         obsc = torch.stack([yc - path_yc, phic - path_phic, vc, wc], 1)
-        for i in range(self.vehicle_dynamics.pre_horizon):
+        for i in range(self.pre_horizon):
             ref_y = self.vehicle_dynamics.compute_path_y(tc + (i + 1) / self.base_frequency, ref_num)
             ref_obs = torch.stack([yc - ref_y], 1)
             obsc = torch.hstack((obsc, ref_obs))
@@ -49,7 +69,7 @@ class Veh2dofcontiModel(torch.nn.Module):
         path_y, path_phi = self.vehicle_dynamics.compute_path_y(t, ref_num), \
                            self.vehicle_dynamics.compute_path_phi(t, ref_num)
         obs = torch.stack([y - path_y, phi - path_phi, v, w], 1)
-        for i in range(self.vehicle_dynamics.pre_horizon):
+        for i in range(self.pre_horizon):
             ref_y = self.vehicle_dynamics.compute_path_y(t + (i + 1) / self.base_frequency, ref_num)
             ref_obs = torch.stack([y - ref_y], 1)
             obs = torch.hstack((obs, ref_obs))
@@ -62,7 +82,7 @@ class Veh2dofcontiModel(torch.nn.Module):
 
 
 class VehicleDynamics(object):
-    def __init__(self, **kwargs):
+    def __init__(self):
         self.vehicle_params = dict(k_f=-128915.5,  # front wheel cornering stiffness [N/rad]
                                    k_r=-85943.6,  # rear wheel cornering stiffness [N/rad]
                                    l_f=1.06,  # distance from CG to front axle [m]
@@ -77,7 +97,6 @@ class VehicleDynamics(object):
         F_zf, F_zr = l_r * mass * g / (l_f + l_r), l_f * mass * g / (l_f + l_r)
         self.vehicle_params.update(dict(F_zf=F_zf,
                                         F_zr=F_zr))
-        self.pre_horizon = kwargs["pre_horizon"]
 
     def compute_path_x(self, t, num):
         x = torch.where(num == 0, 10 * t + torch.cos(2 * torch.pi * t / 6), self.vehicle_params['u'] * t)
@@ -141,23 +160,11 @@ class VehicleDynamics(object):
         return rewards
 
 
-
-
 def env_model_creator(**kwargs):
     """
     make env model `pyth_veh2dofconti`
     """
-    return Veh2dofcontiModel(**kwargs)
-
-
-def clip_by_tensor(t, t_min, t_max):
-    """
-    clip_by_tensor
-    :param t: tensor
-    :param t_min: min
-    :param t_max: max
-    :return: cliped tensor
-    """
-    result = (t >= t_min) * t + (t < t_min) * t_min
-    result = (result <= t_max) * result + (result > t_max) * t_max
-    return result
+    return Veh2dofcontiModel(
+        pre_horizon=kwargs["pre_horizon"],
+        device=kwargs["device"],
+    )

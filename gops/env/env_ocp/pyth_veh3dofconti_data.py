@@ -9,7 +9,6 @@
 
 import gym
 import numpy as np
-from gym.wrappers.time_limit import TimeLimit
 
 from gops.env.env_ocp.pyth_base_data import PythBaseEnv
 
@@ -175,6 +174,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         self.t = None
         self.info_dict = {
             "state": {"shape": self.state_dim, "dtype": np.float32},
+            "ref": {"shape": (2,), "dtype": np.float32},
             "ref_num": {"shape": (), "dtype": np.uint8},
             "ref_time": {"shape": (), "dtype": np.float32},
         }
@@ -224,7 +224,7 @@ class SimuVeh3dofconti(PythBaseEnv):
             obs = np.hstack((obs, ref_obs))
         self.obs = obs
         self.state = np.array([init_x, init_y, init_phi, init_u, init_v, init_w], dtype=np.float32)
-        return self.obs
+        return self.obs, self.info
 
     def step(self, action: np.ndarray, adv_action=None):  # think of action is in range [-1, 1]
         steer_norm, a_x_norm = action[0], action[1]
@@ -237,17 +237,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         if self.done:
             reward = reward - 100
 
-        state = np.array(self.state, dtype=np.float32)
-        x_ref = self.vehicle_dynamics.compute_path_x(self.t, self.ref_num)
-        y_ref = self.vehicle_dynamics.compute_path_y(self.t, self.ref_num)
-
-        info = {
-            "state": state,
-            "ref_time": self.t,
-            "ref": [x_ref, y_ref, None, None, None, None],
-            "ref_num": self.ref_num,
-        }
-        return self.obs, reward, self.done, info
+        return self.obs, reward, self.done, self.info
 
     def judge_done(self, veh_state, t):
         x, y, phi, u, v, w = veh_state[0], veh_state[1], veh_state[2], \
@@ -257,11 +247,18 @@ class SimuVeh3dofconti(PythBaseEnv):
                (np.abs(phi - self.vehicle_dynamics.compute_path_phi(t, self.ref_num)) > np.pi / 4.)
         return done
 
-    def close(self):
-        pass
-
-    def render(self, mode='human'):
-        pass
+    @property
+    def info(self):
+        state = np.array(self.state, dtype=np.float32)
+        x_ref = self.vehicle_dynamics.compute_path_x(self.t, self.ref_num)
+        y_ref = self.vehicle_dynamics.compute_path_y(self.t, self.ref_num)
+        ref = np.array([x_ref, y_ref], dtype=np.float32)
+        return {
+            "state": state,
+            "ref": ref,
+            "ref_num": self.ref_num,
+            "ref_time": self.t,
+        }
 
 
 def env_creator(**kwargs):

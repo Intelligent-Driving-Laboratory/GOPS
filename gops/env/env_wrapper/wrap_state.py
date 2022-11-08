@@ -11,9 +11,9 @@ class StateData(gym.Wrapper):
         self.current_obs = None
 
     def reset(self, **kwargs):
-        obs = super(StateData, self).reset(**kwargs)
+        obs, info = self.env.reset(**kwargs)
         self.current_obs = obs
-        return obs
+        return obs, info
 
     def step(self, action):
         obs, rew, done, info = super(StateData, self).step(action)

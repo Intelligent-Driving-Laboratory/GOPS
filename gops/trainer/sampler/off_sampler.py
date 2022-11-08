@@ -28,7 +28,7 @@ class OffSampler:
         alg_file_name = alg_name.lower()
         file = __import__(alg_file_name)
         ApproxContainer = getattr(file, "ApproxContainer")
-        self.obs = self.env.reset()
+        self.obs, self.info = self.env.reset()
         self.has_render = hasattr(self.env, "render")
         self.networks = ApproxContainer(**kwargs)
         self.noise_params = kwargs["noise_params"]
@@ -44,7 +44,6 @@ class OffSampler:
                 self.noise_processor = GaussNoise(**self.noise_params)
             elif self.action_type == "discret":
                 self.noise_processor = EpsilonGreedy(**self.noise_params)
-        self.additional_info = kwargs["additional_info"]
 
     def load_state_dict(self, state_dict):
         self.networks.load_state_dict(state_dict)
@@ -76,24 +75,26 @@ class OffSampler:
             else:
                 action_clip = action
             # interact with the environment
-            next_obs, reward, self.done, info = self.env.step(action_clip)
-            if "TimeLimit.truncated" not in info.keys():
-                info["TimeLimit.truncated"] = False
-            if info["TimeLimit.truncated"]:
+            next_obs, reward, self.done, next_info = self.env.step(action_clip)
+            if "TimeLimit.truncated" not in next_info.keys():
+                next_info["TimeLimit.truncated"] = False
+            if next_info["TimeLimit.truncated"]:
                 self.done = False
             data = [
                 self.obs.copy(),
+                self.info,
                 action,
                 self.reward_scale * reward,
                 next_obs.copy(),
                 self.done,
                 logp,
-                info,
+                next_info,
             ]
             batch_data.append(tuple(data))
             self.obs = next_obs
-            if self.done or info["TimeLimit.truncated"]:
-                self.obs = self.env.reset()
+            self.info = next_info
+            if self.done or next_info["TimeLimit.truncated"]:
+                self.obs, self.info = self.env.reset()
 
         end_time = time.perf_counter()
         tb_info[tb_tags["sampler_time"]] = (end_time - start_time) * 1000

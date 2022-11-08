@@ -8,23 +8,39 @@
 #  Update Date: 2022-04-20, Jiaxin Gao: modify veh3dof model
 
 
-import math
-import warnings
-import torch
-import copy
-from gym.wrappers.time_limit import TimeLimit
-import gym
+from typing import Tuple, Union
 
-class Veh3dofcontiModel(torch.nn.Module):
-    def __init__(self, **kwargs):
-        super().__init__()
+import numpy as np
+import torch
+
+from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.utils.gops_typing import InfoDict
+
+
+class Veh3dofcontiModel(PythBaseModel):
+    def __init__(self,
+                 pre_horizon: int,
+                 device: Union[torch.device, str, None] = None,
+                 ):
         """
         you need to define parameters here
         """
-        self.vehicle_dynamics = VehicleDynamics(**kwargs)
+        self.vehicle_dynamics = VehicleDynamics()
         self.base_frequency = 10.
+        self.pre_horizon = pre_horizon
 
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, info: dict, beyond_done=torch.tensor(1)):
+        state_dim = 6
+        super().__init__(
+            obs_dim=state_dim + pre_horizon * 2,
+            action_dim=2,
+            dt=1 / self.base_frequency,
+            action_lower_bound=[-np.pi / 6, -3],
+            action_upper_bound=[np.pi / 6, 3],
+            device=device,
+        )
+
+    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         steer_norm, a_xs_norm = action[:, 0], action[:, 1]
         actions = torch.stack([steer_norm, a_xs_norm], 1)
         state = info["state"]
@@ -36,7 +52,7 @@ class Veh3dofcontiModel(torch.nn.Module):
                                    self.vehicle_dynamics.compute_path_y(tc, ref_num), \
                                    self.vehicle_dynamics.compute_path_phi(tc, ref_num)
         obsc = torch.stack([xc - path_xc, yc - path_yc, phic - path_phic, uc, vc, wc], 1)
-        for i in range(self.vehicle_dynamics.pre_horizon):
+        for i in range(self.pre_horizon):
             ref_x = self.vehicle_dynamics.compute_path_x(tc + (i + 1) / self.base_frequency, ref_num)
             ref_y = self.vehicle_dynamics.compute_path_y(tc + (i + 1) / self.base_frequency, ref_num)
             ref_obs = torch.stack([xc - ref_x, yc - ref_y], 1)
@@ -55,7 +71,7 @@ class Veh3dofcontiModel(torch.nn.Module):
                                    self.vehicle_dynamics.compute_path_y(t, ref_num), \
                            self.vehicle_dynamics.compute_path_phi(t, ref_num)
         obs = torch.stack([x - path_x, y - path_y, phi - path_phi, u, v, w], 1)
-        for i in range(self.vehicle_dynamics.pre_horizon):
+        for i in range(self.pre_horizon):
             ref_x = self.vehicle_dynamics.compute_path_x(t + (i + 1) / self.base_frequency, ref_num)
             ref_y = self.vehicle_dynamics.compute_path_y(t + (i + 1) / self.base_frequency, ref_num)
             ref_obs = torch.stack([x - ref_x, y - ref_y], 1)
@@ -68,7 +84,7 @@ class Veh3dofcontiModel(torch.nn.Module):
 
 
 class VehicleDynamics(object):
-    def __init__(self, **kwargs):
+    def __init__(self):
         self.vehicle_params = dict(k_f=-128915.5,  # front wheel cornering stiffness [N/rad]
                                    k_r=-85943.6,  # rear wheel cornering stiffness [N/rad]
                                    l_f=1.06,  # distance from CG to front axle [m]
@@ -81,9 +97,7 @@ class VehicleDynamics(object):
         l_f, l_r, mass, g = self.vehicle_params['l_f'], self.vehicle_params['l_r'], \
                             self.vehicle_params['m'], self.vehicle_params['g']
         F_zf, F_zr = l_r * mass * g / (l_f + l_r), l_f * mass * g / (l_f + l_r)
-        self.vehicle_params.update(dict(F_zf=F_zf,
-                                        F_zr=F_zr))
-        self.pre_horizon = kwargs["pre_horizon"]
+        self.vehicle_params.update(dict(F_zf=F_zf, F_zr=F_zr))
 
     def compute_path_x(self, t, num):
         x = torch.where(num == 0, 10 * t + torch.cos(2 * torch.pi * t / 6), self.vehicle_params['u'] * t)
@@ -165,17 +179,7 @@ def env_model_creator(**kwargs):
     make env model `pyth_veh3dofconti`
     """
 
-    return Veh3dofcontiModel(**kwargs)
-
-
-def clip_by_tensor(t, t_min, t_max):
-    """
-    clip_by_tensor
-    :param t: tensor
-    :param t_min: min
-    :param t_max: max
-    :return: cliped tensor
-    """
-    result = (t >= t_min) * t + (t < t_min) * t_min
-    result = (result <= t_max) * result + (result > t_max) * t_max
-    return result
+    return Veh3dofcontiModel(
+        pre_horizon=kwargs["pre_horizon"],
+        device=kwargs["device"],
+    )

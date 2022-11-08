@@ -165,11 +165,10 @@ class SPIL(AlgorithmBase):
         # return v_grad + policy_grad, tb_info
 
     def __compute_loss_v(self, data):
-        o, a, r, c, o2, d = (
+        o, a, r, o2, d = (
             data["obs"],
             data["act"],
             data["rew"],
-            data["constraint"],
             data["obs2"],
             data["done"],
         )
@@ -180,20 +179,20 @@ class SPIL(AlgorithmBase):
             for step in range(self.forward_step):
                 if step == 0:
                     a = self.networks.policy(o)
-                    o2, r, d, _ = self.envmodel.forward(o, a, d)
+                    o2, r, d, info = self.envmodel.forward(o, a, d, {})
                     r_sum = self.reward_scale * r
-                    traj_issafe *= ~d
+                    traj_issafe *= info["constraint"] <= 0
 
                 else:
                     o = o2
                     a = self.networks.policy(o)
-                    o2, r, d, _ = self.envmodel.forward(o, a, d)
+                    o2, r, d, info = self.envmodel.forward(o, a, d, {})
                     r_sum += self.reward_scale * self.gamma ** step * r
-                    traj_issafe *= ~d
+                    traj_issafe *= info["constraint"] <= 0
 
             r_sum += self.gamma ** self.forward_step * self.networks.v_target(o2)
         loss_v = ((v - r_sum) ** 2).mean()
-        self.safe_prob = (traj_issafe).mean(0).numpy()
+        self.safe_prob = traj_issafe.mean(0).numpy()
         print(r_sum.mean(), self.safe_prob)
         return loss_v, torch.mean(v)
 
@@ -229,7 +228,7 @@ class SPIL(AlgorithmBase):
         for step in range(self.forward_step):
             if step == 0:
                 a = self.networks.policy(o)
-                o2, r, d, info = self.envmodel.forward(o, a, d)
+                o2, r, d, info = self.envmodel.forward(o, a, d, {})
                 c = info["constraint"]
                 c = Phi(c)
                 r_sum = self.reward_scale * r
@@ -238,7 +237,7 @@ class SPIL(AlgorithmBase):
             else:
                 o = o2
                 a = self.networks.policy(o)
-                o2, r, d, info = self.envmodel.forward(o, a, d)
+                o2, r, d, info = self.envmodel.forward(o, a, d, {})
                 c = info["constraint"]
                 c = Phi(c)
                 r_sum = r_sum + self.reward_scale * self.gamma ** step * r
