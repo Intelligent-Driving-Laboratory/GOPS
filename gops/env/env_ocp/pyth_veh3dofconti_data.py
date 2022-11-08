@@ -32,12 +32,25 @@ class VehicleDynamics(object):
         self.expected_vs = 10.
         self.pre_horizon = kwargs["pre_horizon"]
 
-    def compute_path_x(self, t, num):
+    def compute_path_x(self, t, num, para=None, type='sine'):
         x = np.zeros_like(t)
-        if num == 0:
-            x = 10 * t + np.cos(2 * np.pi * t / 6)
-        elif num == 1:
-            x = self.vehicle_params['u'] * t
+        if type == 'sine':
+            if num == 0:
+                # x = A sin(omega * t + phi) + bt
+                if para == None:
+                    x = 10 * t + np.cos(2 * np.pi * t / 6)
+                else:
+                    A = para['A']
+                    omega = para['omega']
+                    phi = para['phi']
+                    b = para['b']
+                    x = A * np.sin(omega * t + phi) + b * t
+
+            elif num == 1:
+                x = self.vehicle_params['u'] * t
+        elif type == 'double_lane':
+            if num == 0:
+                x = self.vehicle_params['u'] * t
         return x
 
     def compute_path_y(self, t, num):
