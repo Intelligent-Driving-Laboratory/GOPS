@@ -22,6 +22,7 @@ results/
 *.pkl
 
 policy_result/
+figures/
 
 # Distribution / packaging
 .Python
