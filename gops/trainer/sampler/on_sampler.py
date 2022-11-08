@@ -51,7 +51,7 @@ class OnSampler:
         self.mb_done = np.zeros(self.sample_batch_size, dtype=np.bool_)
         self.mb_tlim = np.zeros(self.sample_batch_size, dtype=np.bool_)
         self.mb_logp = np.zeros(self.sample_batch_size, dtype=np.float32)
-        self.need_value_flag = not(alg_name is "FHADP" or alg_name is "INFADP")
+        self.need_value_flag = not(alg_name == "FHADP" or alg_name == "INFADP")
         if self.need_value_flag:
             self.gae_lambda = 0.95
             self.mb_val = np.zeros(self.sample_batch_size, dtype=np.float32)
