@@ -97,8 +97,7 @@ class PolicyRunner:
         step = 0
         step_list = []
         info_list = [init_info]
-        obs, info = env.reset(**init_info)
-        info_list.append(info)
+        obs = env.reset(**init_info)
         state = env.state
         print('The initial state is:')
         print(self.__convert_format(state))
