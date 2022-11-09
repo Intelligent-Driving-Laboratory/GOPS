@@ -5,7 +5,6 @@ from gops.algorithm.infadp import ApproxContainer
 import os
 import argparse
 
-
 def load_args(log_policy_dir):
     json_path = os.path.join(log_policy_dir, "config.json")
     parser = argparse.ArgumentParser()
@@ -23,18 +22,18 @@ def load_policy(log_policy_dir, trained_policy_iteration):
     networks.load_state_dict(torch.load(log_path))
     return networks
 
-value_net = load_policy("code/gops/results/INFADP/s2a1", '350000').v
+value_net = load_policy("../../results/INFADP/221108-213023", '70000').v
 
 def terminal_cost(obs):
     return -value_net(obs)
 
 runner = PolicyRunner(
-    log_policy_dir_list=["code/gops/results/INFADP/s2a1"],
-    trained_policy_iteration_list=['350000'],
+    log_policy_dir_list=["../../results/INFADP/221108-213023"]*2,
+    trained_policy_iteration_list=['35000','70000'],
     is_init_info=True,
-    init_info={"init_state":[0.5, -0.5]},
+    init_info={"init_state":[2, -2]},
     save_render=False,
-    legend_list=['INFADP-350000'],
+    legend_list=['INFADP-35000','INFADP-70000'],
     use_opt=True,
     opt_args={
         "opt_controller_type": "MPC",
