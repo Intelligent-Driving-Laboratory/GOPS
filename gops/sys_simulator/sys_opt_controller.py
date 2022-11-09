@@ -110,7 +110,10 @@ class OptController:
             )
             states, _ = self.__rollout(inputs, x)
             
-            return self.model.get_constraint(states)
+            # model.get_constraint() return a Tensor of shape [1],
+            # each element of which should be required to be lower than or equal to 0
+            # minimize_ipopt() takes inequality constraints that should be greater than or equal to 0
+            return -self.model.get_constraint(states)
 
     def __constraint_jac(self, inputs: np.ndarray, x: np.ndarray) -> np.ndarray:
         x = torch.tensor(x, dtype=torch.float32)
