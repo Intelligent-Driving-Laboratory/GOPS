@@ -133,7 +133,7 @@ def draw_figures(traj_data, df_data, ddf_data, ddf_df_data, state_index, close_l
         fig.savefig(os.path.join(save_path, 'Open-loop Dynamic Check of State-%d.png'%state_index))
     
 
-def check_dynamic(env=None, traj_num=5, init_info=None, log_policy_dir=None, policy_iteration=None):
+def check_dynamic(env_info=None, traj_num=5, init_info=None, log_policy_dir=None, policy_iteration=None):
     """
     check whether the dynamic characteristic is well behaved.
 
@@ -143,23 +143,23 @@ def check_dynamic(env=None, traj_num=5, init_info=None, log_policy_dir=None, pol
     close_loop = False
     if log_policy_dir is not None:
         close_loop = True
-        # recreate env
-        has_env = (env is not None)
         args = load_args(log_policy_dir)
         env = create_env(**args)
-        if has_env:
-            print("The env is recreated successfully according to \'config.json\' in \'%s\'."% log_policy_dir)
+        print("The env is created successfully according to \'config.json\' in \'%s\'."% log_policy_dir)
         # load policy
         policy_path = os.path.join(log_policy_dir, 'apprfunc', "apprfunc_{}.pkl".format(policy_iteration))
         controller = load_policy(args, policy_path)
+    else:
+        env = create_env(**env_info)
+        print("The env is created successfully according to \'env_info\'")
     
     assert env is not None
 
     save_path = os.path.join('./', 'figures')
-    if hasattr(env, 'config_name'):
-        env_name = '%s_%s'%(env.env_id, env.config_name)
+    if 'lq_config' in env_info:
+        env_name = '%s_%s'%(env_info['env_id'], env_info['lq_config'])
     else:
-        env_name = env.env_id
+        env_name = env_info['env_id']
     
     if close_loop:
         save_path = os.path.join(save_path, '%s_close_test'%env_name)
@@ -200,6 +200,12 @@ def check_dynamic(env=None, traj_num=5, init_info=None, log_policy_dir=None, pol
             obs, info = env.reset(**init_info_episode)
         else:
             obs, info = env.reset()
+        
+        if obs.shape[0] == state_dim:
+            use_obs = True
+        else:
+            use_obs = False
+        
         state_list.append([])
         df_state_list.append([])
         ddf_state_list.append([])
@@ -225,11 +231,16 @@ def check_dynamic(env=None, traj_num=5, init_info=None, log_policy_dir=None, pol
                 break
                 
             state_next = env.state
-
-            df_state_list[-1].append((obs_next - obs, obs))
+            if use_obs:
+                df_state_list[-1].append((obs_next - obs, obs))
+            else:
+                df_state_list[-1].append((state_next - state, state))
 
             if step_index > 0:
-                ddf_state_list[-1].append((df_state_list[-1][-1][0] - df_state_list[-1][-2][0], df_state_list[-1][-1][0], obs))
+                if use_obs:
+                    ddf_state_list[-1].append((df_state_list[-1][-1][0] - df_state_list[-1][-2][0], df_state_list[-1][-1][0], obs))
+                else:
+                    ddf_state_list[-1].append((df_state_list[-1][-1][0] - df_state_list[-1][-2][0], df_state_list[-1][-1][0], state))
 
             state = state_next
             obs = obs_next

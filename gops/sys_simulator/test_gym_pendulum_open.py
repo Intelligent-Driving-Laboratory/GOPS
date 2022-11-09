@@ -2,6 +2,5 @@ from gops.create_pkg.create_env import create_env
 from gops.env.tools.env_dynamic_checker import check_dynamic
 
 
-env = create_env(env_id='gym_pendulum')
-
-check_dynamic(env, traj_num=2)
+check_dynamic(env_info={'env_id':'gym_pendulum'},
+              traj_num=2)
