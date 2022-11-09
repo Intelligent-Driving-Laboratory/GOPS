@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="simu_veh3dof", help="")
+    parser.add_argument("--env_id", type=str, default="simu_veh3dofconti", help="")
     parser.add_argument("--algorithm", type=str, default="PPO", help="")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     parser.add_argument("--seed", default=2099945076, help="Disable CUDA")
@@ -57,8 +57,8 @@ if __name__ == "__main__":
     parser.add_argument("--ref_horizon", type=int, default=20)  # dim(Action)
     parser.add_argument("--Max_step", type=int, default=2000)  # dim(Action)
     parser.add_argument("--act_repeat", type=int, default=5)
-    parser.add_argument("--obs_scale", type=list, default=[0.001, 1, 1, 1, 2.4, 2])
-    parser.add_argument("--act_scale", type=list, default=[10, 1 / 1000, 1 / 1000])
+    parser.add_argument("--obs_scaling", type=list, default=[0.001, 1, 1, 1, 2.4, 2])
+    parser.add_argument("--act_scaling", type=list, default=[10, 1 / 1000, 1 / 1000])
     parser.add_argument("--act_max", type=list, default=[10 * np.pi / 180, 3000, 3000])
     parser.add_argument("--punish_done", type=float, default=0.)
     parser.add_argument("--rew_bias", type=float, default=2.5)
@@ -188,14 +188,12 @@ if __name__ == "__main__":
     alg = create_alg(**args)
     alg.set_parameters(
         {
-            "gamma": 0.95,
             "loss_coefficient_value": 0.5,
             "loss_coefficient_entropy": 0.01,
             "schedule_adam": "None",
             "schedule_clip": "None",
             "loss_value_clip": False,
             "loss_value_norm": False,
-            "reward_scale": 1,
         }
     )
     # Step 2: create sampler in trainer

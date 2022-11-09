@@ -79,7 +79,7 @@ class PolicyRunner:
         self.env_id = self.get_n_verify_env_id()
    
         # save path
-        path = os.path.join(os.path.dirname(__file__), "..", "..", "policy_result")
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "figures")
         path = os.path.abspath(path)
 
         algs_name = ""
