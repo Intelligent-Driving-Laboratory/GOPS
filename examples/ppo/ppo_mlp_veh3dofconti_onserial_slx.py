@@ -46,7 +46,7 @@ if __name__ == "__main__":
         "--is_adversary", type=bool, default=False, help="Adversary training"
     )
     parser.add_argument(
-        "--is_constrained", type=bool, default=False, help="Adversary training"
+        "--is_constrained", type=bool, default=False, help="constrained environment"
     )
 
     parser.add_argument("--ref_A", type=list, default=[0.3, 0.8, 1.5])  # dim(State)
@@ -62,12 +62,12 @@ if __name__ == "__main__":
     parser.add_argument("--act_max", type=list, default=[10 * np.pi / 180, 3000, 3000])
     parser.add_argument("--punish_done", type=float, default=0.)
     parser.add_argument("--rew_bias", type=float, default=2.5)
-    parser.add_argument("--rew_bound", type=float, default=2.5)
+    parser.add_argument("--rew_bound", type=float, default=5.)
     parser.add_argument("--punish_Q", type=list, default=[0.5, 0.5, 5, 0.25])
     parser.add_argument("--punish_R", type=list, default=[2.5, 5e-7, 5e-7])
-    parser.add_argument("--rand_bias", type=list, default=[200, 2, 4, 0.1, np.pi / 18, 0.01])
+    parser.add_argument("--rand_bias", type=list, default=[200, 1.5, 1.5, 0.1, np.pi / 18, 0.01])
     parser.add_argument("--rand_center", type=list, default=[0, 0, 20., 0, 0, 0])
-    parser.add_argument("--done_range", type=list, default=[6., 6., np.pi / 6])
+    parser.add_argument("--done_range", type=list, default=[6., 5., np.pi / 6])
 
     ################################################
     # 2.1 Parameters of value approximate function
@@ -161,8 +161,7 @@ if __name__ == "__main__":
 
     ################################################
     # 8. Data savings
-    #parser.add_argument("--save_folder", type=str, default= r"E:\PHD\Project\GOPS\repov38\paper_results")
-    parser.add_argument("--save_folder", type=str, default=None)
+    parser.add_argument("--save_folder", type=str, default= None)
     # Save value/policy every N updates
     parser.add_argument(
         "--apprfunc_save_interval",

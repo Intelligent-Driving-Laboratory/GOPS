@@ -45,6 +45,7 @@ def create_env(**kwargs):
         obs_noise_type=obs_noise_type,
         obs_noise_data=obs_noise_data,
     )
+    env.env_id = env_name
 
     print("Create environment successfully!")
     return env
