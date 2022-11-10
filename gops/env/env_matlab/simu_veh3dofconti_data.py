@@ -99,6 +99,10 @@ class SimuVeh3dofconti(gym.Env, ):
         self.seed()
         self.reset()
 
+    @property
+    def state(self):
+        return self._state
+
     def reset(self, init_state=None, **kwargs):
         def callback():
             """Custom reset logic goes here."""
