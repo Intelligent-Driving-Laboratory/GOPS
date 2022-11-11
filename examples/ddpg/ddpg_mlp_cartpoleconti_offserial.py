@@ -39,6 +39,7 @@ if __name__ == "__main__":
     parser.add_argument("--action_dim", type=int, default=None, help="dim(Action)")
     parser.add_argument("--action_high_limit", type=list, default=None)
     parser.add_argument("--action_low_limit", type=list, default=None)
+    parser.add_argument("--reward_scale", type=list, default=0.1)
     parser.add_argument(
         "--action_type", type=str, default="continu", help="Options: continu/discret"
     )
@@ -120,7 +121,7 @@ if __name__ == "__main__":
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     alg.set_parameters(
-        {"reward_scale": 0.1, "gamma": 0.99, "tau": 0.2, "delay_update": 1}
+        {"gamma": 0.99, "tau": 0.2, "delay_update": 1}
     )
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)

@@ -66,7 +66,6 @@ class DDPG(AlgorithmBase):
         self.gamma = 0.99
         self.tau = 0.005
         self.delay_update = 1
-        self.reward_scale = 1
         self.per_flag = (kwargs["buffer_name"] == "prioritized_replay_buffer")
 
     @property
@@ -74,8 +73,7 @@ class DDPG(AlgorithmBase):
         return (
             "gamma", 
             "tau", 
-            "delay_update", 
-            "reward_scale"
+            "delay_update",
         )
 
     def __compute_gradient(self, data: dict, iteration):
@@ -87,7 +85,7 @@ class DDPG(AlgorithmBase):
             o, a, r, o2, d = (
                 data["obs"],
                 data["act"],
-                data["rew"] * self.reward_scale,
+                data["rew"],
                 data["obs2"],
                 data["done"],
             )
@@ -97,7 +95,7 @@ class DDPG(AlgorithmBase):
             o, a, r, o2, d, idx, weight = (
                 data["obs"],
                 data["act"],
-                data["rew"] * self.reward_scale,
+                data["rew"],
                 data["obs2"],
                 data["done"],
                 data["idx"],

@@ -57,7 +57,8 @@ class OnSyncTrainer:
         self.iteration = 0
 
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
-        add_scalars({"alg_time": 0, "sampler_time": 0}, self.writer, 0)
+        # flush tensorboard at the beginning
+        add_scalars({tb_tags["alg_time"]: 0, tb_tags["sampler_time"]: 0}, self.writer, 0)
         self.writer.flush()
 
         self.use_gpu = kwargs["use_gpu"]
@@ -68,9 +69,9 @@ class OnSyncTrainer:
 
     def step(self):
         # sampling
-        weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
-        for sampler in self.samplers:  # 对每个完成的sampler，
-            sampler.load_state_dict.remote(weights)  # 同步sampler的参数
+        weights = ray.put(self.networks.state_dict())
+        for sampler in self.samplers:
+            sampler.load_state_dict.remote(weights)
         samples, sampler_tb_dict = zip(
             *ray.get(
                 [
@@ -86,7 +87,7 @@ class OnSyncTrainer:
         if self.use_gpu:
             for k, v in all_samples.items():
                 all_samples[k] = v.cuda()
-        alg_tb_dict = self.alg.local_update(all_samples, self.iteration)  # 更新learner参数
+        alg_tb_dict = self.alg.local_update(all_samples, self.iteration)
         self.networks.load_state_dict(self.alg.state_dict())
 
         # log

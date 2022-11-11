@@ -214,7 +214,7 @@ if __name__ == "__main__":
     alg = create_alg(**args)
     for alg_id in alg:
         alg_id.set_parameters.remote(
-            {"reward_scale": 0.1, "gamma": 0.99, "tau": 0.2, "delay_update": 1}
+            {"gamma": 0.99, "tau": 0.2, "delay_update": 1}
         )
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
