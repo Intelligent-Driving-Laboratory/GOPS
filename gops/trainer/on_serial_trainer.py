@@ -45,7 +45,8 @@ class OnSerialTrainer:
         self.iteration = 0
 
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
-        add_scalars({"alg_time": 0, "sampler_time": 0}, self.writer, 0)
+        # flush tensorboard at the beginning
+        add_scalars({tb_tags["alg_time"]: 0, tb_tags["sampler_time"]: 0}, self.writer, 0)
         self.writer.flush()
 
         self.use_gpu = kwargs["use_gpu"]
