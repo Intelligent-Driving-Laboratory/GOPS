@@ -155,16 +155,12 @@ class VehicleDynamics(object):
         return dis
 
     def compute_path_x(self, t, path_num, path_para, u_num, u_para):
-        A = path_para['A_x']
-        omega = path_para['omega_x']
-        phi = path_para['phi_x']
-        b = path_para['b_x']
-        x0 = A * torch.sin(omega * t + phi) + b * t
         bool_0 = path_num == 0
-        x1 = self.inte_function(t, u_num, u_para) * torch.ones_like(t)
+        x0 = self.inte_function(t, u_num, u_para) * torch.ones_like(t)
         bool_1 = path_num == 1
-        x2 = self.inte_function(t, u_num, u_para) * torch.ones_like(t)
+        x1 = self.inte_function(t, u_num, u_para) * torch.ones_like(t)
         bool_2 = path_num == 2
+        x2 = self.inte_function(t, u_num, u_para) * torch.ones_like(t)
         r = path_para['circle_radius']
         dis = self.inte_function(t, u_num, u_para)
         angle = dis / r
