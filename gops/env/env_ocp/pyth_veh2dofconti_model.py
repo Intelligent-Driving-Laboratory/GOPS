@@ -57,8 +57,15 @@ class Veh2dofcontiModel(PythBaseModel):
             obsc = torch.hstack((obsc, ref_obs))
         reward = self.vehicle_dynamics.compute_rewards(obsc, actions)
 
-        state_next = self.vehicle_dynamics.prediction(state, actions, self.base_frequency)
-        y, phi, v, w = state_next[:, 0], state_next[:, 1], state_next[:, 2], state_next[:, 3]
+        y_current, phi_current, v_current, w_current = state[:, 0], state[:, 1], state[:, 2], state[:, 3]
+        y_relative = torch.zeros_like(y_current)
+        phi_relative = torch.zeros_like(phi_current)
+        relative_state = torch.stack([y_relative, phi_relative, v_current, w_current], 1)
+        relative_state_next = self.vehicle_dynamics.prediction(state, actions, self.base_frequency)
+        delta_y, delta_phi, v_next, w_next = relative_state_next[:, 0], relative_state_next[:, 1], relative_state_next[:, 2], relative_state_next[:, 3]
+
+        y, phi, v, w = y_current + delta_y, phi_current + delta_phi, v_next, w_current
+
         t = tc + 1 / self.base_frequency
         phi = torch.where(phi > torch.pi, phi - 2 * torch.pi, phi)
         phi = torch.where(phi <= -torch.pi, phi + 2 * torch.pi, phi)

@@ -103,7 +103,11 @@ class VehicleDynamics(object):
         return x_next
 
     def simulation(self, state, action, frequency, ref_num, t):
-        state_next = self.prediction(state, action, frequency)
+        y, phi, v, w = state
+        relative_state = np.array([0, 0, v, w], dtype=np.float32)
+        relative_state_next = self.prediction(relative_state, action, frequency)
+        delta_y, delta_phi, v_next, w_next = relative_state_next
+        state_next = np.array([y + delta_y, phi + delta_phi, v_next, w_next], dtype=np.float32)
         y, phi, v, w = state_next[0], state_next[1], state_next[2], state_next[3]
         path_y, path_phi = self.compute_path_y(t, ref_num), \
                            self.compute_path_phi(t, ref_num)
