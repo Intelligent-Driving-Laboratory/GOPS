@@ -163,7 +163,8 @@ class VehicleDynamics(object):
         path_x, path_y, path_phi = self.compute_path_x(t, path_num, path_para, u_num, u_para), \
                                    self.compute_path_y(t, path_num, path_para, u_num, u_para), \
                            self.compute_path_phi(t, path_num, path_para, u_num, u_para)
-        obs = np.array([x - path_x, y - path_y, phi - path_phi, u, v, w], dtype=np.float32)
+        path_u = self.compute_path_u(t, u_num, u_para)
+        obs = np.array([x - path_x, y - path_y, phi - path_phi, u - path_u, v, w], dtype=np.float32)
         for i in range(self.pre_horizon):
             ref_x = self.compute_path_x(t + (i + 1) / base_freq, path_num, path_para, u_num, u_para)
             ref_y = self.compute_path_y(t + (i + 1) / base_freq, path_num, path_para, u_num, u_para)
@@ -178,7 +179,7 @@ class VehicleDynamics(object):
         return state_next, obs
 
     def compute_rewards(self, obs, actions):  # obses and actions are tensors
-        delta_x, delta_y, delta_phi, u, v, w = obs[0], obs[1], obs[2], \
+        delta_x, delta_y, delta_phi, delta_u, v, w = obs[0], obs[1], obs[2], \
                                                    obs[3], obs[4], obs[5]
         steers, a_xs = actions[0], actions[1]
         devi_y = -np.square(delta_y)
@@ -187,7 +188,8 @@ class VehicleDynamics(object):
         punish_steer = -np.square(steers)
         punish_a_x = -np.square(a_xs)
         punish_x = -np.square(delta_x)
-        rewards = 0.1 * devi_y + 0.01 * devi_phi + 0.01 * punish_yaw_rate + \
+        punish_u = -np.square(delta_u)
+        rewards = 0.1 * devi_y + 0.01 * punish_u + 0.01 * devi_phi + 0.01 * punish_yaw_rate + \
                   0.01 * punish_steer + 0.01 * punish_a_x + 0.04 * punish_x
 
         return rewards
@@ -306,10 +308,11 @@ class SimuVeh3dofconti(PythBaseEnv):
             self.u_num = u_num
             self.t = ref_time
             init_x, init_y, init_phi, init_u, init_v, init_w = init_state[0], init_state[1], init_state[2], init_state[3], init_state[4], init_state[5]
-            init_delta_x = self.vehicle_dynamics.compute_path_x(self.t, self.path_num, self.path_para, self.u_num, self.u_para) - init_x
-            init_delta_y = self.vehicle_dynamics.compute_path_y(self.t, self.path_num, self.path_para, self.u_num, self.u_para) - init_y
-            init_delta_phi = self.vehicle_dynamics.compute_path_phi(self.t, self.path_num, self.path_para, self.u_num, self.u_para) + init_phi
-            obs = np.array([init_delta_x, init_delta_y, init_delta_phi, init_u, init_v, init_w], dtype=np.float32)
+            delta_x = init_x - self.vehicle_dynamics.compute_path_x(self.t, self.path_num, self.path_para, self.u_num, self.u_para)
+            delta_y = init_y - self.vehicle_dynamics.compute_path_y(self.t, self.path_num, self.path_para, self.u_num, self.u_para)
+            delta_phi = init_phi - self.vehicle_dynamics.compute_path_phi(self.t, self.path_num, self.path_para, self.u_num, self.u_para)
+            delta_u = init_u - self.vehicle_dynamics.compute_path_u(self.t, self.u_num, self.u_para)
+            obs = np.array([delta_x, delta_y, delta_phi, delta_u, init_v, init_w], dtype=np.float32)
         else:
             print("reset error")
 
