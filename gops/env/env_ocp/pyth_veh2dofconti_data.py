@@ -33,14 +33,7 @@ class VehicleDynamics(object):
         self.pre_horizon = kwargs["pre_horizon"]
 
     def compute_path_u(self, t, u_num, u_para):
-        u = np.zeros_like(t)
-        A = u_para['A']
-        omega = u_para['omega']
-        phi = u_para['phi']
-        b = u_para['b']
-        if u_num == 0:
-            u = A * np.cos(omega * t + phi) + b * t
-        elif u_num == 1:
+        if u_num == 1:
             u = u_para['speed']
         else:
             print('error, u_num can only be 0, 1')
@@ -289,7 +282,7 @@ class SimuVeh2dofconti(PythBaseEnv):
             delta_y, delta_phi, v, w = obs
             flag = [0, 1, 2, 3]
             self.path_num = self.np_random.choice(flag)
-            u_flag = [0, 1]
+            u_flag = [1]
             self.u_num = self.np_random.choice(u_flag)
             ref_time = 20. * self.np_random.uniform(low=0., high=1.)
             self.t = ref_time

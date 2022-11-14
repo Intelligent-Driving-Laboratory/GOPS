@@ -157,18 +157,9 @@ class VehicleDynamics(object):
         return dis
 
     def compute_path_u(self, t, u_num, u_para):
-        u = np.zeros_like(t)
-        A = u_para['A']
-        omega = u_para['omega']
-        phi = u_para['phi']
-        b = u_para['b']
-
-        bool_0 = u_num == 0
-        u0 = A * torch.cos(omega * t + phi) + b * t
         bool_1 = u_num == 1
         u1 = u_para['speed'] * torch.ones_like(t)
-        u = u0 * bool_0 + u1 * bool_1
-
+        u = u1 * bool_1
         return u
 
     def compute_path_x(self, t, path_num, path_para, u_num, u_para):
