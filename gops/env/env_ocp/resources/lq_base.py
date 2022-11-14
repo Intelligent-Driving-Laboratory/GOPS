@@ -69,35 +69,6 @@ class LQDynamics:
         f_dot = torch.mm(self.A, x.T) + torch.mm(self.B, u.T)
         return f_dot.T
 
-    def prediction_old(
-            self, x_t: Union[torch.Tensor, np.ndarray], u_t: Union[torch.Tensor, np.ndarray]
-    ) -> Union[torch.Tensor, np.ndarray]:
-        """
-        environment dynamics in torch, batch operation,
-                        or in numpy, non-batch
-
-        Parameters
-        ----------
-        x_t: [b,3]
-        u_t: [b,1]
-
-        Returns
-        -------
-        x_next: [b,3]
-        """
-
-        numpy_flag = False
-        if isinstance(x_t, np.ndarray):
-            x_t = torch.as_tensor(x_t, dtype=torch.float32).unsqueeze(0)
-            u_t = torch.as_tensor(u_t, dtype=torch.float32).unsqueeze(0)
-            numpy_flag = True
-        f_dot = self.f_xu(x_t, u_t)
-        x_next = f_dot * self.time_step + x_t
-
-        if numpy_flag:
-            x_next = x_next.detach().numpy().squeeze(0)
-        return x_next
-
     def prediction(self,
                    x_t: Union[torch.Tensor, np.ndarray], u_t: Union[torch.Tensor, np.ndarray]
                    ) -> Union[torch.Tensor, np.ndarray]:
