@@ -86,14 +86,13 @@ class Veh3dofcontiModel(PythBaseModel):
         path_num = info["path_num"]
         u_num = info["u_num"]
         tc = info["ref_time"]
-
-
         xc, yc, phic, uc, vc, wc = state[:, 0], state[:, 1], state[:, 2], \
                                           state[:, 3], state[:, 4], state[:, 5]
         path_xc, path_yc, path_phic = self.vehicle_dynamics.compute_path_x(tc, path_num, self.path_para, u_num, self.u_para), \
                                    self.vehicle_dynamics.compute_path_y(tc, path_num, self.path_para, u_num, self.u_para), \
                                    self.vehicle_dynamics.compute_path_phi(tc, path_num, self.path_para, u_num, self.u_para)
-        obsc = torch.stack([xc - path_xc, yc - path_yc, phic - path_phic, uc, vc, wc], 1)
+        path_uc = self.vehicle_dynamics.compute_path_u(tc, u_num, self.u_para)
+        obsc = torch.stack([xc - path_xc, yc - path_yc, phic - path_phic, uc - path_uc, vc, wc], 1)
         for i in range(self.pre_horizon):
             ref_x = self.vehicle_dynamics.compute_path_x(tc + (i + 1) / self.base_frequency, path_num, self.path_para, u_num, self.u_para)
             ref_y = self.vehicle_dynamics.compute_path_y(tc + (i + 1) / self.base_frequency, path_num, self.path_para, u_num, self.u_para)
@@ -112,7 +111,8 @@ class Veh3dofcontiModel(PythBaseModel):
         path_x, path_y, path_phi = self.vehicle_dynamics.compute_path_x(t, path_num, self.path_para, u_num, self.u_para),\
                                    self.vehicle_dynamics.compute_path_y(t, path_num, self.path_para, u_num, self.u_para), \
                            self.vehicle_dynamics.compute_path_phi(t, path_num, self.path_para, u_num, self.u_para)
-        obs = torch.stack([x - path_x, y - path_y, phi - path_phi, u, v, w], 1)
+        path_u = self.vehicle_dynamics.compute_path_u(t, u_num, self.u_para)
+        obs = torch.stack([x - path_x, y - path_y, phi - path_phi, u - path_u, v, w], 1)
         for i in range(self.pre_horizon):
             ref_x = self.vehicle_dynamics.compute_path_x(t + (i + 1) / self.base_frequency, path_num, self.path_para, u_num, self.u_para)
             ref_y = self.vehicle_dynamics.compute_path_y(t + (i + 1) / self.base_frequency, path_num, self.path_para, u_num, self.u_para)
@@ -154,7 +154,6 @@ class VehicleDynamics(object):
         return dis
 
     def compute_path_u(self, t, u_num, u_para):
-        u = np.zeros_like(t)
         A = u_para['A']
         omega = u_para['omega']
         phi = u_para['phi']
@@ -273,7 +272,7 @@ class VehicleDynamics(object):
 
     def compute_rewards(self, obs, actions):  # obses and actions are tensors
 
-        delta_x, delta_y, delta_phi, u, v, w = obs[:, 0], obs[:, 1], obs[:, 2], \
+        delta_x, delta_y, delta_phi, delta_u, v, w = obs[:, 0], obs[:, 1], obs[:, 2], \
                                                    obs[:, 3], obs[:, 4], obs[:, 5]
         steers, a_xs = actions[:, 0], actions[:, 1]
         devi_y = -torch.square(delta_y)
@@ -282,7 +281,8 @@ class VehicleDynamics(object):
         punish_steer = -torch.square(steers)
         punish_a_x = -torch.square(a_xs)
         punish_x = -torch.square(delta_x)
-        rewards = 0.1 * devi_y + 0.01 * devi_phi + 0.01 * punish_yaw_rate + \
+        punish_u = -torch.square(delta_u)
+        rewards = 0.1 * devi_y + 0.01 * punish_u + 0.01 * devi_phi + 0.01 * punish_yaw_rate + \
                   0.01 * punish_steer + 0.01 * punish_a_x + 0.04 * punish_x
 
         return rewards
