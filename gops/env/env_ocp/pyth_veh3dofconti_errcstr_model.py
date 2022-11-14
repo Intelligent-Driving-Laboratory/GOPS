@@ -3,9 +3,7 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Vehicle 3DOF Model
-#  Update Date: 2021-05-55, Congsheng Zhang: create environment
-#  Update Date: 2022-04-20, Jiaxin Gao: modify veh3dof model
+#  Description: Vehicle 3DOF model environment with tracking error constraint
 
 
 from typing import Tuple, Union
@@ -17,18 +15,24 @@ from gops.env.env_ocp.pyth_base_model import PythBaseModel
 from gops.utils.gops_typing import InfoDict
 
 
-class Veh3dofcontiModel(PythBaseModel):
+class Veh3dofcontiErrCstrModel(PythBaseModel):
     def __init__(self,
                  pre_horizon: int,
                  device: Union[torch.device, str, None] = None,
                  path_para:dict = None,
-                 u_para:dict = None):
+                 u_para:dict = None,
+                 y_error_tol: float = 0.2,
+                 u_error_tol: float = 2.0,
+                 **kwargs,
+                 ):
         """
         you need to define parameters here
         """
         self.vehicle_dynamics = VehicleDynamics()
         self.base_frequency = 10.
         self.pre_horizon = pre_horizon
+        self.y_error_tol = y_error_tol
+        self.u_error_tol = u_error_tol
         path_key = ['A_x',
         'omega_x',
         'phi_x',
@@ -123,6 +127,13 @@ class Veh3dofcontiModel(PythBaseModel):
         info["path_num"] = info["path_num"]
         info["ref_time"] = t
         return obs, reward, isdone, info
+
+    def get_constraint(self, obs: torch.Tensor) -> torch.Tensor:
+        y_error = obs[:, 1].unsqueeze(1)
+        u_error = obs[:, 3].unsqueeze(1)
+        # TODO: there is inconsistency in whether obs[3] is u or u_error
+        constraint = torch.stack((y_error.abs() - self.y_error_tol, u_error.abs() - self.u_error_tol), dim=1)
+        return constraint
 
 
 class VehicleDynamics(object):
@@ -289,13 +300,4 @@ class VehicleDynamics(object):
 
 
 def env_model_creator(**kwargs):
-    """
-    make env model `pyth_veh3dofconti`
-    """
-
-    return Veh3dofcontiModel(
-        pre_horizon=kwargs["pre_horizon"],
-        device=kwargs["device"],
-        path_para=None,
-        u_para=None
-    )
+    return Veh3dofcontiErrCstrModel(**kwargs)

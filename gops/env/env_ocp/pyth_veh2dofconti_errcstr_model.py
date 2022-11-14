@@ -3,10 +3,7 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Vehicle 3DOF Model
-#  Update Date: 2021-05-55, Congsheng Zhang: create environment
-#  Update Date: 2022-04-20, Jiaxin Gao: modify veh2dof model
-#  Update Date: 2022-09-22, Jiaxin Gao: add reference information
+#  Description: Vehicle 2DOF model environment with tracking error constraint
 
 from typing import Tuple, Union
 
@@ -17,12 +14,14 @@ from gops.env.env_ocp.pyth_base_model import PythBaseModel
 from gops.utils.gops_typing import InfoDict
 
 
-class Veh2dofcontiModel(PythBaseModel):
+class Veh2dofcontiErrCstrModel(PythBaseModel):
     def __init__(self,
                  pre_horizon: int,
                  device: Union[torch.device, str, None] = None,
                  path_para: dict = None,
-                 u_para: dict = None
+                 u_para: dict = None,
+                 y_error_tol: float = 0.2,
+                 **kwargs,
                  ):
         """
         you need to define parameters here
@@ -30,6 +29,7 @@ class Veh2dofcontiModel(PythBaseModel):
         self.vehicle_dynamics = VehicleDynamics()
         self.base_frequency = 10.
         self.pre_horizon = pre_horizon
+        self.y_error_tol = y_error_tol
         path_key = ['A_x',
                     'omega_x',
                     'phi_x',
@@ -120,11 +120,15 @@ class Veh2dofcontiModel(PythBaseModel):
             ref_obs = torch.stack([y - ref_y], 1)
             obs = torch.hstack((obs, ref_obs))
         info["state"] = state_next
-        info["constraint"] = None
+        info["constraint"] = self.get_constraint(obs)
         info["path_num"] = info["path_num"]
         info["ref_time"] = t
 
         return obs, reward, isdone, info
+
+    def get_constraint(self, obs: torch.Tensor) -> torch.Tensor:
+        y_error = obs[:, 0].unsqueeze(1)
+        return y_error.abs() - self.y_error_tol
 
 
 class VehicleDynamics(object):
@@ -271,12 +275,4 @@ class VehicleDynamics(object):
 
 
 def env_model_creator(**kwargs):
-    """
-    make env model `pyth_veh2dofconti`
-    """
-    return Veh2dofcontiModel(
-        pre_horizon=kwargs["pre_horizon"],
-        device=kwargs["device"],
-        path_para=None,
-        u_para=None
-    )
+    return Veh2dofcontiErrCstrModel(**kwargs)

@@ -3,15 +3,13 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Vehicle 2DOF Model
-#  Update Date: 2021-05-55, Congsheng Zhang: create environment
-#  Update Date: 2022-09-21, Jiaxin Gao: change to tracking problem
+#  Description: Vehicle 2DOF data environment with tracking error constraint
 
 import gym
+import math
 import numpy as np
 
 from gops.env.env_ocp.pyth_base_data import PythBaseEnv
-import math
 
 
 class VehicleDynamics(object):
@@ -185,9 +183,9 @@ class VehicleDynamics(object):
         return rewards
 
 
-class SimuVeh2dofconti(PythBaseEnv):
+class SimuVeh2dofcontiErrCstr(PythBaseEnv):
     def __init__(self, path_para:dict = None,
-                 u_para:dict = None, **kwargs):
+                 u_para:dict = None, y_error_tol: float = 0.2, **kwargs):
         self.vehicle_dynamics = VehicleDynamics(**kwargs)
 
         work_space = kwargs.pop("work_space", None)
@@ -197,7 +195,7 @@ class SimuVeh2dofconti(PythBaseEnv):
             init_high = np.array([1, np.pi / 3, u * 0.25, 0.9], dtype=np.float32)
             init_low = -init_high
             work_space = np.stack((init_low, init_high))
-        super(SimuVeh2dofconti, self).__init__(work_space=work_space, **kwargs)
+        super().__init__(work_space=work_space, **kwargs)
 
         self.is_adversary = kwargs.get("is_adversary", False)
         self.is_constraint = kwargs.get("is_constraint", False)
@@ -226,7 +224,9 @@ class SimuVeh2dofconti(PythBaseEnv):
             "path_num": {"shape": (), "dtype": np.uint8},
             "u_num": {"shape": (), "dtype": np.uint8},
             "ref_time": {"shape": (), "dtype": np.float32},
+            "constraint": {"shape": (1,), "dtype": np.float32},
         }
+        self.y_error_tol = y_error_tol
         self.seed()
 
         path_key = ['A_x',
@@ -328,6 +328,12 @@ class SimuVeh2dofconti(PythBaseEnv):
                (np.abs(phi - self.vehicle_dynamics.compute_path_phi(t, self.path_num, self.path_para, self.u_num, self.u_para)) > np.pi / 4.)
         return done
 
+    def get_constraint(self) -> np.ndarray:
+        y = self.state[0]
+        y_ref = self.vehicle_dynamics.compute_path_y(self.t, self.path_num, self.path_para, self.u_num, self.u_para)
+        constraint = np.array([abs(y - y_ref) - self.y_error_tol], dtype=np.float32)
+        return constraint
+
     @property
     def info(self):
         state = np.array(self.state, dtype=np.float32)
@@ -339,24 +345,9 @@ class SimuVeh2dofconti(PythBaseEnv):
             "path_num": self.path_num,
             "u_num": self.u_num,
             "ref_time": self.t,
+            "constraint": self.get_constraint(),
         }
 
 
 def env_creator(**kwargs):
-    """
-    make env `pyth_veh2dofconti`
-    """
-    return SimuVeh2dofconti(path_para=None,
-                 u_para=None, **kwargs)
-
-
-if __name__ == "__main__":
-    env = env_creator()
-    env.seed()
-    env.reset()
-    for _ in range(100):
-        action = env.action_space.sample()
-        s, r, d, _ = env.step(action)
-        print(s)
-        # env.render()
-        if d: env.reset()
+    return SimuVeh2dofcontiErrCstr(**kwargs)
