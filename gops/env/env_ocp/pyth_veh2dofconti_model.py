@@ -21,6 +21,8 @@ class Veh2dofcontiModel(PythBaseModel):
     def __init__(self,
                  pre_horizon: int,
                  device: Union[torch.device, str, None] = None,
+                 path_para: dict = None,
+                 u_para: dict = None
                  ):
         """
         you need to define parameters here
@@ -28,6 +30,43 @@ class Veh2dofcontiModel(PythBaseModel):
         self.vehicle_dynamics = VehicleDynamics()
         self.base_frequency = 10.
         self.pre_horizon = pre_horizon
+        path_key = ['A_x',
+                    'omega_x',
+                    'phi_x',
+                    'b_x',
+                    'A_y',
+                    'omega_y',
+                    'phi_y',
+                    'b_y',
+                    'double_lane_control_point_1',
+                    'double_lane_control_point_2',
+                    'double_lane_control_point_3',
+                    'double_lane_control_point_4',
+                    'double_lane_control_y1',
+                    'double_lane_control_y3',
+                    'double_lane_control_y5',
+                    'double_lane_control_y2_a',
+                    'double_lane_control_y2_b',
+                    'double_lane_control_y4_a',
+                    'double_lane_control_y4_b',
+                    'square_wave_period',
+                    'square_wave_amplitude',
+                    'circle_radius',
+                    ]
+        path_value = [1., 2 * np.pi / 6, 0, 10, 1.5, 2 * np.pi / 10, 0, 0, 5, 9, 14, 18, 0, 3.5, 0, 0.875, -4.375,
+                      -0.875, 15.75, 5, 1, 200]
+        self.path_para = dict(zip(path_key, path_value))
+        if path_para != None:
+            for i in path_para.keys(): self.path_para[i] = path_para[i]
+
+        u_key = ['A', 'omega', 'phi', 'b', 'speed']
+
+        u_value = [1, 2 * np.pi / 6, 0, 0.5, 5]
+
+        self.u_para = dict(zip(u_key, u_value))
+
+        if u_para != None:
+            for i in u_para.keys(): self.u_para[i] = u_para[i]
 
         state_dim = 4
         super().__init__(
@@ -45,14 +84,15 @@ class Veh2dofcontiModel(PythBaseModel):
         steer_norm = action
         actions = steer_norm
         state = info["state"]
-        ref_num = info["ref_num"]
+        path_num = info["path_num"]
+        u_num = info["u_num"]
         tc = info["ref_time"]
         yc, phic, vc, wc = state[:, 0], state[:, 1], state[:, 2], state[:, 3]
-        path_yc, path_phic = self.vehicle_dynamics.compute_path_y(tc, ref_num), \
-                           self.vehicle_dynamics.compute_path_phi(tc, ref_num)
+        path_yc, path_phic = self.vehicle_dynamics.compute_path_y(tc, path_num, self.path_para, u_num, self.u_para), \
+                           self.vehicle_dynamics.compute_path_phi(tc, path_num, self.path_para, u_num, self.u_para)
         obsc = torch.stack([yc - path_yc, phic - path_phic, vc, wc], 1)
         for i in range(self.pre_horizon):
-            ref_y = self.vehicle_dynamics.compute_path_y(tc + (i + 1) / self.base_frequency, ref_num)
+            ref_y = self.vehicle_dynamics.compute_path_y(tc + (i + 1) / self.base_frequency, path_num, self.path_para, u_num, self.u_para)
             ref_obs = torch.stack([yc - ref_y], 1)
             obsc = torch.hstack((obsc, ref_obs))
         reward = self.vehicle_dynamics.compute_rewards(obsc, actions)
@@ -61,28 +101,27 @@ class Veh2dofcontiModel(PythBaseModel):
         y_relative = torch.zeros_like(y_current)
         phi_relative = torch.zeros_like(phi_current)
         relative_state = torch.stack([y_relative, phi_relative, v_current, w_current], 1)
-        relative_state_next = self.vehicle_dynamics.prediction(state, actions, self.base_frequency)
+        relative_state_next = self.vehicle_dynamics.prediction(relative_state, actions, self.base_frequency)
         delta_y, delta_phi, v_next, w_next = relative_state_next[:, 0], relative_state_next[:, 1], relative_state_next[:, 2], relative_state_next[:, 3]
-
-        y, phi, v, w = y_current + delta_y, phi_current + delta_phi, v_next, w_current
+        y, phi, v, w = y_current + self.vehicle_dynamics.compute_path_u(tc, u_num, self.u_para) / self.base_frequency * torch.sin(phi_current) + delta_y * torch.cos(phi_current), phi_current + delta_phi, v_next, w_current
 
         t = tc + 1 / self.base_frequency
         phi = torch.where(phi > torch.pi, phi - 2 * torch.pi, phi)
         phi = torch.where(phi <= -torch.pi, phi + 2 * torch.pi, phi)
         state_next = torch.stack([y, phi, v, w], 1)
 
-        isdone = self.vehicle_dynamics.judge_done(state_next, ref_num, t)
+        isdone = self.vehicle_dynamics.judge_done(state_next, t, path_num, self.path_para, u_num, self.u_para)
 
-        path_y, path_phi = self.vehicle_dynamics.compute_path_y(t, ref_num), \
-                           self.vehicle_dynamics.compute_path_phi(t, ref_num)
+        path_y, path_phi = self.vehicle_dynamics.compute_path_y(t, path_num, self.path_para, u_num, self.u_para), \
+                           self.vehicle_dynamics.compute_path_phi(t, path_num, self.path_para, u_num, self.u_para)
         obs = torch.stack([y - path_y, phi - path_phi, v, w], 1)
         for i in range(self.pre_horizon):
-            ref_y = self.vehicle_dynamics.compute_path_y(t + (i + 1) / self.base_frequency, ref_num)
+            ref_y = self.vehicle_dynamics.compute_path_y(t + (i + 1) / self.base_frequency, path_num, self.path_para, u_num, self.u_para)
             ref_obs = torch.stack([y - ref_y], 1)
             obs = torch.hstack((obs, ref_obs))
         info["state"] = state_next
         info["constraint"] = None
-        info["ref_num"] = info["ref_num"]
+        info["path_num"] = info["path_num"]
         info["ref_time"] = t
 
         return obs, reward, isdone, info
@@ -105,28 +144,101 @@ class VehicleDynamics(object):
         self.vehicle_params.update(dict(F_zf=F_zf,
                                         F_zr=F_zr))
 
-    def compute_path_x(self, t, num):
-        x = torch.where(num == 0, 10 * t + torch.cos(2 * torch.pi * t / 6), self.vehicle_params['u'] * t)
+    def inte_function(self, t, u_num, u_para):
+        A = u_para['A']
+        omega = u_para['omega']
+        phi = u_para['phi']
+        b = u_para['b']
+        dis0 = 1 / omega * A * torch.sin(omega * t + phi) + b / 2 * t ** 2
+        bool_0 = u_num == 0
+        dis1 = u_para['speed'] * t
+        bool_1 = u_num == 1
+        dis = dis0 * bool_0 + dis1 * bool_1
+        return dis
+
+    def compute_path_u(self, t, u_num, u_para):
+        u = np.zeros_like(t)
+        A = u_para['A']
+        omega = u_para['omega']
+        phi = u_para['phi']
+        b = u_para['b']
+
+        bool_0 = u_num == 0
+        u0 = A * torch.cos(omega * t + phi) + b * t
+        bool_1 = u_num == 1
+        u1 = u_para['speed'] * torch.ones_like(t)
+        u = u0 * bool_0 + u1 * bool_1
+
+        return u
+
+    def compute_path_x(self, t, path_num, path_para, u_num, u_para):
+        bool_0 = path_num == 0
+        x0 = self.inte_function(t, u_num, u_para) * torch.ones_like(t)
+        bool_1 = path_num == 1
+        x1 = self.inte_function(t, u_num, u_para) * torch.ones_like(t)
+        bool_2 = path_num == 2
+        x2 = self.inte_function(t, u_num, u_para) * torch.ones_like(t)
+        r = path_para['circle_radius']
+        dis = self.inte_function(t, u_num, u_para)
+        angle = dis / r
+        x3 = r * torch.sin(angle)
+        bool_3 = path_num == 3
+        x = x0 * bool_0 + x1 * bool_1 + x2 * bool_2 + x3 * bool_3
         return x
 
-    def compute_path_y(self, t, num):
-        y = torch.where(num == 0, 1.5 * torch.sin(2 * torch.pi * t / 10),
-                        torch.where(t < 5, torch.as_tensor(0.),
-                                    torch.where(t < 9, 0.875 * t - 4.375,
-                                    torch.where(t < 14, torch.as_tensor(3.5),
-                                    torch.where(t < 18, -0.875 * t + 15.75, torch.as_tensor(0.))))))
+    def compute_path_y(self, t, path_num, path_para, u_num, u_para):
+        A = path_para['A_y']
+        omega = path_para['omega_y']
+        phi = path_para['phi_y']
+        b = path_para['b_y']
+        y0 = A * torch.sin(omega * t + phi) + b * t
+        bool_0 = path_num == 0
+
+        double_lane_control_point_1 = path_para['double_lane_control_point_1']
+        double_lane_control_point_2 = path_para['double_lane_control_point_2']
+        double_lane_control_point_3 = path_para['double_lane_control_point_3']
+        double_lane_control_point_4 = path_para['double_lane_control_point_4']
+        double_lane_y1 = path_para['double_lane_control_y1']
+        double_lane_y3 = path_para['double_lane_control_y3']
+        double_lane_y5 = path_para['double_lane_control_y5']
+        double_lane_y2_a = path_para['double_lane_control_y2_a']
+        double_lane_y2_b = path_para['double_lane_control_y2_b']
+        double_lane_y4_a = path_para['double_lane_control_y4_a']
+        double_lane_y4_b = path_para['double_lane_control_y4_b']
+        y1 = torch.where(t < double_lane_control_point_1, double_lane_y1 * torch.ones_like(t),
+                         torch.where(t < double_lane_control_point_2, double_lane_y2_a * t + double_lane_y2_b,
+                                     torch.where(t < double_lane_control_point_3, double_lane_y3 * torch.ones_like(t),
+                                                 torch.where(t < double_lane_control_point_4,
+                                                             double_lane_y4_a * t + double_lane_y4_b,
+                                                             double_lane_y5 * torch.ones_like(t)))))
+        bool_1 = path_num == 1
+
+        T = path_para['square_wave_period']
+        A = path_para['square_wave_amplitude']
+        x = self.compute_path_x(t, path_num, path_para, u_num, u_para)
+        upper_int = (x / T).ceil()
+        real_int = (x / T).round()
+        y2 = torch.where(upper_int == real_int, - A * torch.ones_like(t), A * torch.ones_like(t))
+        # y2 = - A * torch.ones_like(t)
+        bool_2 = path_num == 2
+
+        r = path_para['circle_radius']
+        dis = self.inte_function(t, u_num, u_para)
+        angle = dis / r
+        y3 = r - r * torch.cos(angle)
+        bool_3 = path_num == 3
+
+        y = y0 * bool_0 + y1 * bool_1 + y2 * bool_2 + y3 * bool_3
         return y
 
-    def compute_path_phi(self, t, num):
-        phi = torch.where(num == 0, (1.5 * torch.sin(2 * torch.pi * (t + 0.001) / 10) - 1.5 * torch.sin(2 * torch.pi * t / 10))\
-                  / (10 * (t + 0.001) + torch.cos(2 * torch.pi * (t + 0.001) / 6) - 10 * t - torch.cos(2 * torch.pi * t / 6)),
-                        torch.where(t <= 5, torch.as_tensor(0.),
-                        torch.where(t <= 9, torch.as_tensor(((0.875 * (t + 0.001) - 4.375) - (0.875 * t - 4.375)) / (
-                            self.vehicle_params['u'] * 0.001)),
-                        torch.where(t <= 14, torch.as_tensor(0.),
-                        torch.where(t <= 18, torch.as_tensor(((-0.875 * (t + 0.001) + 15.75) - (-0.875 * t + 15.75)) / (
-                            self.vehicle_params['u'] * 0.001)), torch.as_tensor(0.))))))
-        return torch.arctan(phi)
+    def compute_path_phi(self, t, path_num, path_para, u_num, u_para):
+        phi0 = 0
+        bool_0 = self.compute_path_y(t + 0.001, path_num, path_para, u_num, u_para) - self.compute_path_y(t, path_num,path_para,u_num,u_para) == 0
+        phi1 = (self.compute_path_y(t + 0.001, path_num, path_para, u_num, u_para) - self.compute_path_y(t, path_num,path_para,u_num,u_para)) / (
+                       self.compute_path_x(t + 0.001, path_num, path_para, u_num, u_para) - self.compute_path_x(t,path_num,path_para,u_num,u_para))
+        bool_1 = self.compute_path_y(t + 0.001, path_num, path_para, u_num, u_para) - self.compute_path_y(t, path_num, path_para, u_num,u_para) != 0
+        phi = phi0 * bool_0 + phi1 * bool_1
+        return np.arctan(phi)
 
     def f_xu(self, states, actions, delta_t):
         y, phi, v, w = states[:, 0], states[:, 1], states[:, 2], states[:, 3]
@@ -145,10 +257,10 @@ class VehicleDynamics(object):
                       ], dim=1)
         return next_state
 
-    def judge_done(self, state, ref_num, t):
+    def judge_done(self, state, t, path_num, path_para, u_num, u_para):
         y, phi, v, w = state[:, 0], state[:, 1], state[:, 2], state[:, 3]
-        done = (torch.abs(y - self.compute_path_y(t, ref_num)) > 2) | \
-               (torch.abs(phi - self.compute_path_phi(t, ref_num)) > torch.pi / 4.)
+        done = (torch.abs(y - self.compute_path_y(t, path_num, path_para, u_num, u_para)) > 2) | \
+               (torch.abs(phi - self.compute_path_phi(t, path_num, path_para, u_num, u_para)) > torch.pi / 4.)
         return done
 
     def prediction(self, x_1, u_1, frequency):
@@ -174,4 +286,6 @@ def env_model_creator(**kwargs):
     return Veh2dofcontiModel(
         pre_horizon=kwargs["pre_horizon"],
         device=kwargs["device"],
+        path_para=None,
+        u_para=None
     )

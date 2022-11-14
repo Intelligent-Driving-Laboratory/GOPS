@@ -15,8 +15,7 @@ import torch
 
 from gops.env.env_ocp.pyth_base_model import PythBaseModel
 from gops.utils.gops_typing import InfoDict
-import scipy
-import math
+
 
 class Veh3dofcontiModel(PythBaseModel):
     def __init__(self,
@@ -154,6 +153,20 @@ class VehicleDynamics(object):
         dis = dis0 * bool_0 + dis1 * bool_1
         return dis
 
+    def compute_path_u(self, t, u_num, u_para):
+        u = np.zeros_like(t)
+        A = u_para['A']
+        omega = u_para['omega']
+        phi = u_para['phi']
+        b = u_para['b']
+
+        bool_0 = u_num == 0
+        u0 = A * torch.cos(omega * t + phi) + b * t
+        bool_1 = u_num == 1
+        u1 = u_para['speed'] * torch.ones_like(t)
+        u = u0 * bool_0 + u1 * bool_1
+
+        return u
     def compute_path_x(self, t, path_num, path_para, u_num, u_para):
         bool_0 = path_num == 0
         x0 = self.inte_function(t, u_num, u_para) * torch.ones_like(t)

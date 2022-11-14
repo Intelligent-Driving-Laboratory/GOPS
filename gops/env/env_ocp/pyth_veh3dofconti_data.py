@@ -157,16 +157,16 @@ class VehicleDynamics(object):
         x_next = self.f_xu(x_1, u_1, 1 / frequency)
         return x_next
 
-    def simulation(self, states, actions, base_freq, path_num, para, u_num, u_para, t):
+    def simulation(self, states, actions, base_freq, path_num, path_para, u_num, u_para, t):
         state_next = self.prediction(states, actions, base_freq)
         x, y, phi, u, v, w = state_next[0], state_next[1], state_next[2], state_next[3], state_next[4], state_next[5]
-        path_x, path_y, path_phi = self.compute_path_x(t, path_num, para, u_num, u_para), \
-                                   self.compute_path_y(t, path_num, para, u_num, u_para), \
-                           self.compute_path_phi(t, path_num, para, u_num, u_para)
+        path_x, path_y, path_phi = self.compute_path_x(t, path_num, path_para, u_num, u_para), \
+                                   self.compute_path_y(t, path_num, path_para, u_num, u_para), \
+                           self.compute_path_phi(t, path_num, path_para, u_num, u_para)
         obs = np.array([x - path_x, y - path_y, phi - path_phi, u, v, w], dtype=np.float32)
         for i in range(self.pre_horizon):
-            ref_x = self.compute_path_x(t + (i + 1) / base_freq, path_num, para, u_num, u_para)
-            ref_y = self.compute_path_y(t + (i + 1) / base_freq, path_num, para, u_num, u_para)
+            ref_x = self.compute_path_x(t + (i + 1) / base_freq, path_num, path_para, u_num, u_para)
+            ref_y = self.compute_path_y(t + (i + 1) / base_freq, path_num, path_para, u_num, u_para)
             ref_obs = np.array([x - ref_x, y - ref_y], dtype=np.float32)
             obs = np.hstack((obs, ref_obs))
 
