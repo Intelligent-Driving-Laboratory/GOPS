@@ -13,7 +13,7 @@ from gops.utils.gops_typing import InfoDict
 
 class Dynamics(object):
     def __init__(self):
-        self.mass_cart = 9.42477796
+        self.mass_cart = 9.42477796 #10.47197551
         self.mass_rod1 = 4.1033127
         self.mass_rod2 = 4.1033127
         self.l_rod1 = 0.6
@@ -87,15 +87,15 @@ class Dynamics(object):
                     next_states[:, 4],
                     next_states[:, 5],
                 )
-        next_theta1 = torch.where(next_theta1 > 3.14, next_theta1 - 2 * 3.1415, next_theta1)
-        next_theta1 = torch.where(next_theta1 < -3.14, next_theta1 + 2 * 3.1415, next_theta1)
+        # next_theta1 = torch.where(next_theta1 > 3.1415, next_theta1 - 2 * 3.1415, next_theta1)
+        # next_theta1 = torch.where(next_theta1 < -3.1415, next_theta1 + 2 * 3.1415, next_theta1)
+        #
+        # next_theta2 = torch.where(next_theta2 > 3.1415, next_theta2 - 2 * 3.1415, next_theta2)
+        # next_theta2 = torch.where(next_theta2 < -3.1415, next_theta2 + 2 * 3.1415, next_theta2)
 
-        next_theta2 = torch.where(next_theta2 > 3.14, next_theta2 - 2 * 3.1415, next_theta2)
-        next_theta2 = torch.where(next_theta2 < -3.14, next_theta2 + 2 * 3.1415, next_theta2)
-
-        next_pdot = torch.clamp(next_pdot, -10.0, 10.0)
-        next_theta1dot = torch.clamp(next_theta1dot, -10.0, 10.0)
-        next_theta2dot = torch.clamp(next_theta2dot, -10.0, 10.0)
+        # next_pdot = torch.clamp(next_pdot, -10.0, 10.0)
+        # next_theta1dot = torch.clamp(next_theta1dot, -10.0, 10.0)
+        # next_theta2dot = torch.clamp(next_theta2dot, -10.0, 10.0)
         next_p = next_p.reshape(-1, 1)
         next_theta1 = next_theta1.reshape(-1, 1)
         next_theta2 = next_theta2.reshape(-1, 1)
@@ -153,7 +153,7 @@ class PythInvertedpendulum(PythBaseModel):
         """
         obs_dim = 6
         action_dim = 1
-        dt = 0.05
+        dt = 0.002
         lb_state = [-np.inf] * obs_dim
         hb_state = [np.inf] * obs_dim
         lb_action = [-1.0]
@@ -169,13 +169,18 @@ class PythInvertedpendulum(PythBaseModel):
             device=device,
         )
         # define your custom parameters here
+        self.discrete_num = 1
         self.dynamics = Dynamics()
 
     def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
-        next_obs = self.dynamics.f_xu(obs, 500 * action, self.dt)
+        next_obs = obs
+        for _ in range(self.discrete_num):
+            next_obs = self.dynamics.f_xu(obs, 500 * action, self.dt / self.discrete_num)
+            obs = next_obs
         reward = self.dynamics.compute_rewards(next_obs).reshape(-1)
-        done = torch.full([obs.size()[0]], False, dtype=torch.bool, device=self.device)
+        # done = torch.full([obs.size()[0]], False, dtype=torch.bool, device=self.device)
+        done = self.dynamics.get_done(next_obs).reshape(-1)
         info = {"constraint": None}
         return next_obs, reward, done, info
 
