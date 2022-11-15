@@ -39,7 +39,7 @@ def make_features(x, degree):  # TODO: More concise
             a = matmul_crossing(a, b)
         return a
 
-    return torch.cat([n_matmul(x, i) for i in range(0, degree)], 1)
+    return torch.cat([n_matmul(x, i) for i in range(1, degree+1)], 1)
 
 
 def get_features_dim(input_dim, degree):
@@ -87,7 +87,8 @@ class DetermPolicy(nn.Module, Action_Distribution):
         obs_dim = kwargs["obs_dim"]
         act_dim = kwargs["act_dim"]
         self.degree = kwargs["degree"]
-        self.pi = nn.Linear(get_features_dim(obs_dim, self.degree), act_dim)
+        self.add_bias = kwargs['add_bias']
+        self.pi = nn.Linear(get_features_dim(obs_dim, self.degree), act_dim, bias=self.add_bias)
         action_high_limit = kwargs["act_high_lim"]
         action_low_limit = kwargs["act_low_lim"]
         self.register_buffer("act_high_lim", torch.from_numpy(action_high_limit))
@@ -96,9 +97,10 @@ class DetermPolicy(nn.Module, Action_Distribution):
 
     def forward(self, obs):
         obs = make_features(obs, self.degree)
-        action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(
-            self.pi(obs)
-        ) + (self.act_high_lim + self.act_low_lim) / 2
+        # action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(
+        #     self.pi(obs)
+        # ) + (self.act_high_lim + self.act_low_lim) / 2
+        action = self.pi(obs)
         return action
 
 
@@ -165,16 +167,17 @@ class StateValue(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
+        self.add_bias = kwargs['add_bias']
         if kwargs['norm_matrix'] is None:
             kwargs['norm_matrix'] = [1.0] * obs_dim
         self.norm_matrix = torch.from_numpy(np.array(kwargs['norm_matrix'], dtype=np.float32))
         self.degree = kwargs["degree"]
-        self.v = nn.Linear(count_features_dim(obs_dim, self.degree), 1)
+        self.v = nn.Linear(count_features_dim(obs_dim, self.degree), 1, bias= self.add_bias)
         self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
         obs = create_features(torch.mul(obs, self.norm_matrix), self.degree)
-        return self.v(obs)
+        return self.v(obs).squeeze(-1)
 
 
 if __name__ == "__main__":

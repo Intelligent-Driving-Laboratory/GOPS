@@ -79,7 +79,7 @@ class PolicyRunner:
         self.env_id = self.get_n_verify_env_id()
    
         # save path
-        path = os.path.join(os.path.dirname(__file__), "..", "..", "policy_result")
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "figures")
         path = os.path.abspath(path)
 
         algs_name = ""
@@ -97,7 +97,7 @@ class PolicyRunner:
         step = 0
         step_list = []
         info_list = [init_info]
-        obs = env.reset(**init_info)
+        obs,_ = env.reset(**init_info)
         state = env.state
         print('The initial state is:')
         print(self.__convert_format(state))

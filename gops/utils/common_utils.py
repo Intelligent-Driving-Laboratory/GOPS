@@ -79,6 +79,7 @@ def get_apprfunc_dict(key: str, type=None, **kwargs):
             var["output_activation"] = kwargs[key + "_output_activation"]
     elif apprfunc_type == "POLY":
         var["degree"] = kwargs[key + "_degree"]
+        var["add_bias"] = kwargs[key + "_add_bias"]
     elif apprfunc_type == "GAUSS":
         var["num_kernel"] = kwargs[key + "_num_kernel"]
     else:

@@ -5,7 +5,6 @@ from typing import Tuple, Type
 from gops.utils.common_utils import set_seed
 from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.utils.common_utils import get_apprfunc_dict
-import warnings
 import torch
 
 
@@ -37,8 +36,8 @@ class AlgorithmBase(metaclass=ABCMeta):
             if hasattr(self, key) and key in self.adjustable_parameters:
                 setattr(self, key, param_dict[key])
             else:
-                warning_msg = "param '" + key + "'is not adjustable in algorithm!"
-                warnings.warn(warning_msg)
+                error_msg = "param '" + key + "'is not adjustable in algorithm!"
+                raise RuntimeError(error_msg)
 
     def get_parameters(self):
         """Get the current hyperparameters of the algorithm"""
