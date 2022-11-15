@@ -59,7 +59,7 @@ if __name__ == "__main__":
     parser.add_argument("--policy_act_distribution", type=str, default="default")
     policy_func_type = parser.parse_known_args()[0].policy_func_type
     if policy_func_type == "MLP":
-        parser.add_argument("--policy_hidden_sizes", type=list, default=[256, 256])
+        parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
         parser.add_argument("--policy_hidden_activation", type=str, default="gelu")
         parser.add_argument("--policy_output_activation", type=str, default="linear")
 
