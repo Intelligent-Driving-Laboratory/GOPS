@@ -230,7 +230,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         self.t = None
         self.info_dict = {
             "state": {"shape": self.state_dim, "dtype": np.float32},
-            "ref": {"shape": (2,), "dtype": np.float32},
+            "ref": {"shape": (4,), "dtype": np.float32},
             "path_num": {"shape": (), "dtype": np.uint8},
             "u_num": {"shape": (), "dtype": np.uint8},
             "ref_time": {"shape": (), "dtype": np.float32},
@@ -346,7 +346,9 @@ class SimuVeh3dofconti(PythBaseEnv):
         state = np.array(self.state, dtype=np.float32)
         x_ref = self.vehicle_dynamics.compute_path_x(self.t, self.path_num, self.path_para, self.u_num, self.u_para)
         y_ref = self.vehicle_dynamics.compute_path_y(self.t, self.path_num, self.path_para, self.u_num, self.u_para)
-        ref = np.array([x_ref, y_ref], dtype=np.float32)
+        phi_ref = self.vehicle_dynamics.compute_path_phi(self.t, self.path_num, self.path_para, self.u_num, self.u_para)
+        u_ref = self.vehicle_dynamics.compute_path_u(self.t, self.u_num, self.u_para)
+        ref = np.array([x_ref, y_ref, phi_ref, u_ref], dtype=np.float32)
         return {
             "state": state,
             "ref": ref,
