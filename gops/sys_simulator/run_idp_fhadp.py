@@ -28,8 +28,8 @@ def load_policy(log_policy_dir, trained_policy_iteration):
 # def terminal_cost(obs):
 #     return -value_net(obs)
 runner = PolicyRunner(
-    log_policy_dir_list=["../../results/FHADP/221116-155900"]*1,
-    trained_policy_iteration_list=['8000'],
+    log_policy_dir_list=["../../results/FHADP/221116-203652"]*1,
+    trained_policy_iteration_list=['2000'],
     is_init_info=True,
     init_info={"init_state":[0.0,0.2,-0.1,0.046,0.1,-0.1]},
     save_render=False,
