@@ -33,7 +33,7 @@ if __name__ == "__main__":
     parser.add_argument("--env_id", type=str, default="pyth_veh3dofconti")
     parser.add_argument("--algorithm", type=str, default="INFADP")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
-    parser.add_argument("--pre_horizon", type=int, default=20)
+    parser.add_argument("--pre_horizon", type=int, default=10)
 
     # 1. Parameters for environment
     parser.add_argument("--obsv_dim", type=int, default=None)

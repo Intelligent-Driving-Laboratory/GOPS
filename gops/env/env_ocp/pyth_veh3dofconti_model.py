@@ -27,7 +27,7 @@ class Veh3dofcontiModel(PythBaseModel):
         you need to define parameters here
         """
         self.vehicle_dynamics = VehicleDynamics()
-        self.base_frequency = 20.
+        self.base_frequency = 10.
         self.pre_horizon = pre_horizon
         path_key = ['A_y',
         'omega_y',

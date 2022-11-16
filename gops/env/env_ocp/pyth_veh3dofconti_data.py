@@ -31,6 +31,7 @@ class VehicleDynamics(object):
         F_zf, F_zr = l_r * mass * g / (l_f + l_r), l_f * mass * g / (l_f + l_r)
         self.vehicle_params.update(dict(F_zf=F_zf,
                                         F_zr=F_zr))
+        self.expected_vs = 10.
         self.pre_horizon = kwargs['pre_horizon']
 
     def compute_path_u(self, t, u_num, u_para):
@@ -211,7 +212,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         self.is_adversary = kwargs.get("is_adversary", False)
         self.is_constraint = kwargs.get("is_constraint", False)
         self.pre_horizon = kwargs["pre_horizon"]
-        self.base_frequency = 20
+        self.base_frequency = 10
         self.state_dim = 6
         self.observation_space = gym.spaces.Box(
             low=np.array([-np.inf] * (2 * self.pre_horizon + self.state_dim)),
@@ -220,7 +221,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         self.action_space = gym.spaces.Box(low=np.array([-np.pi / 6, -3]),
                                            high=np.array([np.pi / 6, 3]),
                                            dtype=np.float32)
-        self.max_episode_steps = 400
+        self.max_episode_steps = 200
         self.obs = None
         self.state = None
         self.path_num = None
@@ -230,7 +231,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         self.t = None
         self.info_dict = {
             "state": {"shape": self.state_dim, "dtype": np.float32},
-            "ref": {"shape": (4,), "dtype": np.float32},
+            "ref": {"shape": (2,), "dtype": np.float32},
             "path_num": {"shape": (), "dtype": np.uint8},
             "u_num": {"shape": (), "dtype": np.uint8},
             "ref_time": {"shape": (), "dtype": np.float32},
@@ -346,9 +347,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         state = np.array(self.state, dtype=np.float32)
         x_ref = self.vehicle_dynamics.compute_path_x(self.t, self.path_num, self.path_para, self.u_num, self.u_para)
         y_ref = self.vehicle_dynamics.compute_path_y(self.t, self.path_num, self.path_para, self.u_num, self.u_para)
-        phi_ref = self.vehicle_dynamics.compute_path_phi(self.t, self.path_num, self.path_para, self.u_num, self.u_para)
-        u_ref = self.vehicle_dynamics.compute_path_u(self.t, self.u_num, self.u_para)
-        ref = np.array([x_ref, y_ref, phi_ref, u_ref], dtype=np.float32)
+        ref = np.array([x_ref, y_ref], dtype=np.float32)
         return {
             "state": state,
             "ref": ref,
