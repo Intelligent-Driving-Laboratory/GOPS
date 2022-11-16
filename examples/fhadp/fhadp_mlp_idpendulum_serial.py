@@ -31,6 +31,7 @@ if __name__ == "__main__":
     parser.add_argument("--algorithm", type=str, default="FHADP")
     parser.add_argument("--pre_horizon", type=int, default=350)
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
+    parser.add_argument("--seed", default=3328005365, help="seed")
     ################################################
     # 1. Parameters for environment
     parser.add_argument("--obsv_dim", type=int, default=None)

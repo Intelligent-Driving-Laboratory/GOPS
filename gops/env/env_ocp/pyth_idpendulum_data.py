@@ -67,15 +67,15 @@ class PythInverteddoublependulum(PythBaseEnv):
         reward: reward signal
         done: done signal, datatype: bool
         """
-        action = 500.0 * action
+        # action = 500.0 * action
         # define environment transition, reward,  done signal  and constraint function here
         obs_batch = torch.as_tensor(self.obs, dtype=torch.float32).reshape(1, -1)
         act_batch = torch.as_tensor(action, dtype=torch.float32).reshape(1, -1)
         next_obs_batch = obs_batch
         for _ in range(self.discrete_num):
-            next_obs_batch = self.dynamics.f_xu(obs_batch, act_batch, self.tau / self.discrete_num)
+            next_obs_batch = self.dynamics.f_xu(obs_batch, 500*act_batch, self.tau / self.discrete_num)
             obs_batch = next_obs_batch
-        reward = self.dynamics.compute_rewards(next_obs_batch)
+        reward = self.dynamics.compute_rewards(next_obs_batch,act_batch)
         done = self.dynamics.get_done(next_obs_batch)
         info = {}
 
