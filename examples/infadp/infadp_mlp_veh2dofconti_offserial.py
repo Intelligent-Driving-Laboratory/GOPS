@@ -33,7 +33,7 @@ if __name__ == "__main__":
     parser.add_argument("--env_id", type=str, default="pyth_veh2dofconti")
     parser.add_argument("--algorithm", type=str, default="INFADP")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
-    parser.add_argument("--pre_horizon", type=int, default="10")
+    parser.add_argument("--pre_horizon", type=int, default=20)
 
     # 1. Parameters for environment
     parser.add_argument("--obsv_dim", type=int, default=None)
@@ -132,7 +132,7 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
-    alg.set_parameters({"reward_scale": 0.1, "gamma": 0.99, "tau": 0.05})
+    alg.set_parameters({"gamma": 0.99, "tau": 0.05})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)  # 调用alg里面的函数，创建自己的网络
     # Step 3: create buffer in trainer
