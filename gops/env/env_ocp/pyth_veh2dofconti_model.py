@@ -28,16 +28,11 @@ class Veh2dofcontiModel(PythBaseModel):
         you need to define parameters here
         """
         self.vehicle_dynamics = VehicleDynamics()
-        self.base_frequency = 10.
+        self.base_frequency = 20.
         self.pre_horizon = pre_horizon
-        path_key = ['A_x',
-                    'omega_x',
-                    'phi_x',
-                    'b_x',
-                    'A_y',
+        path_key = ['A_y',
                     'omega_y',
                     'phi_y',
-                    'b_y',
                     'double_lane_control_point_1',
                     'double_lane_control_point_2',
                     'double_lane_control_point_3',
@@ -49,19 +44,18 @@ class Veh2dofcontiModel(PythBaseModel):
                     'double_lane_control_y2_b',
                     'double_lane_control_y4_a',
                     'double_lane_control_y4_b',
-                    'square_wave_period',
-                    'square_wave_amplitude',
+                    'tri_wave_period',
+                    'tri_wave_amplitude',
                     'circle_radius',
                     ]
-        path_value = [1., 2 * np.pi / 6, 0, 10, 1.5, 2 * np.pi / 10, 0, 0, 5, 9, 14, 18, 0, 3.5, 0, 0.875, -4.375,
-                      -0.875, 15.75, 5, 1, 200]
+        path_value = [1.5, 2 * np.pi / 10, 0, 5, 9, 14, 18, 0, 3.5, 0, 0.875, -4.375, -0.875, 15.75, 10, 0, 100]
         self.path_para = dict(zip(path_key, path_value))
         if path_para != None:
             for i in path_para.keys(): self.path_para[i] = path_para[i]
 
-        u_key = ['A', 'omega', 'phi', 'b', 'speed']
+        u_key = ['A', 'omega', 'phi', 'b']
 
-        u_value = [1, 2 * np.pi / 6, 0, 0.5, 5]
+        u_value = [1, 2 * np.pi / 20, 0, 5]
 
         self.u_para = dict(zip(u_key, u_value))
 
@@ -137,7 +131,7 @@ class VehicleDynamics(object):
                                    I_z=1536.7,  # Polar moment of inertia at CG [kg*m^2]
                                    miu=1.0,  # tire-road friction coefficient
                                    g=9.81,  # acceleration of gravity [m/s^2]
-                                   u=10.)
+                                   u=5.)
         l_f, l_r, mass, g = self.vehicle_params['l_f'], self.vehicle_params['l_r'], \
                             self.vehicle_params['m'], self.vehicle_params['g']
         F_zf, F_zr = l_r * mass * g / (l_f + l_r), l_f * mass * g / (l_f + l_r)
@@ -149,17 +143,25 @@ class VehicleDynamics(object):
         omega = u_para['omega']
         phi = u_para['phi']
         b = u_para['b']
-        dis0 = 1 / omega * A * torch.sin(omega * t + phi) + b / 2 * t ** 2
+        dis0 = - 1 / omega * A * torch.cos(omega * t + phi) + b * t + A / omega * np.cos(phi)
         bool_0 = u_num == 0
-        dis1 = u_para['speed'] * t
+        dis1 = u_para['b'] * t
         bool_1 = u_num == 1
         dis = dis0 * bool_0 + dis1 * bool_1
         return dis
 
     def compute_path_u(self, t, u_num, u_para):
+        A = u_para['A']
+        omega = u_para['omega']
+        phi = u_para['phi']
+        b = u_para['b']
+
+        bool_0 = u_num == 0
+        u0 = A * torch.sin(omega * t + phi) + b
         bool_1 = u_num == 1
-        u1 = u_para['speed'] * torch.ones_like(t)
-        u = u1 * bool_1
+        u1 = u_para['b'] * torch.ones_like(t)
+        u = u0 * bool_0 + u1 * bool_1
+
         return u
 
     def compute_path_x(self, t, path_num, path_para, u_num, u_para):
@@ -181,8 +183,7 @@ class VehicleDynamics(object):
         A = path_para['A_y']
         omega = path_para['omega_y']
         phi = path_para['phi_y']
-        b = path_para['b_y']
-        y0 = A * torch.sin(omega * t + phi) + b * t
+        y0 = A * torch.sin(omega * t + phi)
         bool_0 = path_num == 0
 
         double_lane_control_point_1 = path_para['double_lane_control_point_1']
@@ -204,19 +205,21 @@ class VehicleDynamics(object):
                                                              double_lane_y5 * torch.ones_like(t)))))
         bool_1 = path_num == 1
 
-        T = path_para['square_wave_period']
-        A = path_para['square_wave_amplitude']
-        x = self.compute_path_x(t, path_num, path_para, u_num, u_para)
-        upper_int = (x / T).ceil()
-        real_int = (x / T).round()
-        y2 = torch.where(upper_int == real_int, - A * torch.ones_like(t), A * torch.ones_like(t))
-        # y2 = - A * torch.ones_like(t)
+        T = path_para['tri_wave_period']
+        A = path_para['tri_wave_amplitude']
+        # x = self.compute_path_x(t, path_num, path_para, u_num, u_para)
+        upper_int = (t / T).ceil()
+        real_int = (t / T).round()
+        lower_int = (t / T).floor()
+
+        y2 = torch.where((upper_int == real_int) & (upper_int > lower_int), - A - t + T + lower_int * T,
+                         A + t - lower_int * T)
         bool_2 = path_num == 2
 
         r = path_para['circle_radius']
         dis = self.inte_function(t, u_num, u_para)
         angle = dis / r
-        y3 = r - r * torch.cos(angle)
+        y3 = -r + r * torch.cos(angle)
         bool_3 = path_num == 3
 
         y = y0 * bool_0 + y1 * bool_1 + y2 * bool_2 + y3 * bool_3
@@ -224,10 +227,13 @@ class VehicleDynamics(object):
 
     def compute_path_phi(self, t, path_num, path_para, u_num, u_para):
         phi0 = 0
-        bool_0 = self.compute_path_y(t + 0.001, path_num, path_para, u_num, u_para) - self.compute_path_y(t, path_num,path_para,u_num,u_para) == 0
-        phi1 = (self.compute_path_y(t + 0.001, path_num, path_para, u_num, u_para) - self.compute_path_y(t, path_num,path_para,u_num,u_para)) / (
-                       self.compute_path_x(t + 0.001, path_num, path_para, u_num, u_para) - self.compute_path_x(t,path_num,path_para,u_num,u_para))
-        bool_1 = self.compute_path_y(t + 0.001, path_num, path_para, u_num, u_para) - self.compute_path_y(t, path_num, path_para, u_num,u_para) != 0
+        bool_0 = self.compute_path_y(t + 0.001, path_num, path_para, u_num, u_para) - self.compute_path_y(t, path_num,
+                path_para,u_num,u_para) == 0
+        phi1 = (self.compute_path_y(t + 0.001, path_num, path_para, u_num, u_para) - self.compute_path_y(t, path_num,
+                path_para,u_num,u_para)) / (self.compute_path_x(t + 0.001, path_num, path_para, u_num, u_para) - self.compute_path_x(t,
+                path_num,path_para,u_num,u_para))
+        bool_1 = self.compute_path_y(t + 0.001, path_num, path_para, u_num, u_para) - self.compute_path_y(t, path_num,
+                path_para,u_num,u_para) != 0
         phi = phi0 * bool_0 + phi1 * bool_1
         return np.arctan(phi)
 
@@ -266,7 +272,7 @@ class VehicleDynamics(object):
         punish_yaw_rate = -torch.square(w)
         punish_steer = -torch.square(steers)
         punish_vys = - torch.square(v)
-        rewards = 0.1 * devi_y + 0.01 * devi_phi + 0.01 * punish_yaw_rate + 0.01 * punish_steer + 0.01 * punish_vys
+        rewards = 0.1 * devi_y + 0.1 * devi_phi + 0.1 * punish_yaw_rate + 0.2 * punish_steer + 0.01 * punish_vys
         return rewards
 
 
