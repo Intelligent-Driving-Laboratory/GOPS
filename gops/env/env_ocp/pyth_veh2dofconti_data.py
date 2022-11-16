@@ -11,7 +11,7 @@ import gym
 import numpy as np
 
 from gops.env.env_ocp.pyth_base_data import PythBaseEnv
-import math
+from gops.env.env_ocp.resources.ref_traj_data import MultiRefTrajData
 
 
 class VehicleDynamics(object):
@@ -31,110 +31,6 @@ class VehicleDynamics(object):
         self.vehicle_params.update(dict(F_zf=F_zf,
                                         F_zr=F_zr))
         self.pre_horizon = kwargs["pre_horizon"]
-
-    def compute_path_u(self, t, u_num, u_para):
-        u = np.zeros_like(t)
-        A = u_para['A']
-        omega = u_para['omega']
-        phi = u_para['phi']
-        b = u_para['b']
-        if u_num == 0:
-            u = A * np.sin(omega * t + phi) + b
-        elif u_num == 1:
-            u = u_para['b']
-        else:
-            print('error, u_num can only be 0, 1')
-        return u
-
-    def inte_function(self, t, u_num, u_para):
-        A = u_para['A']
-        omega = u_para['omega']
-        phi = u_para['phi']
-        b = u_para['b']
-        dis0 = - 1 / omega * A * np.cos(omega * t + phi) + b * t + A / omega * np.cos(phi)
-        bool_0 = u_num == 0
-        dis1 = u_para['b'] * t
-        bool_1 = u_num == 1
-        dis = dis0 * bool_0 + dis1 * bool_1
-        return dis
-
-    def compute_path_x(self, t, path_num, path_para, u_num, u_para):
-        if (path_num == 0) or (path_num == 1) or (path_num == 2):
-            x = self.inte_function(t, u_num, u_para)
-        elif path_num == 3:
-            r = path_para['circle_radius']
-            dis = self.inte_function(t, u_num, u_para)
-            angle = dis / r
-            x = r * np.sin(angle)
-        else:
-            print('error, path_num can only be 0, 1, 2, 3')
-        return x
-
-    def compute_path_y(self, t, path_num, path_para, u_num, u_para):
-        if path_num == 0:
-            A = path_para['A_y']
-            omega = path_para['omega_y']
-            phi = path_para['phi_y']
-            y = A * np.sin(omega * t + phi)
-        elif path_num == 1:
-            double_lane_control_point_1 = path_para['double_lane_control_point_1']
-            double_lane_control_point_2 = path_para['double_lane_control_point_2']
-            double_lane_control_point_3 = path_para['double_lane_control_point_3']
-            double_lane_control_point_4 = path_para['double_lane_control_point_4']
-            double_lane_y1 = path_para['double_lane_control_y1']
-            double_lane_y3 = path_para['double_lane_control_y3']
-            double_lane_y5 = path_para['double_lane_control_y5']
-            double_lane_y2_a = path_para['double_lane_control_y2_a']
-            double_lane_y2_b = path_para['double_lane_control_y2_b']
-            double_lane_y4_a = path_para['double_lane_control_y4_a']
-            double_lane_y4_b = path_para['double_lane_control_y4_b']
-            if t <= double_lane_control_point_1:
-                y = double_lane_y1
-            elif t <= double_lane_control_point_2:
-                y = double_lane_y2_a * t + double_lane_y2_b
-                if (double_lane_y2_a * double_lane_control_point_1 + double_lane_y2_b != double_lane_y1) or (
-                        double_lane_y2_a * double_lane_control_point_2 + double_lane_y2_b != double_lane_y3):
-                    print('error, please check parameters point_2')
-            elif t <= double_lane_control_point_3:
-                y = double_lane_y3
-            elif t <= double_lane_control_point_4:
-                y = double_lane_y4_a * t + double_lane_y4_b
-                if (double_lane_y4_a * double_lane_control_point_3 + double_lane_y4_b != double_lane_y3) or (
-                        double_lane_y4_a * double_lane_control_point_4 + double_lane_y4_b != double_lane_y5):
-                    print('error, please check parameters point4')
-            elif t > double_lane_control_point_4:
-                y = double_lane_y5
-        elif path_num == 2:
-            T = path_para['tri_wave_period']
-            A = path_para['tri_wave_amplitude']
-            # x = self.compute_path_x(t, path_num, path_para, u_num, u_para)
-            upper_int = math.ceil(t / T)
-            real_int = round(t / T)
-            lower_int = math.floor(t / T)
-            if (upper_int == real_int) & (upper_int > lower_int):
-                y = A - t + T + lower_int * T
-            elif upper_int > real_int:
-                y = A + t - lower_int * T
-            elif (upper_int == real_int) & (upper_int == lower_int):
-                y = A + t - lower_int * T
-
-        elif path_num == 3:
-            r = path_para['circle_radius']
-            dis = self.inte_function(t, u_num, u_para)
-            angle = dis / r
-            y = - r + r * np.cos(angle)
-        return y
-
-    def compute_path_phi(self, t, path_num, path_para, u_num, u_para):
-        phi = np.zeros_like(t)
-        phi[self.compute_path_y(t + 0.001, path_num, path_para, u_num, u_para) - self.compute_path_y(t, path_num,
-                                                                                                     path_para, u_num,
-                                                                                                     u_para) == 0] = 0
-        phi[self.compute_path_y(t + 0.001, path_num, path_para, u_num, u_para) - self.compute_path_y(t, path_num,
-         path_para, u_num,u_para) != 0] = (self.compute_path_y(t + 0.001,path_num,path_para,u_num,u_para) - self.compute_path_y(
-         t,path_num,path_para,u_num,u_para)) / (self.compute_path_x(t + 0.001,path_num,path_para,u_num,u_para) - self.compute_path_x(
-         t,path_num,path_para,u_num,u_para))
-        return np.arctan(phi)
 
     def f_xu(self, states, actions, delta_t):
         y, phi, v, w = states[0], states[1], states[2], states[3]
@@ -161,18 +57,19 @@ class VehicleDynamics(object):
         x_next = self.f_xu(x_1, u_1, 1 / frequency)
         return x_next
 
-    def simulation(self, state, action, frequency, path_num, path_para, u_num, u_para,t):
+    def simulation(self, state, action, frequency, ref_traj: MultiRefTrajData, t: float, path_num: int, u_num: int):
         y, phi, v, w = state
         relative_state = np.array([0, 0, v, w], dtype=np.float32)
         relative_state_next = self.prediction(relative_state, action, frequency)
         delta_y, delta_phi, v_next, w_next = relative_state_next
-        state_next = np.array([y + self.compute_path_u(t, u_num, u_para) / frequency * np.sin(phi) + delta_y * np.cos(phi), phi + delta_phi, v_next, w_next], dtype=np.float32)
+        y_next = y + ref_traj.compute_u(t, path_num, u_num) / frequency * np.sin(phi) + delta_y * np.cos(phi)
+        state_next = np.array([y_next, phi + delta_phi, v_next, w_next], dtype=np.float32)
         y, phi, v, w = state_next[0], state_next[1], state_next[2], state_next[3]
-        path_y, path_phi = self.compute_path_y(t, path_num, path_para, u_num, u_para), \
-                           self.compute_path_phi(t, path_num, path_para, u_num, u_para)
+        path_y, path_phi = ref_traj.compute_y(t, path_num, u_num), \
+                           ref_traj.compute_phi(t, path_num, u_num)
         obs = np.array([y - path_y, phi - path_phi, v, w], dtype=np.float32)
         for i in range(self.pre_horizon):
-            ref_y = self.compute_path_y(t + (i + 1) / frequency, path_num, path_para, u_num, u_para)
+            ref_y = ref_traj.compute_y(t + (i + 1) / frequency, path_num, u_num)
             ref_obs = np.array([y - ref_y], dtype=np.float32)
             obs = np.hstack((obs, ref_obs))
         if state_next[1] > np.pi:
@@ -223,9 +120,7 @@ class SimuVeh2dofconti(PythBaseEnv):
         self.obs = None
         self.state = None
         self.path_num = None
-        self.para = None
         self.u_num = None
-        self.u_para = None
         self.t = None
         self.info_dict = {
             "state": {"shape": self.state_dim, "dtype": np.float32},
@@ -235,40 +130,7 @@ class SimuVeh2dofconti(PythBaseEnv):
             "ref_time": {"shape": (), "dtype": np.float32},
         }
         self.seed()
-
-        path_key = ['A_y',
-                    'omega_y',
-                    'phi_y',
-                    'double_lane_control_point_1',
-                    'double_lane_control_point_2',
-                    'double_lane_control_point_3',
-                    'double_lane_control_point_4',
-                    'double_lane_control_y1',
-                    'double_lane_control_y3',
-                    'double_lane_control_y5',
-                    'double_lane_control_y2_a',
-                    'double_lane_control_y2_b',
-                    'double_lane_control_y4_a',
-                    'double_lane_control_y4_b',
-                    'tri_wave_period',
-                    'tri_wave_amplitude',
-                    'circle_radius',
-                    ]
-        path_value = [1.5, 2 * np.pi / 10, 0, 5, 9, 14, 18, 0, 3.5, 0, 0.875, -4.375,
-                      -0.875, 15.75, 10, 0, 100]
-        self.path_para = dict(zip(path_key, path_value))
-        if path_para != None:
-            for i in path_para.keys(): self.path_para[i] = path_para[i]
-
-        u_key = ['A', 'omega', 'phi', 'b']
-
-        u_value = [1, 2 * np.pi / 20, 0, 5]
-
-        self.u_para = dict(zip(u_key, u_value))
-
-        if u_para != None:
-            for i in u_para.keys(): self.u_para[i] = u_para[i]
-
+        self.ref_traj = MultiRefTrajData(path_para, u_para)
 
     @property
     def additional_info(self):
@@ -289,8 +151,8 @@ class SimuVeh2dofconti(PythBaseEnv):
             self.u_num = self.np_random.choice(u_flag)
             ref_time = 20. * self.np_random.uniform(low=0., high=1.)
             self.t = ref_time
-            init_y = self.vehicle_dynamics.compute_path_y(self.t, self.path_num, self.path_para, self.u_num, self.u_para) + delta_y
-            init_phi = self.vehicle_dynamics.compute_path_phi(self.t, self.path_num, self.path_para, self.u_num, self.u_para) + delta_phi
+            init_y = self.ref_traj.compute_y(self.t, self.path_num, self.u_num) + delta_y
+            init_phi = self.ref_traj.compute_phi(self.t, self.path_num, self.u_num) + delta_phi
             init_v = v
             init_w = w
         elif (init_state is not None) & (ref_time is not None) & (path_num is not None) & (u_num is not None):
@@ -298,14 +160,14 @@ class SimuVeh2dofconti(PythBaseEnv):
             self.u_num = u_num
             self.t = ref_time
             init_y, init_phi, init_v, init_w = init_state[0], init_state[1], init_state[2], init_state[3]
-            init_delta_y = self.vehicle_dynamics.compute_path_y(self.t, self.path_num, self.path_para, self.u_num, self.u_para) - init_y
-            init_delta_phi = self.vehicle_dynamics.compute_path_phi(self.t, self.path_num, self.path_para, self.u_num, self.u_para) + init_phi
+            init_delta_y = self.ref_traj.compute_y(self.t, self.path_num, self.u_num) - init_y
+            init_delta_phi = self.ref_traj.compute_phi(self.t, self.path_num, self.u_num) + init_phi
             obs = np.array([init_delta_y, init_delta_phi, init_v, init_w], dtype=np.float32)
         else:
             print("reset error")
 
         for i in range(self.pre_horizon):
-            ref_y = self.vehicle_dynamics.compute_path_y(self.t + (i + 1) / self.base_frequency, self.path_num, self.path_para, self.u_num, self.u_para)
+            ref_y = self.ref_traj.compute_y(self.t + (i + 1) / self.base_frequency, self.path_num, self.u_num)
             ref_obs = np.array([init_y - ref_y], dtype=np.float32)
             obs = np.hstack((obs, ref_obs))
         self.obs = obs
@@ -318,7 +180,7 @@ class SimuVeh2dofconti(PythBaseEnv):
         reward = self.vehicle_dynamics.compute_rewards(self.obs, action)
         self.t = self.t + 1.0 / self.base_frequency
         self.state, self.obs = self.vehicle_dynamics.simulation(
-            self.state, action, self.base_frequency, self.path_num, self.path_para, self.u_num, self.u_para, self.t)
+            self.state, action, self.base_frequency, self.ref_traj, self.t, self.path_num, self.u_num)
         self.done = self.judge_done(self.state, self.t)
         if self.done:
             reward = reward - 100
@@ -326,15 +188,15 @@ class SimuVeh2dofconti(PythBaseEnv):
         return self.obs, reward, self.done, self.info
 
     def judge_done(self, state, t):
-        y, phi, v, w = state[0], state[1], state[2], state[3]
-        done = (np.abs(y - self.vehicle_dynamics.compute_path_y(t, self.path_num, self.path_para, self.u_num, self.u_para)) > 2) | \
-               (np.abs(phi - self.vehicle_dynamics.compute_path_phi(t, self.path_num, self.path_para, self.u_num, self.u_para)) > np.pi / 4.)
+        y, phi = state[0], state[1]
+        done = (np.abs(y - self.ref_traj.compute_y(t, self.path_num, self.u_num)) > 2) | \
+               (np.abs(phi - self.ref_traj.compute_phi(t, self.path_num, self.u_num)) > np.pi / 4.)
         return done
 
     @property
     def info(self):
         state = np.array(self.state, dtype=np.float32)
-        y_ref = self.vehicle_dynamics.compute_path_y(self.t, self.path_num, self.path_para, self.u_num, self.u_para)
+        y_ref = self.ref_traj.compute_y(self.t, self.path_num, self.u_num)
         ref = np.array([y_ref], dtype=np.float32)
         return {
             "state": state,
