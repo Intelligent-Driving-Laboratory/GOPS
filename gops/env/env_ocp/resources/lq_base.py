@@ -43,12 +43,12 @@ class LQDynamics:
 
     def compute_control_matrix(self):
         gamma = 0.99
-        A0 = self.A.numpy().astype('float64')
+        A0 = self.A.cpu().numpy().astype('float64')
         A = np.linalg.pinv(np.eye(A0.shape[0]) - A0 * self.time_step) * np.sqrt(gamma)
-        B0 = self.B.numpy().astype('float64')
+        B0 = self.B.cpu().numpy().astype('float64')
         B = A @ B0 * self.time_step
-        Q = np.diag(self.Q.numpy()).astype('float64')
-        R = np.diag(self.R.numpy()).astype('float64')
+        Q = np.diag(self.Q.cpu().numpy()).astype('float64')
+        R = np.diag(self.R.cpu().numpy()).astype('float64')
         P = solve_discrete_are(A, B, Q, R)
         K = np.linalg.pinv(R + B.T @ P @ B) @ B.T @ P @ A
         return K, P
