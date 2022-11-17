@@ -64,7 +64,8 @@ if __name__ == "__main__":
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument('--policy_func_type', type=str, default='POLY')
     parser.add_argument("--policy_act_distribution", type=str, default="default")
-    parser.add_argument('--policy_degree', type=int, default=2)
+    parser.add_argument('--policy_degree', type=int, default=1)
+    parser.add_argument('--policy_add_bias', type=bool, default=True)
     parser.add_argument("--policy_min_log_std", type=int, default=-20)
     parser.add_argument("--policy_max_log_std", type=int, default=1)
 
