@@ -51,12 +51,12 @@ class SimuVeh3dofconti(gym.Env, ):
         self.act_scale = np.array(kwargs["act_scaling"])
         self.act_max = np.array(kwargs["act_max"])
         self.done_range = kwargs['done_range']
-        self.punish_done= kwargs["punish_done"]
+        self.punish_done = kwargs["punish_done"]
         self.use_ref = kwargs['ref_info']
         self.ref_horizon = kwargs["ref_horizon"]
         self._state = None
 
-        obs_low = self.obs_scale * np.array([-9999,-9999,-9999,-9999,-9999,-9999])
+        obs_low = self.obs_scale * np.array([-9999, -9999, -9999, -9999, -9999, -9999])
         ref_pos_low = -self.obs_scale[1] * self.done_range[0] * np.ones(self.ref_horizon)
         ref_phi_low = -self.obs_scale[4] * self.done_range[2] * np.ones(self.ref_horizon)
         if self.use_ref == "None":
@@ -99,12 +99,19 @@ class SimuVeh3dofconti(gym.Env, ):
         self.seed()
         self.reset()
 
-    def reset(self):
+    @property
+    def state(self):
+        return self._state
+
+    def reset(self, init_state=None, **kwargs):
         def callback():
             """Custom reset logic goes here."""
             # Modify your parameter
             # e.g. self.env.model_class.foo_InstP.your_parameter
-            self._state = np.random.uniform(low=self.rand_low, high=self.rand_high)
+            if init_state is None:
+                self._state = np.random.uniform(low=self.rand_low, high=self.rand_high)
+            else:
+                self._state = np.array(init_state, dtype=np.float32)
             self.env.model_class.vehicle3dof_InstP.x_ini[:] = self._state
             self.env.model_class.vehicle3dof_InstP.ref_V = np.array(self.ref_curve.V)
             self.env.model_class.vehicle3dof_InstP.ref_fai[:] = np.array(self.ref_curve.fai)
@@ -139,7 +146,7 @@ class SimuVeh3dofconti(gym.Env, ):
             # print(self.reward_shaping(reward))
             if done:
                 sum_reward += self.punish_done
-                #print("done")
+                # print("done")
                 break
         # Postprocess (obs, reward, done, info) here
         obs = self.postprocess(state)
@@ -153,18 +160,18 @@ class SimuVeh3dofconti(gym.Env, ):
         ref_y, ref_phi, ref_v = self.ref_curve.cal_reference(state[0])
         obs = np.zeros(self.observation_space.shape)
         obs[0] = state[0]
-        obs[1] = state[1]-ref_y
+        obs[1] = state[1] - ref_y
         obs[2] = state[2] - ref_v
         obs[3] = state[3]
         obs[4] = state[4] - ref_phi
         obs[5] = state[5]
-        obs[0:6] = obs[0:6]*self.obs_scale
-        if self.use_ref =="Pos":
+        obs[0:6] = obs[0:6] * self.obs_scale
+        if self.use_ref == "Pos":
             x_pre = state[0] + ref_v * self.dt * self.act_repeat * np.linspace(1, self.ref_horizon, self.ref_horizon)
             y_pre, _, _ = self.ref_curve.cal_reference(x_pre)
             obs_y_pre = (state[1] - y_pre) * self.obs_scale[1]
             obs[6:] = obs_y_pre
-        elif self.use_ref=="Both":
+        elif self.use_ref == "Both":
             x_pre = state[0] + ref_v * self.dt * self.act_repeat * np.linspace(1, self.ref_horizon, self.ref_horizon)
             y_pre, phi_pre, _ = self.ref_curve.cal_reference(x_pre)
             obs_y_pre = (state[1] - y_pre) * self.obs_scale[1]
