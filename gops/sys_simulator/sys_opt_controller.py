@@ -18,8 +18,8 @@ class OptController:
         self, 
         model: PythBaseModel, 
         num_pred_step: int, 
-        ctrl_dt: Optional[float]=None, 
-        gamma: float=1,
+        ctrl_interval: Optional[int]=1, 
+        gamma: float=1.0,
         use_terminal_cost: bool=False,
         terminal_cost: Optional[Callable[[torch.Tensor], torch.Tensor]]=None,
         minimize_options: Optional[dict]=None,
@@ -27,12 +27,14 @@ class OptController:
     ):
 
         self.model = model
-        self.ctrl_dt = ctrl_dt if ctrl_dt is not None else model.dt
-        self.gamma = gamma
         self.sim_dt = model.dt
+        self.ctrl_interval = ctrl_interval
+        self.gamma = gamma
         self.obs_dim = model.obs_dim
         self.action_dim = model.action_dim
         self.num_pred_step = num_pred_step
+        assert num_pred_step % ctrl_interval == 0, "ctrl_interval should be a factor of num_pred_step."
+        self.num_ctrl_points = int(num_pred_step / ctrl_interval)
         if use_terminal_cost:
             if terminal_cost is not None:
                 self.terminal_cost = terminal_cost
@@ -43,11 +45,11 @@ class OptController:
             if terminal_cost is not None:
                 warnings.warn("Choose not to use terminal cost, but a terminal cost function is given. This will be ignored.")
             self.terminal_cost = None
-        self.initial_guess = np.zeros(self.action_dim * num_pred_step)
+        self.initial_guess = np.zeros(self.action_dim * self.num_ctrl_points)
         self.minimize_options = minimize_options
         self.bounds = opt.Bounds(
-            np.tile(self.model.action_lower_bound, (num_pred_step,)), 
-            np.tile(self.model.action_upper_bound, (num_pred_step,))
+            np.tile(self.model.action_lower_bound, (self.num_ctrl_points,)), 
+            np.tile(self.model.action_upper_bound, (self.num_ctrl_points,))
         )
         self.verbose = verbose
         self.__reset_statistics()
@@ -58,7 +60,7 @@ class OptController:
             x0=self.initial_guess,
             args=(x,),
             jac=self.__cost_jac,
-            bounds=opt._constraints.new_bounds_to_old(self.bounds.lb, self.bounds.ub, self.num_pred_step * self.action_dim),
+            bounds=opt._constraints.new_bounds_to_old(self.bounds.lb, self.bounds.ub, self.num_ctrl_points * self.action_dim),
             constraints=[{
                 "type": "ineq", 
                 "fun": self.__constraint_fcn,
@@ -127,7 +129,7 @@ class OptController:
 
     def __rollout(self, inputs: torch.Tensor, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, List]:
         self.system_simulations += 1
-        inputs_repeated = inputs.reshape((self.action_dim , -1)).repeat_interleave(int(self.ctrl_dt / self.sim_dt), dim=1)
+        inputs_repeated = inputs.reshape((self.action_dim , -1)).repeat_interleave(self.ctrl_interval, dim=1)
         states = torch.zeros((self.obs_dim, self.num_pred_step + 1))
         rewards = torch.zeros(self.num_pred_step)
         states[:, 0] = x
@@ -254,7 +256,6 @@ if __name__ == "__main__":
     obs_dim = env_model.obs_dim
     action_dim = env_model.action_dim
 
-    ctrl_dt = env_model.dt
     if args["env_id"] == "pyth_lq":
         max_state_errs = []
         mean_state_errs = []
@@ -263,12 +264,16 @@ if __name__ == "__main__":
         K = env_model.dynamics.K
     
     times = []
+    seed = 0
     # num_pred_steps = range(70, 100, 10)
     num_pred_steps = (30,)
+    ctrl_interval = 1
+    sim_num = 50
+    sim_horizon = np.arange(sim_num)
     for num_pred_step in num_pred_steps:
         controller = OptController(
             env_model, 
-            ctrl_dt=ctrl_dt, 
+            ctrl_interval=ctrl_interval, 
             num_pred_step=num_pred_step, 
             gamma=0.99,
             minimize_options={
@@ -281,28 +286,30 @@ if __name__ == "__main__":
         )
 
         env = create_env(**args)
-        env.seed(0)
+        env.seed(seed)
         x, _ = env.reset()
-        sim_num = 50
-        sim_horizon = np.arange(sim_num)
         xs = []
         us= []
+        rs = []
         ts = []
         for i in sim_horizon:
             print(f"step: {i + 1}")
-            t1 = time.time()
-            u = controller(x.astype(np.float32))
-            t2 = time.time()
+            if (i % ctrl_interval) == 0:
+                t1 = time.time()
+                u = controller(x.astype(np.float32))
+                t2 = time.time()
             xs.append(x)
             us.append(u)
             ts.append(t2 - t1)
-            x, _, _, _ = env.step(u)
+            x, r, _, _ = env.step(u)
+            rs.append(r)
         xs = np.stack(xs)
         us = np.stack(us)
+        rs = np.stack(rs)
         times.append(ts)
 
         if args["env_id"] == "pyth_lq":
-            env.seed(0)
+            env.seed(seed)
             x, _ = env.reset()
             xs_lqr = []
             us_lqr= []
@@ -349,7 +356,7 @@ if __name__ == "__main__":
     plt.figure()
     for i in range(action_dim):
         plt.subplot(action_dim, 1, i + 1)
-        plt.plot(sim_horizon, us[:, i], label="mpc")
+        plt.plot(sim_horizon[::ctrl_interval], us[::ctrl_interval, i], label="mpc")
         if args["env_id"] == "pyth_lq":
             plt.plot(sim_horizon, us_lqr[:, i], label="lqr")
             print(f"Action-{i+1} Max error: {round(max_action_err[i], 3)}%, Mean error: {round(mean_action_err[i], 3)}%")
@@ -360,6 +367,18 @@ if __name__ == "__main__":
         plt.savefig(f"Action-{args['env_id']}-{args['lq_config']}.png")
     else:
         plt.savefig(f"Action-{args['env_id']}.png")
+
+    #=======reward-timestep=======#
+    plt.figure()
+    plt.plot(sim_horizon, rs, label="mpc")
+    plt.ylabel(f"Reward")
+    plt.legend()
+    plt.xlabel("Time Step")
+    if args["env_id"] == "pyth_lq":
+        plt.savefig(f"Reward-{args['env_id']}-{args['lq_config']}.png")
+    else:
+        plt.savefig(f"Reward-{args['env_id']}.png")
+    plt.close()
 
     #=======MPC solving times=======#
     plt.figure()
