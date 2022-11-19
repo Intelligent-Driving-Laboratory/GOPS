@@ -24,17 +24,24 @@ class OptController:
         terminal_cost: Optional[Callable[[torch.Tensor], torch.Tensor]]=None,
         minimize_options: Optional[dict]=None,
         verbose: int=0,
+        mode: str="shooting",
     ):
 
         self.model = model
         self.sim_dt = model.dt
-        self.ctrl_interval = ctrl_interval
-        self.gamma = gamma
         self.obs_dim = model.obs_dim
         self.action_dim = model.action_dim
+        
+        self.gamma = gamma
+
+        self.ctrl_interval = ctrl_interval
         self.num_pred_step = num_pred_step
         assert num_pred_step % ctrl_interval == 0, "ctrl_interval should be a factor of num_pred_step."
         self.num_ctrl_points = int(num_pred_step / ctrl_interval)
+        
+        assert mode in ["shooting", "collocation"]
+        self.mode = mode
+
         if use_terminal_cost:
             if terminal_cost is not None:
                 self.terminal_cost = terminal_cost
@@ -45,12 +52,23 @@ class OptController:
             if terminal_cost is not None:
                 warnings.warn("Choose not to use terminal cost, but a terminal cost function is given. This will be ignored.")
             self.terminal_cost = None
-        self.initial_guess = np.zeros(self.action_dim * self.num_ctrl_points)
+        
+
         self.minimize_options = minimize_options
+        if self.mode == "shooting":
+            lower_bound = self.model.action_lower_bound
+            upper_bound = self.model.action_upper_bound
+            self.optimize_dim = self.action_dim
+        elif self.mode == "collocation":
+            lower_bound = torch.cat((self.model.action_lower_bound, self.model.obs_lower_bound))
+            upper_bound = torch.cat((self.model.action_upper_bound, self.model.obs_upper_bound))
+            self.optimize_dim = self.action_dim + self.obs_dim
+        self.initial_guess = np.zeros(self.optimize_dim * self.num_ctrl_points)
         self.bounds = opt.Bounds(
-            np.tile(self.model.action_lower_bound, (self.num_ctrl_points,)), 
-            np.tile(self.model.action_upper_bound, (self.num_ctrl_points,))
+            np.tile(lower_bound, (self.num_ctrl_points,)), 
+            np.tile(upper_bound, (self.num_ctrl_points,))
         )
+
         self.verbose = verbose
         self.__reset_statistics()
 
@@ -60,22 +78,30 @@ class OptController:
             x0=self.initial_guess,
             args=(x,),
             jac=self.__cost_jac,
-            bounds=opt._constraints.new_bounds_to_old(self.bounds.lb, self.bounds.ub, self.num_ctrl_points * self.action_dim),
-            constraints=[{
-                "type": "ineq", 
-                "fun": self.__constraint_fcn,
-                "jac": self.__constraint_jac,
-                "args": (x,)
-            }],
+            bounds=opt._constraints.new_bounds_to_old(self.bounds.lb, self.bounds.ub, self.num_ctrl_points * self.optimize_dim),
+            constraints=[
+                {
+                    "type": "ineq", 
+                    "fun": self.__constraint_fcn,
+                    "jac": self.__constraint_jac,
+                    "args": (x,)
+                },
+                {
+                    "type": "eq", 
+                    "fun": self.__trans_constraint_fcn,
+                    "jac": self.__trans_constraint_jac,
+                    "args": (x,)
+                },
+            ],
             options=self.minimize_options
         )
         self.initial_guess = np.concatenate((
-            res.x[self.action_dim:], 
-            np.zeros(self.action_dim)
+            res.x[self.optimize_dim:], 
+            np.zeros(self.optimize_dim)
         ))
         if self.verbose > 0:
             self.__print_statistics(res)
-        return res.x.reshape((self.action_dim, -1))[:, 0]
+        return res.x.reshape((self.optimize_dim, -1))[:self.action_dim, 0]
 
     def __cost_fcn(self, inputs: np.ndarray, x: np.ndarray) -> float:
         x = torch.tensor(x, dtype=torch.float32)
@@ -126,19 +152,48 @@ class OptController:
         )
         jac = F.jacobian(self.__constraint_fcn, (inputs, x))[0]
         return jac.numpy().astype("d")
+    
+    def __trans_constraint_fcn(self, inputs: np.ndarray, x: np.ndarray) -> torch.Tensor:
+
+        if self.mode == "shooting":
+            return torch.tensor([0.])
+        elif self.mode == "collocation":
+            self.constraint_evaluations += 1
+
+            if isinstance(inputs, np.ndarray):
+                x = torch.tensor(x, dtype=torch.float32)
+                inputs = torch.tensor(
+                    inputs, 
+                    dtype=torch.float32,
+                )
+            states, _ = self.__rollout(inputs, x)
+
+            return states[1::self.ctrl_interval, :].reshape(-1) - inputs.reshape((-1, self.optimize_dim))[:, -self.obs_dim:].reshape(-1)
+    
+    def __trans_constraint_jac(self, inputs: np.ndarray, x: np.ndarray) -> np.ndarray:
+        x = torch.tensor(x, dtype=torch.float32)
+        inputs = torch.tensor(
+            inputs, 
+            dtype=torch.float32,
+            requires_grad=True,
+        )
+        jac = F.jacobian(self.__trans_constraint_fcn, (inputs, x))[0]
+        return jac.numpy().astype("d")
 
     def __rollout(self, inputs: torch.Tensor, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, List]:
         self.system_simulations += 1
-        inputs_repeated = inputs.reshape((self.action_dim , -1)).repeat_interleave(self.ctrl_interval, dim=1)
-        states = torch.zeros((self.obs_dim, self.num_pred_step + 1))
+        inputs_repeated = inputs.reshape((self.num_ctrl_points, self.optimize_dim)).repeat_interleave(self.ctrl_interval, dim=0)
+        states = torch.zeros((self.num_pred_step + 1, self.obs_dim))
         rewards = torch.zeros(self.num_pred_step)
-        states[:, 0] = x
+        states[0, :] = x
         done = torch.tensor([False])
         info = {}
-
-        next_x = x.clone().unsqueeze(0)
+        
+        next_x = x.unsqueeze(0)
         for i in range(self.num_pred_step):
-            u = inputs_repeated[:, i].unsqueeze(0)
+            u = inputs_repeated[i, :self.action_dim].unsqueeze(0)
+            if self.mode == "collocation" and i % self.ctrl_interval == 0 and i > 0:
+                next_x = inputs_repeated[i - 1, -self.obs_dim:].unsqueeze(0)
             next_x, reward, done, info = self.model.forward(
                 next_x, 
                 u,
@@ -146,8 +201,8 @@ class OptController:
                 info=info
             )
             rewards[i] = -reward * (self.gamma ** i)
-            states[:, i + 1] = next_x
-        
+            states[i + 1, :] = next_x
+
         return states, rewards
     
     def __compute_cost(self, inputs: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
@@ -266,9 +321,9 @@ if __name__ == "__main__":
     times = []
     seed = 0
     # num_pred_steps = range(70, 100, 10)
-    num_pred_steps = (30,)
+    num_pred_steps = (50,)
     ctrl_interval = 1
-    sim_num = 50
+    sim_num = 10
     sim_horizon = np.arange(sim_num)
     for num_pred_step in num_pred_steps:
         controller = OptController(
@@ -276,6 +331,7 @@ if __name__ == "__main__":
             ctrl_interval=ctrl_interval, 
             num_pred_step=num_pred_step, 
             gamma=0.99,
+            verbose=1,
             minimize_options={
                 "max_iter": 200, 
                 "tol": 1e-3,
@@ -283,6 +339,7 @@ if __name__ == "__main__":
                 "acceptable_iter": 10,
                 # "print_level": 5,
             },
+            mode="collocation",
         )
 
         env = create_env(**args)
