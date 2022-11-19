@@ -63,7 +63,8 @@ class OffAsyncTrainermix:
         self.iteration = 0
 
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
-        add_scalars({"alg_time": 0, "sampler_time": 0}, self.writer, 0)
+        # flush tensorboard at the beginning
+        add_scalars({tb_tags["alg_time"]: 0, tb_tags["sampler_time"]: 0}, self.writer, 0)
         self.writer.flush()
 
         # create sample tasks and pre sampling
@@ -79,51 +80,50 @@ class OffAsyncTrainermix:
         ):
             for sampler, objID in list(
                     self.sample_tasks.completed()
-            ):  # sample_tasks.completed()完成了的sampler任务列表，work进程的名字，objID是进程执行任务的ID
-                batch_data, _ = ray.get(objID)  # 得到任务的函数返回值
+            ):
+                batch_data, _ = ray.get(objID)
                 random.choice(self.buffers).add_batch.remote(
                     batch_data
-                )  # 随机选择一个buffer，把数据填进去
+                )
                 self.sample_tasks.add(
                     sampler, sampler.sample.remote()
-                )  # 让已经完成了的空闲进程再加进去
-
+                )
         # create alg tasks and start computing gradient
-        self.learn_tasks = TaskPool()  # 创建learner的任务管理的类
+        self.learn_tasks = TaskPool()
         self._set_algs()
 
         self.start_time = time.time()
 
     def _set_samplers(self):
-        weights = self.networks.state_dict()  # 得到中心网络参数
-        for sampler in self.samplers:  # 对每个sampler进行参数同步
+        weights = self.networks.state_dict()
+        for sampler in self.samplers:
             sampler.load_state_dict.remote(weights)
             self.sample_tasks.add(sampler, sampler.sample.remote())
 
     def _set_algs(self):
-        weights = self.networks.state_dict()  # 获得中心网络参数
+        weights = self.networks.state_dict()
         for alg in self.algs:
-            alg.load_state_dict.remote(weights)  # 每个learner同步参数
-            buffer, _ = random_choice_with_index(self.buffers)  # 随机选择一个buffer从中采样
+            alg.load_state_dict.remote(weights)
+            buffer, _ = random_choice_with_index(self.buffers)
             data = ray.get(
                 buffer.sample_batch.remote(self.replay_batch_size)
-            )  # 得到buffer的采样结果
+            )
             self.learn_tasks.add(
                 alg, alg.get_remote_update_info.remote(data, self.iteration)
-            )  # 用采样结果给learner添加计算梯度的任务
+            )
 
     def step(self):
         # sampling
         sampler_tb_dict = {}
         if self.iteration % self.sample_interval == 0:
             if self.sample_tasks.completed() is not None:
-                weights = ray.put(self.networks.state_dict())  # 把中心网络的参数放在底层内存里面
-                for sampler, objID in self.sample_tasks.completed():  # 对每个完成的sampler，
-                    batch_data, sampler_tb_dict = ray.get(objID)  # 获得sample的batch
+                weights = ray.put(self.networks.state_dict())
+                for sampler, objID in self.sample_tasks.completed():
+                    batch_data, sampler_tb_dict = ray.get(objID)
                     random.choice(self.buffers).add_batch.remote(
                         batch_data
-                    )  # 随机选择buffer，加入batch
-                    sampler.load_state_dict.remote(weights)  # 同步sampler的参数
+                    )
+                    sampler.load_state_dict.remote(weights)
                     self.sample_tasks.add(sampler, sampler.sample.remote())
 
         # learning
@@ -133,10 +133,10 @@ class OffAsyncTrainermix:
             data = random.choice(self.buffers).sample_batch.remote(
                 self.replay_batch_size
             )
-            alg.remote_update.remote(update_info)  # 更新learner参数
+            alg.remote_update.remote(update_info)
             self.learn_tasks.add(
                 alg, alg.get_remote_update_info.remote(data, self.iteration)
-            )  # 将完成了的learner重新算梯度
+            )
             self.iteration += 1
             # log
             if self.iteration % self.log_save_interval == 0:

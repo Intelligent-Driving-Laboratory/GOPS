@@ -14,6 +14,7 @@ import numpy as np
 import torch
 
 from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.env.env_ocp.resources.ref_traj_model import MultiRefTrajModel
 from gops.utils.gops_typing import InfoDict
 
 
@@ -21,14 +22,14 @@ class Veh3dofcontiModel(PythBaseModel):
     def __init__(self,
                  pre_horizon: int,
                  device: Union[torch.device, str, None] = None,
-                 ):
+                 path_para:dict = None,
+                 u_para:dict = None):
         """
         you need to define parameters here
         """
         self.vehicle_dynamics = VehicleDynamics()
         self.base_frequency = 10.
         self.pre_horizon = pre_horizon
-
         state_dim = 6
         super().__init__(
             obs_dim=state_dim + pre_horizon * 2,
@@ -38,23 +39,26 @@ class Veh3dofcontiModel(PythBaseModel):
             action_upper_bound=[np.pi / 6, 3],
             device=device,
         )
+        self.ref_traj = MultiRefTrajModel(path_para, u_para)
 
     def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         steer_norm, a_xs_norm = action[:, 0], action[:, 1]
         actions = torch.stack([steer_norm, a_xs_norm], 1)
         state = info["state"]
-        ref_num = info["ref_num"]
+        path_num = info["path_num"]
+        u_num = info["u_num"]
         tc = info["ref_time"]
         xc, yc, phic, uc, vc, wc = state[:, 0], state[:, 1], state[:, 2], \
                                           state[:, 3], state[:, 4], state[:, 5]
-        path_xc, path_yc, path_phic = self.vehicle_dynamics.compute_path_x(tc, ref_num), \
-                                   self.vehicle_dynamics.compute_path_y(tc, ref_num), \
-                                   self.vehicle_dynamics.compute_path_phi(tc, ref_num)
-        obsc = torch.stack([xc - path_xc, yc - path_yc, phic - path_phic, uc, vc, wc], 1)
+        path_xc, path_yc, path_phic = self.ref_traj.compute_x(tc, path_num, u_num), \
+                                    self.ref_traj.compute_y(tc, path_num, u_num), \
+                                    self.ref_traj.compute_phi(tc, path_num, u_num)
+        path_uc = self.ref_traj.compute_u(tc, path_num, u_num)
+        obsc = torch.stack([xc - path_xc, yc - path_yc, phic - path_phic, uc - path_uc, vc, wc], 1)
         for i in range(self.pre_horizon):
-            ref_x = self.vehicle_dynamics.compute_path_x(tc + (i + 1) / self.base_frequency, ref_num)
-            ref_y = self.vehicle_dynamics.compute_path_y(tc + (i + 1) / self.base_frequency, ref_num)
+            ref_x = self.ref_traj.compute_x(tc + (i + 1) / self.base_frequency, path_num, u_num)
+            ref_y = self.ref_traj.compute_y(tc + (i + 1) / self.base_frequency, path_num, u_num)
             ref_obs = torch.stack([xc - ref_x, yc - ref_y], 1)
             obsc = torch.hstack((obsc, ref_obs))
         reward = self.vehicle_dynamics.compute_rewards(obsc, actions)
@@ -66,21 +70,29 @@ class Veh3dofcontiModel(PythBaseModel):
         phi = torch.where(phi > torch.pi, phi - 2 * torch.pi, phi)
         phi = torch.where(phi <= -torch.pi, phi + 2 * torch.pi, phi)
         state_next = torch.stack([x, y, phi, u, v, w], 1)
-        isdone = self.vehicle_dynamics.judge_done(state_next, ref_num, t)
-        path_x, path_y, path_phi = self.vehicle_dynamics.compute_path_x(t, ref_num),\
-                                   self.vehicle_dynamics.compute_path_y(t, ref_num), \
-                           self.vehicle_dynamics.compute_path_phi(t, ref_num)
-        obs = torch.stack([x - path_x, y - path_y, phi - path_phi, u, v, w], 1)
+        isdone = self.judge_done(state_next, t, path_num, u_num)
+        path_x, path_y, path_phi = self.ref_traj.compute_x(t, path_num, u_num), \
+                                   self.ref_traj.compute_y(t, path_num, u_num), \
+                                   self.ref_traj.compute_phi(t, path_num, u_num)
+        path_u = self.ref_traj.compute_u(t, path_num, u_num)
+        obs = torch.stack([x - path_x, y - path_y, phi - path_phi, u - path_u, v, w], 1)
         for i in range(self.pre_horizon):
-            ref_x = self.vehicle_dynamics.compute_path_x(t + (i + 1) / self.base_frequency, ref_num)
-            ref_y = self.vehicle_dynamics.compute_path_y(t + (i + 1) / self.base_frequency, ref_num)
+            ref_x = self.ref_traj.compute_x(t + (i + 1) / self.base_frequency, path_num, u_num)
+            ref_y = self.ref_traj.compute_y(t + (i + 1) / self.base_frequency, path_num, u_num)
             ref_obs = torch.stack([x - ref_x, y - ref_y], 1)
             obs = torch.hstack((obs, ref_obs))
         info["state"] = state_next
         info["constraint"] = None
-        info["ref_num"] = info["ref_num"]
+        info["path_num"] = info["path_num"]
         info["ref_time"] = t
         return obs, reward, isdone, info
+
+    def judge_done(self, state, t, path_num, u_num):
+        x, y, phi = state[:, 0], state[:, 1], state[:, 2]
+        done = (torch.abs(y - self.ref_traj.compute_y(t, path_num, u_num)) > 2) |\
+               (torch.abs(phi - self.ref_traj.compute_phi(t, path_num, u_num)) > torch.pi / 4.) | \
+               (torch.abs(x - self.ref_traj.compute_x(t, path_num, u_num)) > 5)
+        return done
 
 
 class VehicleDynamics(object):
@@ -93,35 +105,11 @@ class VehicleDynamics(object):
                                    I_z=1536.7,  # Polar moment of inertia at CG [kg*m^2]
                                    miu=1.0,  # tire-road friction coefficient
                                    g=9.81,  # acceleration of gravity [m/s^2]
-                                   u=10.)
+                                   )
         l_f, l_r, mass, g = self.vehicle_params['l_f'], self.vehicle_params['l_r'], \
                             self.vehicle_params['m'], self.vehicle_params['g']
         F_zf, F_zr = l_r * mass * g / (l_f + l_r), l_f * mass * g / (l_f + l_r)
         self.vehicle_params.update(dict(F_zf=F_zf, F_zr=F_zr))
-
-    def compute_path_x(self, t, num):
-        x = torch.where(num == 0, 10 * t + torch.cos(2 * torch.pi * t / 6), self.vehicle_params['u'] * t)
-        return x
-
-    def compute_path_y(self, t, num):
-        y = torch.where(num == 0, 1.5 * torch.sin(2 * torch.pi * t / 10),
-                        torch.where(t < 5, torch.as_tensor(0.),
-                                    torch.where(t < 9, 0.875 * t - 4.375,
-                                                torch.where(t < 14, torch.as_tensor(3.5),
-                                                            torch.where(t < 18, -0.875 * t + 15.75,
-                                                                        torch.as_tensor(0.))))))
-        return y
-
-    def compute_path_phi(self, t, num):
-        phi = torch.where(num == 0,
-                          (1.5 * torch.sin(2 * torch.pi * (t + 0.001) / 10) - 1.5 * torch.sin(2 * torch.pi * t / 10)) \
-                          / (10 * (t + 0.001) + torch.cos(2 * torch.pi * (t + 0.001) / 6) - 10 * t - torch.cos(2 * torch.pi * t / 6)),
-                        torch.where(t <= 5, torch.as_tensor(0.),
-                        torch.where(t <= 9, torch.as_tensor(((0.875 * (t + 0.001) - 4.375) - (0.875 * t - 4.375)) / (self.vehicle_params['u'] * 0.001)),
-                        torch.where(t <= 14, torch.as_tensor(0.),
-                        torch.where(t <= 18, torch.as_tensor(((-0.875 * (t + 0.001) + 15.75) - (-0.875 * t + 15.75)) / (self.vehicle_params['u'] * 0.001)),
-                                                                          torch.as_tensor(0.))))))
-        return torch.arctan(phi)
 
     def f_xu(self, states, actions, delta_t):
         x, y, phi, u, v, w = states[:, 0], states[:, 1], states[:, 2], \
@@ -149,17 +137,8 @@ class VehicleDynamics(object):
         state_next = self.f_xu(x_1, u_1, 1 / frequency)
         return state_next
 
-    def judge_done(self, veh_state, ref_num, t):
-        x, y, phi, u, v, w = veh_state[:, 0], veh_state[:, 1], veh_state[:, 2], \
-                                                   veh_state[:, 3], veh_state[:, 4], veh_state[:, 5]
-        done = (torch.abs(y - self.compute_path_y(t, ref_num)) > 2) |\
-               (torch.abs(phi - self.compute_path_phi(t, ref_num)) > torch.pi / 4.) | \
-               (torch.abs(x - self.compute_path_x(t, ref_num)) > 5)
-        return done
-
     def compute_rewards(self, obs, actions):  # obses and actions are tensors
-
-        delta_x, delta_y, delta_phi, u, v, w = obs[:, 0], obs[:, 1], obs[:, 2], \
+        delta_x, delta_y, delta_phi, delta_u, v, w = obs[:, 0], obs[:, 1], obs[:, 2], \
                                                    obs[:, 3], obs[:, 4], obs[:, 5]
         steers, a_xs = actions[:, 0], actions[:, 1]
         devi_y = -torch.square(delta_y)
@@ -168,7 +147,8 @@ class VehicleDynamics(object):
         punish_steer = -torch.square(steers)
         punish_a_x = -torch.square(a_xs)
         punish_x = -torch.square(delta_x)
-        rewards = 0.1 * devi_y + 0.01 * devi_phi + 0.01 * punish_yaw_rate + \
+        punish_u = -torch.square(delta_u)
+        rewards = 0.1 * devi_y + 0.01 * punish_u + 0.01 * devi_phi + 0.01 * punish_yaw_rate + \
                   0.01 * punish_steer + 0.01 * punish_a_x + 0.04 * punish_x
 
         return rewards
@@ -182,4 +162,6 @@ def env_model_creator(**kwargs):
     return Veh3dofcontiModel(
         pre_horizon=kwargs["pre_horizon"],
         device=kwargs["device"],
+        path_para=None,
+        u_para=None
     )
