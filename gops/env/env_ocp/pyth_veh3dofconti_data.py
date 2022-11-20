@@ -93,11 +93,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         self.t = None
         self.ref_points = None
 
-        self.seed()
-
-    @property
-    def additional_info(self) -> Dict[str, Dict]:
-        return {
+        self.info_dict = {
             "state": {"shape": (self.state_dim,), "dtype": np.float32},
             "ref_points": {"shape": (self.pre_horizon + 1, 4), "dtype": np.float32},
             "path_num": {"shape": (), "dtype": np.uint8},
@@ -105,6 +101,12 @@ class SimuVeh3dofconti(PythBaseEnv):
             "ref_time": {"shape": (), "dtype": np.float32},
             "ref": {"shape": (4,), "dtype": np.float32},
         }
+
+        self.seed()
+
+    @property
+    def additional_info(self) -> Dict[str, Dict]:
+        return self.info_dict
 
     def reset(
         self,
