@@ -31,8 +31,7 @@ class SimuVeh3dofcontiErrCstr(SimuVeh3dofconti):
 
     def get_constraint(self) -> np.ndarray:
         y, u = self.state[1], self.state[3]
-        y_ref = self.ref_traj.compute_y(self.t, self.path_num, self.u_num)
-        u_ref = self.ref_traj.compute_u(self.t, self.path_num, self.u_num)
+        y_ref, u_ref = self.ref_points[0, 1], self.ref_points[0, 3]
         constraint = np.array([
             abs(y - y_ref) - self.y_error_tol,
             abs(u - u_ref) - self.u_error_tol,
