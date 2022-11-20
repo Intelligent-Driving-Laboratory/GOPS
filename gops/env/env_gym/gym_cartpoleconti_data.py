@@ -121,7 +121,9 @@ class _GymCartpoleconti(gym.Env):
         state = np.array(self.state, dtype=np.float32)
         return state, reward, done, {"state": state}
 
-    def reset(self):
+    def reset(self, seed=None):
+        if seed is not None:
+            self.seed(seed)
         self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
         return np.array(self.state, dtype=np.float32), {"state": self.state.astype(np.float32)}
