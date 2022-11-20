@@ -152,11 +152,3 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
 
 def env_creator(**kwargs):
     return SimuVeh3dofcontiSurrCstr(**kwargs)
-
-
-if __name__ == '__main__':
-    env = SimuVeh3dofcontiSurrCstr()
-    print(env.observation_space.shape)
-    obs, _ = env.reset()
-    print(obs.shape)
-    env.step([0, 0])
