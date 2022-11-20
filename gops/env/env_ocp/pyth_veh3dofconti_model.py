@@ -100,12 +100,14 @@ class Veh3dofcontiModel(PythBaseModel):
 
         isdone = self.judge_done(next_obs)
 
-        info.update({
+        next_info = {
             "state": next_state,
             "ref_points": next_ref_points,
+            "path_num": path_num,
+            "u_num": u_num,
             "ref_time": next_t,
-        })
-        return next_obs, reward, isdone, info
+        }
+        return next_obs, reward, isdone, next_info
 
     def compute_reward(self, obs, action):
         delta_x, delta_y, delta_phi, delta_u, w = obs[:, 0], obs[:, 1], obs[:, 2], obs[:, 3], obs[:, 5]
