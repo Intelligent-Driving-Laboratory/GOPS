@@ -8,6 +8,8 @@ from gops.env.env_ocp.pyth_base_model import PythBaseModel
 import matplotlib.pyplot as plt
 import torch
 import torch.autograd.functional as F
+from functools import partial
+from functorch import vmap, vjp
 import os
 import numpy as np
 import scipy.optimize as opt
@@ -97,11 +99,11 @@ class OptController:
         )
         self.initial_guess = np.concatenate((
             res.x[self.optimize_dim:], 
-            np.zeros(self.optimize_dim)
+            res.x[-self.optimize_dim:]
         ))
         if self.verbose > 0:
             self.__print_statistics(res)
-        return res.x.reshape((self.optimize_dim, -1))[:self.action_dim, 0]
+        return res.x.reshape((self.num_ctrl_points, self.optimize_dim))[0, :self.action_dim]
 
     def __cost_fcn(self, inputs: np.ndarray, x: np.ndarray) -> float:
         x = torch.tensor(x, dtype=torch.float32)
@@ -154,7 +156,6 @@ class OptController:
         return jac.numpy().astype("d")
     
     def __trans_constraint_fcn(self, inputs: np.ndarray, x: np.ndarray) -> torch.Tensor:
-
         if self.mode == "shooting":
             return torch.tensor([0.])
         elif self.mode == "collocation":
@@ -177,7 +178,11 @@ class OptController:
             dtype=torch.float32,
             requires_grad=True,
         )
-        jac = F.jacobian(self.__trans_constraint_fcn, (inputs, x))[0]
+        
+        unit_vectors = torch.eye(self.obs_dim * self.num_ctrl_points)
+        _, vjp_fn = vjp(partial(self.__trans_constraint_fcn, x=x), inputs)
+        jac = vmap(vjp_fn)(unit_vectors)[0].detach()
+
         return jac.numpy().astype("d")
 
     def __rollout(self, inputs: torch.Tensor, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, List]:
@@ -263,9 +268,9 @@ class NNController:
 if __name__ == "__main__":
     # Parameters Setup
     parser = argparse.ArgumentParser()
-    env_id = "pyth_lq"
+    env_id = "pyth_idpendulum"
     parser.add_argument("--env_id", type=str, default=env_id)
-    parser.add_argument("--lq_config", type=str, default="s2a1")
+    parser.add_argument("--lq_config", type=str, default="s6a3")
     parser.add_argument('--clip_action', type=bool, default=True)
     parser.add_argument('--clip_obs', type=bool, default=False)
     parser.add_argument('--mask_at_done', type=bool, default=True)
@@ -321,9 +326,9 @@ if __name__ == "__main__":
     times = []
     seed = 0
     # num_pred_steps = range(70, 100, 10)
-    num_pred_steps = (50,)
-    ctrl_interval = 1
-    sim_num = 10
+    num_pred_steps = (200,)
+    ctrl_interval = 2
+    sim_num = 100
     sim_horizon = np.arange(sim_num)
     for num_pred_step in num_pred_steps:
         controller = OptController(
@@ -337,7 +342,8 @@ if __name__ == "__main__":
                 "tol": 1e-3,
                 "acceptable_tol": 1e-0,
                 "acceptable_iter": 10,
-                # "print_level": 5,
+                "print_level": 5,
+                "print_timing_statistics": "yes",
             },
             mode="collocation",
         )
