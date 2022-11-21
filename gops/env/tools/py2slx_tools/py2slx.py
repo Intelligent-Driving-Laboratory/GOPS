@@ -98,7 +98,10 @@ class Py2slxRuner():
             networks = self.__load_policy(log_policy_dir, trained_policy_iteration)
             sampler = self.__load_sampler()
             model = networks.policy
-            example_obs = torch.from_numpy(sampler.env.reset()).float()
+
+            example_obs_row = sampler.env.reset()[0]
+            # example_obs = torch.from_numpy(sampler.env.reset()).float()
+            example_obs = torch.from_numpy(example_obs_row).float()
             save_path = self.save_path[0] + "/{}.pt".format(self.export_controller_name[0])
             self.__check_export_model(model, example_obs, save_path)
 
