@@ -44,11 +44,12 @@ class FHADP(AlgorithmBase):
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
         self.forward_step = kwargs["pre_horizon"]
+        self.gamma = 1.
         self.tb_info = dict()
 
     @property
     def adjustable_parameters(self):
-        para_tuple = "forward_step"
+        para_tuple = ("forward_step", "gamma")
         return para_tuple
 
     def local_update(self, data, iteration: int):
@@ -102,7 +103,7 @@ class FHADP(AlgorithmBase):
                 o = o2
                 a = self.networks.policy(o)
                 o2, r, d, info = self.envmodel.forward(o, a, d, info)
-                v_pi += r
+                v_pi += r*(self.gamma**step)
 
         return -(v_pi).mean()
 

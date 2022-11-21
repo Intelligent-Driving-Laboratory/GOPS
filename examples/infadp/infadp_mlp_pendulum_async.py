@@ -35,10 +35,6 @@ if __name__ == "__main__":
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
 
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None)
-    parser.add_argument("--action_dim", type=int, default=None)
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--action_type", type=str, default="continu")
     parser.add_argument("--is_render", type=bool, default=False)
     parser.add_argument(
@@ -87,7 +83,6 @@ if __name__ == "__main__":
         parser.add_argument("--num_algs", type=int, default=2)
         parser.add_argument("--num_samplers", type=int, default=1)
         parser.add_argument("--num_buffers", type=int, default=1)
-        parser.add_argument("--alg_queue_max_size", type=int, default=1)
         parser.add_argument("--buffer_name", type=str, default="replay_buffer")
         parser.add_argument("--buffer_warm_size", type=int, default=1000)
         parser.add_argument("--buffer_max_size", type=int, default=100000)
@@ -126,7 +121,7 @@ if __name__ == "__main__":
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
     for alg_id in alg:
-        alg_id.set_parameters.remote({"reward_scale": 0.1, "gamma": 0.99, "tau": 0.05})
+        alg_id.set_parameters.remote({"gamma": 0.99, "tau": 0.05})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)  # 调用alg里面的函数，创建自己的网络
     # Step 3: create buffer in trainer
