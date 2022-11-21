@@ -62,6 +62,7 @@ def init_args(env, **args):
         args["action_high_limit"] = env.action_space.high.astype('float32')
         args["action_low_limit"] = env.action_space.low.astype('float32')
     else:
+        args["action_dim"] = 1 # required by creating policy function
         args["action_num"] = env.action_space.n
         args["noise_params"]["action_num"] = args["action_num"]
 
