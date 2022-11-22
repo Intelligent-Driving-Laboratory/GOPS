@@ -28,14 +28,14 @@ def load_policy(log_policy_dir, trained_policy_iteration):
 # def terminal_cost(obs):
 #     return -value_net(obs)
 runner = PolicyRunner(
-    log_policy_dir_list=["../../results/FHADP/221116-203652"]*1,
-    trained_policy_iteration_list=['2000'],
+    log_policy_dir_list=["../../results/FHADP/221121-210505"],
+    trained_policy_iteration_list=['40000'],
     is_init_info=True,
-    init_info={"init_state":[0.0,0.2,-0.1,0.046,0.1,-0.1]},
+    init_info={"init_state":[0.0,0.05,-0.05,0.046,0.1,-0.1]},
     save_render=False,
-    legend_list=['26200'],
-    dt=0.002,
-    #plot_range=[0,1000],
+    legend_list=['36400'],
+    dt=0.01,
+    # plot_range=[0,200],
     use_opt=False,
     opt_args={
         "opt_controller_type": "MPC",

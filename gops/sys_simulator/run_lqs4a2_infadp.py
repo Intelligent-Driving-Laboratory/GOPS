@@ -38,7 +38,7 @@ runner = PolicyRunner(
     legend_list=['INFADP-200000'],
     use_opt=True,
     opt_args={
-        "opt_controller_type": "OPT",
+        "opt_controller_type": "MPC",
         "num_pred_step": 5, 
         "gamma": 0.99,
         "minimize_options": {
