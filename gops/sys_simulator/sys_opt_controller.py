@@ -1,6 +1,6 @@
 import argparse
 import time
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, Union
 import warnings
 from gops.create_pkg.create_env import create_env
 from gops.create_pkg.create_env_model import create_env_model
@@ -26,7 +26,7 @@ class OptController:
         terminal_cost: Optional[Callable[[torch.Tensor], torch.Tensor]]=None,
         minimize_options: Optional[dict]=None,
         verbose: int=0,
-        mode: str="shooting",
+        mode: str="collocation",
     ):
 
         self.model = model
@@ -126,18 +126,19 @@ class OptController:
         jac = torch.autograd.grad(cost, inputs)[0]
         return jac.numpy().astype("d")
 
-    def __constraint_fcn(self, inputs: np.ndarray, x: np.ndarray) -> torch.Tensor:
+    def __constraint_fcn(self, inputs: Union[np.ndarray, torch.Tensor], x: Union[np.ndarray, torch.Tensor]) -> torch.Tensor:
 
         if self.model.get_constraint is None:
             return torch.tensor([0.])
         else:
             self.constraint_evaluations += 1
 
-            x = torch.tensor(x, dtype=torch.float32)
-            inputs = torch.tensor(
-                inputs, 
-                dtype=torch.float32
-            )
+            if isinstance(inputs, np.ndarray):
+                x = torch.tensor(x, dtype=torch.float32)
+                inputs = torch.tensor(
+                    inputs, 
+                    dtype=torch.float32,
+                )
             states, _ = self.__rollout(inputs, x)
             
             # model.get_constraint() return a Tensor of shape [1],
@@ -155,7 +156,7 @@ class OptController:
         jac = F.jacobian(self.__constraint_fcn, (inputs, x))[0]
         return jac.numpy().astype("d")
     
-    def __trans_constraint_fcn(self, inputs: np.ndarray, x: np.ndarray) -> torch.Tensor:
+    def __trans_constraint_fcn(self, inputs: Union[np.ndarray, torch.Tensor], x: Union[np.ndarray, torch.Tensor]) -> torch.Tensor:
         if self.mode == "shooting":
             return torch.tensor([0.])
         elif self.mode == "collocation":
@@ -168,7 +169,6 @@ class OptController:
                     dtype=torch.float32,
                 )
             states, _ = self.__rollout(inputs, x)
-
             return states[1::self.ctrl_interval, :].reshape(-1) - inputs.reshape((-1, self.optimize_dim))[:, -self.obs_dim:].reshape(-1)
     
     def __trans_constraint_jac(self, inputs: np.ndarray, x: np.ndarray) -> np.ndarray:
@@ -176,12 +176,11 @@ class OptController:
         inputs = torch.tensor(
             inputs, 
             dtype=torch.float32,
-            requires_grad=True,
         )
-        
+
         unit_vectors = torch.eye(self.obs_dim * self.num_ctrl_points)
         _, vjp_fn = vjp(partial(self.__trans_constraint_fcn, x=x), inputs)
-        jac = vmap(vjp_fn)(unit_vectors)[0].detach()
+        jac = vmap(vjp_fn)(unit_vectors)[0]
 
         return jac.numpy().astype("d")
 
@@ -193,20 +192,27 @@ class OptController:
         states[0, :] = x
         done = torch.tensor([False])
         info = {}
-        
-        next_x = x.unsqueeze(0)
-        for i in range(self.num_pred_step):
-            u = inputs_repeated[i, :self.action_dim].unsqueeze(0)
-            if self.mode == "collocation" and i % self.ctrl_interval == 0 and i > 0:
-                next_x = inputs_repeated[i - 1, -self.obs_dim:].unsqueeze(0)
-            next_x, reward, done, info = self.model.forward(
-                next_x, 
-                u,
-                done=done,
-                info=info
-            )
-            rewards[i] = -reward * (self.gamma ** i)
-            states[i + 1, :] = next_x
+
+        if self.mode == "shooting":
+            next_x = x.unsqueeze(0)
+            for i in range(self.num_pred_step):
+                u = inputs_repeated[i, :self.action_dim].unsqueeze(0)
+                next_x, reward, done, info = self.model.forward(
+                    next_x, 
+                    u,
+                    done=done,
+                    info=info
+                )
+                rewards[i] = -reward * (self.gamma ** i)
+                states[i + 1, :] = next_x
+
+        elif self.mode == "collocation":
+            xs = torch.cat((x.unsqueeze(0), inputs_repeated[:-self.ctrl_interval:self.ctrl_interval, -self.obs_dim:]))
+            us = inputs_repeated[::self.ctrl_interval, :self.action_dim]
+            for i in range(self.ctrl_interval):
+                xs, rewards[i::self.ctrl_interval], _, _ = self.model.forward(xs, us, done=done, info=info)
+                states[i+1::self.ctrl_interval, :] = xs
+            rewards = -rewards * torch.logspace(0, self.num_pred_step-1, self.num_pred_step, base=self.gamma)
 
         return states, rewards
     
@@ -327,7 +333,7 @@ if __name__ == "__main__":
     seed = 0
     # num_pred_steps = range(70, 100, 10)
     num_pred_steps = (200,)
-    ctrl_interval = 2
+    ctrl_interval = 1
     sim_num = 100
     sim_horizon = np.arange(sim_num)
     for num_pred_step in num_pred_steps:
@@ -342,10 +348,10 @@ if __name__ == "__main__":
                 "tol": 1e-3,
                 "acceptable_tol": 1e-0,
                 "acceptable_iter": 10,
-                "print_level": 5,
-                "print_timing_statistics": "yes",
+                # "print_level": 5,
+                # "print_timing_statistics": "yes",
             },
-            mode="collocation",
+            # mode="shooting",
         )
 
         env = create_env(**args)
@@ -452,6 +458,7 @@ if __name__ == "__main__":
         plt.savefig(f"MPC-solving-time-{args['env_id']}-{args['lq_config']}.png")
     else:
         plt.savefig(f"MPC-solving-time-{args['env_id']}.png")
+    plt.close()
 
     #=======error-predstep=======#
     if args["env_id"] == "pyth_lq":
@@ -463,6 +470,7 @@ if __name__ == "__main__":
         plt.ylabel(f"State Max error (%)")
         plt.yscale ('log')
         plt.savefig(f"State-max-err-{args['env_id']}-{args['lq_config']}.png")
+        plt.close()
 
         plt.figure()
         for i in range(action_dim):
@@ -472,6 +480,7 @@ if __name__ == "__main__":
         plt.ylabel(f"Action Max error (%)")
         plt.yscale ('log')
         plt.savefig(f"Action-max-err-{args['env_id']}-{args['lq_config']}.png")
+        plt.close()
 
         plt.figure()
         for i in range(obs_dim):
@@ -481,6 +490,7 @@ if __name__ == "__main__":
         plt.ylabel(f"State Mean error (%)")
         plt.yscale ('log')
         plt.savefig(f"State-mean-err-{args['env_id']}-{args['lq_config']}.png")
+        plt.close()
 
         plt.figure()
         for i in range(action_dim):
@@ -490,3 +500,4 @@ if __name__ == "__main__":
         plt.ylabel(f"Action Mean error (%)")
         plt.yscale ('log')
         plt.savefig(f"Action-mean-err-{args['env_id']}-{args['lq_config']}.png")
+        plt.close()
