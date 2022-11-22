@@ -106,8 +106,8 @@ class Dynamics(object):
         # print(next_states.shape, "-------------")
         return next_states
 
-    def compute_rewards(self, states):  # obses and actions are tensors
-
+    def compute_rewards(self, states, actions):  # obses and actions are tensors
+        actions = actions.squeeze(-1)
         p, theta1, theta2, pdot, theta1dot, theta2dot = (
             states[:, 0],
             states[:, 1],
@@ -118,10 +118,17 @@ class Dynamics(object):
         )
         tip_x = p + self.l_rod1 * torch.sin(theta1) + self.l_rod2 * torch.sin(theta2)
         tip_y = self.l_rod1 * torch.cos(theta1) + self.l_rod2 * torch.cos(theta2)
-        dist_penalty = 0.01 * torch.square(tip_x) + torch.square(tip_y - 2)
+        dist_penalty = 0.1 * torch.square(tip_x) + torch.square(tip_y - 2)
         v1, v2 = theta1dot, theta2dot
-        vel_penalty = 1e-3 * torch.square(v1) + 5e-3 * torch.square(v2)
-        rewards = 10 - dist_penalty - vel_penalty
+        vel_penalty = 0.1 * torch.square(v1) + 0.05 * torch.square(v2)
+        act_penalty = 0.1 * torch.square(actions)
+        rewards = 10 - dist_penalty - vel_penalty - act_penalty
+
+        # dist_penalty = 10 * torch.square(p) + 20 * torch.square(theta1) + 40 * torch.square(theta2)
+        # v0, v1, v2 = pdot, theta1dot, theta2dot
+        # vel_penalty = 0.1 * torch.square(v0) + 0.1 * torch.square(v1) + 0.1 * torch.square(v2)
+        # act_penalty = 0.05 * torch.square(actions)
+        # rewards = 10 - dist_penalty - vel_penalty - act_penalty
 
         return rewards
 
@@ -143,7 +150,7 @@ class Dynamics(object):
         ), point1y + self.l_rod2 * torch.cos(theta2)
 
         d1 = point2y <= 1.0
-        d2 = torch.abs(point1x) >= 15
+        d2 = torch.abs(point0x) >= 15
         return torch.logical_or(d1, d2) # point2y <= 1.0
 
 class PythInvertedpendulum(PythBaseModel):
@@ -153,7 +160,8 @@ class PythInvertedpendulum(PythBaseModel):
         """
         obs_dim = 6
         action_dim = 1
-        dt = 0.002
+        dt = 0.01
+        self.discrete_num = 5
         lb_state = [-np.inf] * obs_dim
         hb_state = [np.inf] * obs_dim
         lb_action = [-1.0]
@@ -169,7 +177,7 @@ class PythInvertedpendulum(PythBaseModel):
             device=device,
         )
         # define your custom parameters here
-        self.discrete_num = 1
+
         self.dynamics = Dynamics()
 
     def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
@@ -178,7 +186,7 @@ class PythInvertedpendulum(PythBaseModel):
         for _ in range(self.discrete_num):
             next_obs = self.dynamics.f_xu(obs, 500 * action, self.dt / self.discrete_num)
             obs = next_obs
-        reward = self.dynamics.compute_rewards(next_obs).reshape(-1)
+        reward = self.dynamics.compute_rewards(next_obs,action).reshape(-1)
         # done = torch.full([obs.size()[0]], False, dtype=torch.bool, device=self.device)
         done = self.dynamics.get_done(next_obs).reshape(-1)
         info = {"constraint": None}

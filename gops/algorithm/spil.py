@@ -174,19 +174,20 @@ class SPIL(AlgorithmBase):
         )
         v = self.networks.v(o)
         traj_issafe = torch.ones(o.shape[0], self.n_constraint)
+        info = data
 
         with torch.no_grad():
             for step in range(self.forward_step):
                 if step == 0:
                     a = self.networks.policy(o)
-                    o2, r, d, info = self.envmodel.forward(o, a, d, {})
+                    o2, r, d, info = self.envmodel.forward(o, a, d, info)
                     r_sum = self.reward_scale * r
                     traj_issafe *= info["constraint"] <= 0
 
                 else:
                     o = o2
                     a = self.networks.policy(o)
-                    o2, r, d, info = self.envmodel.forward(o, a, d, {})
+                    o2, r, d, info = self.envmodel.forward(o, a, d, info)
                     r_sum += self.reward_scale * self.gamma ** step * r
                     traj_issafe *= info["constraint"] <= 0
 
@@ -225,10 +226,11 @@ class SPIL(AlgorithmBase):
             # sig = (1 + tau * m1) / (1 + m2 * tau * torch.exp(torch.clamp(y / tau, min=-5, max=5)))
             return sig
 
+        info = data
         for step in range(self.forward_step):
             if step == 0:
                 a = self.networks.policy(o)
-                o2, r, d, info = self.envmodel.forward(o, a, d, {})
+                o2, r, d, info = self.envmodel.forward(o, a, d, info)
                 c = info["constraint"]
                 c = Phi(c)
                 r_sum = self.reward_scale * r
@@ -237,7 +239,7 @@ class SPIL(AlgorithmBase):
             else:
                 o = o2
                 a = self.networks.policy(o)
-                o2, r, d, info = self.envmodel.forward(o, a, d, {})
+                o2, r, d, info = self.envmodel.forward(o, a, d, info)
                 c = info["constraint"]
                 c = Phi(c)
                 r_sum = r_sum + self.reward_scale * self.gamma ** step * r

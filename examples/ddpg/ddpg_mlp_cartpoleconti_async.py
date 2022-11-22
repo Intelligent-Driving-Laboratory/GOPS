@@ -33,10 +33,6 @@ if __name__ == "__main__":
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
 
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None, help="dim(State)")
-    parser.add_argument("--action_dim", type=int, default=None, help="dim(Action)")
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument(
         "--action_type", type=str, default="continu", help="Options: continu/discret"
     )
@@ -61,14 +57,10 @@ if __name__ == "__main__":
         default="MLP",
         help="Options: MLP/CNN/RNN/POLY/GAUSS",
     )
-    value_func_type = parser.parse_known_args()[0].value_func_type
-    # 2.1.1 MLP, CNN, RNN
-    if (
-        value_func_type == "MLP"
-    ):  # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh;  Output Layer: linear
-        parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
-        parser.add_argument("--value_hidden_activation", type=str, default="relu")
-        parser.add_argument("--value_output_activation", type=str, default="linear")
+    # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh;  Output Layer: linear
+    parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
+    parser.add_argument("--value_hidden_activation", type=str, default="relu")
+    parser.add_argument("--value_output_activation", type=str, default="linear")
 
     # 2.2 Parameters of policy approximate function
     parser.add_argument(
@@ -84,18 +76,14 @@ if __name__ == "__main__":
         help="Options: MLP/CNN/RNN/POLY/GAUSS",
     )
     parser.add_argument("--policy_act_distribution", type=str, default="default")
-    policy_func_type = parser.parse_known_args()[0].policy_func_type
-    ### 2.2.1 MLP, CNN, RNN
-    if (
-        policy_func_type == "MLP"
-    ):  # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh: Output Layer: tanh
-        parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
-        parser.add_argument(
-            "--policy_hidden_activation", type=str, default="relu", help=""
-        )
-        parser.add_argument(
-            "--policy_output_activation", type=str, default="linear", help=""
-        )
+    # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh: Output Layer: tanh
+    parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
+    parser.add_argument(
+        "--policy_hidden_activation", type=str, default="relu", help=""
+    )
+    parser.add_argument(
+        "--policy_output_activation", type=str, default="linear", help=""
+    )
 
     ################################################
     # 3. Parameters for RL algorithm

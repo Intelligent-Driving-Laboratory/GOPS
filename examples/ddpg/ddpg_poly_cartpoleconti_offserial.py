@@ -22,7 +22,6 @@ from gops.utils.init_args import init_args
 from gops.utils.plot_evaluation import plot_all
 from gops.utils.tensorboard_setup import start_tensorboard, save_tb_to_csv
 
-os.environ["OMP_NUM_THREADS"] = "1"
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -35,10 +34,6 @@ if __name__ == "__main__":
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None)
-    parser.add_argument("--action_dim", type=int, default=None)
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--action_type", type=str, default="continu")
     parser.add_argument("--is_render", type=bool, default=False)
     parser.add_argument(
@@ -60,7 +55,8 @@ if __name__ == "__main__":
     parser.add_argument("--policy_act_distribution", type=str, default="default")
     policy_func_type = parser.parse_known_args()[0].policy_func_type
     if policy_func_type == "POLY":
-        parser.add_argument('--policy_degree', type=int, default=2)
+        parser.add_argument('--policy_degree', type=int, default=1)
+        parser.add_argument('--policy_add_bias', type=bool, default=False)
 
     ################################################
     # 3. Parameters for RL algorithm
@@ -78,7 +74,7 @@ if __name__ == "__main__":
         parser.add_argument("--buffer_warm_size", type=int, default=1000)
         parser.add_argument("--buffer_max_size", type=int, default=100000)
         parser.add_argument("--replay_batch_size", type=int, default=64)
-        parser.add_argument("--sampler_sync_interval", type=int, default=1)
+        parser.add_argument("--sample_interval", type=int, default=1)
 
     ################################################
     # 5. Parameters for sampler
@@ -114,7 +110,7 @@ if __name__ == "__main__":
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     alg.set_parameters(
-        {"reward_scale": 0.1, "gamma": 0.99, "tau": 0.2, "delay_update": 1}
+        { "gamma": 0.99, "tau": 0.2, "delay_update": 1}
     )
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
