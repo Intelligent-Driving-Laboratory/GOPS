@@ -583,6 +583,9 @@ class PolicyRunner:
             self.args = self.args_list[i]
             print('Using policy {}'.format(i+1))
             env = self.__load_env()
+            if hasattr(env, 'set_mode'):
+                env.set_mode('test')
+            
             print('The environment for policy {}'.format(i+1))
             if hasattr(env, 'train_space') and hasattr(env, 'work_space'):
                 print('The train space is')
@@ -604,7 +607,8 @@ class PolicyRunner:
             print('Using optimal controller')
             env = self.__load_env(use_opt=True)
             print('The environment for opt')
-            env.set_mode('test')
+            if hasattr(env, 'set_mode'):
+                env.set_mode('test')
 
             assert self.opt_args is not None, "Choose to use optimal controller, but the opt_args is None."
 

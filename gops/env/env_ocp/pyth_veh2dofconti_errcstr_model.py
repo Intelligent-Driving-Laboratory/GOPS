@@ -30,7 +30,7 @@ class Veh2dofcontiErrCstrModel(Veh2dofcontiModel):
     def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         next_obs, reward, next_done, next_info = super().forward(obs, action, done, info)
-        info["constraint"] = self.get_constraint(obs)
+        next_info["constraint"] = self.get_constraint(obs)
         return next_obs, reward, next_done, next_info
 
     def get_constraint(self, obs: torch.Tensor) -> torch.Tensor:

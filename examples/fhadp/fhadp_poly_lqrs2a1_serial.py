@@ -7,8 +7,6 @@
 #  Update Date: 2022-04-29, Jiaxin Gao: create example
 
 import os
-
-os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 os.environ["OMP_NUM_THREADS"] = "4"
 import argparse
 import numpy as np
@@ -36,10 +34,6 @@ if __name__ == "__main__":
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=3, help="dim(State)")
-    parser.add_argument("--action_dim", type=int, default=1, help="dim(Action)")
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--reward_scale", type=float, default=1)
     parser.add_argument("--reward_shift", type=float, default=0)
     parser.add_argument(
@@ -60,7 +54,8 @@ if __name__ == "__main__":
     parser.add_argument("--policy_func_name", type=str, default="DetermPolicy")
     parser.add_argument("--policy_func_type", type=str, default="POLY")
     parser.add_argument("--policy_act_distribution", type=str, default="default")
-    parser.add_argument('--policy_degree', type=int, default=2)
+    parser.add_argument('--policy_degree', type=int, default=1)
+    parser.add_argument('--policy_add_bias', type=bool, default=False)
 
     ################################################
     # 3. Parameters for RL algorithm
@@ -77,7 +72,7 @@ if __name__ == "__main__":
         parser.add_argument("--buffer_warm_size", type=int, default=1000)
         parser.add_argument("--buffer_max_size", type=int, default=100000)
         parser.add_argument("--replay_batch_size", type=int, default=64)
-        parser.add_argument("--sampler_sync_interval", type=int, default=1)
+        parser.add_argument("--sample_interval", type=int, default=1)
     ################################################
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="off_sampler")
@@ -110,9 +105,7 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters(
-        {"reward_scale": 1, "gamma": 1, "tau": 0.2, "delay_update": 1}
-    )
+    alg.set_parameters({"gamma": 1})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

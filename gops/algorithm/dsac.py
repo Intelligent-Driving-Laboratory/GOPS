@@ -35,7 +35,7 @@ class ApproxContainer(ApprBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # create q networks
-        q_args = get_apprfunc_dict("q", kwargs["value_func_type"], **kwargs)
+        q_args = get_apprfunc_dict("value", kwargs["value_func_type"], **kwargs)
         self.q: nn.Module = create_apprfunc(**q_args)
         self.q_target = deepcopy(self.q)
 
@@ -54,7 +54,7 @@ class ApproxContainer(ApprBase):
         self.log_alpha = nn.Parameter(torch.tensor(0, dtype=torch.float32))
 
         # create optimizers
-        self.q_optimizer = Adam(self.q.parameters(), lr=kwargs["q_learning_rate"])
+        self.q_optimizer = Adam(self.q.parameters(), lr=kwargs["value_learning_rate"])
         self.policy_optimizer = Adam(
             self.policy.parameters(), lr=kwargs["policy_learning_rate"]
         )
@@ -74,7 +74,6 @@ class DSAC(AlgorithmBase):
         self.networks = ApproxContainer(**kwargs)
         self.gamma = kwargs["gamma"]
         self.tau = kwargs["tau"]
-        self.reward_scale = kwargs["reward_scale"]
         self.target_entropy = -kwargs["action_dim"]
         self.auto_alpha = kwargs["auto_alpha"]
         self.alpha = kwargs.get("alpha", 0.2)
@@ -85,7 +84,7 @@ class DSAC(AlgorithmBase):
     @property
     def adjustable_parameters(self):
         return (
-            "gamma", "tau", "reward_scale", "auto_alpha", "alpha",
+            "gamma", "tau", "auto_alpha", "alpha",
             "TD_bound", "bound", "delay_update"
         )
 
@@ -129,7 +128,7 @@ class DSAC(AlgorithmBase):
 
     def __compute_gradient(self, data: DataDict, iteration: int):
         start_time = time.time()
-        data["rew"] = data["rew"] * self.reward_scale
+        data["rew"] = data["rew"]
 
         obs = data["obs"]
         logits = self.networks.policy(obs)

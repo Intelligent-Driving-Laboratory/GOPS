@@ -6,7 +6,7 @@
 #  Description: Vehicle 3DOF model environment with tracking error constraint
 
 
-from typing import Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 import torch
 
@@ -19,8 +19,8 @@ class Veh3dofcontiErrCstrModel(Veh3dofcontiModel):
         self,
         pre_horizon: int,
         device: Union[torch.device, str, None] = None,
-        path_para:dict = None,
-        u_para:dict = None,
+        path_para: Optional[Dict[str, Dict]] = None,
+        u_para: Optional[Dict[str, Dict]] = None,
         y_error_tol: float = 0.2,
         u_error_tol: float = 2.0,
         **kwargs,
@@ -32,7 +32,7 @@ class Veh3dofcontiErrCstrModel(Veh3dofcontiModel):
     def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         next_obs, reward, next_done, next_info = super().forward(obs, action, done, info)
-        info["constraint"] = self.get_constraint(obs)
+        next_info["constraint"] = self.get_constraint(obs)
         return next_obs, reward, next_done, next_info
 
     def get_constraint(self, obs: torch.Tensor) -> torch.Tensor:

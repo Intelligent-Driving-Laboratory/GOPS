@@ -34,14 +34,6 @@ if __name__ == "__main__":
 
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None)  # dim(State)
-    parser.add_argument(
-        "--action_num",
-        type=int,
-        default=None,
-        help="Num of discrete actions (similar to gym.spaces.Discrete)",
-    )
-    parser.add_argument("--action_dim", type=int, default=1)
     parser.add_argument(
         "--action_type", type=str, default="discret"
     )  # Options: continu/discret
@@ -101,7 +93,6 @@ if __name__ == "__main__":
                     cpu_core_num, num_core_input
                 )
             )
-        parser.add_argument("--alg_queue_max_size", type=int, default=1)
         parser.add_argument("--buffer_name", type=str, default="replay_buffer")
         parser.add_argument("--buffer_warm_size", type=int, default=1000)
         parser.add_argument("--buffer_max_size", type=int, default=100000)
@@ -138,7 +129,7 @@ if __name__ == "__main__":
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     for alg_id in alg:
-        alg_id.set_parameters.remote({"reward_scale": 0.1, "gamma": 0.99, "tau": 0.2})
+        alg_id.set_parameters.remote({ "gamma": 0.99, "tau": 0.2})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
