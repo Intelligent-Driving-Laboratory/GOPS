@@ -8,7 +8,7 @@
 
 import os
 
-os.environ["OMP_NUM_THREADS"] = "4"
+# os.environ["OMP_NUM_THREADS"] = "4"
 import argparse
 import numpy as np
 from gops.create_pkg.create_alg import create_alg
@@ -29,17 +29,13 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument("--env_id", type=str, default="pyth_idpendulum")
     parser.add_argument("--algorithm", type=str, default="FHADP")
-    parser.add_argument("--pre_horizon", type=int, default=350)
+    parser.add_argument("--pre_horizon", type=int, default=70)
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     parser.add_argument("--seed", default=3328005365, help="seed")
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None)
-    parser.add_argument("--action_dim", type=int, default=None)
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--action_type", type=str, default="continu")
-    parser.add_argument("--reward_scale", type=float, default=0.1)
+    parser.add_argument("--reward_scale", type=float, default=1)
     parser.add_argument("--repeat_num", type=int, default=None)
     parser.add_argument("--sum_reward", type=bool, default=False)
     parser.add_argument("--is_render", type=bool, default=False)
@@ -71,25 +67,25 @@ if __name__ == "__main__":
     ################################################
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
-    parser.add_argument("--max_iteration", type=int, default=50000)
+    parser.add_argument("--max_iteration", type=int, default=100000)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     if trainer_type == "off_serial_trainer":
         parser.add_argument("--buffer_name", type=str, default="replay_buffer")
         parser.add_argument("--buffer_warm_size", type=int, default=1000)
         parser.add_argument("--buffer_max_size", type=int, default=100000)
-        parser.add_argument("--replay_batch_size", type=int, default=64)
-        parser.add_argument("--sampler_sync_interval", type=int, default=1)
+        parser.add_argument("--replay_batch_size", type=int, default=256)
+        parser.add_argument("--sample_interval", type=int, default=1)
     ################################################
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="off_sampler")
-    parser.add_argument("--sample_batch_size", type=int, default=1)
+    parser.add_argument("--sample_batch_size", type=int, default=64)
     parser.add_argument(
         "--noise_params",
         type=dict,
         default={
             "mean": np.array([0], dtype=np.float32),
-            "std": np.array([0.0], dtype=np.float32),
+            "std": np.array([0.2], dtype=np.float32),
         },
     )
 
