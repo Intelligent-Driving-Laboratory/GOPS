@@ -35,10 +35,6 @@ if __name__ == "__main__":
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
 
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None)
-    parser.add_argument("--action_dim", type=int, default=None)
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--action_type", type=str, default="continu")
     parser.add_argument("--is_render", type=bool, default=False)
     parser.add_argument(
@@ -87,7 +83,7 @@ if __name__ == "__main__":
         parser.add_argument("--buffer_warm_size", type=int, default=1000)
         parser.add_argument("--buffer_max_size", type=int, default=100000)
         parser.add_argument("--replay_batch_size", type=int, default=64)
-        parser.add_argument("--sampler_sync_interval", type=int, default=1)
+        parser.add_argument("--sample_interval", type=int, default=1)
 
     ################################################
     # 5. Parameters for sampler
@@ -121,7 +117,7 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
-    alg.set_parameters({"reward_scale": 0.1, "gamma": 0.99, "tau": 0.05})
+    alg.set_parameters({"gamma": 0.99, "tau": 0.05})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

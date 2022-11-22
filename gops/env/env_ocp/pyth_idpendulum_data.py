@@ -27,7 +27,7 @@ class PythInverteddoublependulum(PythBaseEnv):
         work_space = kwargs.pop("work_space", None)
         if work_space is None:
             # initial range of [p, theta1, theta2, pdot, theta1dot, theta2dot]
-            init_high = np.array([0.1, 0.1, 0.1, 0.3, 0.3, 0.3], dtype=np.float32)
+            init_high = np.array([5, 0.1, 0.1, 0.3, 0.3, 0.3], dtype=np.float32)
             init_low = -init_high
             work_space = np.stack((init_low, init_high))
         super(PythInverteddoublependulum, self).__init__(work_space=work_space, **kwargs)
@@ -38,7 +38,8 @@ class PythInverteddoublependulum(PythBaseEnv):
         # define your custom parameters here
 
         self.dynamics = Dynamics()
-        self.tau = 0.05
+        self.tau = 0.01
+        self.discrete_num = 5
         self.max_episode_steps = 1000
         # define observation space here
         hb_observation = [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]
@@ -66,12 +67,15 @@ class PythInverteddoublependulum(PythBaseEnv):
         reward: reward signal
         done: done signal, datatype: bool
         """
-        action = 500.0 * action
+        # action = 500.0 * action
         # define environment transition, reward,  done signal  and constraint function here
         obs_batch = torch.as_tensor(self.obs, dtype=torch.float32).reshape(1, -1)
         act_batch = torch.as_tensor(action, dtype=torch.float32).reshape(1, -1)
-        next_obs_batch = self.dynamics.f_xu(obs_batch, act_batch, self.tau)
-        reward = self.dynamics.compute_rewards(next_obs_batch)
+        next_obs_batch = obs_batch
+        for _ in range(self.discrete_num):
+            next_obs_batch = self.dynamics.f_xu(obs_batch, 500*act_batch, self.tau / self.discrete_num)
+            obs_batch = next_obs_batch
+        reward = self.dynamics.compute_rewards(next_obs_batch,act_batch)
         done = self.dynamics.get_done(next_obs_batch)
         info = {}
 
@@ -88,7 +92,7 @@ class PythInverteddoublependulum(PythBaseEnv):
             self.obs = self.sample_initial_state()
         else:
             # assert self.observation_space.contains(init_obs)
-            self.obs = init_state
+            self.obs = np.array(init_state,dtype=np.float32)
         return self.obs
 
     def render(self, mode="human"):

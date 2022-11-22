@@ -36,14 +36,6 @@ if __name__ == "__main__":
 
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None)  # dim(State)
-    parser.add_argument(
-        "--action_num",
-        type=int,
-        default=None,
-        help="Num of discrete actions (similar to gym.spaces.Discrete)",
-    )
-    parser.add_argument("--action_dim", type=int, default=1)
     parser.add_argument(
         "--action_type", type=str, default="discret"
     )  # Options: continu/discret
@@ -93,7 +85,7 @@ if __name__ == "__main__":
         # Batch size of replay samples from buffer
         parser.add_argument("--replay_batch_size", type=int, default=64)
         # Period of sync central policy of each sampler
-        parser.add_argument("--sampler_sync_interval", type=int, default=1)
+        parser.add_argument("--sample_interval", type=int, default=1)
 
     ################################################
     # 5. Parameters for sampler
@@ -125,7 +117,7 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters({"reward_scale": 0.1, "gamma": 0.99, "tau": 0.2})
+    alg.set_parameters({"gamma": 0.99, "tau": 0.2})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

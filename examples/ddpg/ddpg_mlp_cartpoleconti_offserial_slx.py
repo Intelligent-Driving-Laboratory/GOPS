@@ -36,10 +36,7 @@ if __name__ == "__main__":
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None, help="dim(State)")
-    parser.add_argument("--action_dim", type=int, default=None, help="dim(Action)")
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
+
     parser.add_argument(
         "--action_type", type=str, default="continu", help="Options: continu/discret"
     )
@@ -103,7 +100,7 @@ if __name__ == "__main__":
         # Max size of reply buffer
         parser.add_argument("--buffer_max_size", type=int, default=100000)
         parser.add_argument("--replay_batch_size", type=int, default=64)
-        parser.add_argument("--sampler_sync_interval", type=int, default=1)
+        parser.add_argument("--sample_interval", type=int, default=1)
 
     ################################################
     # 5. Parameters for sampler
@@ -140,7 +137,7 @@ if __name__ == "__main__":
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     alg.set_parameters(
-        {"reward_scale": 0.1, "gamma": 0.99, "tau": 0.2, "delay_update": 1}
+        {"gamma": 0.99, "tau": 0.2, "delay_update": 1}
     )
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)

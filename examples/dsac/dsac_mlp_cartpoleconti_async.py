@@ -33,10 +33,6 @@ if __name__ == "__main__":
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None, help="dim(State)")
-    parser.add_argument("--action_dim", type=int, default=None, help="dim(Action)")
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument(
         "--action_type", type=str, default="continu", help="Options: continu/discret"
     )
@@ -46,30 +42,21 @@ if __name__ == "__main__":
     parser.add_argument(
         "--is_adversary", type=bool, default=False, help="Adversary training"
     )
+    parser.add_argument("--reward_scale", type=float, default=0.1)
     ################################################
     # 2.1 Parameters of value approximate function
-    parser.add_argument("--value_func_name", type=str, default="StateValue")
-    parser.add_argument("--value_func_type", type=str, default="MLP")
-    value_func_type = parser.parse_known_args()[0].value_func_type
-    ### 2.1.1 MLP, CNN, RNN
-    if value_func_type == "MLP":
-        parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
-        parser.add_argument("--value_hidden_activation", type=str, default="relu")
-        parser.add_argument("--value_output_activation", type=str, default="linear")
 
-    parser.add_argument("--q_func_name", type=str, default="ActionValueDistri")
+    parser.add_argument("--value_func_name", type=str, default="ActionValueDistri")
     # Options: MLP/CNN/RNN/POLY/GAUSS
-    parser.add_argument("--q_func_type", type=str, default="MLP")
-    value_func_type = parser.parse_known_args()[0].value_func_type
+    parser.add_argument("--value_func_type", type=str, default="MLP")
     ### 2.1.1 MLP, CNN, RNN
-    if value_func_type == "MLP":
-        parser.add_argument("--q_hidden_sizes", type=list, default=[64, 64])
-        # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
-        parser.add_argument("--q_hidden_activation", type=str, default="relu")
-        # Output Layer: linear
-        parser.add_argument("--q_output_activation", type=str, default="linear")
-        parser.add_argument("--q_min_log_std", type=int, default=-0.1)
-        parser.add_argument("--q_max_log_std", type=int, default=4)
+    parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
+    # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
+    parser.add_argument("--value_hidden_activation", type=str, default="relu")
+    # Output Layer: linear
+    parser.add_argument("--value_output_activation", type=str, default="linear")
+    parser.add_argument("--value_min_log_std", type=int, default=-0.1)
+    parser.add_argument("--value_max_log_std", type=int, default=4)
 
     # policy net
     # 2.2 Parameters of policy approximate function
@@ -89,7 +76,6 @@ if __name__ == "__main__":
     ################################################
     # 3. Parameters for RL algorithm
     parser.add_argument("--value_learning_rate", type=float, default=1e-3)
-    parser.add_argument("--q_learning_rate", type=float, default=1e-3)
     parser.add_argument("--policy_learning_rate", type=float, default=1e-3)
     parser.add_argument("--alpha_learning_rate", type=float, default=1e-3)
     # special parameter
@@ -98,8 +84,6 @@ if __name__ == "__main__":
     parser.add_argument("--alpha", type=float, default=0.2)
     parser.add_argument("--auto_alpha", type=bool, default=True)
     parser.add_argument("--delay_update", type=int, default=2, help="")
-    # Reward = reward_scale * environment.Reward
-    parser.add_argument("--reward_scale", type=float, default=0.1)
     parser.add_argument("--TD_bound", type=float, default=10)
     parser.add_argument("--bound", default=True)
 
@@ -138,7 +122,7 @@ if __name__ == "__main__":
         parser.add_argument("--buffer_warm_size", type=int, default=int(1e3))
         parser.add_argument("--buffer_max_size", type=int, default=int(1e5))
         parser.add_argument("--replay_batch_size", type=int, default=64)
-        parser.add_argument("--sampler_sync_interval", type=int, default=1)
+        parser.add_argument("--sample_interval", type=int, default=1)
 
     ################################################
     # 5. Parameters for sampler
