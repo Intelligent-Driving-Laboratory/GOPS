@@ -27,7 +27,7 @@ class PythInverteddoublependulum(PythBaseEnv):
         work_space = kwargs.pop("work_space", None)
         if work_space is None:
             # initial range of [p, theta1, theta2, pdot, theta1dot, theta2dot]
-            init_high = np.array([0.1, 0.1, 0.1, 0.3, 0.3, 0.3], dtype=np.float32)
+            init_high = np.array([5, 0.1, 0.1, 0.3, 0.3, 0.3], dtype=np.float32)
             init_low = -init_high
             work_space = np.stack((init_low, init_high))
         super(PythInverteddoublependulum, self).__init__(work_space=work_space, **kwargs)
@@ -38,9 +38,9 @@ class PythInverteddoublependulum(PythBaseEnv):
         # define your custom parameters here
 
         self.dynamics = Dynamics()
-        self.tau = 0.002
-        self.discrete_num = 1
-        self.max_episode_steps = 5000
+        self.tau = 0.01
+        self.discrete_num = 5
+        self.max_episode_steps = 1000
         # define observation space here
         hb_observation = [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]
         self.observation_space = spaces.Box(
