@@ -23,24 +23,24 @@ def load_policy(log_policy_dir, trained_policy_iteration):
     networks.load_state_dict(torch.load(log_path))
     return networks
 
-value_net = load_policy("../../results/INFADP/221115-213410", '50000').v
+# value_net = load_policy("../../results/INFADP/221115-213410", '50000').v
 
-def terminal_cost(obs):
-    return -value_net(obs)
+# def terminal_cost(obs):
+#     return -value_net(obs)
 runner = PolicyRunner(
-    log_policy_dir_list=["../../results/INFADP/221115-213410"]*2,
-    trained_policy_iteration_list=['50000','50000'],
+    log_policy_dir_list=["../../results/INFADP/hwx_1119_idp"],
+    trained_policy_iteration_list=['99500'],
     is_init_info=True,
-    init_info={"init_state":[0.063,0.0076,-0.0029,0.046,0.1,-0.1]},
+    init_info={"init_state":[0.0,0.05,-0.05,0.046,0.1,-0.1]},
     save_render=False,
-    legend_list=['49000_opt','60000'],
-    dt=0.01,
-    # plot_range=[0,500],
-    use_opt=False,
+    legend_list=['36400'],
+    dt=0.002,
+    # plot_range=[0,200],
+    use_opt=True,
     opt_args={
-        "opt_controller_type": "OPT",
-        "num_pred_step": 5,
-        "gamma": 0.99,
+        "opt_controller_type": "MPC",
+        "num_pred_step": 350,
+        "gamma": 1,
         "minimize_options": {
             "max_iter": 200,
             "tol": 1e-3,
@@ -48,8 +48,8 @@ runner = PolicyRunner(
             "acceptable_iter": 10,
             # "print_level": 5,
         },
-        "use_terminal_cost": True,
-        "terminal_cost": terminal_cost,
+        "use_terminal_cost": False,
+       # "terminal_cost": terminal_cost,
     }
     )
 
