@@ -51,7 +51,7 @@ class ApproxContainer(ApprBase):
             p.requires_grad = False
 
         # create entropy coefficient
-        self.log_alpha = nn.Parameter(torch.tensor(0, dtype=torch.float32))
+        self.log_alpha = nn.Parameter(torch.tensor(1, dtype=torch.float32))
 
         # create optimizers
         self.q_optimizer = Adam(self.q.parameters(), lr=kwargs["value_learning_rate"])
@@ -128,8 +128,6 @@ class DSAC(AlgorithmBase):
 
     def __compute_gradient(self, data: DataDict, iteration: int):
         start_time = time.time()
-        data["rew"] = data["rew"]
-
         obs = data["obs"]
         logits = self.networks.policy(obs)
         policy_mean = torch.tanh(logits[..., 0]).mean().item()
@@ -171,12 +169,12 @@ class DSAC(AlgorithmBase):
 
         return tb_info
 
-    def __q_evaluate(self, obs, act, qnet, min=False):
+    def __q_evaluate(self, obs, act, qnet, use_min=False):
         StochaQ = qnet(obs, act)
         mean, log_std = StochaQ[..., 0], StochaQ[..., -1]
         std = log_std.exp()
         normal = Normal(torch.zeros(mean.shape), torch.ones(std.shape))
-        if min:
+        if use_min:
             z = -torch.abs(normal.sample())
         else:
             z = normal.sample()
@@ -196,9 +194,9 @@ class DSAC(AlgorithmBase):
         act2_dist = self.networks.create_action_distributions(logits_2)
         act2, log_prob_act2 = act2_dist.rsample()
 
-        q, q_std, q_sample = self.__q_evaluate(obs, act, self.networks.q, min=False)
+        q, q_std, q_sample = self.__q_evaluate(obs, act, self.networks.q, use_min=False)
         _, _, q_next_sample = self.__q_evaluate(
-            obs2, act2, self.networks.q_target, min=False
+            obs2, act2, self.networks.q_target, use_min=False
         )
         target_q, target_q_bound = self.__compute_target_q(
             rew,
@@ -227,7 +225,7 @@ class DSAC(AlgorithmBase):
 
     def __compute_loss_policy(self, data: DataDict):
         obs, new_act, new_log_prob = data["obs"], data["new_act"], data["new_log_prob"]
-        q, _, _ = self.__q_evaluate(obs, new_act, self.networks.q, min=False)
+        q, _, _ = self.__q_evaluate(obs, new_act, self.networks.q, use_min=False)
         loss_policy = (self.__get_alpha() * new_log_prob - q).mean()
         entropy = -new_log_prob.detach().mean()
         return loss_policy, entropy
@@ -235,7 +233,7 @@ class DSAC(AlgorithmBase):
     def __compute_loss_alpha(self, data: DataDict):
         new_log_prob = data["new_log_prob"]
         loss_alpha = (
-                -self.__get_alpha(requires_grad=True) * (new_log_prob.detach() + self.target_entropy).mean()
+                -self.networks.log_alpha * (new_log_prob.detach() + self.target_entropy).mean()
         )
         return loss_alpha
 
@@ -248,13 +246,13 @@ class DSAC(AlgorithmBase):
             if self.auto_alpha:
                 self.networks.alpha_optimizer.step()
 
-        with torch.no_grad():
-            polyak = 1 - self.tau
-            for p, p_targ in zip(self.networks.q.parameters(), self.networks.q_target.parameters()):
-                p_targ.data.mul_(polyak)
-                p_targ.data.add_((1 - polyak) * p.data)
-            for p, p_targ in zip(
-                    self.networks.policy.parameters(), self.networks.policy_target.parameters()
-            ):
-                p_targ.data.mul_(polyak)
-                p_targ.data.add_((1 - polyak) * p.data)
+            with torch.no_grad():
+                polyak = 1 - self.tau
+                for p, p_targ in zip(self.networks.q.parameters(), self.networks.q_target.parameters()):
+                    p_targ.data.mul_(polyak)
+                    p_targ.data.add_((1 - polyak) * p.data)
+                for p, p_targ in zip(
+                        self.networks.policy.parameters(), self.networks.policy_target.parameters()
+                ):
+                    p_targ.data.mul_(polyak)
+                    p_targ.data.add_((1 - polyak) * p.data)

@@ -52,7 +52,7 @@ class ApproxContainer(ApprBase):
             p.requires_grad = False
 
         # create entropy coefficient
-        self.log_alpha = nn.Parameter(torch.tensor(0, dtype=torch.float32))
+        self.log_alpha = nn.Parameter(torch.tensor(1, dtype=torch.float32))
 
         # create optimizers
         self.q1_optimizer = Adam(self.q1.parameters(), lr=kwargs["q_learning_rate"])
@@ -76,7 +76,6 @@ class SAC(AlgorithmBase):
         self.networks = ApproxContainer(**kwargs)
         self.gamma = 0.99
         self.tau = 0.005
-        self.reward_scale = 1
         self.auto_alpha = True
         self.alpha = 0.2
         self.target_entropy = -kwargs["action_dim"]
@@ -84,7 +83,7 @@ class SAC(AlgorithmBase):
     @property
     def adjustable_parameters(self):
         return (
-            "gamma", "tau", "reward_scale", "auto_alpha", "alpha"
+            "gamma", "tau", "auto_alpha", "alpha"
         )
 
     def local_update(self, data: DataDict, iteration: int) -> dict:
@@ -131,7 +130,6 @@ class SAC(AlgorithmBase):
 
     def __compute_gradient(self, data: DataDict, iteration: int):
         start_time = time.time()
-        data["rew"] = data["rew"] * self.reward_scale
 
         obs = data["obs"]
         logits = self.networks.policy(obs)
@@ -207,7 +205,7 @@ class SAC(AlgorithmBase):
 
     def __compute_loss_alpha(self, data: DataDict):
         new_logp = data["new_logp"]
-        loss_alpha = (-self.__get_alpha(requires_grad=True) * (new_logp.detach() + self.target_entropy).mean())
+        loss_alpha = (-self.networks.log_alpha * (new_logp.detach() + self.target_entropy).mean())
         return loss_alpha
 
     def __update(self, iteration: int):
