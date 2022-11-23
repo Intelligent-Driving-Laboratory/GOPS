@@ -80,7 +80,7 @@ class _GymOscillatorconti(PythBaseEnv):
         return True
 
     def control_policy(self, obs):
-        return [- obs[0] * obs[1]]
+        return np.array([- obs[0] * obs[1]],dtype='f')
 
     def reset(self, init_state=None, **kwargs):  # for on_sampler
         if init_state is None:
