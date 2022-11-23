@@ -178,7 +178,7 @@ class SimuVeh2dofconti(PythBaseEnv):
         return self.get_obs(), reward, self.done, self.info
 
     def get_obs(self) -> np.ndarray:
-        ego_obs = np.concatenate((self.state[:1] - self.ref_points[0, :1], self.state[1:]))
+        ego_obs = np.concatenate((self.state[:2] - self.ref_points[0], self.state[2:]))
         ref_obs = (self.state[np.newaxis, :1] - self.ref_points[1:, :1]).flatten()
         return np.concatenate((ego_obs, ref_obs))
 
