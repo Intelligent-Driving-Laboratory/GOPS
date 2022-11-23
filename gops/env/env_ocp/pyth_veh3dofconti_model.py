@@ -114,9 +114,9 @@ class Veh3dofcontiModel(PythBaseModel):
         steer, a_x = action[:, 0], action[:, 1]
         return -(
             0.04 * delta_x ** 2 +
-            0.1 * delta_y ** 2 +
-            0.01 * delta_phi ** 2 +
-            0.01 * delta_u ** 2 +
+            0.04 * delta_y ** 2 +
+            0.02 * delta_phi ** 2 +
+            0.02 * delta_u ** 2 +
             0.01 * w ** 2 +
             0.01 * steer ** 2 +
             0.01 * a_x ** 2

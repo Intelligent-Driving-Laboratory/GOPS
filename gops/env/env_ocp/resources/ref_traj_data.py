@@ -20,7 +20,7 @@ DEFAULT_PATH_PARAM = {
         'y2': 3.5,
     },
     'triangle': {
-        'A': 5.0,
+        'A': 3.0,
         'T': 10.0,
     },
     'circle': {
