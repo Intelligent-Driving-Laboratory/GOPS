@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     # 1. Parameters for environment
     parser.add_argument("--action_type", type=str, default="continu")
-    parser.add_argument("--y_error_tol", type=float, default=0.2)
+    parser.add_argument("--y_error_tol", type=float, default=0.05)
     parser.add_argument("--constraint_dim", type=int, default=1)
     parser.add_argument("--is_render", type=bool, default=False)
 
