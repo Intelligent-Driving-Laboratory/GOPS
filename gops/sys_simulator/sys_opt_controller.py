@@ -1,10 +1,11 @@
 import argparse
 import time
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Optional, Tuple, Union
 import warnings
 from gops.create_pkg.create_env import create_env
 from gops.create_pkg.create_env_model import create_env_model
 from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.utils.gops_typing import InfoDict
 import matplotlib.pyplot as plt
 import torch
 import torch.autograd.functional as F
@@ -74,11 +75,11 @@ class OptController:
         self.verbose = verbose
         self.__reset_statistics()
 
-    def __call__(self, x: np.ndarray) -> np.ndarray:
+    def __call__(self, x: np.ndarray, info: InfoDict={}) -> np.ndarray:
         res = minimize_ipopt(
             fun=self.__cost_fcn, 
             x0=self.initial_guess,
-            args=(x,),
+            args=(x, info),
             jac=self.__cost_jac,
             bounds=opt._constraints.new_bounds_to_old(self.bounds.lb, self.bounds.ub, self.num_ctrl_points * self.optimize_dim),
             constraints=[
@@ -86,13 +87,13 @@ class OptController:
                     "type": "ineq", 
                     "fun": self.__constraint_fcn,
                     "jac": self.__constraint_jac,
-                    "args": (x,)
+                    "args": (x, info)
                 },
                 {
                     "type": "eq", 
                     "fun": self.__trans_constraint_fcn,
                     "jac": self.__trans_constraint_jac,
-                    "args": (x,)
+                    "args": (x, info)
                 },
             ],
             options=self.minimize_options
@@ -105,28 +106,33 @@ class OptController:
             self.__print_statistics(res)
         return res.x.reshape((self.num_ctrl_points, self.optimize_dim))[0, :self.action_dim]
 
-    def __cost_fcn(self, inputs: np.ndarray, x: np.ndarray) -> float:
+    def __cost_fcn(self, inputs: np.ndarray, x: np.ndarray, info: InfoDict) -> float:
         x = torch.tensor(x, dtype=torch.float32)
         inputs = torch.tensor(
             inputs, 
             dtype=torch.float32, 
             requires_grad=True
         )
-        cost = self.__compute_cost(inputs, x)
+        cost = self.__compute_cost(inputs, x, info)
         return cost.detach().item()
 
-    def __cost_jac(self, inputs: np.ndarray, x: np.ndarray) -> np.ndarray:
+    def __cost_jac(self, inputs: np.ndarray, x: np.ndarray, info: InfoDict) -> np.ndarray:
         x = torch.tensor(x, dtype=torch.float32)
         inputs = torch.tensor(
             inputs, 
             dtype=torch.float32, 
             requires_grad=True
         )
-        cost = self.__compute_cost(inputs, x)
+        cost = self.__compute_cost(inputs, x, info)
         jac = torch.autograd.grad(cost, inputs)[0]
         return jac.numpy().astype("d")
 
-    def __constraint_fcn(self, inputs: Union[np.ndarray, torch.Tensor], x: Union[np.ndarray, torch.Tensor]) -> torch.Tensor:
+    def __constraint_fcn(
+        self, 
+        inputs: Union[np.ndarray, torch.Tensor], 
+        x: Union[np.ndarray, torch.Tensor], 
+        info: InfoDict
+    ) -> torch.Tensor:
 
         if self.model.get_constraint is None:
             return torch.tensor([0.])
@@ -139,24 +145,29 @@ class OptController:
                     inputs, 
                     dtype=torch.float32,
                 )
-            states, _ = self.__rollout(inputs, x)
+            states, _ = self.__rollout(inputs, x, info)
             
             # model.get_constraint() return a Tensor of shape [1],
             # each element of which should be required to be lower than or equal to 0
             # minimize_ipopt() takes inequality constraints that should be greater than or equal to 0
             return -self.model.get_constraint(states)
 
-    def __constraint_jac(self, inputs: np.ndarray, x: np.ndarray) -> np.ndarray:
+    def __constraint_jac(self, inputs: np.ndarray, x: np.ndarray, info: InfoDict) -> np.ndarray:
         x = torch.tensor(x, dtype=torch.float32)
         inputs = torch.tensor(
             inputs, 
             dtype=torch.float32, 
             requires_grad=True
         )
-        jac = F.jacobian(self.__constraint_fcn, (inputs, x))[0]
+        jac = F.jacobian(partial(self.__constraint_fcn, x=x, info=info), inputs)
         return jac.numpy().astype("d")
     
-    def __trans_constraint_fcn(self, inputs: Union[np.ndarray, torch.Tensor], x: Union[np.ndarray, torch.Tensor]) -> torch.Tensor:
+    def __trans_constraint_fcn(
+        self, 
+        inputs: Union[np.ndarray, torch.Tensor], 
+        x: Union[np.ndarray, torch.Tensor], 
+        info: InfoDict
+    ) -> torch.Tensor:
         if self.mode == "shooting":
             return torch.tensor([0.])
         elif self.mode == "collocation":
@@ -168,10 +179,12 @@ class OptController:
                     inputs, 
                     dtype=torch.float32,
                 )
-            states, _ = self.__rollout(inputs, x)
-            return states[1::self.ctrl_interval, :].reshape(-1) - inputs.reshape((-1, self.optimize_dim))[:, -self.obs_dim:].reshape(-1)
+            true_states, _ = self.__rollout(inputs, x, info)
+            true_states = true_states[1::self.ctrl_interval, :].reshape(-1)
+            input_states = inputs.reshape((-1, self.optimize_dim))[:, -self.obs_dim:].reshape(-1)
+            return true_states - input_states
     
-    def __trans_constraint_jac(self, inputs: np.ndarray, x: np.ndarray) -> np.ndarray:
+    def __trans_constraint_jac(self, inputs: np.ndarray, x: np.ndarray, info: InfoDict) -> np.ndarray:
         x = torch.tensor(x, dtype=torch.float32)
         inputs = torch.tensor(
             inputs, 
@@ -179,19 +192,18 @@ class OptController:
         )
 
         unit_vectors = torch.eye(self.obs_dim * self.num_ctrl_points)
-        _, vjp_fn = vjp(partial(self.__trans_constraint_fcn, x=x), inputs)
+        _, vjp_fn = vjp(partial(self.__trans_constraint_fcn, x=x, info=info), inputs)
         jac = vmap(vjp_fn)(unit_vectors)[0]
 
         return jac.numpy().astype("d")
 
-    def __rollout(self, inputs: torch.Tensor, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, List]:
+    def __rollout(self, inputs: torch.Tensor, x: torch.Tensor, info: InfoDict) -> Tuple[torch.Tensor, torch.Tensor]:
         self.system_simulations += 1
         inputs_repeated = inputs.reshape((self.num_ctrl_points, self.optimize_dim)).repeat_interleave(self.ctrl_interval, dim=0)
         states = torch.zeros((self.num_pred_step + 1, self.obs_dim))
         rewards = torch.zeros(self.num_pred_step)
         states[0, :] = x
         done = torch.tensor([False])
-        info = {}
 
         if self.mode == "shooting":
             next_x = x.unsqueeze(0)
@@ -216,9 +228,9 @@ class OptController:
 
         return states, rewards
     
-    def __compute_cost(self, inputs: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
+    def __compute_cost(self, inputs: torch.Tensor, x: torch.Tensor, info: InfoDict) -> torch.Tensor:
         # rollout the states and rewards
-        states, rewards = self.__rollout(inputs, x)
+        states, rewards = self.__rollout(inputs, x, info)
 
         # sum up the intergral costs from timestep 0 to T-1
         cost = torch.sum(rewards)
@@ -274,7 +286,7 @@ class NNController:
 if __name__ == "__main__":
     # Parameters Setup
     parser = argparse.ArgumentParser()
-    env_id = "pyth_idpendulum"
+    env_id = "pyth_veh2dofconti_errcstr"
     parser.add_argument("--env_id", type=str, default=env_id)
     parser.add_argument("--lq_config", type=str, default="s6a3")
     parser.add_argument('--clip_action', type=bool, default=True)
@@ -316,6 +328,9 @@ if __name__ == "__main__":
         parser.add_argument('--max_episode_steps', type=int, default=1500, help='for env_data')
         parser.add_argument('--max_newton_iteration', type=int, default=50)
         parser.add_argument('--max_iteration', type=int, default=parser.parse_args().max_newton_iteration)
+    
+    if env_id == "pyth_veh2dofconti_errcstr":
+        parser.add_argument("--pre_horizon", type=int, default=20)
 
     args = vars(parser.parse_args())
     env_model = create_env_model(**args)
@@ -332,7 +347,7 @@ if __name__ == "__main__":
     times = []
     seed = 0
     # num_pred_steps = range(70, 100, 10)
-    num_pred_steps = (200,)
+    num_pred_steps = (30,)
     ctrl_interval = 1
     sim_num = 100
     sim_horizon = np.arange(sim_num)
@@ -348,15 +363,15 @@ if __name__ == "__main__":
                 "tol": 1e-3,
                 "acceptable_tol": 1e-0,
                 "acceptable_iter": 10,
-                # "print_level": 5,
-                # "print_timing_statistics": "yes",
+                "print_level": 5,
+                "print_timing_statistics": "yes",
             },
             # mode="shooting",
         )
 
         env = create_env(**args)
         env.seed(seed)
-        x, _ = env.reset()
+        x, info = env.reset()
         xs = []
         us= []
         rs = []
@@ -365,12 +380,12 @@ if __name__ == "__main__":
             print(f"step: {i + 1}")
             if (i % ctrl_interval) == 0:
                 t1 = time.time()
-                u = controller(x.astype(np.float32))
+                u = controller(x.astype(np.float32), info)
                 t2 = time.time()
             xs.append(x)
             us.append(u)
             ts.append(t2 - t1)
-            x, r, _, _ = env.step(u)
+            x, r, _, info = env.step(u)
             rs.append(r)
         xs = np.stack(xs)
         us = np.stack(us)
