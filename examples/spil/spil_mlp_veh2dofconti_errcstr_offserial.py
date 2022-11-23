@@ -3,7 +3,7 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: SPIL algorithm in veh3dof with tracking error constraint environment
+#  Description: SPIL algorithm in veh2dof with tracking error constraint environment
 
 import argparse
 import os
@@ -28,15 +28,15 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="pyth_veh3dofconti_errcstr")
+    parser.add_argument("--env_id", type=str, default="pyth_veh2dofconti_errcstr")
     parser.add_argument("--algorithm", type=str, default="SPIL")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     parser.add_argument("--pre_horizon", type=int, default=10)
 
     # 1. Parameters for environment
     parser.add_argument("--action_type", type=str, default="continu")
-    parser.add_argument("--y_error_tol", type=float, default=0.1)
-    parser.add_argument("--constraint_dim", type=int, default=2)
+    parser.add_argument("--y_error_tol", type=float, default=0.2)
+    parser.add_argument("--constraint_dim", type=int, default=1)
     parser.add_argument("--is_render", type=bool, default=False)
 
     ################################################
