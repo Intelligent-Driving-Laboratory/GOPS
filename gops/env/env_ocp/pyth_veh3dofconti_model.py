@@ -85,7 +85,7 @@ class Veh3dofcontiModel(PythBaseModel):
         next_t = t + self.dt
 
         next_ref_points = ref_points.clone()
-        next_ref_points[:, :-1] = next_ref_points[:, 1:]
+        next_ref_points[:, :-1] = ref_points[:, 1:]
         new_ref_point = torch.stack((
             self.ref_traj.compute_x(next_t + self.pre_horizon * self.dt, path_num, u_num),
             self.ref_traj.compute_y(next_t + self.pre_horizon * self.dt, path_num, u_num),
@@ -137,3 +137,21 @@ def env_model_creator(**kwargs):
     make env model `pyth_veh3dofconti`
     """
     return Veh3dofcontiModel(**kwargs)
+
+
+if __name__ == '__main__':
+    model = Veh3dofcontiModel()
+    B = 1
+    N = 6
+    M = 2
+    H = 10
+    obs = torch.zeros((B, N + H * 2), dtype=torch.float32)
+    action = torch.zeros((B, M), dtype=torch.float32)
+    info = {
+        'state': torch.zeros((B, N), dtype=torch.float32),
+        'ref_points': torch.zeros((B, H + 1, 4), dtype=torch.float32),
+        'path_num': torch.zeros((B,), dtype=torch.float32),
+        'u_num': torch.zeros((B,), dtype=torch.float32),
+        'ref_time': torch.zeros((B,), dtype=torch.float32),
+    }
+    model.forward(obs, action, None, info)
