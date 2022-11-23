@@ -43,19 +43,19 @@ class MultiRefTrajModel:
             x = x + (path_num == i) * ref_traj.compute_x(t, speed_num)
         return x
 
-    def compute_y(self, t: float, path_num: int, speed_num: int) -> float:
+    def compute_y(self, t: torch.Tensor, path_num: torch.Tensor, speed_num: torch.Tensor) -> torch.Tensor:
         y = torch.zeros_like(t)
         for i, ref_traj in enumerate(self.ref_trajs):
             y = y + (path_num == i) * ref_traj.compute_y(t, speed_num)
         return y
 
-    def compute_u(self, t: float, path_num: int, speed_num: int) -> float:
+    def compute_u(self, t: torch.Tensor, path_num: torch.Tensor, speed_num: torch.Tensor) -> torch.Tensor:
         u = torch.zeros_like(t)
         for i, ref_traj in enumerate(self.ref_trajs):
             u = u + (path_num == i) * ref_traj.compute_u(t, speed_num)
         return u
 
-    def compute_phi(self, t: float, path_num: int, speed_num: int) -> float:
+    def compute_phi(self, t: torch.Tensor, path_num: torch.Tensor, speed_num: torch.Tensor) -> torch.Tensor:
         phi = torch.zeros_like(t)
         for i, ref_traj in enumerate(self.ref_trajs):
             phi = phi + (path_num == i) * ref_traj.compute_phi(t, speed_num)
