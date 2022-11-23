@@ -15,7 +15,7 @@ from copy import copy
 from gops.create_pkg.create_env import create_env
 from gops.utils.plot_evaluation import cm2inch
 from gops.utils.common_utils import get_args_from_json, mp4togif
-from gops.sys_simulator.sys_opt_controller import NNController, OptController
+from gops.sys_simulator.sys_opt_controller import OptController
 
 default_cfg = dict()
 default_cfg["fig_size"] = (12, 9)
@@ -104,7 +104,7 @@ class PolicyRunner:
         # plot tracking
         state_with_ref_error = {}
         done = False
-        info = {"TimeLimit.truncated": False}
+        info.update({"TimeLimit.truncated": False})
         while not (done or info["TimeLimit.truncated"]):
             state_list.append(state)
             obs_list.append(obs)
@@ -659,15 +659,6 @@ class PolicyRunner:
             #     self.error_dict["policy_{}".format(i)] = net_error_dict
             #     self.error_dict["opt"] = LQ_error_dict
 
-
-    def __get_init_info(self, env, init_state_nums):
-        state_list = []
-        obs_list = []
-        for i in range(init_state_nums):
-            obs = env.reset()
-            obs_list.append(obs)
-        return obs_list
-
     def __action_noise(self, action):
         if self.action_noise_type is None:
             return action
@@ -675,34 +666,6 @@ class PolicyRunner:
             return action + np.random.normal(loc=self.action_noise_data[0], scale=self.action_noise_data[1])
         elif self.action_noise_type == "uniform":
             return action + np.random.uniform(low=self.action_noise_data[0], high=self.action_noise_data[1])
-
-    def __error_compute(self, env, obs_list, state_list,info_list, controller, init_state_nums, is_opt):
-        action_list = []
-        next_state_list = []
-        for i in range(init_state_nums):
-            obs = obs_list[i]
-            state = state_list[i]
-            info_list[i].update({'init_state':state,'init_obs':obs})
-            env.reset(**info_list[i])
-
-            if is_opt:
-                if env.has_optimal_controller:
-                    action = env.control_policy(state)
-                else:
-                    action = controller(obs)
-            else:
-                action = self.compute_action(obs, controller)
-                action = self.__action_noise(action)
-
-            next_obs, reward, done, info = env.step(action)
-            next_state = env.state
-            action_list.append(action)
-            next_state_list.append(next_state)
-        action_array = np.array(action_list)
-        next_state_array = np.array(next_state_list)
-        error_dict = {"action": action_array, "next_state": next_state_array}
-
-        return error_dict
 
     def __save_mp4_as_gif(self):
         if self.save_render:

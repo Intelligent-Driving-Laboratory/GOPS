@@ -46,7 +46,7 @@ class PythBaseModel(metaclass=ABCMeta):
     #   def get_constraint(self, obs: torch.Tensor) -> torch.Tensor:
     #       ...
     # This function should return a Tensor of shape [1],
-    # each element of which will be required to be greater than or equal to 0
+    # each element of which will be required to be lower than or equal to 0
     get_constraint: Callable[[torch.Tensor], torch.Tensor] = None
 
     # Just like get_constraint,
