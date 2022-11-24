@@ -71,6 +71,8 @@ class PPO(AlgorithmBase):
         self.clip = 0.2
         self.clip_now = self.clip
         self.EPS = 1e-8
+        self.gamma = 0.99
+        self.reward_scale = 0.1
         self.loss_coefficient_kl = 0.2
         self.loss_coefficient_value = 1.0
         self.loss_coefficient_entropy = 0.0
