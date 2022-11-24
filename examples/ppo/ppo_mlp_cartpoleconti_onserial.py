@@ -36,11 +36,6 @@ if __name__ == "__main__":
 
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--reward_scale", type=list, default=0.1)
-    parser.add_argument("--obsv_dim", type=int, default=None)
-    parser.add_argument("--action_dim", type=int, default=None)
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--action_type", type=str, default="continu")
     parser.add_argument("--is_render", type=bool, default=False)
     parser.add_argument(
@@ -155,12 +150,14 @@ if __name__ == "__main__":
     alg = create_alg(**args)
     alg.set_parameters(
         {
-            "loss_coefficient_value": 0.5,
+            "gamma": 0.99,
+            "loss_coefficient_value": 0.25,
             "loss_coefficient_entropy": 0.01,
             "schedule_adam": "None",
             "schedule_clip": "None",
             "loss_value_clip": False,
             "loss_value_norm": False,
+            "reward_scale": 0.1,
         }
     )
     # Step 2: create sampler in trainer

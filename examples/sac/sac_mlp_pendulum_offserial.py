@@ -35,10 +35,7 @@ if __name__ == "__main__":
 
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None)  # dim(State)
-    parser.add_argument("--action_dim", type=int, default=None)  # dim(Action)
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
+
     parser.add_argument(
         "--action_type", type=str, default="continu"
     )  # Options: continu/discret
