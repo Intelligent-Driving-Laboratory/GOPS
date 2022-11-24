@@ -157,14 +157,12 @@ if __name__ == "__main__":
     alg = create_alg(**args)
     alg.set_parameters(
         {
-            "gamma": 0.99,
             "loss_coefficient_value": 0.5,
             "loss_coefficient_entropy": 0.01,
             "schedule_adam": "None",
             "schedule_clip": "None",
             "loss_value_clip": False,
             "loss_value_norm": False,
-            "reward_scale": 1,
         }
     )
     # Step 2: create sampler in trainer

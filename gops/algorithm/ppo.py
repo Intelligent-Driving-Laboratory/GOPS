@@ -90,7 +90,7 @@ class PPO(AlgorithmBase):
 
     @property
     def adjustable_parameters(self):
-        return (
+        return ("gamma", "reward_scale",
             "clip", "loss_value_clip", "value_clip",
             "loss_value_norm", "advantage_norm",
             "loss_coefficient_kl", "loss_coefficient_value",
