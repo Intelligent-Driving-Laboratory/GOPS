@@ -85,7 +85,7 @@ class Veh3dofcontiModel(PythBaseModel):
         next_t = t + self.dt
 
         next_ref_points = ref_points.clone()
-        next_ref_points[:, :-1] = next_ref_points[:, 1:]
+        next_ref_points[:, :-1] = ref_points[:, 1:]
         new_ref_point = torch.stack((
             self.ref_traj.compute_x(next_t + self.pre_horizon * self.dt, path_num, u_num),
             self.ref_traj.compute_y(next_t + self.pre_horizon * self.dt, path_num, u_num),
