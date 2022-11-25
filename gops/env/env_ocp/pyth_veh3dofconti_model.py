@@ -52,6 +52,7 @@ class Veh3dofcontiModel(PythBaseModel):
         device: Union[torch.device, str, None] = None,
         path_para: Optional[Dict[str, Dict]] = None,
         u_para: Optional[Dict[str, Dict]] = None,
+        max_steer: float = np.pi / 6,
         **kwargs,
     ):
         """
@@ -64,8 +65,8 @@ class Veh3dofcontiModel(PythBaseModel):
             obs_dim=state_dim + pre_horizon * 2,
             action_dim=2,
             dt=0.1,
-            action_lower_bound=[-np.pi / 6, -3],
-            action_upper_bound=[np.pi / 6, 3],
+            action_lower_bound=[-max_steer, -3],
+            action_upper_bound=[max_steer, 3],
             device=device,
         )
         self.ref_traj = MultiRefTrajModel(path_para, u_para)
@@ -114,9 +115,9 @@ class Veh3dofcontiModel(PythBaseModel):
         steer, a_x = action[:, 0], action[:, 1]
         return -(
             0.04 * delta_x ** 2 +
-            0.1 * delta_y ** 2 +
-            0.01 * delta_phi ** 2 +
-            0.01 * delta_u ** 2 +
+            0.04 * delta_y ** 2 +
+            0.02 * delta_phi ** 2 +
+            0.02 * delta_u ** 2 +
             0.01 * w ** 2 +
             0.01 * steer ** 2 +
             0.01 * a_x ** 2

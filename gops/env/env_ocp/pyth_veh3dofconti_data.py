@@ -62,6 +62,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         pre_horizon: int = 10,
         path_para: Optional[Dict[str, Dict]] = None,
         u_para: Optional[Dict[str, Dict]] = None,
+        max_steer: float = np.pi / 6,
         **kwargs,
     ):
         work_space = kwargs.pop("work_space", None)
@@ -81,8 +82,8 @@ class SimuVeh3dofconti(PythBaseEnv):
             low=np.array([-np.inf] * (2 * self.pre_horizon + self.state_dim)),
             high=np.array([np.inf] * (2 * self.pre_horizon + self.state_dim)),
             dtype=np.float32)
-        self.action_space = gym.spaces.Box(low=np.array([-np.pi / 6, -3]),
-                                           high=np.array([np.pi / 6, 3]),
+        self.action_space = gym.spaces.Box(low=np.array([-max_steer, -3]),
+                                           high=np.array([max_steer, 3]),
                                            dtype=np.float32)
         self.dt = 0.1
         self.max_episode_steps = 200
@@ -141,11 +142,10 @@ class SimuVeh3dofconti(PythBaseEnv):
         self.ref_points = np.array(ref_points, dtype=np.float32)
 
         if init_state is not None:
-            self.state = np.array(init_state, dtype=np.float32)
+            delta_state = np.array(init_state, dtype=np.float32)
         else:
             delta_state = self.sample_initial_state()
-            self.state = np.concatenate(
-                (self.ref_points[0] + delta_state[:4], delta_state[4:]))
+        self.state = np.concatenate((self.ref_points[0] + delta_state[:4], delta_state[4:]))
 
         return self.get_obs(), self.info
 
@@ -184,9 +184,9 @@ class SimuVeh3dofconti(PythBaseEnv):
         steer, a_x = action
         return -(
             0.04 * (x - ref_x) ** 2 +
-            0.1 * (y - ref_y) ** 2 +
-            0.01 * (phi - ref_phi) ** 2 +
-            0.01 * (u - ref_u) ** 2 +
+            0.04 * (y - ref_y) ** 2 +
+            0.02 * (phi - ref_phi) ** 2 +
+            0.02 * (u - ref_u) ** 2 +
             0.01 * w ** 2 +
             0.01 * steer ** 2 +
             0.01 * a_x ** 2

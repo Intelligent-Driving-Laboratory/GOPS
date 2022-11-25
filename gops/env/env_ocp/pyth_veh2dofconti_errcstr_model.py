@@ -5,7 +5,7 @@
 #  Creator: iDLab
 #  Description: Vehicle 2DOF model environment with tracking error constraint
 
-from typing import Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 import torch
 
@@ -18,8 +18,8 @@ class Veh2dofcontiErrCstrModel(Veh2dofcontiModel):
         self,
         pre_horizon: int,
         device: Union[torch.device, str, None] = None,
-        path_para: dict = None,
-        u_para: dict = None,
+        path_para: Optional[Dict[str, Dict]] = None,
+        u_para: Optional[Dict[str, Dict]] = None,
         y_error_tol: float = 0.2,
         **kwargs,
     ):

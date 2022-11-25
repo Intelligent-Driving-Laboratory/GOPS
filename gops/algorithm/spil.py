@@ -64,9 +64,6 @@ class SPIL(AlgorithmBase):
         super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
-        self.use_gpu = kwargs["use_gpu"]
-        if self.use_gpu:
-            self.envmodel = self.envmodel.cuda()
         self.gamma = 0.99
         self.tau = 0.005
         self.pev_step = 1
@@ -140,11 +137,6 @@ class SPIL(AlgorithmBase):
         self.tb_info[tb_tags["loss_actor"]] = loss_policy.item()
         update_list.append('policy')
 
-        if self.use_gpu:
-            self.networks = self.networks.cpu()
-            for key, value in data.items():
-                data[key] = value.cpu()
-
         end_time = time.time()
 
         self.tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
@@ -194,7 +186,7 @@ class SPIL(AlgorithmBase):
             r_sum += self.gamma ** self.forward_step * self.networks.v_target(o2)
         loss_v = ((v - r_sum) ** 2).mean()
         self.safe_prob = traj_issafe.mean(0).numpy()
-        print(r_sum.mean(), self.safe_prob)
+        # print(r_sum.mean(), self.safe_prob)
         return loss_v, torch.mean(v)
 
     def __compute_loss_policy(self, data):
