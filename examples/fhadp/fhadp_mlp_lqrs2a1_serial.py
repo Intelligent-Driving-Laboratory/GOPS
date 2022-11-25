@@ -50,7 +50,7 @@ if __name__ == "__main__":
     parser.add_argument("--value_func_type", type=str, default="MLP")
 
     # 2.2 Parameters of policy approximate function
-    parser.add_argument("--policy_func_name", type=str, default="DetermPolicy")
+    parser.add_argument("--policy_func_name", type=str, default="FiniteHorizonPolicy")
     parser.add_argument("--policy_func_type", type=str, default="MLP")
     parser.add_argument("--policy_act_distribution", type=str, default="default")
     policy_func_type = parser.parse_known_args()[0].policy_func_type

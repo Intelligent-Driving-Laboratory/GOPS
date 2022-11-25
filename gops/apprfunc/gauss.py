@@ -9,6 +9,7 @@
 
 __all__ = [
     "DetermPolicy",
+    "FiniteHorizonPolicy",
     "StochaPolicy",
     "ActionValue",
     "ActionValueDis",
@@ -55,6 +56,25 @@ class DetermPolicy(nn.Module, Action_Distribution):
         ) / 2
         return action
 
+
+class FiniteHorizonPolicy(nn.Module, Action_Distribution):
+    def __init__(self, **kwargs):
+        super().__init__()
+        obs_dim = kwargs["obs_dim"]+1
+        act_dim = kwargs["act_dim"]
+        num_kernel = kwargs["num_kernel"]
+        self.pi = RBF(obs_dim, act_dim, num_kernel)
+        self.register_buffer("act_high_lim", torch.from_numpy(kwargs["act_high_lim"]))
+        self.register_buffer("act_low_lim", torch.from_numpy(kwargs["act_low_lim"]))
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
+
+    def forward(self, obs, virtual_t=1):
+        virtual_t = virtual_t * torch.ones(size=[obs.shape[0], 1],dtype=torch.float32, device=obs.device)
+        expand_obs = torch.cat((obs,virtual_t),1)
+        action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(
+            self.pi(expand_obs)
+        ) + (self.act_high_lim + self.act_low_lim) / 2
+        return action
 
 class StochaPolicy(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):

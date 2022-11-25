@@ -91,7 +91,7 @@ if __name__ == "__main__":
         type=dict,
         default={
             "mean": np.array([0], dtype=np.float32),
-            "std": np.array([0.1], dtype=np.float32),
+            "std": np.array([0.0], dtype=np.float32),
         },
     )
 
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters({"gamma": 0.99, "tau": 0.05,"forward_step":1})
+    alg.set_parameters({"gamma": 0.99, "tau": 0.05,"forward_step":10})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
