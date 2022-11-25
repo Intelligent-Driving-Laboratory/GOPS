@@ -35,9 +35,19 @@ if __name__ == "__main__":
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--action_type", type=str, default="continu", help="Options: continu/discret")
-    parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
-    parser.add_argument("--is_adversary", type=bool, default=False, help="Adversary training")
+    parser.add_argument("--obsv_dim", type=int, default=None, help="dim(State)")
+    parser.add_argument("--action_dim", type=int, default=None, help="dim(Action)")
+    parser.add_argument("--action_high_limit", type=list, default=None)
+    parser.add_argument("--action_low_limit", type=list, default=None)
+    parser.add_argument(
+        "--action_type", type=str, default="continu", help="Options: continu/discret"
+    )
+    parser.add_argument(
+        "--is_render", type=bool, default=False, help="Draw environment animation"
+    )
+    parser.add_argument(
+        "--is_adversary", type=bool, default=False, help="Adversary training"
+    )
     ################################################
     # 2.1 Parameters of value approximate function
     parser.add_argument("--value_func_name", type=str, default="ActionValue")
@@ -50,12 +60,13 @@ if __name__ == "__main__":
 
     # 2.2 Parameters of policy approximate function
     parser.add_argument("--policy_func_name", type=str, default="DetermPolicy")
-    parser.add_argument("--policy_func_type", type=str, default="MLP")
+    parser.add_argument("--policy_func_type", type=str, default="LTC")
     parser.add_argument("--policy_act_distribution", type=str, default="default")
     policy_func_type = parser.parse_known_args()[0].policy_func_type
-    if policy_func_type == "MLP":
-        parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
-        parser.add_argument("--policy_hidden_activation", type=str, default="relu")
+    if policy_func_type == "LTC":
+        parser.add_argument("--policy_mlp_units", type=list, default=[64,64])
+        parser.add_argument("--policy_ltc_units", type=int, default=8)
+        parser.add_argument("--policy_mlp_activation", type=str, default="relu")
         parser.add_argument("--policy_output_activation", type=str, default="linear")
 
     ################################################
@@ -74,7 +85,7 @@ if __name__ == "__main__":
         parser.add_argument("--buffer_warm_size", type=int, default=1000)
         parser.add_argument("--buffer_max_size", type=int, default=100000)
         parser.add_argument("--replay_batch_size", type=int, default=64)
-        parser.add_argument("--sample_interval", type=int, default=1)
+        parser.add_argument("--sampler_sync_interval", type=int, default=1)
 
     ################################################
     # 5. Parameters for sampler
@@ -106,12 +117,13 @@ if __name__ == "__main__":
     env = create_env(**args)
     args = init_args(env, **args)
 
-    start_tensorboard(args["save_folder"])
+    # start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     alg.set_parameters(
         {"gamma": 0.99, "tau": 0.2, "delay_update": 1}
     )
+    # "reward_scale": 0.1,
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

@@ -88,6 +88,13 @@ def get_apprfunc_dict(key: str, type=None, **kwargs):
         var["add_bias"] = kwargs[key + "_add_bias"]
     elif apprfunc_type == "GAUSS":
         var["num_kernel"] = kwargs[key + "_num_kernel"]
+    elif apprfunc_type == "LTC":
+        var["mlp_units"] = kwargs[key + "_mlp_units"]
+        var["ltc_units"] = kwargs[key + "_ltc_units"]
+        var["mlp_activation"] = kwargs[key + "_mlp_activation"]
+        var["output_activation"] = kwargs[key + "_output_activation"]
+    elif apprfunc_type == "NCP":
+        var['ncp_units'] = kwargs[key + "_ncp_units"]
     else:
         raise NotImplementedError
 

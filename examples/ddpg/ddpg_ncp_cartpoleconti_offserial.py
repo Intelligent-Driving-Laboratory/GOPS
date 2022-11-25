@@ -4,9 +4,7 @@
 #
 #  Creator: iDLab
 #  Description: Discrete version of Cartpole Enviroment
-#  Update Date: 2020-11-10, Hao Sun: renew env para
-#  Update Date: 2021-05-21, Shengbo Li: Reformualte code formats
-
+#  Update Date: 2022-11-25 Wang Yinuo : create new algorithm NCP
 
 import argparse
 import os
@@ -23,8 +21,7 @@ from gops.utils.init_args import init_args
 from gops.utils.plot_evaluation import plot_all
 from gops.utils.tensorboard_setup import start_tensorboard, save_tb_to_csv
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     # Parameters Setup
     parser = argparse.ArgumentParser()
 
@@ -33,7 +30,6 @@ if __name__ == "__main__":
     parser.add_argument("--env_id", type=str, default="gym_cartpoleconti")
     parser.add_argument("--algorithm", type=str, default="DDPG")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
-    ################################################
     # 1. Parameters for environment
     parser.add_argument("--action_type", type=str, default="continu", help="Options: continu/discret")
     parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
@@ -50,14 +46,14 @@ if __name__ == "__main__":
 
     # 2.2 Parameters of policy approximate function
     parser.add_argument("--policy_func_name", type=str, default="DetermPolicy")
-    parser.add_argument("--policy_func_type", type=str, default="MLP")
+    parser.add_argument("--policy_func_type", type=str, default="NCP")
     parser.add_argument("--policy_act_distribution", type=str, default="default")
     policy_func_type = parser.parse_known_args()[0].policy_func_type
-    if policy_func_type == "MLP":
-        parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
-        parser.add_argument("--policy_hidden_activation", type=str, default="relu")
-        parser.add_argument("--policy_output_activation", type=str, default="linear")
-
+    if policy_func_type == "NCP":
+        # parser.add_argument("--policy_mlp_units", type=list, default=[64,64])
+        parser.add_argument("--policy_ncp_units", type=int, default=4)
+        # parser.add_argument("--policy_mlp_activation", type=str, default="relu")
+        # parser.add_argument("--policy_output_activation", type=str, default="linear")
     ################################################
     # 3. Parameters for RL algorithm
     parser.add_argument("--value_learning_rate", type=float, default=1e-3)
@@ -88,7 +84,6 @@ if __name__ == "__main__":
             "std": np.array([0.2], dtype=np.float32),
         },
     )
-
     ################################################
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
@@ -106,7 +101,7 @@ if __name__ == "__main__":
     env = create_env(**args)
     args = init_args(env, **args)
 
-    start_tensorboard(args["save_folder"])
+    # start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     alg.set_parameters(
@@ -128,3 +123,19 @@ if __name__ == "__main__":
     # Plot and save training figures
     plot_all(args["save_folder"])
     save_tb_to_csv(args["save_folder"])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
