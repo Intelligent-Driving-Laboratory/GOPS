@@ -44,6 +44,10 @@ class OptController:
         
         assert mode in ["shooting", "collocation"]
         self.mode = mode
+        if self.mode == "shooting":
+            self.rollout_mode = "loop"
+        elif self.mode == "collocation":
+            self.rollout_mode = "batch"
 
         if use_terminal_cost:
             if terminal_cost is not None:
@@ -76,6 +80,10 @@ class OptController:
         self.__reset_statistics()
 
     def __call__(self, x: np.ndarray, info: InfoDict={}) -> np.ndarray:
+        x = torch.tensor(x, dtype=torch.float32)
+        if info:
+            for (key, value) in info.items():
+                info[key] = torch.tensor(value, dtype=torch.float32)
         res = minimize_ipopt(
             fun=self.__cost_fcn, 
             x0=self.initial_guess,
@@ -106,23 +114,13 @@ class OptController:
             self.__print_statistics(res)
         return res.x.reshape((self.num_ctrl_points, self.optimize_dim))[0, :self.action_dim]
 
-    def __cost_fcn(self, inputs: np.ndarray, x: np.ndarray, info: InfoDict) -> float:
-        x = torch.tensor(x, dtype=torch.float32)
-        inputs = torch.tensor(
-            inputs, 
-            dtype=torch.float32, 
-            requires_grad=True
-        )
+    def __cost_fcn(self, inputs: np.ndarray, x: torch.Tensor, info: InfoDict) -> float:
+        inputs = torch.tensor(inputs, dtype=torch.float32, requires_grad=True)
         cost = self.__compute_cost(inputs, x, info)
         return cost.detach().item()
 
-    def __cost_jac(self, inputs: np.ndarray, x: np.ndarray, info: InfoDict) -> np.ndarray:
-        x = torch.tensor(x, dtype=torch.float32)
-        inputs = torch.tensor(
-            inputs, 
-            dtype=torch.float32, 
-            requires_grad=True
-        )
+    def __cost_jac(self, inputs: np.ndarray, x: torch.Tensor, info: InfoDict) -> np.ndarray:
+        inputs = torch.tensor(inputs, dtype=torch.float32, requires_grad=True)
         cost = self.__compute_cost(inputs, x, info)
         jac = torch.autograd.grad(cost, inputs)[0]
         return jac.numpy().astype("d")
@@ -130,42 +128,38 @@ class OptController:
     def __constraint_fcn(
         self, 
         inputs: Union[np.ndarray, torch.Tensor], 
-        x: Union[np.ndarray, torch.Tensor], 
+        x: torch.Tensor, 
         info: InfoDict
     ) -> torch.Tensor:
 
         if self.model.get_constraint is None:
+            self.num_non_trans_cstr = 1
             return torch.tensor([0.])
         else:
             self.constraint_evaluations += 1
 
             if isinstance(inputs, np.ndarray):
-                x = torch.tensor(x, dtype=torch.float32)
-                inputs = torch.tensor(
-                    inputs, 
-                    dtype=torch.float32,
-                )
+                inputs = torch.tensor(inputs, dtype=torch.float32)
             states, _ = self.__rollout(inputs, x, info)
             
-            # model.get_constraint() return a Tensor of shape [1],
-            # each element of which should be required to be lower than or equal to 0
+            # model.get_constraint() returns a Tensor, each element of which 
+            # should be required to be lower than or equal to 0
             # minimize_ipopt() takes inequality constraints that should be greater than or equal to 0
-            return -self.model.get_constraint(states)
+            cstr_vector = -self.model.get_constraint(states).reshape(-1)
+            self.num_non_trans_cstr = cstr_vector.shape[0]
+            return cstr_vector
 
-    def __constraint_jac(self, inputs: np.ndarray, x: np.ndarray, info: InfoDict) -> np.ndarray:
-        x = torch.tensor(x, dtype=torch.float32)
-        inputs = torch.tensor(
-            inputs, 
-            dtype=torch.float32, 
-            requires_grad=True
-        )
-        jac = F.jacobian(partial(self.__constraint_fcn, x=x, info=info), inputs)
+    def __constraint_jac(self, inputs: np.ndarray, x: torch.Tensor, info: InfoDict) -> np.ndarray:
+        inputs = torch.tensor(inputs, dtype=torch.float32)
+        unit_vectors = torch.eye(self.num_non_trans_cstr)
+        _, vjp_fn = vjp(partial(self.__constraint_fcn, x=x, info=info), inputs)
+        jac = vmap(vjp_fn)(unit_vectors)[0]
         return jac.numpy().astype("d")
     
     def __trans_constraint_fcn(
         self, 
         inputs: Union[np.ndarray, torch.Tensor], 
-        x: Union[np.ndarray, torch.Tensor], 
+        x: torch.Tensor, 
         info: InfoDict
     ) -> torch.Tensor:
         if self.mode == "shooting":
@@ -174,27 +168,17 @@ class OptController:
             self.constraint_evaluations += 1
 
             if isinstance(inputs, np.ndarray):
-                x = torch.tensor(x, dtype=torch.float32)
-                inputs = torch.tensor(
-                    inputs, 
-                    dtype=torch.float32,
-                )
+                inputs = torch.tensor(inputs, dtype=torch.float32)
             true_states, _ = self.__rollout(inputs, x, info)
             true_states = true_states[1::self.ctrl_interval, :].reshape(-1)
             input_states = inputs.reshape((-1, self.optimize_dim))[:, -self.obs_dim:].reshape(-1)
             return true_states - input_states
     
-    def __trans_constraint_jac(self, inputs: np.ndarray, x: np.ndarray, info: InfoDict) -> np.ndarray:
-        x = torch.tensor(x, dtype=torch.float32)
-        inputs = torch.tensor(
-            inputs, 
-            dtype=torch.float32,
-        )
-
+    def __trans_constraint_jac(self, inputs: np.ndarray, x: torch.Tensor, info: InfoDict) -> np.ndarray:
+        inputs = torch.tensor(inputs, dtype=torch.float32)
         unit_vectors = torch.eye(self.obs_dim * self.num_ctrl_points)
         _, vjp_fn = vjp(partial(self.__trans_constraint_fcn, x=x, info=info), inputs)
         jac = vmap(vjp_fn)(unit_vectors)[0]
-
         return jac.numpy().astype("d")
 
     def __rollout(self, inputs: torch.Tensor, x: torch.Tensor, info: InfoDict) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -205,26 +189,36 @@ class OptController:
         states[0, :] = x
         done = torch.tensor([False])
 
-        if self.mode == "shooting":
-            next_x = x.unsqueeze(0)
-            for i in range(self.num_pred_step):
-                u = inputs_repeated[i, :self.action_dim].unsqueeze(0)
-                next_x, reward, done, info = self.model.forward(
-                    next_x, 
-                    u,
-                    done=done,
-                    info=info
-                )
-                rewards[i] = -reward * (self.gamma ** i)
-                states[i + 1, :] = next_x
+        while(True):
+            if self.rollout_mode == "loop":
+                next_x = x.unsqueeze(0)
+                batched_info = {}
+                if info:
+                    for (key, value) in info.items():
+                        batched_info[key] = value.unsqueeze(0)
+                for i in range(self.num_pred_step):
+                    u = inputs_repeated[i, :self.action_dim].unsqueeze(0)
+                    next_x, reward, done, batched_info = self.model.forward(
+                        next_x, 
+                        u,
+                        done=done,
+                        info=batched_info
+                    )
+                    rewards[i] = -reward * (self.gamma ** i)
+                    states[i + 1, :] = next_x
+                break
 
-        elif self.mode == "collocation":
-            xs = torch.cat((x.unsqueeze(0), inputs_repeated[:-self.ctrl_interval:self.ctrl_interval, -self.obs_dim:]))
-            us = inputs_repeated[::self.ctrl_interval, :self.action_dim]
-            for i in range(self.ctrl_interval):
-                xs, rewards[i::self.ctrl_interval], _, _ = self.model.forward(xs, us, done=done, info=info)
-                states[i+1::self.ctrl_interval, :] = xs
-            rewards = -rewards * torch.logspace(0, self.num_pred_step-1, self.num_pred_step, base=self.gamma)
+            elif self.rollout_mode == "batch":
+                try:
+                    xs = torch.cat((x.unsqueeze(0), inputs_repeated[:-self.ctrl_interval:self.ctrl_interval, -self.obs_dim:]))
+                    us = inputs_repeated[::self.ctrl_interval, :self.action_dim]
+                    for i in range(self.ctrl_interval):
+                        xs, rewards[i::self.ctrl_interval], _, _ = self.model.forward(xs, us, done=done, info={})
+                        states[i+1::self.ctrl_interval, :] = xs
+                    rewards = -rewards * torch.logspace(0, self.num_pred_step-1, self.num_pred_step, base=self.gamma)
+                    break
+                except(KeyError): # the model requires additional info to forward, can't use batch rollout mode
+                    self.rollout_mode = "loop"
 
         return states, rewards
     
@@ -237,7 +231,7 @@ class OptController:
 
         # Terminal cost for timestep T
         if self.terminal_cost is not None:
-            terminal_cost = self.terminal_cost(states[:, -1])
+            terminal_cost = self.terminal_cost(states[-1, :])
             cost += terminal_cost * (self.gamma ** self.num_pred_step)
         return cost
 
@@ -286,7 +280,7 @@ class NNController:
 if __name__ == "__main__":
     # Parameters Setup
     parser = argparse.ArgumentParser()
-    env_id = "pyth_veh2dofconti_errcstr"
+    env_id = "pyth_veh3dofconti_errcstr"
     parser.add_argument("--env_id", type=str, default=env_id)
     parser.add_argument("--lq_config", type=str, default="s6a3")
     parser.add_argument('--clip_action', type=bool, default=True)
@@ -329,12 +323,16 @@ if __name__ == "__main__":
         parser.add_argument('--max_newton_iteration', type=int, default=50)
         parser.add_argument('--max_iteration', type=int, default=parser.parse_args().max_newton_iteration)
     
-    if env_id == "pyth_veh2dofconti_errcstr":
+    if env_id == "pyth_veh2dofconti_errcstr" or env_id == "pyth_veh3dofconti_errcstr":
         parser.add_argument("--pre_horizon", type=int, default=20)
 
     args = vars(parser.parse_args())
     env_model = create_env_model(**args)
     obs_dim = env_model.obs_dim
+    if env_id == "pyth_veh2dofconti_errcstr":
+        obs_dim -= args["pre_horizon"]
+    elif env_id == "pyth_veh3dofconti_errcstr":
+        obs_dim -= 2 * args["pre_horizon"]
     action_dim = env_model.action_dim
 
     if args["env_id"] == "pyth_lq":
@@ -347,9 +345,9 @@ if __name__ == "__main__":
     times = []
     seed = 0
     # num_pred_steps = range(70, 100, 10)
-    num_pred_steps = (30,)
+    num_pred_steps = (10,)
     ctrl_interval = 1
-    sim_num = 100
+    sim_num = 75
     sim_horizon = np.arange(sim_num)
     for num_pred_step in num_pred_steps:
         controller = OptController(
@@ -360,13 +358,13 @@ if __name__ == "__main__":
             verbose=1,
             minimize_options={
                 "max_iter": 200, 
-                "tol": 1e-3,
-                "acceptable_tol": 1e-0,
-                "acceptable_iter": 10,
+                "tol": 1e-5,
+                "acceptable_tol": 1e-3,
+                "acceptable_iter": 15,
                 "print_level": 5,
                 "print_timing_statistics": "yes",
             },
-            # mode="shooting",
+            mode="shooting",
         )
 
         env = create_env(**args)
