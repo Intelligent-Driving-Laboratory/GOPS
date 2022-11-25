@@ -48,6 +48,7 @@ class Veh2dofcontiModel(PythBaseModel):
         device: Union[torch.device, str, None] = None,
         path_para: Optional[Dict[str, Dict]] = None,
         u_para: Optional[Dict[str, Dict]] = None,
+        max_steer: float = np.pi / 6,
         **kwargs,
     ):
         """
@@ -60,8 +61,8 @@ class Veh2dofcontiModel(PythBaseModel):
             obs_dim=state_dim + pre_horizon * 1,
             action_dim=1,
             dt=0.1,
-            action_lower_bound=[-np.pi / 6],
-            action_upper_bound=[np.pi / 6],
+            action_lower_bound=[-max_steer],
+            action_upper_bound=[max_steer],
             device=device,
         )
         self.ref_traj = MultiRefTrajModel(path_para, u_para)
