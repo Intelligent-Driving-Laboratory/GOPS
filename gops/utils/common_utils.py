@@ -95,6 +95,9 @@ def get_apprfunc_dict(key: str, type=None, **kwargs):
         var["output_activation"] = kwargs[key + "_output_activation"]
     elif apprfunc_type == "NCP":
         var['ncp_units'] = kwargs[key + "_ncp_units"]
+        var["mlp_units"] = kwargs[key + "_mlp_units"]
+        var["mlp_activation"] = kwargs[key + "_mlp_activation"]
+        var["output_activation"] = kwargs[key + "_output_activation"]
     else:
         raise NotImplementedError
 

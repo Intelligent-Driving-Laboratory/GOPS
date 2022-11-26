@@ -26,6 +26,13 @@ from gops.utils.act_distribution_cls import Action_Distribution
 from ncps.wirings import AutoNCP
 from ncps.torch import LTC
 
+# Define MLP function
+def mlp(sizes, activation, output_activation=nn.Identity):
+    layers = []
+    for j in range(len(sizes) - 1):
+        act = activation if j < len(sizes) - 2 else output_activation
+        layers += [nn.Linear(sizes[j], sizes[j + 1]), act()]
+    return nn.Sequential(*layers)
 
 # Define NCP function
 def ncp(ncp_units, act_dim, obs_dim):
@@ -33,15 +40,32 @@ def ncp(ncp_units, act_dim, obs_dim):
     ltc_model = LTC(obs_dim, wiring, batch_first=True)
     return ltc_model
 
+# Build MLP-NCP Network
+def mlp_ncp(mlp_units, mlp_activation, ltc_units, input_dim, output_dim):
+    if mlp_units:
+        ncp_input_dim = mlp_units[-1]
+        pi_sizes = [input_dim] + list(mlp_units)
+        mlp_layer = mlp(
+            pi_sizes,
+            get_activation_func(mlp_activation))
+    else:
+        ncp_input_dim = input_dim
+        mlp_layer = nn.Identity()
+    ncp_output_dim = output_dim
+
+    ncp_layer = ncp(ltc_units, ncp_output_dim, ncp_input_dim)
+    return nn.Sequential(mlp_layer, ncp_layer)
 
 class DetermPolicy(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):
         super().__init__()
-        ncp_units = kwargs["ncp_units"]
-        act_dim = kwargs["act_dim"]
         obs_dim = kwargs["obs_dim"]
+        act_dim = kwargs["act_dim"]
+        mlp_units = kwargs["mlp_units"]
+        mlp_activation = kwargs["mlp_activation"]
+        ncp_units = kwargs["ncp_units"]
 
-        self.pi = ncp(ncp_units, act_dim, obs_dim)
+        self.pi = mlp_ncp(mlp_units, mlp_activation, ncp_units, obs_dim, act_dim)
         self.register_buffer("act_high_lim", torch.from_numpy(kwargs["act_high_lim"]))
         self.register_buffer("act_low_lim", torch.from_numpy(kwargs["act_low_lim"]))
         self.action_distribution_cls = kwargs["action_distribution_cls"]
