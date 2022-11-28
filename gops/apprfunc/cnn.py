@@ -9,6 +9,7 @@
 
 __all__ = [
     "DetermPolicy",
+    "FiniteHorizonPolicy",
     "StochaPolicy",
     "ActionValue",
     "ActionValueDis",
@@ -119,6 +120,9 @@ class DetermPolicy(nn.Module, Action_Distribution):
         ) / 2
         return action
 
+
+class FiniteHorizonPolicy(nn.Module, Action_Distribution):
+    raise NotImplementedError
 
 class StochaPolicy(nn.Module, Action_Distribution):
     def __init__(self, **kwargs):

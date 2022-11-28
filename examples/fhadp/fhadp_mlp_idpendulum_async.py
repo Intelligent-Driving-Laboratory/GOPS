@@ -8,7 +8,7 @@
 
 import os
 
-# os.environ["OMP_NUM_THREADS"] = "4"
+os.environ["OMP_NUM_THREADS"] = "1"
 import argparse
 import numpy as np
 from gops.create_pkg.create_alg import create_alg
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument("--env_id", type=str, default="pyth_idpendulum")
     parser.add_argument("--algorithm", type=str, default="FHADP")
-    parser.add_argument("--pre_horizon", type=int, default=70)
+    parser.add_argument("--pre_horizon", type=int, default=80)
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     parser.add_argument("--seed", default=3328005365, help="seed")
     ################################################
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     parser.add_argument("--value_func_type", type=str, default="MLP")
 
     # 2.2 Parameters of policy approximate function
-    parser.add_argument("--policy_func_name", type=str, default="DetermPolicy")
+    parser.add_argument("--policy_func_name", type=str, default="FiniteHorizonPolicy")
     parser.add_argument("--policy_func_type", type=str, default="MLP")
     parser.add_argument("--policy_act_distribution", type=str, default="default")
     policy_func_type = parser.parse_known_args()[0].policy_func_type
@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument("--policy_learning_rate", type=float, default=3e-4)
+    parser.add_argument("--policy_learning_rate", type=float, default=1e-4)
 
     ################################################
     # 4. Parameters for trainer
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         type=dict,
         default={
             "mean": np.array([0], dtype=np.float32),
-            "std": np.array([0.2], dtype=np.float32),
+            "std": np.array([0.1], dtype=np.float32),
         },
     )
 

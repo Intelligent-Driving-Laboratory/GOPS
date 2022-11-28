@@ -9,6 +9,7 @@
 
 __all__ = [
     "DetermPolicy",
+    "FiniteHorizonPolicy",
     "StochaPolicy",
     "ActionValue",
     "ActionValueDis",
@@ -110,9 +111,13 @@ class DetermPolicy(nn.Module, Action_Distribution):
         feature = img.view(img.size(0), -1)
         feature = self.mlp(feature)
         action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(feature) + (
-            self.act_high_lim + self.act_low_lim
+                self.act_high_lim + self.act_low_lim
         ) / 2
         return action
+
+
+class FiniteHorizonPolicy(nn.Module, Action_Distribution):
+    raise NotImplementedError
 
 
 class StochaPolicy(nn.Module, Action_Distribution):

@@ -96,12 +96,12 @@ class FHADP(AlgorithmBase):
 
         for step in range(self.forward_step):
             if step == 0:
-                a = self.networks.policy(o)
+                a = self.networks.policy(o,step+1)
                 o2, r, d, info = self.envmodel.forward(o, a, d, info_init)
                 v_pi =  r
             else:
                 o = o2
-                a = self.networks.policy(o)
+                a = self.networks.policy(o,step+1)
                 o2, r, d, info = self.envmodel.forward(o, a, d, info)
                 v_pi += r*(self.gamma**step)
 
