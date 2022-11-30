@@ -32,10 +32,6 @@ if __name__ == "__main__":
 
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None)  # dim(State)
-    parser.add_argument("--action_dim", type=int, default=None)  # dim(Action)
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument(
         "--action_type", type=str, default="continu"
     )  # Options: continu/discret
@@ -67,6 +63,7 @@ if __name__ == "__main__":
     parser.add_argument("--policy_func_type", type=str, default="POLY")
     parser.add_argument("--policy_act_distribution", type=str, default="default")
     parser.add_argument('--policy_degree', type=int, default=2)
+    parser.add_argument('--policy_add_bias', type=float, default=0)
     parser.add_argument("--policy_min_log_std", type=int, default=-20)
     parser.add_argument("--policy_max_log_std", type=int, default=1)
 
@@ -168,7 +165,6 @@ if __name__ == "__main__":
             "schedule_clip": "None",
             "loss_value_clip": False,
             "loss_value_norm": False,
-            "reward_scale": 0.1,
         }
     )
     # Step 2: create sampler in trainer

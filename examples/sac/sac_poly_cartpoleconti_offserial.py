@@ -32,10 +32,6 @@ if __name__ == "__main__":
 
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None)  # dim(State)
-    parser.add_argument("--action_dim", type=int, default=None)  # dim(Action)
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument(
         "--action_type", type=str, default="continu"
     )  # Options: continu/discret
@@ -69,7 +65,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--policy_act_distribution", type=str, default="TanhGaussDistribution"
     )
-    parser.add_argument('--policy_degree', type=int, default=2)
+    policy_func_type = parser.parse_known_args()[0].policy_func_type
+    if policy_func_type == "POLY":
+        parser.add_argument('--policy_degree', type=int, default=2)
+        parser.add_argument('--policy_add_bias', type=bool, default=False)
+
     parser.add_argument("--policy_min_log_std", type=int, default=-20)
     parser.add_argument("--policy_max_log_std", type=int, default=1)
 
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters({"reward_scale": 0.1, "gamma": 0.99, "tau": 0.2})
+    alg.set_parameters({"gamma": 0.99, "tau": 0.2})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

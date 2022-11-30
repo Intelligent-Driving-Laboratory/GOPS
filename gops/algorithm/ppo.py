@@ -71,6 +71,8 @@ class PPO(AlgorithmBase):
         self.clip = 0.2
         self.clip_now = self.clip
         self.EPS = 1e-8
+        self.gamma = 0.99
+        self.reward_scale = 0.1
         self.loss_coefficient_kl = 0.2
         self.loss_coefficient_value = 1.0
         self.loss_coefficient_entropy = 0.0
@@ -90,7 +92,7 @@ class PPO(AlgorithmBase):
 
     @property
     def adjustable_parameters(self):
-        return (
+        return ("gamma", "reward_scale",
             "clip", "loss_value_clip", "value_clip",
             "loss_value_norm", "advantage_norm",
             "loss_coefficient_kl", "loss_coefficient_value",

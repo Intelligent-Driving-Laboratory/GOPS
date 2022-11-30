@@ -41,10 +41,6 @@ if __name__ == "__main__":
 
     ################################################
     # 1. Parameters for environment
-    parser.add_argument('--obsv_dim', type=int, default=None, help='')
-    parser.add_argument('--action_dim', type=int, default=None, help='')
-    parser.add_argument('--action_high_limit', type=list, default=None, help='')
-    parser.add_argument('--action_low_limit', type=list, default=None, help='')
     parser.add_argument('--action_type', type=str, default='continu', help='')
     parser.add_argument('--is_render', type=bool, default=False, help='')
     parser.add_argument('--is_adversary', type=bool, default=False, help='Adversary training')
@@ -150,7 +146,7 @@ if __name__ == "__main__":
     # start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters({'gamma': 0.9, 'loss_coefficient_value': 1.0, 'loss_coefficient_entropy': 0.001})
+    alg.set_parameters({'loss_coefficient_value': 1.0, 'loss_coefficient_entropy': 0.001})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

@@ -36,10 +36,6 @@ if __name__ == "__main__":
 
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None, help="")
-    parser.add_argument("--action_dim", type=int, default=None, help="")
-    parser.add_argument("--action_high_limit", type=list, default=None, help="")
-    parser.add_argument("--action_low_limit", type=list, default=None, help="")
     parser.add_argument("--action_type", type=str, default="continu", help="")
     parser.add_argument("--is_render", type=bool, default=False, help="")
     parser.add_argument(
@@ -184,7 +180,6 @@ if __name__ == "__main__":
             "schedule_clip": "None",
             "loss_value_clip": False,
             "loss_value_norm": False,
-            "reward_scale": 0.1,
         }
     )
     # Step 2: create sampler in trainer

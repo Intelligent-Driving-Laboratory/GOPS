@@ -36,10 +36,6 @@ if __name__ == "__main__":
 
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None)
-    parser.add_argument("--action_dim", type=int, default=None)
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--action_type", type=str, default="continu")
     parser.add_argument("--is_render", type=bool, default=False)
     parser.add_argument(
@@ -57,41 +53,29 @@ if __name__ == "__main__":
     value_func_type = parser.parse_known_args()[0].value_func_type
     if value_func_type == "MLP":
         parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
-    parser.add_argument("--value_hidden_activation", type=str, default="relu")
-    parser.add_argument("--value_output_activation", type=str, default="linear")
+        parser.add_argument("--value_hidden_activation", type=str, default="relu")
+        parser.add_argument("--value_output_activation", type=str, default="linear")
 
     # 2.2 Parameters of policy approximate function
     # Options: None/DetermPolicy/StochaPolicy
     parser.add_argument("--policy_func_name", type=str, default="StochaPolicy")
     # Options: MLP/CNN/RNN/POLY/GAUSS
     parser.add_argument("--policy_func_type", type=str, default="MLP")
-    parser.add_argument(
-        "--policy_act_distribution", type=str, default="GaussDistribution"
-    )
+    parser.add_argument("--policy_act_distribution", type=str, default="GaussDistribution")
     policy_func_type = parser.parse_known_args()[0].policy_func_type
     if policy_func_type == "MLP":
         parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
-        parser.add_argument(
-            "--policy_hidden_activation", type=str, default="relu", help=""
-        )
-        parser.add_argument(
-            "--policy_output_activation", type=str, default="linear", help=""
-        )
+        parser.add_argument("--policy_hidden_activation", type=str, default="relu", help="")
+        parser.add_argument("--policy_output_activation", type=str, default="linear", help="")
         parser.add_argument("--policy_min_log_std", type=int, default=-20)  # -6
         parser.add_argument("--policy_max_log_std", type=int, default=1)  # 3
         parser.add_argument("--policy_std_sype", type=str, default="parameter")
     ################################################
     # 3. Parameters for algorithm
-    parser.add_argument(
-        "--learning_rate", type=float, default=1e-3, help="3e-4 in the paper"
-    )
+    parser.add_argument("--learning_rate", type=float, default=1e-3, help="3e-4 in the paper")
     parser.add_argument("--num_repeat", type=int, default=10, help="5")  # 5 repeat
-    parser.add_argument(
-        "--num_mini_batch", type=int, default=8, help="8"
-    )  # 8 mini_batch
-    parser.add_argument(
-        "--mini_batch_size", type=int, default=64, help="128"
-    )  # 8 mini_batch * 128 = 1024
+    parser.add_argument("--num_mini_batch", type=int, default=8, help="8")  # 8 mini_batch
+    parser.add_argument("--mini_batch_size", type=int, default=64, help="128")  # 8 mini_batch * 128 = 1024
     parser.add_argument(
         "--num_epoch",
         type=int,
@@ -167,13 +151,12 @@ if __name__ == "__main__":
     alg.set_parameters(
         {
             "gamma": 0.99,
-            "loss_coefficient_value": 0.5,
+            "loss_coefficient_value": 0.25,
             "loss_coefficient_entropy": 0.01,
             "schedule_adam": "None",
             "schedule_clip": "None",
             "loss_value_clip": False,
             "loss_value_norm": False,
-            "reward_scale": 0.1,
         }
     )
     # Step 2: create sampler in trainer

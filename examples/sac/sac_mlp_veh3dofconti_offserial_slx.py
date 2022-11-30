@@ -29,17 +29,13 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="simu_veh3dof", help="")
+    parser.add_argument("--env_id", type=str, default="simu_veh3dofconti", help="")
     parser.add_argument("--algorithm", type=str, default="SAC", help="")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     parser.add_argument("--seed", default=2099945076, help="Disable CUDA")
 
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None)
-    parser.add_argument("--action_dim", type=int, default=None)
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--action_type", type=str, default="continu")
     parser.add_argument("--is_render", type=bool, default=False)
     parser.add_argument(
@@ -53,19 +49,19 @@ if __name__ == "__main__":
     parser.add_argument("--ref_T", type=list, default=[100., 200., 400.])  # dim(State)
     parser.add_argument("--ref_fai", type=list, default=[0, np.pi / 6, np.pi / 3])  # dim(State)
     parser.add_argument("--ref_V", type=float, default=20.)  # dim(Action)
-    parser.add_argument("--ref_info", type=str, default="Pos")  # dim(State)
+    parser.add_argument("--ref_info", type=str, default="None")  # dim(State)
     parser.add_argument("--ref_horizon", type=int, default=20)  # dim(Action)
     parser.add_argument("--Max_step", type=int, default=2000)  # dim(Action)
     parser.add_argument("--act_repeat", type=int, default=5)
-    parser.add_argument("--obs_scale", type=list, default=[0.001, 1, 1, 1, 2.4, 2])
-    parser.add_argument("--act_scale", type=list, default=[10, 1 / 1000, 1 / 1000])
+    parser.add_argument("--obs_scaling", type=list, default=[0.001, 1, 1, 1, 2.4, 2])
+    parser.add_argument("--act_scaling", type=list, default=[10, 1 / 1000, 1 / 1000])
     parser.add_argument("--act_max", type=list, default=[10 * np.pi / 180, 3000, 3000])
     parser.add_argument("--punish_done", type=float, default=0.)
     parser.add_argument("--rew_bias", type=float, default=2.5)
     parser.add_argument("--rew_bound", type=float, default=5)
     parser.add_argument("--punish_Q", type=list, default=[0.5, 0.5, 5, 0.25])
     parser.add_argument("--punish_R", type=list, default=[2.5, 5e-7, 5e-7])
-    parser.add_argument("--rand_bias", type=list, default=[200, 2, 4, 0.1, np.pi / 18, 0.01])
+    parser.add_argument("--rand_bias", type=list, default=[200, 1.5, 1.5, 0.1, np.pi / 18, 0.01]) ##[200, 2, 4, 0.1, np.pi / 18, 0.01]
     parser.add_argument("--rand_center", type=list, default=[0, 0, 20., 0, 0, 0])
     parser.add_argument("--done_range", type=list, default=[6., 6., np.pi / 6])
 
@@ -159,7 +155,7 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters({"reward_scale": 0.1, "gamma": 0.99, "tau": 0.05})
+    alg.set_parameters({"gamma": 0.99, "tau": 0.05})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

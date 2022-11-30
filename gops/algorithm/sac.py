@@ -78,12 +78,13 @@ class SAC(AlgorithmBase):
         self.tau = 0.005
         self.auto_alpha = True
         self.alpha = 0.2
+        self.reward_scale = 0.1
         self.target_entropy = -kwargs["action_dim"]
 
     @property
     def adjustable_parameters(self):
         return (
-            "gamma", "tau", "auto_alpha", "alpha"
+            "gamma", "tau", "auto_alpha", "alpha", "reward_scale"
         )
 
     def local_update(self, data: DataDict, iteration: int) -> dict:
