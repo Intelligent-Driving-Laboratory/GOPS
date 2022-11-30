@@ -46,7 +46,7 @@ def read_tensorboard(path):
     return output_dict
 
 
-def start_tensorboard(logdir, port=6001):
+def start_tensorboard(logdir, port=DEFAULT_TB_PORT):
     kill_port(port)
 
     sys_name = platform.system()
@@ -55,7 +55,7 @@ def start_tensorboard(logdir, port=6001):
             logdir, port
         )
     elif sys_name == "Windows":
-        cmd_line = '''start /b cmd.exe /k "tensorboard --logdir="{}" --port={}"'''.format(
+        cmd_line = '''start /b cmd.exe /k "tensorboard --logdir {} --port {}"'''.format(
             logdir, port
         )
     else:

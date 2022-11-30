@@ -160,7 +160,6 @@ if __name__ == "__main__":
             "schedule_clip": "None",
             "loss_value_clip": False,
             "loss_value_norm": False,
-            "reward_scale": 1,
         }
     )
     # Step 2: create sampler in trainer

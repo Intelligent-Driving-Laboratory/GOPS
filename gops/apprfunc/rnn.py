@@ -9,6 +9,7 @@
 
 __all__ = [
     "DetermPolicy",
+    "FiniteHorizonPolicy",
     "StochaPolicy",
     "ActionValue",
     "ActionValueDis",
@@ -60,6 +61,10 @@ class DetermPolicy(nn.Module, Action_Distribution):
             self.pi(h.squeeze(0))
         ) + (self.act_high_lim + self.act_low_lim) / 2
         return action
+
+
+class FiniteHorizonPolicy(nn.Module, Action_Distribution):
+    raise NotImplementedError
 
 
 class StochaPolicy(nn.Module, Action_Distribution):

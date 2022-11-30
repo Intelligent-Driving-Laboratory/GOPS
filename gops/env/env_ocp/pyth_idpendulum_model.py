@@ -118,17 +118,18 @@ class Dynamics(object):
         )
         tip_x = p + self.l_rod1 * torch.sin(theta1) + self.l_rod2 * torch.sin(theta2)
         tip_y = self.l_rod1 * torch.cos(theta1) + self.l_rod2 * torch.cos(theta2)
-        dist_penalty = 0.1 * torch.square(tip_x) + torch.square(tip_y - 2)
-        v1, v2 = theta1dot, theta2dot
-        vel_penalty = 0.1 * torch.square(v1) + 0.05 * torch.square(v2)
-        act_penalty = 0.1 * torch.square(actions)
-        rewards = 10 - dist_penalty - vel_penalty - act_penalty
-
-        # dist_penalty = 10 * torch.square(p) + 20 * torch.square(theta1) + 40 * torch.square(theta2)
-        # v0, v1, v2 = pdot, theta1dot, theta2dot
-        # vel_penalty = 0.1 * torch.square(v0) + 0.1 * torch.square(v1) + 0.1 * torch.square(v2)
-        # act_penalty = 0.05 * torch.square(actions)
+        # dist_penalty = 0.1 * torch.square(tip_x) + torch.square(tip_y - 2)
+        # v1, v2 = theta1dot, theta2dot
+        # vel_penalty = 0.1 * torch.square(v1) + 0.05 * torch.square(v2)
+        # act_penalty = 0.1 * torch.square(actions)
         # rewards = 10 - dist_penalty - vel_penalty - act_penalty
+        #
+
+        dist_penalty = 0 * torch.square(p) + 5 * torch.square(theta1) + 10 * torch.square(theta2)
+        v0, v1, v2 = pdot, theta1dot, theta2dot
+        vel_penalty = 0.5 * torch.square(v0) + 0.5 * torch.square(v1) + 1 * torch.square(v2)
+        act_penalty = 1 * torch.square(actions)
+        rewards = 10 - dist_penalty - vel_penalty - act_penalty
 
         return rewards
 

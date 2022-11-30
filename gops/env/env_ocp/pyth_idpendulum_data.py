@@ -38,9 +38,9 @@ class PythInverteddoublependulum(PythBaseEnv):
         # define your custom parameters here
 
         self.dynamics = Dynamics()
-        self.tau = 0.01
+        self.dt = 0.01
         self.discrete_num = 5
-        self.max_episode_steps = 1000
+        self.max_episode_steps = 500
         # define observation space here
         hb_observation = [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]
         self.observation_space = spaces.Box(
@@ -73,7 +73,7 @@ class PythInverteddoublependulum(PythBaseEnv):
         act_batch = torch.as_tensor(action, dtype=torch.float32).reshape(1, -1)
         next_obs_batch = obs_batch
         for _ in range(self.discrete_num):
-            next_obs_batch = self.dynamics.f_xu(obs_batch, 500*act_batch, self.tau / self.discrete_num)
+            next_obs_batch = self.dynamics.f_xu(obs_batch, 500 * act_batch, self.dt / self.discrete_num)
             obs_batch = next_obs_batch
         reward = self.dynamics.compute_rewards(next_obs_batch,act_batch)
         done = self.dynamics.get_done(next_obs_batch)

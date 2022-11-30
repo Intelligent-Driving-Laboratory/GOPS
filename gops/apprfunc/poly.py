@@ -9,6 +9,7 @@
 
 __all__ = [
     "DetermPolicy",
+    "FiniteHorizonPolicy",
     "StochaPolicy",
     "ActionValue",
     "ActionValueDis",
@@ -101,6 +102,32 @@ class DetermPolicy(nn.Module, Action_Distribution):
         #     self.pi(obs)
         # ) + (self.act_high_lim + self.act_low_lim) / 2
         action = self.pi(obs)
+        return action
+
+
+class FiniteHorizonPolicy(nn.Module, Action_Distribution):
+    def __init__(self, **kwargs):
+        super().__init__()
+        obs_dim = kwargs["obs_dim"]
+        act_dim = kwargs["act_dim"]
+        self.degree = kwargs["degree"]
+        self.add_bias = kwargs['add_bias']
+        self.pi = nn.Linear(get_features_dim(obs_dim, self.degree)+1, act_dim, bias=self.add_bias)
+        action_high_limit = kwargs["act_high_lim"]
+        action_low_limit = kwargs["act_low_lim"]
+        self.register_buffer("act_high_lim", torch.from_numpy(action_high_limit))
+        self.register_buffer("act_low_lim", torch.from_numpy(action_low_limit))
+        self.action_distribution_cls = kwargs["action_distribution_cls"]
+
+    def forward(self, obs, virtual_t=1):
+        obs = make_features(obs, self.degree)
+        virtual_t = virtual_t * torch.ones(size=[obs.shape[0], 1], dtype=torch.float32, device=obs.device)
+        expand_obs = torch.cat((obs, virtual_t), 1)
+        # obs = make_features(obs, self.degree)
+        # action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(
+        #     self.pi(expand_obs)
+        # ) + (self.act_high_lim + self.act_low_lim) / 2
+        action = self.pi(expand_obs)
         return action
 
 

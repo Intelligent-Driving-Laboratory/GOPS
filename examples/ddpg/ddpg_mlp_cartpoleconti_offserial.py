@@ -35,9 +35,16 @@ if __name__ == "__main__":
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--action_type", type=str, default="continu", help="Options: continu/discret")
-    parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
-    parser.add_argument("--is_adversary", type=bool, default=False, help="Adversary training")
+    parser.add_argument("--reward_scale", type=list, default=0.1)
+    parser.add_argument(
+        "--action_type", type=str, default="continu", help="Options: continu/discret"
+    )
+    parser.add_argument(
+        "--is_render", type=bool, default=False, help="Draw environment animation"
+    )
+    parser.add_argument(
+        "--is_adversary", type=bool, default=False, help="Adversary training"
+    )
     ################################################
     # 2.1 Parameters of value approximate function
     parser.add_argument("--value_func_name", type=str, default="ActionValue")
@@ -66,7 +73,7 @@ if __name__ == "__main__":
     ################################################
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
-    parser.add_argument("--max_iteration", type=int, default=10000)
+    parser.add_argument("--max_iteration", type=int, default=6400)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument("--ini_network_dir", type=str, default=None)
     if trainer_type == "off_serial_trainer":

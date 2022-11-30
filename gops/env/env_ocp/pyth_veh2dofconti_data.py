@@ -61,6 +61,7 @@ class SimuVeh2dofconti(PythBaseEnv):
         pre_horizon: int = 10,
         path_para: Optional[Dict[str, Dict]] = None,
         u_para: Optional[Dict[str, Dict]] = None,
+        max_steer: float = np.pi / 6,
         **kwargs,
     ):
         work_space = kwargs.pop("work_space", None)
@@ -80,8 +81,8 @@ class SimuVeh2dofconti(PythBaseEnv):
             low=np.array([-np.inf] * (self.pre_horizon + self.state_dim)),
             high=np.array([np.inf] * (self.pre_horizon + self.state_dim)),
             dtype=np.float32)
-        self.action_space = gym.spaces.Box(low=np.array([-np.pi / 6]),
-                                           high=np.array([np.pi / 6]),
+        self.action_space = gym.spaces.Box(low=np.array([-max_steer]),
+                                           high=np.array([max_steer]),
                                            dtype=np.float32)
         self.dt = 0.1
         self.max_episode_steps = 200
