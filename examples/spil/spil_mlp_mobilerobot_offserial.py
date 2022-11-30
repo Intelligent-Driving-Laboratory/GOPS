@@ -27,7 +27,7 @@ from gops.utils.init_args import init_args
 from gops.utils.plot_evaluation import plot_all
 from gops.utils.tensorboard_setup import start_tensorboard, save_tb_to_csv
 
-os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OMP_NUM_THREADS"] = "4"
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -40,11 +40,6 @@ if __name__ == "__main__":
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
 
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None)
-    parser.add_argument("--action_dim", type=int, default=None)
-    parser.add_argument("--constrained_dim", type=int, default=None)
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--action_type", type=str, default="continu")
     parser.add_argument("--is_render", type=bool, default=False)
     parser.add_argument("--is_adversary", type=bool, default=False)
@@ -69,13 +64,13 @@ if __name__ == "__main__":
             "--policy_hidden_activation", type=str, default="relu", help=""
         )
         parser.add_argument(
-            "--policy_output_activation", type=str, default="tanh", help=""
+            "--policy_output_activation", type=str, default="linear", help=""
         )
 
     ################################################
     # 3. Parameters for RL algorithm
     parser.add_argument("--value_learning_rate", type=float, default=2e-3)
-    parser.add_argument("--policy_learning_rate", type=float, default=0.3e-3)
+    parser.add_argument("--policy_learning_rate", type=float, default=3e-4)
 
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer")
@@ -113,7 +108,7 @@ if __name__ == "__main__":
     ################################################
     # 8. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
-    parser.add_argument("--apprfunc_save_interval", type=int, default=100)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=1000)
     parser.add_argument("--log_save_interval", type=int, default=100)
 
     # Get parameter dictionary
