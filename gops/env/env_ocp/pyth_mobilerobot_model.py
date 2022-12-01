@@ -27,6 +27,7 @@ class PythMobilerobotModel(PythBaseModel):
         you need to define parameters here
         """
         self.n_obstacle = 1
+        self.safe_margin = 0.15
 
         self.robot = Robot()
         self.obses = [Robot() for _ in range(self.n_obstacle)]
@@ -78,7 +79,8 @@ class PythMobilerobotModel(PythBaseModel):
                 )
                 state_next = torch.cat((state_next, obs_state), 1)
 
-                safe_dis = self.robot.robot_params["radius"] + self.obses[i - 1].robot_params["radius"] + 0.15  # 0.35
+                safe_dis = self.robot.robot_params["radius"] + self.obses[i - 1].robot_params["radius"] \
+                           + self.safe_margin  # 0.35
                 veh2vehdist[:, i - 1] = safe_dis - (
                     torch.sqrt(
                         torch.square(state_next[:, 3 + i * 5] - state_next[:, 0])
@@ -89,24 +91,29 @@ class PythMobilerobotModel(PythBaseModel):
         ############################################################################################
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
         r_tracking = (
-            -1.4 * torch.abs(tracking_error[:, 0]) - 1 * torch.abs(tracking_error[:, 1]) - 16 * torch.abs(tracking_error[:, 2])
+            -32 * torch.abs(tracking_error[:, 0]) - 100 * torch.abs(tracking_error[:, 1]) - 16 * torch.abs(tracking_error[:, 2])
         )
-        r_action = -0.2 * torch.abs(action[:, 0]) - 0.5 * torch.abs(action[:, 1])
+        r_action = -0 * torch.abs(action[:, 0]) - 0 * torch.abs(action[:, 1])
         reward = r_tracking + r_action
         ############################################################################################
         # define the constraint funtion
         constraint = veh2vehdist
-        dead = veh2vehdist > 0
+        # dead = veh2vehdist > 0
         info = {"constraint": constraint}
         ################################################################################################################
         # define the ending condition here the format is just like isdone = l(next_state)
 
-        isdone = dead.squeeze(1)
+        isdone = self.get_done(state_next, veh2vehdist)
         ############################################################################################
 
         return state_next, reward, isdone, info
 
-
+    def get_done(self, state, veh2vehdist):
+        done = torch.logical_or(state[:, 0] < -2, torch.abs(state[:, 1])>4)
+        for i in range(self.n_obstacle):
+            crush = veh2vehdist[:,i] >  self.safe_margin
+            done = torch.logical_or(done, crush)
+        return done
 class Robot:
     def __init__(self):
         self.robot_params = dict(

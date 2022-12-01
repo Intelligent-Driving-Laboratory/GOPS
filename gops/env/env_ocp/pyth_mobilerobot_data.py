@@ -22,6 +22,7 @@ gym.logger.setLevel(gym.logger.ERROR)
 class PythMobilerobot(PythBaseEnv):
     def __init__(self, **kwargs):
         self.n_obstacle = 1
+        self.safe_margin = 0.15
         self.max_episode_steps = 200
         work_space = kwargs.pop("work_space", None)
         if work_space is None:
@@ -114,8 +115,8 @@ class PythMobilerobot(PythBaseEnv):
         self._state = state_next
         ############################################################################################
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
-        r_tracking = -1.4 * np.abs(tracking_error[:, 0]) - 1 * np.abs(tracking_error[:, 1]) - 16 * np.abs(tracking_error[:, 2])
-        r_action = -0.2 * np.abs(action[:, 0]) - 0.5 * np.abs(action[:, 1])
+        r_tracking = -32 * np.abs(tracking_error[:, 0]) - 100 * np.abs(tracking_error[:, 1]) - 16 * np.abs(tracking_error[:, 2])
+        r_action = -0 * np.abs(action[:, 0]) - 0 * np.abs(action[:, 1])
         reward = r_tracking + r_action
         ############################################################################################
         # define the constraint here
@@ -125,22 +126,26 @@ class PythMobilerobot(PythBaseEnv):
         ################################################################################################################
         # define the ending condition here the format is just like isdone = l(next_state)
 
-        isdone = bool(
-            # dead.all(1)
-            # + (self._state[:, 0] < -2)
-            # + (self._state[:, 0] > 13)
-            # + (self._state[:, 1] > 3)
-            # + (self._state[:, 1] < -1)
-        )
+        isdone = self.get_done()
         ############################################################################################
         self.steps += 1
         info = {"constraint": constraint}  # TODO is right
         return np.array(self._state.reshape(-1), dtype=np.float32), float(reward), isdone, info  # TODO is right
 
+    def get_done(self):
+        done = self._state[:, 0] < -2 or self._state[:, 1] > 4 or self._state[:, 1] < -4
+        for i in range(self.n_obstacle):
+            crush = (((self._state[:, 8 + i * 5] - self._state[:, 0]) ** 2 +
+                    (self._state[:, 9 + i * 5] - self._state[:, 1]) ** 2)) ** 0.5 -\
+                    (self.robot.robot_params["radius"] + self.obses[i].robot_params["radius"]) < 0
+            done = done or crush
+        return done
+
+
     def get_constraint(self):
         constraint = np.zeros((self._state.shape[0], self.n_obstacle))
         for i in range(self.n_obstacle):
-            safe_dis = self.robot.robot_params["radius"] + self.obses[i].robot_params["radius"] + 0.15  # 0.35
+            safe_dis = self.robot.robot_params["radius"] + self.obses[i].robot_params["radius"] + self.safe_margin  # 0.35
             constraint[:, i] = safe_dis - (((self._state[:, 8 + i * 5] - self._state[:, 0]) ** 2 +
                                             (self._state[:, 9 + i * 5] - self._state[:, 1]) ** 2)) ** 0.5
         return constraint.reshape(-1)
@@ -217,7 +222,7 @@ class Robot:
         v_max = self.robot_params["v_max"]
         w_max = self.robot_params["w_max"]
         w_delta_max = self.robot_params["w_delta_max"]
-        std_type = {"ego": [0.03, 0.02], "obs": [0.03, 0.02], "none": [0, 0], "explore": [0.3, 0.3]}
+        std_type = {"ego": [0.03, 0.0], "obs": [0.03, 0.02], "none": [0, 0], "explore": [0.3, 0.3]}
         stds = std_type[type]
 
         x, y, theta, v, w = states[:, 0], states[:, 1], states[:, 2], states[:, 3], states[:, 4]
