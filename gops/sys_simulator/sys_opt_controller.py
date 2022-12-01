@@ -82,6 +82,7 @@ class OptController:
     def __call__(self, x: np.ndarray, info: InfoDict={}) -> np.ndarray:
         x = torch.tensor(x, dtype=torch.float32)
         if info:
+            info = info.copy()
             for (key, value) in info.items():
                 info[key] = torch.tensor(value, dtype=torch.float32)
         res = minimize_ipopt(
