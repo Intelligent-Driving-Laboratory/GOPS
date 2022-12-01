@@ -36,10 +36,6 @@ if __name__ == "__main__":
 
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None)
-    parser.add_argument("--action_dim", type=int, default=None)
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--action_type", type=str, default="continu")
     parser.add_argument("--is_render", type=bool, default=False)
     parser.add_argument(
@@ -72,24 +68,16 @@ if __name__ == "__main__":
     ################################################
     # 2.1 Parameters of value approximate function
     # Options: StateValue/ActionValue/ActionValueDis
-    parser.add_argument("--value_func_name", type=str, default="ActionValue")
-    parser.add_argument("--q_func_name", type=str, default="ActionValueDistri")
-    parser.add_argument("--q_func_type", type=str, default="MLP")
-    # Options: MLP/CNN/RNN/POLY/GAUSS
+    parser.add_argument("--value_func_name", type=str, default="ActionValueDistri")
     parser.add_argument("--value_func_type", type=str, default="MLP")
-    value_func_type = parser.parse_known_args()[0].value_func_type
-    ### 2.1.1 MLP, CNN, RNN
-    if value_func_type == "MLP":
-        parser.add_argument("--value_hidden_sizes", type=list, default=[256, 256])
-        parser.add_argument("--q_hidden_sizes", type=list, default=[256, 256])
-        # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
-        parser.add_argument("--value_hidden_activation", type=str, default="gelu")
-        parser.add_argument("--q_hidden_activation", type=str, default="gelu")
-        # Output Layer: linear
-        parser.add_argument("--value_output_activation", type=str, default="linear")
-        parser.add_argument("--q_output_activation", type=str, default="linear")
-        parser.add_argument("--q_min_log_std", type=int, default=-0.1)
-        parser.add_argument("--q_max_log_std", type=int, default=4)
+    # Options: MLP/CNN/RNN/POLY/GAUSS
+    parser.add_argument("--value_hidden_sizes", type=list, default=[256, 256])
+    # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
+    parser.add_argument("--value_hidden_activation", type=str, default="gelu")
+    # Output Layer: linear
+    parser.add_argument("--value_output_activation", type=str, default="linear")
+    parser.add_argument("--value_min_log_std", type=int, default=-0.1)
+    parser.add_argument("--value_max_log_std", type=int, default=4)
 
     # 2.2 Parameters of policy approximate function
     # Options: None/DetermPolicy/StochaPolicy
@@ -112,8 +100,7 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument("--value_learning_rate", type=float, default=1e-3)
-    parser.add_argument("--q_learning_rate", type=float, default=3e-4)
+    parser.add_argument("--value_learning_rate", type=float, default=3e-4)
     parser.add_argument("--policy_learning_rate", type=float, default=3e-4)
     parser.add_argument("--alpha_learning_rate", type=float, default=1e-4)
     ## Special parameters
@@ -124,7 +111,6 @@ if __name__ == "__main__":
     parser.add_argument("--tau", type=float, default=0.05)
     parser.add_argument("--reward_scale", type=float, default=1)
     parser.add_argument("--auto_alpha", type=bool, default=True)
-    parser.add_argument("--alpha", type=bool, default=0.2)
 
     ################################################
     # 4. Parameters for trainer
@@ -172,7 +158,7 @@ if __name__ == "__main__":
     env = create_env(**args)
     args = init_args(env, **args)
 
-    # start_tensorboard(args["save_folder"])
+    start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     # alg.set_parameters({"reward_scale": 0.1, "gamma": 0.99, "tau": 0.05})
