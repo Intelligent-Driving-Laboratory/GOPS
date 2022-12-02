@@ -1,20 +1,13 @@
-import argparse
-import time
 from typing import Callable, Optional, Tuple, Union
 import warnings
-from gops.create_pkg.create_env import create_env
-from gops.create_pkg.create_env_model import create_env_model
 from gops.env.env_ocp.pyth_base_model import PythBaseModel
 from gops.utils.gops_typing import InfoDict
-import matplotlib.pyplot as plt
 import torch
-import torch.autograd.functional as F
 from functools import partial
 from functorch import vmap, vjp
-import os
 import numpy as np
-import scipy.optimize as opt
 from cyipopt import minimize_ipopt
+import scipy.optimize as opt
 
 class OptController:
     def __init__(
@@ -86,10 +79,10 @@ class OptController:
             for (key, value) in info.items():
                 info[key] = torch.tensor(value, dtype=torch.float32)
         res = minimize_ipopt(
-            fun=self.__cost_fcn, 
+            fun=self.__cost_fcn_and_jac, 
             x0=self.initial_guess,
             args=(x, info),
-            jac=self.__cost_jac,
+            jac=True,
             bounds=opt._constraints.new_bounds_to_old(self.bounds.lb, self.bounds.ub, self.num_ctrl_points * self.optimize_dim),
             constraints=[
                 {
@@ -115,16 +108,11 @@ class OptController:
             self.__print_statistics(res)
         return res.x.reshape((self.num_ctrl_points, self.optimize_dim))[0, :self.action_dim]
 
-    def __cost_fcn(self, inputs: np.ndarray, x: torch.Tensor, info: InfoDict) -> float:
-        inputs = torch.tensor(inputs, dtype=torch.float32, requires_grad=True)
-        cost = self.__compute_cost(inputs, x, info)
-        return cost.detach().item()
-
-    def __cost_jac(self, inputs: np.ndarray, x: torch.Tensor, info: InfoDict) -> np.ndarray:
+    def __cost_fcn_and_jac(self, inputs: np.ndarray, x: torch.Tensor, info: InfoDict) -> float:
         inputs = torch.tensor(inputs, dtype=torch.float32, requires_grad=True)
         cost = self.__compute_cost(inputs, x, info)
         jac = torch.autograd.grad(cost, inputs)[0]
-        return jac.numpy().astype("d")
+        return cost.detach().item(), jac.numpy().astype("d")
 
     def __constraint_fcn(
         self, 
@@ -256,6 +244,11 @@ class OptController:
 
 
 if __name__ == "__main__":
+    import argparse
+    import time
+    from gops.create_pkg.create_env import create_env
+    from gops.create_pkg.create_env_model import create_env_model
+    import matplotlib.pyplot as plt
     # Parameters Setup
     parser = argparse.ArgumentParser()
     env_id = "pyth_veh3dofconti_errcstr"
