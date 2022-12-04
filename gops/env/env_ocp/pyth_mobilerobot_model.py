@@ -33,7 +33,7 @@ class PythMobilerobotModel(PythBaseModel):
         self.obses = [Robot() for _ in range(self.n_obstacle)]
 
         # define common parameters here
-        self.dt = 0.4  # seconds between state updates
+        self.dt = 0.1  # seconds between state updates
 
         self.state_dim = (1 + self.n_obstacle) * 5 + 3
         self.action_dim = 2
@@ -43,7 +43,7 @@ class PythMobilerobotModel(PythBaseModel):
             + [-30, -30, -2 * np.pi, -1, -np.pi / 2] * self.n_obstacle
         )
         hb_state = (
-            [30, 30, 2 * np.pi, 1, np.pi / 2] + [30, np.pi, 2] + [30, 30, 2 * np.pi, 1, np.pi / 2] * self.n_obstacle
+            [60, 30, 2 * np.pi, 1, np.pi / 2] + [30, np.pi, 2] + [30, 30, 2 * np.pi, 1, np.pi / 2] * self.n_obstacle
         )
         lb_action = [-0.4, -np.pi / 3]
         hb_action = [0.4, np.pi / 3]
@@ -91,7 +91,7 @@ class PythMobilerobotModel(PythBaseModel):
         ############################################################################################
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
         r_tracking = (
-            -32 * torch.abs(tracking_error[:, 0]) - 100 * torch.abs(tracking_error[:, 1]) - 16 * torch.abs(tracking_error[:, 2])
+            -3.2 * torch.abs(tracking_error[:, 0]) - 10 * torch.abs(tracking_error[:, 1]) - 1.6 * torch.abs(tracking_error[:, 2])
         )
         r_action = -0 * torch.abs(action[:, 0]) - 0 * torch.abs(action[:, 1])
         reward = r_tracking + r_action
@@ -132,7 +132,7 @@ class Robot:
         w_max = self.robot_params["w_max"]
         w_delta_max = self.robot_params["w_delta_max"]
         std_type = {
-            "ego": [0.03, 0.02],
+            "ego": [0.0, 0.0],
             "obs": [0.03, 0.02],
             "none": [0, 0],
             "explore": [0.3, 0.3],
@@ -190,9 +190,9 @@ class ReferencePath(object):
         pass
 
     def compute_path_y(self, x):
-        y = torch.sin(1/30 * x)
+        y = 0*torch.sin(1/3 * x)
         return y
 
     def compute_path_phi(self, x):
-        deriv = 1/30 * torch.cos(1/30 * x)
+        deriv = 0 * torch.cos(1/3 * x)
         return torch.arctan(deriv)

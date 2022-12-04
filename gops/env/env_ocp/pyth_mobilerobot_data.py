@@ -27,7 +27,7 @@ class PythMobilerobot(PythBaseEnv):
         work_space = kwargs.pop("work_space", None)
         if work_space is None:
             # initial range of robot state
-            robot_high = np.array([2.7, 1, 0.6, 0.3, 0], dtype=np.float32)
+            robot_high = np.array([5, 1, 0.6, 0.4, 0], dtype=np.float32)
             robot_low = np.array([0, -1, -0.6, 0, 0], dtype=np.float32)
 
             # initial range of tracking error
@@ -35,8 +35,8 @@ class PythMobilerobot(PythBaseEnv):
             error_low = np.zeros(3, dtype=np.float32)
 
             # initial range of obstacle
-            obstacle_high = np.array([6, 3, 0.8, 0.5, 0], dtype=np.float32)
-            obstacle_low = np.array([3.5, -3, -0.8, 0, 0], dtype=np.float32)
+            obstacle_high = np.array([6, -1, np.pi/2+0.3, 0.25, 0], dtype=np.float32)
+            obstacle_low = np.array([3, -3, np.pi/2-0.3, 0.2, 0], dtype=np.float32)
 
             init_high = np.concatenate([robot_high, error_high] + [obstacle_high] * self.n_obstacle)
             init_low = np.concatenate([robot_low, error_low] + [obstacle_low] * self.n_obstacle)
@@ -45,7 +45,7 @@ class PythMobilerobot(PythBaseEnv):
 
         self.robot = Robot()
         self.obses = [Robot() for _ in range(self.n_obstacle)]
-        self.dt = 0.4  # seconds between state updates
+        self.dt = 0.1  # seconds between state updates
         self.state_dim = (1 + self.n_obstacle) * 5 + 3
         self.action_dim = 2
         self.use_constraint = kwargs.get("use_constraint", True)
@@ -57,7 +57,7 @@ class PythMobilerobot(PythBaseEnv):
             + [-30, -30, -np.pi, -1, -np.pi / 2] * self.n_obstacle
         )
         hb_state = np.array(
-            [30, 30, np.pi, 1, np.pi / 2] + [30, np.pi, 2] + [30, 30, np.pi, 1, np.pi / 2] * self.n_obstacle
+            [60, 30, np.pi, 1, np.pi / 2] + [30, np.pi, 2] + [30, 30, np.pi, 1, np.pi / 2] * self.n_obstacle
         )
         lb_action = np.array([-0.4, -np.pi / 3])
         hb_action = np.array([0.4, np.pi / 3])
@@ -73,7 +73,7 @@ class PythMobilerobot(PythBaseEnv):
     @property
     def additional_info(self):
         return {
-            "constraint": {"shape": (1,), "dtype": np.float32},
+            "constraint": {"shape": (0,), "dtype": np.float32},
         }
 
     @property
@@ -115,7 +115,7 @@ class PythMobilerobot(PythBaseEnv):
         self._state = state_next
         ############################################################################################
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
-        r_tracking = -32 * np.abs(tracking_error[:, 0]) - 100 * np.abs(tracking_error[:, 1]) - 16 * np.abs(tracking_error[:, 2])
+        r_tracking = -3.2 * np.abs(tracking_error[:, 0]) - 10 * np.abs(tracking_error[:, 1]) - 1.6 * np.abs(tracking_error[:, 2])
         r_action = -0 * np.abs(action[:, 0]) - 0 * np.abs(action[:, 1])
         reward = r_tracking + r_action
         ############################################################################################
@@ -222,7 +222,7 @@ class Robot:
         v_max = self.robot_params["v_max"]
         w_max = self.robot_params["w_max"]
         w_delta_max = self.robot_params["w_delta_max"]
-        std_type = {"ego": [0.03, 0.0], "obs": [0.03, 0.02], "none": [0, 0], "explore": [0.3, 0.3]}
+        std_type = {"ego": [0.0, 0.0], "obs": [0.03, 0.02], "none": [0, 0], "explore": [0.3, 0.3]}
         stds = std_type[type]
 
         x, y, theta, v, w = states[:, 0], states[:, 1], states[:, 2], states[:, 3], states[:, 4]
@@ -255,11 +255,11 @@ class ReferencePath(object):
         pass
 
     def compute_path_y(self, x):
-        y = np.sin(1/30 * x)
+        y = 0 * np.sin(1/3 * x)
         return y
 
     def compute_path_phi(self, x):
-        deriv = 1/30 * np.cos(1/30 * x)
+        deriv = 0* np.cos(1/3 * x)
         return np.arctan(deriv)
 
 
