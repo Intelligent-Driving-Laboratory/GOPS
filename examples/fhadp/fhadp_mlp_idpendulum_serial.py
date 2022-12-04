@@ -29,7 +29,6 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument("--env_id", type=str, default="pyth_idpendulum")
     parser.add_argument("--algorithm", type=str, default="FHADP")
-    parser.add_argument("--pre_horizon", type=int, default=80)
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     parser.add_argument("--seed", default=3328005365, help="seed")
     ################################################
@@ -63,6 +62,7 @@ if __name__ == "__main__":
     ################################################
     # 3. Parameters for RL algorithm
     parser.add_argument("--policy_learning_rate", type=float, default=1e-4)
+    parser.add_argument("--pre_horizon", type=int, default=80)
 
     ################################################
     # 4. Parameters for trainer

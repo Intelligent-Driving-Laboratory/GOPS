@@ -1,14 +1,13 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: gym environment, continuous action, cart pole
-#  Update Date: 2020-11-10, Hao Sun: renew env para
-#  Update Date: 2020-11-13, Hao Sun: add new ddpg demo
-#  Update Date: 2020-12-11, Hao Sun: move buffer to trainer
-#  Update Date: 2020-12-12, Hao Sun: move create_* files to create_pkg
-#  Update Date: 2021-01-01, Hao Sun: change name
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: example for ddpg + aircraftconti
+#  Update: 2022-12-03, Wenxuan Wang: create example
 
 
 import argparse

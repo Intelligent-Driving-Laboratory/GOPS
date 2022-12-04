@@ -1,12 +1,15 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Discrete version of Cartpole Environment
-#  Update Date: 2020-11-10, Hao Sun: renew env para
-#  Update Date: 2021-05-21, Shengbo Li: Reformulate code formats
-#  Update Date: 2021-06-01, Shengbo Li: General Setup for GOPS examples
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: template for examples
+#  Update: 2020-11-10, Hao Sun: create example template
+#  Update: 2021-05-21, Shengbo Li: reformulate code formats
+#  Update: 2022-12-03, Wenxuan Wang: update example template
 
 
 import argparse
@@ -36,7 +39,7 @@ if __name__ == "__main__":
     parser.add_argument("--env_id", type=str, default="gym_cartpoleconti", help="the id of environment")
     parser.add_argument("--algorithm", type=str, default="DDPG", help="RL algorithm")
     parser.add_argument("--enable_cuda", default=False, help="enable CUDA")
-
+    parser.add_argument("--seed", default=3328005365, help="seed")
     ################################################
     # 1. Parameters for environment
     parser.add_argument("--reward_scale", type=float, default=1, help="reward scale factor")
