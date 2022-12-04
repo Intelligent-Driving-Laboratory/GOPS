@@ -53,18 +53,18 @@ class ApproxContainer(ApprBase):
         return self.q.get_act_dist(logits)
 
 class DQN(AlgorithmBase):
+    """Deep Q-Network (DQN) algorithm
+
+            A DQN implementation with soft target update.
+
+            Paper: https://doi.org/10.1038/nature14236
+
+            Args:
+                learning_rate (float, optional): Q network learning rate. Defaults to 0.001.
+                gamma (float, optional): Discount factor. Defaults to 0.995.
+                tau (float, optional): Average factor. Defaults to 0.005.
+            """
     def __init__(self, index=0, **kwargs):
-        """Deep Q-Network (DQN) algorithm
-
-        A DQN implementation with soft target update.
-
-        Paper: https://doi.org/10.1038/nature14236
-
-        Args:
-            learning_rate (float, optional): Q network learning rate. Defaults to 0.001.
-            gamma (float, optional): Discount factor. Defaults to 0.995.
-            tau (float, optional): Average factor. Defaults to 0.005.
-        """
         super().__init__(index, **kwargs)
         self.gamma = 0.99
         self.tau = 0.005

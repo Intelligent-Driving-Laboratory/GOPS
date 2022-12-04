@@ -1,3 +1,15 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab (iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: base class for algorithms
+#  Update: 2022-12-03, Wenxuan Wang: create bass class for algorithms
+
+
 from abc import ABCMeta, ABC, abstractmethod
 
 from typing import Tuple, Type
