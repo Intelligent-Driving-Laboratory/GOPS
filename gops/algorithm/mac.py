@@ -86,7 +86,7 @@ class ApproxContainer(ApprBase):
 class MAC(AlgorithmBase):
     """Mixed Actor Critic Algorithm (MAC) algorithm
 
-    Paper:https://ieeexplore.ieee.org/document/9268413
+    Paper:https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=9268413&tag=1
     """
     def __init__(self, index=0, **kwargs):
         super().__init__(index, **kwargs)
