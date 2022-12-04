@@ -1,10 +1,30 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab (iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: base class for pyth environments
+#  Update: 2022-10-06, Yujie Yang: create base environment
+#  Update: 2022-10-13, Wenxuan Wang: add has_optimal_controller and control_policy
+
+from typing import Any, Optional, Sequence
+
 import gym
 import numpy as np
 from gym.utils import seeding
 
 
 class PythBaseEnv(gym.Env):
-    def __init__(self, work_space, train_space=None, initial_distribution="uniform", **kwargs):
+    def __init__(
+        self,
+        work_space: Sequence,
+        train_space: Optional[Sequence] = None,
+        initial_distribution: str = "uniform",
+        **kwargs: Any,
+    ):
         self.work_space = np.array(work_space, dtype=np.float32)
         assert self.work_space.ndim == 2 and self.work_space.shape[0] == 2
 
@@ -26,7 +46,7 @@ class PythBaseEnv(gym.Env):
     def has_optimal_controller(self):
         return False
 
-    def control_policy(self,state):
+    def control_policy(self, state):
         return NotImplementedError
 
     @property
