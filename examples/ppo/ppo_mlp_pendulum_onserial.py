@@ -173,7 +173,6 @@ if __name__ == "__main__":
     alg = create_alg(**args)
     alg.set_parameters(
         {
-            "gamma": 0.99,
             "loss_coefficient_value": 0.25,
             "loss_coefficient_entropy": 0.01,
             "schedule_adam": "None",

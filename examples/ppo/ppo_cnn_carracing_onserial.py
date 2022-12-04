@@ -143,7 +143,7 @@ if __name__ == "__main__":
     env = create_env(**args)
     args = init_args(env, **args)
 
-    # start_tensorboard(args['save_folder'])
+    start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     alg.set_parameters({'loss_coefficient_value': 1.0, 'loss_coefficient_entropy': 0.001})
