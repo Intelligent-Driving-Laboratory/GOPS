@@ -1,4 +1,4 @@
-from sys_run import PolicyRunner
+from gops.sys_simulator.sys_run import PolicyRunner
 
 runner = PolicyRunner(
     log_policy_dir_list=["../../results/RPI/poly_aircraftconti_221116-233344"] * 2,
