@@ -97,7 +97,7 @@ class PolicyRunner:
         step = 0
         step_list = []
         info_list = [init_info]
-        obs,info = env.reset(**init_info)
+        obs, info = env.reset(**init_info)
         state = env.state
         print('The initial state is:')
         print(self.__convert_format(state))
@@ -109,7 +109,7 @@ class PolicyRunner:
             state_list.append(state)
             obs_list.append(obs)
             if is_opt:
-                action = controller(obs)
+                action = controller(obs, info)
             else:
                 action = self.compute_action(obs, controller)
                 action = self.__action_noise(action)
