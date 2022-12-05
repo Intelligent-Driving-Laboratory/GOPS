@@ -1,8 +1,11 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
-#
+
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+
 #  Description: Create approximate function module
 #  Update Date: 2020-12-13, Hao Sun: add create buffer function
 
@@ -28,8 +31,8 @@ def create_buffer(**kwargs):
 
         buffer_name = formatter(buffer_file_name)
 
-        if hasattr(module, buffer_name):  #
-            buffer_cls = getattr(module, buffer_name)  # 返回
+        if hasattr(module, buffer_name):
+            buffer_cls = getattr(module, buffer_name)
             if trainer == "off_serial_trainer":
                 buffer = buffer_cls(**kwargs)
             elif trainer == "off_async_trainer" or trainer == "off_async_trainermix" or trainer == "off_sync_trainer":

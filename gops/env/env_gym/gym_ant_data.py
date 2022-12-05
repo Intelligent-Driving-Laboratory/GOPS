@@ -3,6 +3,9 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Mujoco Ant Environment
 #  Update Date: 2021-11-22, Yuhang Zhang: create environment
 

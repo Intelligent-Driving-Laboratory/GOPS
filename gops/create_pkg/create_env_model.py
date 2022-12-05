@@ -1,10 +1,14 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
-#
+
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+
 #  Description: Create environments
 #  Update Date: 2020-11-10, Yuhang Zhang: add create environments code
+
 from gops.env.env_wrapper.wrapping_utils import wrapping_model
 
 def create_env_model(**kwargs):
@@ -48,7 +52,7 @@ def create_env_model(**kwargs):
         clip_action=clip_action,
         mask_at_done=mask_at_done,
     )
-    # print("wrap_model with", reward_shift, reward_scale, obs_shift, obs_scale)
+    # Print("wrap_model with", reward_shift, reward_scale, obs_shift, obs_scale)
     print("Create environment model successfully!")
     return env_model
 
