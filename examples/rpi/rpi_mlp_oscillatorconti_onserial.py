@@ -2,7 +2,12 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Li Jie
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: example for rpi + oscillatorconti + mlp + on_serial
+#  Update Date: 2021-06-11, Li Jie: create example
 
 
 import argparse
@@ -28,38 +33,35 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for Users
-    parser.add_argument('--env_id', type=str, default='pyth_oscillatorconti', help='')
-    parser.add_argument('--algorithm', type=str, default='RPI', help='')
+    parser.add_argument('--env_id', type=str, default='pyth_oscillatorconti', help='id of environment')
+    parser.add_argument('--algorithm', type=str, default='RPI', help='RL algorithm')
     parser.add_argument('--enable_cuda', default=False, help='Disable CUDA')
 
     ################################################
     # 1. Parameters for environment
-    parser.add_argument('--action_type', type=str, default='continu', help='')
-    parser.add_argument('--is_render', type=bool, default=False, help='')
+    parser.add_argument('--action_type', type=str, default='continu', help='Options: continu/discret')
+    parser.add_argument('--is_render', type=bool, default=False, help='Draw environment animation')
     parser.add_argument('--is_adversary', type=bool, default=True, help='Adversary training')
     parser.add_argument('--is_constrained', type=bool, default=False, help='Constrained training')
 
     ################################################
     # 2.1 Parameters of value approximate function
-    # Options: StateValue/ActionValue/ActionValueDis
-    parser.add_argument("--value_func_name", type=str, default="StateValue")
-    # Options: MLP/CNN/RNN/POLY/GAUSS
-    parser.add_argument("--value_func_type", type=str, default="MLP")
+    parser.add_argument("--value_func_name", type=str, default="StateValue",
+                        help="Options: StateValue/ActionValue/ActionValueDis/ActionValueDistri")
+    parser.add_argument("--value_func_type", type=str, default="MLP", help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS")
     value_func_type = parser.parse_known_args()[0].value_func_type
-    # 2.1.1 MLP, CNN, RNN
-    if value_func_type == "MLP":
-        parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
-        # Hidden Layer Options: relu/gelu/elu/sigmoid/tanh
-        parser.add_argument("--value_hidden_activation", type=str, default="elu")
-        # Output Layer: linear
-        parser.add_argument("--value_output_activation", type=str, default="linear")
+    parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
+    parser.add_argument("--value_hidden_activation", type=str, default="elu",
+                        help="Options: relu/gelu/elu/selu/sigmoid/tanh")
+    parser.add_argument("--value_output_activation", type=str, default="linear", help="Options: linear/tanh")
 
     # 2.2 Parameters of policy approximate function
-    # Options: None/DetermPolicy/StochaPolicy
-    parser.add_argument('--policy_func_name', type=str, default='DetermPolicy')
-    # Options: MLP/CNN/RNN/POLY/GAUSS
-    parser.add_argument('--policy_func_type', type=str, default='POLY')
-    parser.add_argument("--policy_act_distribution", type=str, default="default")
+    parser.add_argument('--policy_func_name', type=str, default='DetermPolicy',
+                        help="Options: None/DetermPolicy/FiniteHorizonPolicy/StochaPolicy")
+    parser.add_argument('--policy_func_type', type=str, default='POLY',
+                        help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS")
+    parser.add_argument("--policy_act_distribution", type=str, default="default",
+        help="Options: default/TanhGaussDistribution/GaussDistribution")
     parser.add_argument('--policy_degree', type=int, default=1)
     parser.add_argument('--policy_add_bias', type=bool, default=True)
     parser.add_argument("--policy_min_log_std", type=int, default=-20)
@@ -72,17 +74,20 @@ if __name__ == "__main__":
 
     ################################################
     # 4. Parameters for trainer
-    # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
-    parser.add_argument('--trainer', type=str, default='on_serial_trainer')
+    parser.add_argument('--trainer', type=str, default='on_serial_trainer',
+                        help="Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer")
     # Maximum iteration number
     parser.add_argument('--max_newton_iteration', type=int, default=50)
     parser.add_argument('--max_step_update_value', type=int, default=10000)
     parser.add_argument('--max_iteration', type=int, default=parser.parse_args().max_newton_iteration)
-    parser.add_argument('--ini_network_dir', type=str, default=None)
+    parser.add_argument('--ini_network_dir', type=str, default=None,
+                        help="path of saved approximate functions, if specified, the saved approximate functions "
+                             "will be loaded before training")
 
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument('--sampler_name', type=str, default='on_sampler')
+    parser.add_argument('--sampler_name', type=str, default='on_sampler',
+                        help="Options: on_sampler/off_sampler")
     # Batch size of sampler for buffer store
     parser.add_argument('--sample_batch_size', type=int, default=64, help='Batch size of sampler for buffer store = 64')
     # Add noise to actions for better exploration
@@ -102,8 +107,11 @@ if __name__ == "__main__":
 
     ################################################
     # 6. Parameters for buffer
-    parser.add_argument('--buffer_name', type=str, default='replay_buffer')
+    parser.add_argument('--buffer_name', type=str, default='replay_buffer',
+                            help="Options:replay_buffer/prioritized_replay_buffer")
+    # Size of collected samples before training
     parser.add_argument('--buffer_warm_size', type=int, default=parser.parse_args().sample_batch_size)
+    # Max size of reply buffer
     parser.add_argument('--buffer_max_size', type=int, default=parser.parse_args().sample_batch_size)
 
     ################################################
