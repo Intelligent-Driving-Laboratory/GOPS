@@ -1,3 +1,15 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab (iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: base class for pyth environments
+#  Update: 2022-10-25, Yujie Yang: create base model
+#  Update: 2022-10-27, Zhilong Zheng: redefine get_constraint and get_terminal_cost
+
 from abc import ABCMeta, abstractmethod
 from typing import Callable, Optional, Sequence, Tuple, Union
 
@@ -40,17 +52,17 @@ class PythBaseModel(metaclass=ABCMeta):
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         pass
 
-    # Define get_constraint as a value of type Callable
-    # A trick for faster constraint evaluations
-    # The subclass can realize it like:
+    # Define get_constraint as Callable
+    # Trick for faster constraint evaluations
+    # Subclass can realize it like:
     #   def get_constraint(self, obs: torch.Tensor) -> torch.Tensor:
     #       ...
-    # This function should return a Tensor of shape [1],
+    # This function should return Tensor of shape [1],
     # each element of which will be required to be lower than or equal to 0
     get_constraint: Callable[[torch.Tensor], torch.Tensor] = None
 
     # Just like get_constraint,
-    # define a function returning a Tensor of shape [] in the subclass
+    # define function returning Tensor of shape [] in subclass
     # if you need
     get_terminal_cost: Callable[[torch.Tensor], torch.Tensor] = None
 
