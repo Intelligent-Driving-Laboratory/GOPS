@@ -1,29 +1,24 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Noise Function
 #  Update Date: 2021-03-10, Yuhang Zhang: Revise Codes
 
 
 import numpy as np
-import torch
 
 
 class EpsilonScheduler:
-    """Epsilon-greedy scheduler with epsilon schedule."""
+    """
+        Epsilon-greedy scheduler with epsilon schedule.
+    """
 
     def __init__(self, EPS_START=0.9, EPS_END=0.05, EPS_DECAY=2000):
-        """Create an EpsilonScheduler.
-
-        For fixed epsilon-greedy policy, passing EPS_START equal to EPS_END.
-
-        Args:
-            EPS_START (float, optional): Epsilon when starting training. Defaults to 0.9.
-            EPS_END (float, optional): Epsilon when training infinity steps. Defaults to 0.05.
-            EPS_DECAY (float, optional): Exponential coefficient, larger for a slower decay rate (similar to time constant, but for steps). Defaults to 200.
-        """
         self.start = EPS_START
         self.end = EPS_END
         self.decay = EPS_DECAY

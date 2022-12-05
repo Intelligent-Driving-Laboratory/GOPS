@@ -1,8 +1,11 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Action Distributions
 #  Update Date: 2021-03-10, Yujie Yang: Revise Codes
 
@@ -156,15 +159,3 @@ class ValueDiracDistribution:
     def mode(self):
         return torch.argmax(self.logits, dim=-1)
 
-
-if __name__ == "__main__":
-    mean = torch.tensor([[0, 1, 2], [3, 4, 5]])
-    std = torch.tensor([[0.001, 0.001, 0.001], [0.2, 0.2, 0.2]])
-    logits = torch.cat((mean, std), dim=-1)
-    act_dist = GaussDistribution(logits)
-    actt, probb = act_dist.sample()
-    for i in range(10):
-        act, log_prob = act_dist.rsample()
-        print("act", act)
-        print("log_prob", act_dist.log_prob(act))
-        print("log_prob-diff", act_dist.log_prob(act) - log_prob)

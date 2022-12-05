@@ -1,24 +1,29 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Task Pool Function for Ray Architecture
-#  Update Date: 2021-03-10, Yang Guan: Create codes
+#  Update: 2021-03-10, Yang Guan: Create codes
 
 
 import ray
 
 
 class TaskPool(object):
-    """Helper class for tracking the status of many in-flight actor tasks."""
+    """
+        Helper class for tracking status of many in-flight actor tasks.
+    """
 
     def __init__(self):
         self._tasks = {}
         self._objects = {}
         self._fetching = []
 
-    def add(self, worker, all_obj_ids):  #
+    def add(self, worker, all_obj_ids):
         if isinstance(all_obj_ids, list):
             obj_id = all_obj_ids[0]
         else:
@@ -26,7 +31,7 @@ class TaskPool(object):
         self._tasks[obj_id] = worker
         self._objects[obj_id] = all_obj_ids
 
-    def completed(self, blocking_wait=False):  #
+    def completed(self, blocking_wait=False):
         pending = list(self._tasks)
         if pending:
             ready, _ = ray.wait(pending, num_returns=len(pending), timeout=0)
@@ -36,7 +41,7 @@ class TaskPool(object):
                 yield self._tasks.pop(obj_id), self._objects.pop(obj_id)
     
     @property
-    def completed_num(self):  #
+    def completed_num(self):
         pending = list(self._tasks)
         if pending:
             ready, _ = ray.wait(pending, num_returns=len(pending), timeout=0)
