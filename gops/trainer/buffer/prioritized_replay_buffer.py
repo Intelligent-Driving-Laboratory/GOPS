@@ -1,8 +1,11 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Replay buffer
 #  Update: 2021-05-05, Yuheng Lei: Create prioritized replay buffer
 
@@ -21,6 +24,23 @@ def combined_shape(length, shape=None):
 
 
 class PrioritizedReplayBuffer(object):
+    """
+        Implementation of replay buffer with prioritized sampling probability.
+
+        Paper:
+            https://openreview.net/forum?id=pBbWjZdoRiN
+
+        Args:
+            alpha (float, optional): Determines how much prioritization is used,
+                                     with alpha = 0 corresponding to uniform case.
+                                     Defaults to 0.6.
+            beta (float, optional): Initial strength of compensation for non-uniform probabilities,
+                                    with beta = 1 corresponding to fully compensation.
+                                    Defaults to 0.4.
+            beta_increment (float, optional): Schedule on beta that finally reaches 1.
+                                              Defaults to 0.01.
+    """
+
     def __init__(self, **kwargs):
         self.obsv_dim = kwargs['obsv_dim']
         self.act_dim = kwargs['action_dim']
@@ -40,9 +60,9 @@ class PrioritizedReplayBuffer(object):
         self.ptr, self.size, = 0, 0
         self.sum_tree = np.zeros(2 * self.max_size - 1)
         self.min_tree = float('inf') * np.ones(2 * self.max_size - 1)
-        self.alpha = kwargs['per_alpha']
-        self.beta = kwargs['per_beta_init']
-        self.beta_increment = kwargs['per_beta_increment']
+        self.alpha = 0.6
+        self.beta = 0.4
+        self.beta_increment = 0.01
         self.epsilon = 1e-6
         self.max_priority = 1. ** self.alpha
 
