@@ -24,7 +24,9 @@ from math import factorial
 from gops.utils.act_distribution_cls import Action_Distribution
 
 
-def make_features(x, degree):  # TODO: More concise
+# Define polynomial function
+# TODO: More concise
+def make_features(x, degree):
     def n_matmul(x, n):
         def matmul_crossing(a, b):
             batchsize = a.size(0)
@@ -42,14 +44,11 @@ def make_features(x, degree):  # TODO: More concise
 
     return torch.cat([n_matmul(x, i) for i in range(1, degree+1)], 1)
 
-
+# input_dim: dimention of state, degree: degree of polynomial function
+# return dimention of feature
 def get_features_dim(input_dim, degree):
     x = torch.zeros([1, input_dim])
     return make_features(x, degree).size(1)
-
-
-def count_vars(module):
-    return sum([np.prod(p.shape) for p in module.parameters()])
 
 
 def combination(m, n):
@@ -83,6 +82,11 @@ def count_features_dim(input_dim, degree):
 
 
 class DetermPolicy(nn.Module, Action_Distribution):
+    """
+    Approximated function of deterministic policy.
+    Input: observation.
+    Output: action.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -106,6 +110,11 @@ class DetermPolicy(nn.Module, Action_Distribution):
 
 
 class FiniteHorizonPolicy(nn.Module, Action_Distribution):
+    """
+    Approximated function of deterministic policy for finite-horizon.
+    Input: observation, time step.
+    Output: action.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -132,6 +141,11 @@ class FiniteHorizonPolicy(nn.Module, Action_Distribution):
 
 
 class StochaPolicy(nn.Module, Action_Distribution):
+    """
+    Approximated function of stochastic policy.
+    Input: observation.
+    Output: parameters of action distribution.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -157,6 +171,11 @@ class StochaPolicy(nn.Module, Action_Distribution):
 
 
 class ActionValue(nn.Module, Action_Distribution):
+    """
+    Approximated function of action-value function.
+    Input: observation, action.
+    Output: action-value.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -173,6 +192,11 @@ class ActionValue(nn.Module, Action_Distribution):
 
 
 class ActionValueDis(nn.Module, Action_Distribution):
+    """
+    Approximated function of action-value function for discrete action space.
+    Input: observation.
+    Output: action-value for all action.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -187,10 +211,20 @@ class ActionValueDis(nn.Module, Action_Distribution):
 
 
 class StochaPolicyDis(ActionValueDis, Action_Distribution):
+    """
+    Approximated function of stochastic policy for discrete action space.
+    Input: observation.
+    Output: parameters of action distribution.
+    """
     pass
 
 
 class StateValue(nn.Module, Action_Distribution):
+    """
+    Approximated function of state-value function.
+    Input: observation, action.
+    Output: state-value.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]

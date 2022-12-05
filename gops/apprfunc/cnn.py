@@ -23,6 +23,16 @@ from gops.utils.act_distribution_cls import Action_Distribution
 
 
 def CNN(kernel_sizes, channels, strides, activation, input_channel):
+    """
+    Input parameters lists for CNN.
+    kernel_sizes: list of kernel_size,
+    channels: list of channels,
+    strides: list of stride,
+    activation: activation function,
+    input_channel: number of channels of input image.
+    Return CNN.
+    Input size for CNN: (batch_size, channel_num, height, width).
+    """
     layers = []
     for j in range(len(kernel_sizes)):
         act = activation
@@ -39,6 +49,7 @@ def CNN(kernel_sizes, channels, strides, activation, input_channel):
     return nn.Sequential(*layers)
 
 
+# Define MLP function
 def MLP(sizes, activation, output_activation=nn.Identity):
     layers = []
     for j in range(len(sizes) - 1):
@@ -48,6 +59,11 @@ def MLP(sizes, activation, output_activation=nn.Identity):
 
 
 class DetermPolicy(nn.Module, Action_Distribution):
+    """
+    Approximated function of deterministic policy.
+    Input: observation.
+    Output: action.
+    """
     def __init__(self, **kwargs):
         super(DetermPolicy, self).__init__()
         act_dim = kwargs["act_dim"]
@@ -122,9 +138,15 @@ class DetermPolicy(nn.Module, Action_Distribution):
 
 
 class FiniteHorizonPolicy(nn.Module, Action_Distribution):
-    raise NotImplementedError
+    def __init__(self, **kwargs):
+        raise NotImplementedError
 
 class StochaPolicy(nn.Module, Action_Distribution):
+    """
+    Approximated function of stochastic policy.
+    Input: observation.
+    Output: parameters of action distribution.
+    """
     def __init__(self, **kwargs):
         super(StochaPolicy, self).__init__()
         act_dim = kwargs["act_dim"]
@@ -210,6 +232,11 @@ class StochaPolicy(nn.Module, Action_Distribution):
 
 
 class ActionValue(nn.Module, Action_Distribution):
+    """
+    Approximated function of action-value function.
+    Input: observation, action.
+    Output: action-value.
+    """
     def __init__(self, **kwargs):
         super(ActionValue, self).__init__()
         act_dim = kwargs["act_dim"]
@@ -274,6 +301,11 @@ class ActionValue(nn.Module, Action_Distribution):
 
 
 class ActionValueDis(nn.Module, Action_Distribution):
+    """
+    Approximated function of action-value function for discrete action space.
+    Input: observation.
+    Output: action-value for all action.
+    """
     def __init__(self, **kwargs):
         super(ActionValueDis, self).__init__()
         act_num = kwargs["act_num"]
@@ -338,6 +370,11 @@ class ActionValueDis(nn.Module, Action_Distribution):
 
 
 class ActionValueDistri(nn.Module):
+    """
+    Approximated function of distributed action-value function.
+    Input: observation.
+    Output: parameters of action-value distribution.
+    """
     def __init__(self, **kwargs):
         super(ActionValueDistri, self).__init__()
         act_dim = kwargs["act_dim"]
@@ -418,10 +455,20 @@ class ActionValueDistri(nn.Module):
 
 
 class StochaPolicyDis(ActionValueDis, Action_Distribution):
+    """
+    Approximated function of stochastic policy for discrete action space.
+    Input: observation.
+    Output: parameters of action distribution.
+    """
     pass
 
 
 class StateValue(nn.Module, Action_Distribution):
+    """
+    Approximated function of state-value function.
+    Input: observation, action.
+    Output: state-value.
+    """
     def __init__(self, **kwargs):
         super(StateValue, self).__init__()
         obs_dim = kwargs["obs_dim"]

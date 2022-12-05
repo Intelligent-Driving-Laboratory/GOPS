@@ -26,7 +26,8 @@ from gops.utils.tensorboard_setup import tb_tags
 
 class ApproxContainer(ApprBase):
     def __init__(self, **kwargs):
-        """Approximate function container for DQN.
+        """
+        Approximate function container for DQN.
 
         Contains an action value.
         """
@@ -34,36 +35,39 @@ class ApproxContainer(ApprBase):
         value_func_type = kwargs["value_func_type"]
 
         q_args = get_apprfunc_dict("value", value_func_type, **kwargs)
+        # create action-value function network
         self.q = create_apprfunc(**q_args)
-
+        # create target action-value function network
         self.q_target = deepcopy(self.q)
 
+        # set target network gradients
         for p in self.q_target.parameters():
             p.requires_grad = False
 
-        # the policy directly comes from the Q func, and is just for sampling
+        # policy directly comes from Q func, and is just for sampling
         def policy_q(obs):
             with torch.no_grad():
                 return self.q.forward(obs)
         self.policy = policy_q
-
+        # set optimizers
         self.q_optimizer = Adam(self.q.parameters(), lr=kwargs["value_learning_rate"])
 
     def create_action_distributions(self, logits):
         return self.q.get_act_dist(logits)
 
 class DQN(AlgorithmBase):
-    """Deep Q-Network (DQN) algorithm
+    """
+    Deep Q-Network (DQN) algorithm
 
-            A DQN implementation with soft target update.
+    A DQN implementation with soft target update.
 
-            Paper: https://doi.org/10.1038/nature14236
+    Paper: https://doi.org/10.1038/nature14236
 
-            Args:
-                learning_rate (float, optional): Q network learning rate. Defaults to 0.001.
-                gamma (float, optional): Discount factor. Defaults to 0.995.
-                tau (float, optional): Average factor. Defaults to 0.005.
-            """
+    Args:
+        learning_rate (float, optional): Q network learning rate. Defaults to 0.001.
+        gamma (float, optional): Discount factor. Defaults to 0.995.
+        tau (float, optional): Average factor. Defaults to 0.005.
+    """
     def __init__(self, index=0, **kwargs):
         super().__init__(index, **kwargs)
         self.gamma = 0.99
@@ -93,6 +97,7 @@ class DQN(AlgorithmBase):
         start_time = time.perf_counter()
 
         self.networks.q_optimizer.zero_grad()
+        # compute gradient without priority
         if not self.per_flag:
             o, a, r, o2, d = (
                 data["obs"],
@@ -103,6 +108,7 @@ class DQN(AlgorithmBase):
             )
             loss_q = self.__compute_loss_q(o, a, r, o2, d)
             loss_q.backward()
+        # compute gradient with priority
         else:
             o, a, r, o2, d, idx, weight = (
                 data["obs"],
@@ -126,16 +132,17 @@ class DQN(AlgorithmBase):
         else:
             return tb_info
 
+    # compute loss of Q function
     def __compute_loss_q(self, o, a, r, o2, d):
         q = self.networks.q(o).gather(1, a.to(torch.long)).squeeze()
-
+        # MSE loss against Bellman backup
         with torch.no_grad():
             q_target, _ = torch.max(self.networks.q_target(o2), dim=1)
         backup = r + self.gamma * (1 - d) * q_target
-
         loss_q = F.mse_loss(q, backup)
         return loss_q
 
+    # compute loss of Q function with priority
     def __compute_loss_per(self, o, a, r, o2, d, idx, weight):
         q = self.networks.q(o).gather(1, a.to(torch.long)).squeeze()
 

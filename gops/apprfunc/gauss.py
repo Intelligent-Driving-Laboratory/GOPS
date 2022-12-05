@@ -21,6 +21,7 @@ import torch.nn as nn
 from gops.utils.act_distribution_cls import Action_Distribution
 
 
+# Define radial basis function
 class RBF(nn.Module):
     def __init__(self, input_dim, out_dim, kernel_num):
         super().__init__()
@@ -31,15 +32,20 @@ class RBF(nn.Module):
         self.w = nn.Parameter(torch.randn(1, out_dim, self.kernel))
         self.b = nn.Parameter(torch.randn(1, out_dim, 1))
 
-    def forward(self, x):  # (n,5)
+    def forward(self, x): 
         r = torch.sum(
             (x.view(-1, 1, self.input_dim) - self.C) ** 2, dim=-1
-        )  # dim(kernel)
+        ) 
         phi = torch.exp(-r / (2 * torch.abs(self.sigma_square))).unsqueeze(-1)
         return (self.w @ phi + self.b).squeeze(-1)
 
 
 class DetermPolicy(nn.Module, Action_Distribution):
+    """
+    Approximated function of deterministic policy.
+    Input: observation.
+    Output: action.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -58,6 +64,11 @@ class DetermPolicy(nn.Module, Action_Distribution):
 
 
 class FiniteHorizonPolicy(nn.Module, Action_Distribution):
+    """
+    Approximated function of deterministic policy for finite-horizon.
+    Input: observation, time step.
+    Output: action.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]+1
@@ -77,6 +88,11 @@ class FiniteHorizonPolicy(nn.Module, Action_Distribution):
         return action
 
 class StochaPolicy(nn.Module, Action_Distribution):
+    """
+    Approximated function of stochastic policy.
+    Input: observation.
+    Output: parameters of action distribution.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -100,6 +116,11 @@ class StochaPolicy(nn.Module, Action_Distribution):
 
 
 class ActionValue(nn.Module, Action_Distribution):
+    """
+    Approximated function of action-value function.
+    Input: observation, action.
+    Output: action-value.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -114,6 +135,11 @@ class ActionValue(nn.Module, Action_Distribution):
 
 
 class ActionValueDis(nn.Module, Action_Distribution):
+    """
+    Approximated function of action-value function for discrete action space.
+    Input: observation.
+    Output: action-value for all action.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -127,6 +153,11 @@ class ActionValueDis(nn.Module, Action_Distribution):
 
 
 class StateValue(nn.Module, Action_Distribution):
+    """
+    Approximated function of state-value function.
+    Input: observation, action.
+    Output: state-value.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
