@@ -1,11 +1,14 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Serial trainer for RL algorithms
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: Synchronous Parallel Trainer for on-policy RL algorithms
 #  Update Date: 2021-03-10, Wenhan CAO: Revise Codes
-
+#  Update: 2022-12-05, Wenhan Cao: add annotation
 
 __all__ = ["OnSyncTrainer"]
 
@@ -44,7 +47,7 @@ class OnSyncTrainer:
         else:
             raise NotImplementedError("This algorithm is not properly defined")
 
-        # initialize the networks
+        # initialize center network
         if kwargs["ini_network_dir"] is not None:
             self.networks.load_state_dict(torch.load(kwargs["ini_network_dir"]))
 
