@@ -536,7 +536,6 @@ class PolicyRunner:
                 policy_result.to_excel(writer, legend)
             writer.save()
             error_result_data = pd.DataFrame(data=error_result)
-            # error_result_data.to_csv(os.path.join(self.save_path, 'Error-result.csv'), encoding='gbk')
             pd.set_option('display.max_columns', None)
             pd.set_option('display.max_rows', None)
             for key, value in error_result_data.items():
