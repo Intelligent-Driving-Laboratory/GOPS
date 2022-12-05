@@ -1,8 +1,11 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Monte Carlo Sampler
 #  Update Date: 2021-03-10, Wenhan CAO: Revise Codes
 #  Update: 2021-03-05, Wenxuan Wang: add action clip
@@ -87,14 +90,15 @@ class OnSampler:
             logp = logp.detach()[0].numpy()
             if self.noise_params is not None:
                 action = self.noise_processor.sample(action)
-            action = np.array(action)  # ensure action is an array
+            # ensure action is array
+            action = np.array(action)
             if self.action_type == "continu":
                 action_clip = action.clip(
                     self.env.action_space.low, self.env.action_space.high
                 )
             else:
                 action_clip = action
-            # interact with the environment
+            # interact with environment
             next_obs, reward, self.done, next_info = self.env.step(action_clip)
             if "TimeLimit.truncated" not in next_info.keys():
                 next_info["TimeLimit.truncated"] = False
@@ -143,6 +147,7 @@ class OnSampler:
             self.info = next_info
             if self.done or next_info["TimeLimit.truncated"]:
                 self.obs, self.info = self.env.reset()
+            # calculate value target (mb_ret) & gae (mb_adv)
             if (
                     self.done
                     or next_info["TimeLimit.truncated"]
@@ -188,7 +193,7 @@ class OnSampler:
         return self.total_sample_number
 
     def _finish_trajs(self, est_last_val: float, last_ptr: int, ptr: int):
-        # calculate value target (mb_ret) & gae (mb_adv) whenever an episode is finished
+        # calculate value target (mb_ret) & gae (mb_adv) whenever episode is finished
         path_slice = slice(last_ptr, ptr + 1)
         value_preds_slice = np.append(self.mb_val[path_slice], est_last_val)
         rews_slice = self.mb_rew[path_slice]
