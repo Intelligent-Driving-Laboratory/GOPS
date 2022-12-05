@@ -2,9 +2,10 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Jie Li
-#  Description: Suspension Environment
-#
+#  Creator: iDLab
+#  Description: Suspension Model
+#  Update Date: 2022-08-12, Jie Li: create environment
+#  Update Date: 2022-10-24, Yvjie Yang: add wrapper
 
 from typing import Tuple, Union
 
@@ -32,12 +33,18 @@ class PythSuspensioncontiModel(PythBaseModel):
         self.dt = 1 / 500
 
         # define your custom parameters here
-        self.M_b = 300  # the mass of the car body(kg)
-        self.M_us = 60  # the mass of the wheel(kg)
-        self.K_t = 190000  # the tyre stiffness(N/m)
-        self.K_a = 16000  # the linear suspension stiffness(N/m)
-        self.K_n = self.K_a / 10  # the nonlinear suspension stiffness(N/m)
-        self.C_a = 1000  # the damping rate of the suspension(N/(m/s))
+        # the mass of the car body [kg]
+        self.M_b = 300
+        # the mass of the wheel [kg]
+        self.M_us = 60
+        # the tyre stiffness [N/m]
+        self.K_t = 190000
+        # the linear suspension stiffness [N/m]
+        self.K_a = 16000
+        # the nonlinear suspension stiffness [N/m]
+        self.K_n = self.K_a / 10
+        # the damping rate of the suspension [N / (m/s)]
+        self.C_a = 1000
         self.control_gain = 1e3
 
         # utility information
@@ -54,8 +61,8 @@ class PythSuspensioncontiModel(PythBaseModel):
         self.gamma_atte = kwargs['gamma_atte']
 
         # state & action space
-        self.fixed_initial_state = kwargs['fixed_initial_state']  # for env_data & on_sampler
-        self.initial_state_range = kwargs['initial_state_range']  # for env_model
+        self.fixed_initial_state = kwargs['fixed_initial_state']
+        self.initial_state_range = kwargs['initial_state_range']
         self.pos_body_initial = self.initial_state_range[0]
         self.vel_body_initial = self.initial_state_range[1]
         self.pos_wheel_initial = self.initial_state_range[2]
@@ -78,7 +85,7 @@ class PythSuspensioncontiModel(PythBaseModel):
             self.lb_action = torch.tensor(self.min_action + self.min_adv_action, dtype=torch.float32)
             self.hb_action = torch.tensor(self.max_action + self.max_adv_action, dtype=torch.float32)
         else:
-            self.lb_action = torch.tensor(self.min_action, dtype=torch.float32)  # action & adversary
+            self.lb_action = torch.tensor(self.min_action, dtype=torch.float32)
             self.hb_action = torch.tensor(self.max_action, dtype=torch.float32)
 
         self.ones_ = torch.ones(self.sample_batch_size)
@@ -115,7 +122,7 @@ class PythSuspensioncontiModel(PythBaseModel):
         pos_wheel = np.random.uniform(-self.pos_wheel_initial, self.pos_wheel_initial, [self.sample_batch_size, 1])
         vel_wheel = np.random.uniform(-self.vel_wheel_initial, self.vel_wheel_initial, [self.sample_batch_size, 1])
 
-        state = np.concatenate([pos_body, vel_body, pos_wheel, vel_wheel], axis=1)  # concatenate column
+        state = np.concatenate([pos_body, vel_body, pos_wheel, vel_wheel], axis=1)
 
         return torch.from_numpy(state).float()
 
@@ -130,8 +137,10 @@ class PythSuspensioncontiModel(PythBaseModel):
         control_gain = self.control_gain
         pos_body, vel_body = self.parallel_state[:, 0], self.parallel_state[:, 1]
         pos_wheel, vel_wheel = self.parallel_state[:, 2], self.parallel_state[:, 3]
-        force = action[:, 0]  # the control force of the hydraulic actuator [kN]
-        pos_road = action[:, 1]  # the road disturbance
+        # the control force of the hydraulic actuator [kN]
+        force = action[:, 0]
+        # the road disturbance [m]
+        pos_road = action[:, 1]
 
         deri_pos_body = vel_body
         deri_vel_body = - (K_a * (pos_body - pos_wheel) + K_n * torch.pow(pos_body - pos_wheel, 3) +
@@ -188,9 +197,11 @@ class PythSuspensioncontiModel(PythBaseModel):
         C_a = self.C_a
         control_gain = self.control_gain
         pos_body, vel_body, pos_wheel, vel_wheel = state[:, 0], state[:, 1], state[:, 2], state[:, 3]
-        force = action[:, 0]     # the control force of the hydraulic actuator [kN]
+        # the control force of the hydraulic actuator [kN]
+        force = action[:, 0]
         if self.is_adversary:
-            pos_road = action[:, 1]  # the road disturbance
+            # the road disturbance [m]
+            pos_road = action[:, 1]
         else:
             pos_road = torch.zeros_like(force)
 
@@ -229,7 +240,7 @@ class PythSuspensioncontiModel(PythBaseModel):
         C_a = self.C_a
 
         if batch_size > 1:
-            fx = torch.zeros((batch_size, self.state_dim))  # [64, 4]
+            fx = torch.zeros((batch_size, self.state_dim))
             fx[:, 0] = state[:, 1]
             fx[:, 1] = - (K_a * (state[:, 0] - state[:, 2]) + K_n * torch.pow(state[:, 0] - state[:, 2], 3) +
                           C_a * (state[:, 1] - state[:, 3])) / M_b
@@ -237,7 +248,7 @@ class PythSuspensioncontiModel(PythBaseModel):
             fx[:, 3] = (K_a * (state[:, 0] - state[:, 2]) + K_n * torch.pow(state[:, 0] - state[:, 2], 3) +
                         C_a * (state[:, 1] - state[:, 3]) - K_t * state[:, 2]) / M_us
         else:
-            fx = torch.zeros((self.state_dim, 1))  # [4, 1]
+            fx = torch.zeros((self.state_dim, 1))
             fx[0, 0] = state[0, 1]
             fx[1, 0] = - (K_a * (state[0, 0] - state[0, 2]) + K_n * torch.pow(state[0, 0] - state[0, 2], 3) +
                           C_a * (state[0, 1] - state[0, 3])) / M_b
@@ -250,13 +261,13 @@ class PythSuspensioncontiModel(PythBaseModel):
     def g_x(self, state, batch_size):
 
         if batch_size > 1:
-            gx = torch.zeros((batch_size, self.state_dim, self.action_dim))  # [64, 4, 1]
+            gx = torch.zeros((batch_size, self.state_dim, self.action_dim))
             gx[:, 0, 0] = torch.zeros((batch_size,))
             gx[:, 1, 0] = self.control_gain / self.M_b * torch.ones((batch_size, ))
             gx[:, 2, 0] = torch.zeros((batch_size,))
             gx[:, 3, 0] = - self.control_gain / self.M_us * torch.ones((batch_size, ))
         else:
-            gx = torch.zeros((self.state_dim, self.action_dim))  # [4, 1]
+            gx = torch.zeros((self.state_dim, self.action_dim))
             gx[0, 0] = 0
             gx[1, 0] = self.control_gain / self.M_b
             gx[2, 0] = 0
@@ -268,11 +279,11 @@ class PythSuspensioncontiModel(PythBaseModel):
         batch_size = state.size()[0]
 
         if batch_size > 1:
-            gx = self.g_x(state, batch_size)  # [64, 4, 1]
-            delta_value = delta_value[:, :, np.newaxis]  # [64, 4, 1]
-            act = - 0.5 * torch.matmul(self.R.inverse(), torch.bmm(gx.transpose(1, 2), delta_value)).squeeze(-1)  # [64, 4]
+            gx = self.g_x(state, batch_size)
+            delta_value = delta_value[:, :, np.newaxis]
+            act = - 0.5 * torch.matmul(self.R.inverse(), torch.bmm(gx.transpose(1, 2), delta_value)).squeeze(-1)
         else:
-            gx = self.g_x(state, batch_size)  # [4, 1]
+            gx = self.g_x(state, batch_size)
             act = - 0.5 * torch.mm(self.R.inverse(), torch.mm(gx.t(), delta_value.t()))
 
         return act.detach()
@@ -280,13 +291,13 @@ class PythSuspensioncontiModel(PythBaseModel):
     def k_x(self, state, batch_size):
 
         if batch_size > 1:
-            kx = torch.zeros((batch_size, self.state_dim, self.adversary_dim))  # [64, 4, 1]
+            kx = torch.zeros((batch_size, self.state_dim, self.adversary_dim))
             kx[:, 0, 0] = torch.zeros((batch_size,))
             kx[:, 1, 0] = torch.zeros((batch_size,))
             kx[:, 2, 0] = torch.zeros((batch_size,))
             kx[:, 3, 0] = self.K_t / self.M_us * torch.ones((batch_size,))
         else:
-            kx = torch.zeros((self.state_dim, self.adversary_dim))  # [4, 1]
+            kx = torch.zeros((self.state_dim, self.adversary_dim))
             kx[0, 0] = 0
             kx[1, 0] = 0
             kx[2, 0] = 0
@@ -298,24 +309,11 @@ class PythSuspensioncontiModel(PythBaseModel):
         batch_size = state.size()[0]
 
         if batch_size > 1:
-            kx = self.k_x(state, batch_size)  # [64, 4, 1]
-            delta_value = delta_value[:, :, np.newaxis]  # [64, 4, 1]
-            adv = 0.5 / (self.gamma_atte ** 2) * torch.bmm(kx.transpose(1, 2), delta_value).squeeze(-1)  # [64, 1]
+            kx = self.k_x(state, batch_size)
+            delta_value = delta_value[:, :, np.newaxis]
+            adv = 0.5 / (self.gamma_atte ** 2) * torch.bmm(kx.transpose(1, 2), delta_value).squeeze(-1)
         else:
-            kx = self.k_x(state, batch_size)  # [4, 1]
+            kx = self.k_x(state, batch_size)
             adv = 0.5 / (self.gamma_atte ** 2) * torch.mm(kx.t(), delta_value.t())
 
         return adv.detach()
-
-
-def clip_by_tensor(t, t_min, t_max):
-    """
-    clip_by_tensor
-    :param t: tensor
-    :param t_min: min
-    :param t_max: max
-    :return: cliped tensor
-    """
-    result = (t >= t_min) * t + (t < t_min) * t_min
-    result = (result <= t_max) * result + (result > t_max) * t_max
-    return result

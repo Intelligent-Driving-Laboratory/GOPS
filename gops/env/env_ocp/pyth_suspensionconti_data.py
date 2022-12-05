@@ -2,17 +2,16 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Jie Li
-#  Description: Suspension Environment
-#
+#  Creator: iDLab
+#  Description: Suspension Model
+#  Update Date: 2022-08-12, Jie Li: create environment
+#  Update Date: 2022-10-24, Yvjie Yang: add wrapper
 
 from math import sin, cos, sqrt, exp, pi
 
 import gym
 import numpy as np
 from gym import spaces
-from gym.wrappers.time_limit import TimeLimit
-
 from gops.env.env_ocp.pyth_base_data import PythBaseEnv
 
 gym.logger.setLevel(gym.logger.ERROR)
@@ -36,7 +35,7 @@ class _GymSuspensionconti(PythBaseEnv):
         self.state_dim = 4
         self.action_dim = 1
         self.adversary_dim = 1
-        self.tau = 1 / 500  # seconds between state updates
+        self.tau = 1 / 500
         self.prob_intensity = kwargs.get('prob_intensity', 1.0)
         self.base_decline = kwargs.get('base_decline', 0.0)
         self.start_decline = kwargs.get('start_decline', 0)
@@ -49,12 +48,18 @@ class _GymSuspensionconti(PythBaseEnv):
         self.time_start_cancel = self.start_cancel * self.tau * self.sample_batch_size
 
         # define your custom parameters here
-        self.M_b = 300  # the mass of the car body(kg)
-        self.M_us = 60  # the mass of the wheel(kg)
-        self.K_t = 190000  # the tyre stiffness(N/m)
-        self.K_a = 16000  # the linear suspension stiffness(N/m)
-        self.K_n = self.K_a / 10  # the nonlinear suspension stiffness(N/m)
-        self.C_a = 1000  # the damping rate of the suspension(N/(m/s))
+        # the mass of the car body [kg]
+        self.M_b = 300
+        # the mass of the wheel [kg]
+        self.M_us = 60
+        # the tyre stiffness [N/m]
+        self.K_t = 190000
+        # the linear suspension stiffness [N/m]
+        self.K_a = 16000
+        # the nonlinear suspension stiffness [N/m]
+        self.K_n = self.K_a / 10
+        # the damping rate of the suspension [N / (m/s)]
+        self.C_a = 1000
         self.control_gain = 1e3
 
         # utility information
@@ -98,7 +103,7 @@ class _GymSuspensionconti(PythBaseEnv):
 
         self.steps_beyond_done = None
 
-        self.max_episode_steps = kwargs['max_episode_steps']  # original = 200
+        self.max_episode_steps = kwargs['max_episode_steps']
         self.steps = 0
 
     def reset(self, init_state=None, **kwargs):
@@ -110,7 +115,7 @@ class _GymSuspensionconti(PythBaseEnv):
         self.steps = 0
         return self.state
 
-    def reload_para(self):  # reload uncertain parameters in env_data
+    def reload_para(self):
         pass
 
     def stepPhysics(self, action, adv_action):
@@ -123,8 +128,10 @@ class _GymSuspensionconti(PythBaseEnv):
         C_a = self.C_a
         control_gain = self.control_gain
         pos_body, vel_body, pos_wheel, vel_wheel = self.state
-        force = action[0]         # the control force of the hydraulic actuator [kN]
-        pos_road = adv_action[0]  # the road disturbance
+        # the control force of the hydraulic actuator [kN]
+        force = action[0]
+        # the road disturbance [m]
+        pos_road = adv_action[0]
 
         pos_body_dot = vel_body
         vel_body_dot = - (K_a * (pos_body - pos_wheel) + K_n * pow(pos_body - pos_wheel, 3) +
@@ -173,9 +180,9 @@ class _GymSuspensionconti(PythBaseEnv):
         else:
             if self.steps_beyond_done == 0:
                 gym.logger.warn("""
-You are calling 'step()' even though this environment has already returned
-done = True. You should always call 'reset()' once you receive 'done = True'
-Any further steps are undefined behavior.
+                You are calling 'step()' even though this environment has already returned
+                done = True. You should always call 'reset()' once you receive 'done = True'
+                Any further steps are undefined behavior.
                 """)
             self.steps_beyond_done += 1
             reward = 0.0
@@ -216,30 +223,10 @@ Any further steps are undefined behavior.
 
 
 def dist_func_sine_noise(time):
-    # No.1
     t0 = 0.0
-    dist = [0.5 * sin(2 * sqrt(2 / 3) * (time - t0))]  # 0.5
-    # # No.2
-    # te = 4 * pi / (2 * sqrt(self.k_0 / self.m))
-    # dist = [0.5 * sin(2 * sqrt(self.k_0 / self.m) * time)] if time < te else [0]
-    # # No.3
-    # dist = [0.5 * exp(-0.1 * time) * sin(2 * sqrt(self.k_0 / self.m) * time)]
-    return dist
-
-
-# def dist_func_white_noise(step):
-#     dist = [3 * white_noise[step]]
-#     return dist
-
-
-def dist_func_zero_noise(time):
-    dist = [0]
+    dist = [0.5 * sin(2 * sqrt(2 / 3) * (time - t0))]
     return dist
 
 
 def env_creator(**kwargs):
-    return _GymSuspensionconti(**kwargs)  # original = 200
-
-
-if __name__ == '__main__':
-    pass
+    return _GymSuspensionconti(**kwargs)

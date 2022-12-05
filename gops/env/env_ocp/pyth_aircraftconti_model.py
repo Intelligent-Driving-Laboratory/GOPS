@@ -2,9 +2,10 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Jie Li
-#  Description: Aircraft Environment
-#
+#  Creator: iDLab
+#  Description: Aircraft Model
+#  Update Date: 2022-08-12, Jie Li: create environment
+#  Update Date: 2022-10-24, Yvjie Yang: add wrapper
 
 from typing import Tuple, Union
 
@@ -47,8 +48,8 @@ class PythAircraftcontiModel(PythBaseModel):
         self.gamma_atte = kwargs['gamma_atte']
 
         # state & action space
-        self.fixed_initial_state = kwargs['fixed_initial_state']  # for env_data & on_sampler
-        self.initial_state_range = kwargs['initial_state_range']  # for env_model
+        self.fixed_initial_state = kwargs['fixed_initial_state']
+        self.initial_state_range = kwargs['initial_state_range']
         self.attack_ang_initial = self.initial_state_range[0]
         self.rate_initial = self.initial_state_range[1]
         self.elevator_ang_initial = self.initial_state_range[2]
@@ -67,7 +68,7 @@ class PythAircraftcontiModel(PythBaseModel):
             self.lb_action = torch.tensor(self.min_action + self.min_adv_action, dtype=torch.float32)
             self.hb_action = torch.tensor(self.max_action + self.max_adv_action, dtype=torch.float32)
         else:
-            self.lb_action = torch.tensor(self.min_action, dtype=torch.float32)  # action & adversary
+            self.lb_action = torch.tensor(self.min_action, dtype=torch.float32)
             self.hb_action = torch.tensor(self.max_action, dtype=torch.float32)
 
         self.ones_ = torch.ones(self.sample_batch_size)
@@ -97,13 +98,13 @@ class PythAircraftcontiModel(PythBaseModel):
     def initial_step(self):
         return torch.zeros(self.sample_batch_size)
 
-    def reset(self):  # for parallel_sampler_shared_network
+    def reset(self):
 
         attack_ang = np.random.normal(0, self.attack_ang_initial, [self.sample_batch_size, 1])
         rate = np.random.normal(0, self.rate_initial, [self.sample_batch_size, 1])
         elevator_ang = np.random.normal(0, self.elevator_ang_initial, [self.sample_batch_size, 1])
 
-        state = np.concatenate([attack_ang, rate, elevator_ang], axis=1)  # concatenate column
+        state = np.concatenate([attack_ang, rate, elevator_ang], axis=1)
 
         return torch.from_numpy(state).float()
 
@@ -114,8 +115,10 @@ class PythAircraftcontiModel(PythBaseModel):
         A_elevator_ang = self.A_elevator_ang
         state = self.parallel_state
         attack_ang, rate, elevator_ang = self.parallel_state[:, 0], self.parallel_state[:, 1], self.parallel_state[:, 2]
-        elevator_vol = action[:, 0]  # the elevator actuator voltage
-        wind_attack_angle = action[:, 1]  # wind gusts on angle of attack
+        # the elevator actuator voltage
+        elevator_vol = action[:, 0]
+        # wind gusts on angle of attack
+        wind_attack_angle = action[:, 1]
 
         deri_attack_ang = torch.mm(state, A_attack_ang).squeeze(-1) + wind_attack_angle
         deri_rate = torch.mm(state, A_rate).squeeze(-1)
@@ -163,9 +166,11 @@ class PythAircraftcontiModel(PythBaseModel):
         A_rate = self.A_rate
         A_elevator_ang = self.A_elevator_ang
         attack_ang, rate, elevator_ang = state[:, 0], state[:, 1], state[:, 2]
-        elevator_vol = action[:, 0]       # the elevator actuator voltage
+        # the elevator actuator voltage
+        elevator_vol = action[:, 0]
         if self.is_adversary:
-            wind_attack_angle = action[:, 1]  # wind gusts on angle of attack
+            # wind gusts on angle of attack
+            wind_attack_angle = action[:, 1]
         else:
             wind_attack_angle = torch.zeros_like(elevator_vol)
 
@@ -198,7 +203,7 @@ class PythAircraftcontiModel(PythBaseModel):
     def g_x(self, state, batch_size=1):
 
         if batch_size > 1:
-            gx = torch.zeros((batch_size, self.state_dim, self.action_dim))  # [64, 3, 1]
+            gx = torch.zeros((batch_size, self.state_dim, self.action_dim))
             for i in range(batch_size):
                 gx[i, :, :] = self.B
         else:
@@ -210,9 +215,9 @@ class PythAircraftcontiModel(PythBaseModel):
         batch_size = state.size()[0]
 
         if batch_size > 1:
-            gx = self.g_x(state, batch_size)  # [64, 3, 1]
-            delta_value = delta_value[:, :, np.newaxis]  # [64, 3, 1]
-            act = - 0.5 * torch.matmul(self.R.inverse(), torch.bmm(gx.transpose(1, 2), delta_value)).squeeze(-1)  # [64, 1]
+            gx = self.g_x(state, batch_size)
+            delta_value = delta_value[:, :, np.newaxis]
+            act = - 0.5 * torch.matmul(self.R.inverse(), torch.bmm(gx.transpose(1, 2), delta_value)).squeeze(-1)
         else:
             gx = self.B
             act = - 0.5 * torch.mm(self.R.inverse(), torch.mm(gx.t(), delta_value.t()))
@@ -222,7 +227,7 @@ class PythAircraftcontiModel(PythBaseModel):
     def k_x(self, state, batch_size=1):
 
         if batch_size > 1:
-            kx = torch.zeros((batch_size, self.state_dim, self.adversary_dim))  # [64, 3, 1]
+            kx = torch.zeros((batch_size, self.state_dim, self.adversary_dim))
             for i in range(batch_size):
                 kx[i, :, :] = self.D
         else:
@@ -234,9 +239,9 @@ class PythAircraftcontiModel(PythBaseModel):
         batch_size = state.size()[0]
 
         if batch_size > 1:
-            kx = self.k_x(state, batch_size)  # [64, 3, 1]
-            delta_value = delta_value[:, :, np.newaxis]  # [64, 3, 1]
-            adv = 0.5 / (self.gamma_atte ** 2) * torch.bmm(kx.transpose(1, 2), delta_value).squeeze(-1)  # [64, 1]
+            kx = self.k_x(state, batch_size)
+            delta_value = delta_value[:, :, np.newaxis]
+            adv = 0.5 / (self.gamma_atte ** 2) * torch.bmm(kx.transpose(1, 2), delta_value).squeeze(-1)
         else:
             kx = self.D
             adv = 0.5 / (self.gamma_atte ** 2) * torch.mm(kx.t(), delta_value.t())
