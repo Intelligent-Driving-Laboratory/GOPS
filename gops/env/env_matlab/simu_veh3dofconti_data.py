@@ -3,31 +3,33 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Simulink cartpole environment
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+
+#  Description: Simulink Vehicle 3Dof data environment
 #  Update Date: 2021-07-011, Wenxuan Wang: create simulink environment
-from typing import Optional, List
+
+from typing import Optional, List, Tuple, Any, Sequence
 
 from gym import spaces
 import gym
 from gym.utils import seeding
-
-from gops.env.env_matlab.resources.simu_vehicle3dof_v2 import vehicle3dof
 import numpy as np
-
+from gops.env.env_matlab.resources.simu_vehicle3dof_v2 import vehicle3dof
 
 class RefCurve:
     def __init__(self,
                  ref_a: List,
                  ref_t: List,
                  ref_fai: List,
-                 ref_v,
+                 ref_v: float,
                  ):
         self.A = ref_a
         self.T = ref_t
         self.fai = ref_fai
         self.V = ref_v
 
-    def cal_reference(self, pos_x):
+    def cal_reference(self, pos_x: float) -> Tuple[float, float, float]:
         pos_y = 0
         k_y = 0
         for items in zip(self.A, self.T, self.fai):
@@ -37,7 +39,7 @@ class RefCurve:
 
 
 class SimuVeh3dofconti(gym.Env, ):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         spec = vehicle3dof._env.EnvSpec(
             id='SimuVeh3dofConti-v0',
             max_episode_steps=kwargs["Max_step"],
@@ -71,7 +73,6 @@ class SimuVeh3dofconti(gym.Env, ):
         else:
             raise NotImplementedError
 
-        # Inherit or override with a user provided space
         self.action_space = self.env.action_space
         self.action_space = spaces.Box(
             -self.act_scale * self.act_max,
@@ -103,7 +104,10 @@ class SimuVeh3dofconti(gym.Env, ):
     def state(self):
         return self._state
 
-    def reset(self, init_state=None, **kwargs):
+    def reset(self,
+              init_state: Optional[Sequence] = None,
+              **kwargs: Any
+              ) -> Tuple[np.ndarray]:
         def callback():
             """Custom reset logic goes here."""
             # Modify your parameter
@@ -122,41 +126,35 @@ class SimuVeh3dofconti(gym.Env, ):
             self.env.model_class.vehicle3dof_InstP.punish_R[:] = self.R
 
         # Reset takes an optional callback
-        # This callback will be called after model & parameter initialization
-        # and before taking first step.
+        # This callback will be called after model & parameter initialization and before taking first step.
         state = self.env.reset(callback)
         obs = self.postprocess(state)
         return obs
 
-    def _physics_step(self, action: np.ndarray):
+    def _physics_step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         state, reward, done, info = self.env.step(action)
         self._state = state
         return state, reward, done, info
 
-    def step(self, action: np.ndarray):
-        # Preprocess action here
+    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
+        # Preprocess action
         action_real = self.preprocess(action)
-        # print("act is")
-        # print(action_real)
         sum_reward = 0
         for idx in range(self.act_repeat):
             state, reward, done, info = self._physics_step(action_real)
             sum_reward += self.reward_shaping(reward)
-            # print("reward is")
-            # print(self.reward_shaping(reward))
             if done:
                 sum_reward += self.punish_done
-                # print("done")
                 break
-        # Postprocess (obs, reward, done, info) here
+        # Postprocess obs
         obs = self.postprocess(state)
         return obs, sum_reward, done, info
 
-    def preprocess(self, action):
+    def preprocess(self, action: np.ndarray) -> Tuple[np.ndarray]:
         action_real = action / self.act_scale
         return action_real
 
-    def postprocess(self, state):
+    def postprocess(self, state: np.ndarray) -> Tuple[np.ndarray]:
         ref_y, ref_phi, ref_v = self.ref_curve.cal_reference(state[0])
         obs = np.zeros(self.observation_space.shape)
         obs[0] = state[0]
@@ -166,11 +164,13 @@ class SimuVeh3dofconti(gym.Env, ):
         obs[4] = state[4] - ref_phi
         obs[5] = state[5]
         obs[0:6] = obs[0:6] * self.obs_scale
+        # Reference position
         if self.use_ref == "Pos":
             x_pre = state[0] + ref_v * self.dt * self.act_repeat * np.linspace(1, self.ref_horizon, self.ref_horizon)
             y_pre, _, _ = self.ref_curve.cal_reference(x_pre)
             obs_y_pre = (state[1] - y_pre) * self.obs_scale[1]
             obs[6:] = obs_y_pre
+        # Reference position and heading angle
         elif self.use_ref == "Both":
             x_pre = state[0] + ref_v * self.dt * self.act_repeat * np.linspace(1, self.ref_horizon, self.ref_horizon)
             y_pre, phi_pre, _ = self.ref_curve.cal_reference(x_pre)
@@ -179,9 +179,7 @@ class SimuVeh3dofconti(gym.Env, ):
             obs[6:] = np.concatenate([obs_y_pre, obs_phi_pre])
         return obs
 
-    def reward_shaping(self, origin_reward):
-        # print("reward is")
-        # print(origin_reward)
+    def reward_shaping(self, origin_reward: float) -> Tuple[float]:
         modified_reward = origin_reward
         if modified_reward <= -self.reward_bound:
             modified_reward = -self.reward_bound
@@ -198,38 +196,3 @@ class SimuVeh3dofconti(gym.Env, ):
     def close(self):
         pass
 
-
-if __name__ == "__main__":
-    import gym
-    import numpy as np
-
-    env_config = {"ref_A": [0.0, 0.0, 0],
-                  "ref_T": [100., 200., 400.],
-                  "ref_V": 0.,
-                  "ref_fai": [0, np.pi / 6, np.pi / 3],
-                  "ref_horizon": 20,
-                  "ref_info": "None",
-                  "Max_step": 1000,
-                  "act_repeat": 1,
-                  "obs_scaling": [1, 1, 1, 1, 1, 1],
-                  "act_scaling": [1, 1, 1],
-                  "act_max": [20 * np.pi / 180, 3000, 3000],
-                  "rew_bias": 5.,
-                  "rew_bound": 5.,
-                  "rand_center": [0, 0, 20, 0, 0, 0],
-                  "rand_bias": [0, 0, 0, 0, 0, 0],
-                  "done_range": [1000, 200, 100],
-                  "punish_done": 0.,
-                  "punish_Q": [1, 1, 10, 0.5],
-                  "punish_R": [5, 1e-6, 1e-6],
-                  }
-    env = SimuVeh3dofconti(**env_config)
-    s = env.reset()
-    print(s)
-    print(env.env.model_class.vehicle3dof_InstP.done_range)
-    for i in range(1000):
-        print(i)
-        a = np.array([0.02, 1000, 1000])
-        sp, r, d, _ = env.step(a)
-        print(sp)
-        s = sp

@@ -1,11 +1,20 @@
-import contextlib
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
 
-import numpy as np
+#  Description: Put GOPS policy back into Simulink for closed-loop validation tool
+#  Update Date: 2022-07-011, Yuxuan Jiang: Create policy check and export modular
+
+import contextlib
 import torch, torch.nn as nn
 import torch.jit
 
 
-def check_jit_compatibility(model, example_obs):
+def check_jit_compatibility(model: nn.Module, example_obs: torch.Tensor):
     with _module_inference(model):
         inference_helper = _InferenceHelper(model)
         try:
@@ -14,7 +23,7 @@ def check_jit_compatibility(model, example_obs):
             raise RuntimeError("The model cannot be compiled into a trace module.") from e
 
 
-def export_model(model, example_obs, path):
+def export_model(model: nn.Module, example_obs: torch.Tensor, path: str):
     with _module_inference(model):
         inference_helper = _InferenceHelper(model)
         inference_helper = torch.jit.trace(inference_helper, example_obs)
@@ -46,36 +55,3 @@ class _InferenceHelper(nn.Module):
         mode = act_dist.mode()
         return mode.squeeze(0)
 
-
-if __name__ == "__main__":
-    import gops.create_pkg  # For PYTHONPATH
-    from gops.apprfunc.mlp import DetermPolicy, StochaPolicy
-    from gops.utils.act_distribution import GaussDistribution, DiracDistribution
-
-    model = StochaPolicy(
-        obs_dim=20,
-        act_dim=5,
-        hidden_sizes=(64, 64),
-        hidden_activation="tanh",
-        output_activation="linear",
-        act_high_lim=np.ones(5, dtype=np.float32),
-        act_low_lim=np.ones(5, dtype=np.float32) * -1.0,
-        # DetermPolicy specific
-        # action_distribution_cls=DiracDistribution,
-        # StochaPolicy specific
-        action_distribution_cls=GaussDistribution,
-        std_sype="mlp_shared",
-        min_log_std=-20.0,
-        max_log_std=2.0,
-    )
-    example_obs = torch.randn(20)
-    
-    check_jit_compatibility(model, example_obs)
-    export_model(model, example_obs, "./model.pt")
-
-    # Test usability
-    inference_helper = torch.jit.load("./model.pt")
-    with torch.no_grad():
-        act = inference_helper(example_obs)
-    print("Raw: ", model(example_obs))
-    print("JIT: ", act)
