@@ -1,16 +1,18 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Mobile Robot Environment
 #  Update Date: 2022-06-05, Baiyu Peng: create environment
 
-from typing import Tuple, Union
+from typing import Any, Tuple, Union
 
 import numpy as np
 import torch
-
 from gops.env.env_ocp.pyth_base_model import PythBaseModel
 from gops.utils.gops_typing import InfoDict
 
@@ -20,21 +22,18 @@ def env_model_creator(**kwargs):
 
 
 class PythMobilerobotModel(PythBaseModel):
-    def __init__(self,
-                 device: Union[torch.device, str, None] = None,
-                 ):
-        """
-        you need to define parameters here
-        """
+    def __init__(
+        self,
+        device: Union[torch.device, str, None] = None,
+        **kwargs: Any,
+    ):
         self.n_obstacle = 1
         self.safe_margin = 0.15
-
         self.robot = Robot()
         self.obses = [Robot() for _ in range(self.n_obstacle)]
 
         # define common parameters here
-        self.dt = 0.1  # seconds between state updates
-
+        self.dt = 0.1
         self.state_dim = (1 + self.n_obstacle) * 5 + 3
         self.action_dim = 2
         lb_state = (
@@ -88,30 +87,26 @@ class PythMobilerobotModel(PythBaseModel):
                     )
                 )
 
-        ############################################################################################
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
         r_tracking = (
             -3.2 * torch.abs(tracking_error[:, 0]) - 10 * torch.abs(tracking_error[:, 1]) - 1.6 * torch.abs(tracking_error[:, 2])
         )
         r_action = -0 * torch.abs(action[:, 0]) - 0 * torch.abs(action[:, 1])
         reward = r_tracking + r_action
-        ############################################################################################
+
         # define the constraint funtion
         constraint = veh2vehdist
         # dead = veh2vehdist > 0
         info = {"constraint": constraint}
-        ################################################################################################################
         # define the ending condition here the format is just like isdone = l(next_state)
-
         isdone = self.get_done(state_next, veh2vehdist)
-        ############################################################################################
 
         return state_next, reward, isdone, info
 
-    def get_done(self, state, veh2vehdist):
-        done = torch.logical_or(state[:, 0] < -2, torch.abs(state[:, 1])>4)
+    def get_done(self, state: torch.Tensor, veh2vehdist: torch.Tensor) -> torch.Tensor:
+        done = torch.logical_or(state[:, 0] < -2, torch.abs(state[:, 1]) > 4)
         for i in range(self.n_obstacle):
-            crush = veh2vehdist[:,i] >  self.safe_margin
+            crush = veh2vehdist[:, i] > self.safe_margin
             done = torch.logical_or(done, crush)
         return done
 class Robot:
@@ -119,14 +114,14 @@ class Robot:
         self.robot_params = dict(
             v_max=0.4,
             w_max=np.pi / 2,
-            v_delta_max=1.8,  # per second
+            v_delta_max=1.8,
             w_delta_max=0.8,
             v_desired=0.3,
             radius=0.74 / 2,
         )
         self.path = ReferencePath()
 
-    def f_xu(self, states, actions, T, type):
+    def f_xu(self, states: torch.Tensor, actions: torch.Tensor, T: float, type: str) -> torch.Tensor:
         v_delta_max = self.robot_params["v_delta_max"]
         v_max = self.robot_params["v_max"]
         w_max = self.robot_params["w_max"]
@@ -168,7 +163,7 @@ class Robot:
 
         return torch.stack(next_state, 1)
 
-    def tracking_error(self, x):
+    def tracking_error(self, x:torch.Tensor) -> torch.Tensor:
         error_position = x[:, 1] - self.path.compute_path_y(x[:, 0])
         error_head = x[:, 2] - self.path.compute_path_phi(x[:, 0])
 
@@ -189,10 +184,10 @@ class ReferencePath(object):
     def __init__(self):
         pass
 
-    def compute_path_y(self, x):
+    def compute_path_y(self, x: torch.Tensor) -> torch.Tensor:
         y = 0*torch.sin(1/3 * x)
         return y
 
-    def compute_path_phi(self, x):
+    def compute_path_phi(self, x: torch.Tensor) -> torch.Tensor:
         deriv = 0 * torch.cos(1/3 * x)
         return torch.arctan(deriv)
