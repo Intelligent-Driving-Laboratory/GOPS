@@ -6,7 +6,10 @@
 #  Lab Leader: Prof. Shengbo Eben Li
 #  Email: lisb04@gmail.com
 #
-#  Description: Mixed Policy Gradient Algorithm (MPG)
+#  Description: Mixed Policy Gradient (MPG) Algorithm
+#  Reference: Guan, Y., Duan, J., Li, S. E., Li, J.,
+#             Chen, J., & Cheng, B. (2021). Mixed policy gradient.
+#             arXiv preprint arXiv:2102.11513.
 #  Update Date: 2022-06-05, Yang Guan: create MPG algorithm
 
 
@@ -96,7 +99,8 @@ class ApproxContainer(ApprBase):
 
 
 class MPG(AlgorithmBase):
-    """Mixed Policy Gradient (MPG) algorithm
+    """
+        Mixed Policy Gradient (MPG) algorithm
         Paper: https://arxiv.org/abs/2102.11513.
     """
     def __init__(
@@ -114,7 +118,7 @@ class MPG(AlgorithmBase):
     ) -> None:
         """
         Mixed Policy Gradient (MPG) algorithm.
-            :param: int index: index of algorithm.
+            :param: int index: for calculating offset of random seed for subprocess. Default to 0.
             :param: str pge_method: policy gradient estimation method, 'mixed_weight' or 'mixed_state'.
             :param: int terminal_iter: terminal iteration for change of lambda.
             :param: float eta: lambda increases from (1 - eta) to (1 + eta) balances data-driven PG and model-driven PG.

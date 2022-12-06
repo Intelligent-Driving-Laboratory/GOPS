@@ -6,7 +6,11 @@
 #  Lab Leader: Prof. Shengbo Eben Li
 #  Email: lisb04@gmail.com
 #
-#  Description: Relaxed Policy Iteration Algorithm (RPI)
+#  Description: Relaxed Policy Iteration (RPI) Algorithm
+#  Reference: Li, J., Li, S. E., Guan, Y., Duan, J.,
+#             Li, W., & Yin, Y. (2020). Ternary Policy
+#             Iteration Algorithm for Nonlinear Robust Control.
+#             arXiv preprint arXiv:2007.06810.
 #  Update Date: 2022-09-17, Jie Li: create RPI algorithm
 
 
@@ -94,7 +98,8 @@ class ApproxContainer(ApprBase):
 
 
 class RPI(AlgorithmBase):
-    """Relaxed Policy Iteration (RPI) algorithm
+    """
+        Relaxed Policy Iteration (RPI) algorithm
         Paper: https://arxiv.org/abs/2007.06810.
     """
     def __init__(
@@ -110,7 +115,7 @@ class RPI(AlgorithmBase):
     ) -> None:
         """
         Relaxed Policy Iteration (RPI) algorithm.
-            :param: int index: index of algorithm.
+            :param: int index: for calculating offset of random seed for subprocess. Default to 0.
             :param: int max_newton_iteration: max iteration in Newton's method.
             :param: int max_step_update_value: max gradient step in policy evaluation.
             :param: int print_interval: print interval.

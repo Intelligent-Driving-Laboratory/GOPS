@@ -1,8 +1,11 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Oscillator Model
 #  Update Date: 2022-08-12, Jie Li: create environment
 #  Update Date: 2022-10-24, Yvjie Yang: add wrapper
