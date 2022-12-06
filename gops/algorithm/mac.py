@@ -3,7 +3,13 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+
 #  Description: Mixed Actor Critic Algorithm (MAC)
+#  Reference: Mu, Y., B. Peng, Z. Gu, S. E. Li, C. Liu, B. Nie, J. Zheng, & B. Zhang. (2020, October).
+#             Mixed Reinforcement Learning for Efficient Policy Optimization in Stochastic Environments. 
+#             In International Conference on Control, Automation and Systems (pp. 1212-1219). ICCAS.
 #  Update: 2021-03-05, Yao Mu: create MAC algorithm
 
 
@@ -26,6 +32,10 @@ import numpy as np
 
 class ApproxContainer(ApprBase):
     def __init__(self, **kwargs):
+        """Approximate function container for DDPG.
+
+        Contains a policy and an action value.
+        """
         super().__init__(**kwargs)
         value_func_type = kwargs["value_func_type"]
         policy_func_type = kwargs["policy_func_type"]
@@ -46,7 +56,7 @@ class ApproxContainer(ApprBase):
 
         self.policy_optimizer = Adam(
             self.policy.parameters(), lr=kwargs["policy_learning_rate"]
-        )  #
+        )  
         self.v_optimizer = Adam(self.v.parameters(), lr=kwargs["value_learning_rate"])
 
         self.net_dict = {"v": self.v, "policy": self.policy}
@@ -56,7 +66,7 @@ class ApproxContainer(ApprBase):
     # create action_distributions
     def create_action_distributions(self, logits):
         return self.policy.get_act_dist(logits)
-
+    
     def update(self, grad_info):
         tau = grad_info["tau"]
         grads_dict = grad_info["grads_dict"]
@@ -76,6 +86,10 @@ class ApproxContainer(ApprBase):
 
 
 class MAC(AlgorithmBase):
+    """Mixed Actor Critic Algorithm (MAC) algorithm
+
+    Paper:https://ieeexplore.ieee.org/document/9268413
+    """
     def __init__(self, index=0, **kwargs):
         super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
@@ -143,8 +157,7 @@ class MAC(AlgorithmBase):
         self.delta = self.iterative_bayes_estimator(
             data, zero_prior_mean, diag_variance
         )
-        # print(self.dynamic_model_forward(o,a,d))
-
+        
     def iterative_bayes_estimator(self, data, basic_mu, basic_var):
         N, input_dim = data.shape
         var = torch.diag(torch.var(data, 0))
@@ -160,8 +173,6 @@ class MAC(AlgorithmBase):
             var = torch.mm((data - mu.t()).t(), data - mu.t()) / N
         mu = mu.detach().cpu().numpy()
         var = var.detach().cpu().numpy()
-        # print(var)
-        # print(mu)
         sample = torch.tensor(
             np.random.multivariate_normal(np.squeeze(mu), var, N), dtype=torch.float32
         ).detach()
@@ -202,7 +213,7 @@ class MAC(AlgorithmBase):
             data["obs2"],
             data["done"],
         )
-        # print(self.iterative_bayes_estimator(o-o2,torch.zeros_like((o-o2)[0]),torch.diag(torch.ones_like((o-o2)[0]))))
+
         self.update_ibe_model(o, a, d, o2)
         v = self.networks.v(o)
         with torch.no_grad():
@@ -251,5 +262,4 @@ class MAC(AlgorithmBase):
 
 
 
-if __name__ == "__main__":
-    print("11111")
+
