@@ -1,3 +1,14 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab (iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: reference trajectory for data environment
+#  Update: 2022-11-16, Yujie Yang: create reference trajectory
+
 from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
