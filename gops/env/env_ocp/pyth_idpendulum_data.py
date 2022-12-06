@@ -1,8 +1,13 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: Inverted double pendulum, data type
+#  Update: 2022-12-05, Yuhang Zhang: create file
 
 import gym
 import matplotlib.pyplot as plt
@@ -59,15 +64,6 @@ class PythInverteddoublependulum(PythBaseEnv):
         self.obs = None
 
     def step(self, action: np.ndarray, adv_action=None):
-        """
-        action: datatype:numpy.ndarray, shape:[action_dim,]
-        adv_action: datatype:numpy.ndarray, shape:[adv_action_dim,]
-        return:
-        self.obs: next observation, datatype:numpy.ndarray, shape:[state_dim]
-        reward: reward signal
-        done: done signal, datatype: bool
-        """
-        # action = 500.0 * action
         # define environment transition, reward,  done signal  and constraint function here
         obs_batch = torch.as_tensor(self.obs, dtype=torch.float32).reshape(1, -1)
         act_batch = torch.as_tensor(action, dtype=torch.float32).reshape(1, -1)
@@ -75,7 +71,7 @@ class PythInverteddoublependulum(PythBaseEnv):
         for _ in range(self.discrete_num):
             next_obs_batch = self.dynamics.f_xu(obs_batch, 500 * act_batch, self.dt / self.discrete_num)
             obs_batch = next_obs_batch
-        reward = self.dynamics.compute_rewards(next_obs_batch,act_batch)
+        reward = self.dynamics.compute_rewards(next_obs_batch, act_batch)
         done = self.dynamics.get_done(next_obs_batch)
         info = {}
 
@@ -84,15 +80,12 @@ class PythInverteddoublependulum(PythBaseEnv):
         return self.obs, reward, bool(done), info
 
     def reset(self, *, init_state=None, **kwargs):
-        """
-        self.obs: initial observation, datatype:numpy.ndarray, shape:[state_dim]
-        """
+
         # define initial state distribution here
         if init_state is None:
             self.obs = self.sample_initial_state()
         else:
-            # assert self.observation_space.contains(init_obs)
-            self.obs = np.array(init_state,dtype=np.float32)
+            self.obs = np.array(init_state, dtype=np.float32)
         return self.obs
 
     def render(self, mode="human"):
@@ -115,7 +108,7 @@ class PythInverteddoublependulum(PythBaseEnv):
         ), point1y + self.dynamics.l_rod2 * np.cos(theta2)
 
         plt.title("Inverted Double Pendulum")
-        ax = plt.gca() # plt.axes(xlim=(-2.5, 2.5), ylim=(-2.5, 2.5))
+        ax = plt.gca()
         fig = plt.gcf()
         ax.set_xlim((-2.5, 2.5))
         ax.set_ylim((-2.5, 2.5))
@@ -145,6 +138,7 @@ class PythInverteddoublependulum(PythBaseEnv):
         elif mode == "human":
             plt.pause(0.01)
             plt.show()
+
     def close(self):
         plt.cla()
         plt.clf()
@@ -155,14 +149,3 @@ def env_creator(**kwargs):
     make env `pyth_inverteddoublependulum`
     """
     return PythInverteddoublependulum(**kwargs)
-
-
-if __name__ == "__main__":
-    env = env_creator()
-    env.reset()
-    for _ in range(100):
-        action = env.action_space.sample()
-        s, r, d, _ = env.step(action)
-        print(s)
-        env.render()
-        if d: env.reset()
