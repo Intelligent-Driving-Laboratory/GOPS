@@ -1,11 +1,16 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Finity ADP Algorithm
-#  Update: 2021-03-05, Fawang Zhang: create finity ADP algorithm
-
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: Approximate Dynamic Program Algorithm for Finity Horizon (FHADP)
+#  Reference: Cheng T, Lewis FL, Abu-Khalaf M (2007) A neural network solution for fixed-final
+#             time optimal control of nonlinear systems. Automatica, 43(3):482-490
+#  Update: 2021-03-05, Fawang Zhang: create FHADP algorithm
+#  Update: 2022-12-04, Jiaxin Gao: supplementary comment information
 
 __all__ = ["FHADP"]
 
@@ -25,6 +30,8 @@ from gops.algorithm.base import AlgorithmBase, ApprBase
 
 class ApproxContainer(ApprBase):
     def __init__(self, **kwargs):
+        """Approximate function container for FHADP."""
+        """Contains one policy network."""
         super().__init__(**kwargs)
         policy_func_type = kwargs["policy_func_type"]
         policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
@@ -35,10 +42,18 @@ class ApproxContainer(ApprBase):
         )
 
     def create_action_distributions(self, logits):
+        """create action distribution"""
         return self.policy.get_act_dist(logits)
 
 
 class FHADP(AlgorithmBase):
+    """Approximate Dynamic Program Algorithm for Finity Horizon
+
+    Paper: https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=4124940
+
+    :param int forward_step: envmodel forward step.
+    :param float gamma: discount factor.
+    """
     def __init__(self, index=0, **kwargs):
         super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)

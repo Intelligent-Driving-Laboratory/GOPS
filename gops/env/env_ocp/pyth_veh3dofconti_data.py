@@ -1,10 +1,13 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Vehicle 3DOF Model
-#  Update Date: 2021-05-55, Congsheng Zhang: create environment
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: vehicle 3DOF data environment
+#  Update Date: 2021-05-55, Jiaxin Gao: create environment
 
 from typing import Dict, Optional, Sequence, Tuple
 
