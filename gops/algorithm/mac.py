@@ -7,7 +7,9 @@
 #  Email: lisb04@gmail.com
 
 #  Description: Mixed Actor Critic Algorithm (MAC)
-#  Reference:[1] springer reference format
+#  Reference: Mu, Y., B. Peng, Z. Gu, S. E. Li, C. Liu, B. Nie, J. Zheng, & B. Zhang. (2020, October).
+#             Mixed Reinforcement Learning for Efficient Policy Optimization in Stochastic Environments. 
+#             In International Conference on Control, Automation and Systems (pp. 1212-1219).  ICCAS.
 #  Update: 2021-03-05, Yao Mu: create MAC algorithm
 
 
@@ -86,7 +88,7 @@ class ApproxContainer(ApprBase):
 class MAC(AlgorithmBase):
     """Mixed Actor Critic Algorithm (MAC) algorithm
 
-    Paper:https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=9268413&tag=1
+    Paper:https://ieeexplore.ieee.org/document/9268413
     """
     def __init__(self, index=0, **kwargs):
         super().__init__(index, **kwargs)
