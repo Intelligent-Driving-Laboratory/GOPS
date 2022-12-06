@@ -1,8 +1,13 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: Inverted double pendulum, model type
+#  Update: 2022-12-05, Yuhang Zhang: create file
 
 from typing import Tuple, Union
 import torch
@@ -13,7 +18,7 @@ from gops.utils.gops_typing import InfoDict
 
 class Dynamics(object):
     def __init__(self):
-        self.mass_cart = 9.42477796 #10.47197551
+        self.mass_cart = 9.42477796
         self.mass_rod1 = 4.1033127
         self.mass_rod2 = 4.1033127
         self.l_rod1 = 0.6
@@ -80,22 +85,14 @@ class Dynamics(object):
         deriv = torch.cat([states[:, 3:], tmp], dim=-1)
         next_states = states + tau * deriv
         next_p, next_theta1, next_theta2, next_pdot, next_theta1dot, next_theta2dot = (
-                    next_states[:, 0],
-                    next_states[:, 1],
-                    next_states[:, 2],
-                    next_states[:, 3],
-                    next_states[:, 4],
-                    next_states[:, 5],
-                )
-        # next_theta1 = torch.where(next_theta1 > 3.1415, next_theta1 - 2 * 3.1415, next_theta1)
-        # next_theta1 = torch.where(next_theta1 < -3.1415, next_theta1 + 2 * 3.1415, next_theta1)
-        #
-        # next_theta2 = torch.where(next_theta2 > 3.1415, next_theta2 - 2 * 3.1415, next_theta2)
-        # next_theta2 = torch.where(next_theta2 < -3.1415, next_theta2 + 2 * 3.1415, next_theta2)
+            next_states[:, 0],
+            next_states[:, 1],
+            next_states[:, 2],
+            next_states[:, 3],
+            next_states[:, 4],
+            next_states[:, 5],
+        )
 
-        # next_pdot = torch.clamp(next_pdot, -10.0, 10.0)
-        # next_theta1dot = torch.clamp(next_theta1dot, -10.0, 10.0)
-        # next_theta2dot = torch.clamp(next_theta2dot, -10.0, 10.0)
         next_p = next_p.reshape(-1, 1)
         next_theta1 = next_theta1.reshape(-1, 1)
         next_theta2 = next_theta2.reshape(-1, 1)
@@ -118,12 +115,6 @@ class Dynamics(object):
         )
         tip_x = p + self.l_rod1 * torch.sin(theta1) + self.l_rod2 * torch.sin(theta2)
         tip_y = self.l_rod1 * torch.cos(theta1) + self.l_rod2 * torch.cos(theta2)
-        # dist_penalty = 0.1 * torch.square(tip_x) + torch.square(tip_y - 2)
-        # v1, v2 = theta1dot, theta2dot
-        # vel_penalty = 0.1 * torch.square(v1) + 0.05 * torch.square(v2)
-        # act_penalty = 0.1 * torch.square(actions)
-        # rewards = 10 - dist_penalty - vel_penalty - act_penalty
-        #
 
         dist_penalty = 0 * torch.square(p) + 5 * torch.square(theta1) + 10 * torch.square(theta2)
         v0, v1, v2 = pdot, theta1dot, theta2dot
@@ -152,13 +143,11 @@ class Dynamics(object):
 
         d1 = point2y <= 1.0
         d2 = torch.abs(point0x) >= 15
-        return torch.logical_or(d1, d2) # point2y <= 1.0
+        return torch.logical_or(d1, d2)  # point2y <= 1.0
+
 
 class PythInvertedpendulum(PythBaseModel):
     def __init__(self, device: Union[torch.device, str, None] = None):
-        """
-        you need to define parameters here
-        """
         obs_dim = 6
         action_dim = 1
         dt = 0.01
@@ -187,7 +176,7 @@ class PythInvertedpendulum(PythBaseModel):
         for _ in range(self.discrete_num):
             next_obs = self.dynamics.f_xu(obs, 500 * action, self.dt / self.discrete_num)
             obs = next_obs
-        reward = self.dynamics.compute_rewards(next_obs,action).reshape(-1)
+        reward = self.dynamics.compute_rewards(next_obs, action).reshape(-1)
         # done = torch.full([obs.size()[0]], False, dtype=torch.bool, device=self.device)
         done = self.dynamics.get_done(next_obs).reshape(-1)
         info = {"constraint": None}

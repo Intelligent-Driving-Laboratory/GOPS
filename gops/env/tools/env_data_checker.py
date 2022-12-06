@@ -1,8 +1,13 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
+#
 #  Creator: iDLab
-#  Description: check functionality of a given environment (make, reset, step, data format, file structure)
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: check environment of `data` type
+#  Update: 2022-12-05, Yuhang Zhang: create file
 
 import logging
 
@@ -18,23 +23,25 @@ logger = logging.getLogger(__name__)
 
 def _check_all_spaces(env):
     """
-    Check that the observation and action spaces adv action_space are defined
-    and inherit from gym.spaces.Space.
-
-    from gym repo
+    Check whether the observation and action spaces adv action_space are defined,
+    from `gym.spaces.Space`
+    :param env: gym.env
+    :return:
     """
     _check_spaces(env)
     if hasattr(env, "adv_action_space"):
         assert isinstance(env.action_space, spaces.Space), "The adv action space must inherit from gym.spaces"
     else:
         pass
-        # print(f"\033[0;32;40mThis env `{env}` does not specify an adv action space, please check if it is correct\033[0m")
 
 
 def _check_constraint(env):
     """
-    check that the constraint is defined and in the right shape
+    check whether constraint is defined and in right shape
+    :param env:
+    :return:
     """
+
     assert isinstance(env.constraint_dim, int), "the constraint_sdim must be an int"
     assert env.constraint_dim >= 1, "the constraint_sdim must be bigger or equal to 1"
     env.reset()
@@ -53,7 +60,9 @@ def _check_constraint(env):
 
 def check_env_file_structures(env_file_name):
     """
-    check that the env file has all necessary elements
+    check whether the env file has all necessary elements
+    :param env_file_name: env name
+    :return:
     """
     try:
         for sub in ["env_archive", "env_gym", "env_matlab", "env_ocp"]:
@@ -74,11 +83,14 @@ def check_env_file_structures(env_file_name):
         raise RuntimeError(f"the environment `{env_file_name}` is not implemented properly")
     return env_class
 
+
 def check_env0(env: gym.Env):
     """
-    check that the env class is well defined
-
+    check whether env class is well defined
+    :param env:  gym.Env
+    :return:
     """
+
     _check_all_spaces(env)
     observation_space = env.observation_space
     action_space = env.action_space
@@ -102,14 +114,15 @@ def check_env0(env: gym.Env):
         _check_constraint(env)
     else:
         pass
-        # print(f"\033[0;31;40mThis env `{env}` does not specify an constraint_dim, please check if it is correct\033[0m")
 
 
 def check_env(env_name: str):
     """
-    check that the env is well defined
-
+    check whether env is well defined
+    :param env_name: env name
+    :return:
     """
+
     print(f"checking `{env_name}_data` ...")
     try:
         env_cls = check_env_file_structures(env_name + "_data")
@@ -127,9 +140,11 @@ def check_env(env_name: str):
 
 def simple_check_env(env_name):
     """
-    check the env in simple mode
-
+    check env in simple mode
+    :param env_name: env name
+    :return:
     """
+
     print(f"checking `{env_name}_data` ...")
     env_cls = check_env_file_structures(env_name + "_data")
     env = env_cls()
@@ -140,8 +155,4 @@ def simple_check_env(env_name):
 
 
 if __name__ == "__main__":
-    # from gops.env.pyth_carfollowing_data import env_creator
-    # env = env_creator()
-    # check_env(env)
-
     check_env("pyth_carfollowing")

@@ -7,7 +7,10 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: Deep Deterministic Policy Gradient (DDPG) algorithm
-#  Reference: [1] springer reference format
+#  Reference: Lillicrap, T. P., Hunt, J. J., Pritzel, A., Heess,
+#             N., Erez, T., Tassa, Y., ... & Wierstra, D. (2015).
+#             Continuous control with deep reinforcement learning.
+#             arXiv preprint arXiv:1509.02971.
 #  Update: 2020-11-03, Hao Sun: create ddpg
 #  Update: 2022-12-03, Yujie Yang: rewrite ddpg class
 
@@ -32,25 +35,30 @@ class ApproxContainer(ApprBase):
         Contains a policy and an action value.
         """
         super().__init__(**kwargs)
+        # create value network
         value_func_type = kwargs["value_func_type"]
-        policy_func_type = kwargs["policy_func_type"]
-
         q_args = get_apprfunc_dict("value", value_func_type, **kwargs)
         self.q = create_apprfunc(**q_args)
+
+        # create policy network
+        policy_func_type = kwargs["policy_func_type"]
         policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
         self.policy = create_apprfunc(**policy_args)
 
+        #  create target networks
         self.q_target = deepcopy(self.q)
         self.policy_target = deepcopy(self.policy)
 
+        # set target network gradients
         for p in self.q_target.parameters():
             p.requires_grad = False
         for p in self.policy_target.parameters():
             p.requires_grad = False
 
+        # set optimizers
         self.policy_optimizer = Adam(
             self.policy.parameters(), lr=kwargs["policy_learning_rate"]
-        )  # TODO:
+        )
         self.q_optimizer = Adam(self.q.parameters(), lr=kwargs["value_learning_rate"])
 
     # create action_distributions
@@ -59,18 +67,22 @@ class ApproxContainer(ApprBase):
 
 
 class DDPG(AlgorithmBase):
-    """Deep Deterministic Policy Gradient (DDPG) algorithm
-
-    Paper: https://arxiv.org/pdf/1509.02971.pdf
-
     """
-    def __init__(self, index=0, **kwargs):
+        Deep Deterministic Policy Gradient (DDPG) algorithm
+
+        Paper: https://arxiv.org/pdf/1509.02971.pdf
+
+        Args:
+            int     index       : for calculating offset of random seed for subprocess. Default to 0.
+            string  buffer_name : buffer type. Default to 'replay_buffer'.
+    """
+    def __init__(self, index=0, buffer_name="replay_buffer", **kwargs):
         super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
         self.gamma = 0.99
         self.tau = 0.005
         self.delay_update = 1
-        self.per_flag = (kwargs["buffer_name"] == "prioritized_replay_buffer")
+        self.per_flag = (buffer_name == "prioritized_replay_buffer")
 
     @property
     def adjustable_parameters(self):
@@ -119,11 +131,11 @@ class DDPG(AlgorithmBase):
         for p in self.networks.q.parameters():
             p.requires_grad = True
 
-        # ------------------------------------
+        # record info needed in tensorboard
         end_time = time.perf_counter()
         tb_info[tb_tags["loss_critic"]] = loss_q.item()
         tb_info[tb_tags["critic_avg_value"]] = q.item()
-        tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
+        tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000
         tb_info[tb_tags["loss_actor"]] = loss_policy.item()
 
         if self.per_flag:
@@ -132,20 +144,26 @@ class DDPG(AlgorithmBase):
             return tb_info
 
     def __compute_loss_q(self, o, a, r, o2, d):
+        # Q-values
         q = self.networks.q(o, a)
 
+        # Target Q-values
         q_policy_targ = self.networks.q_target(o2, self.networks.policy_target(o2))
         backup = r + self.gamma * (1 - d) * q_policy_targ
 
+        # MSE loss against Bellman backup
         loss_q = ((q - backup) ** 2).mean()
         return loss_q, torch.mean(q)
 
     def __compute_loss_q_per(self, o, a, r, o2, d, idx, weight):
+        # Q-values
         q = self.networks.q(o, a)
 
+        # Target Q-values
         q_policy_targ = self.networks.q_target(o2, self.networks.policy_target(o2))
         backup = r + self.gamma * (1 - d) * q_policy_targ
 
+        # MSE loss against Bellman backup
         loss_q = (weight * ((q - backup) ** 2)).mean()
         abs_err = torch.abs(q - backup)
         return loss_q, torch.mean(q), abs_err

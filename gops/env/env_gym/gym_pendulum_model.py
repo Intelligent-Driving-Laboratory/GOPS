@@ -3,6 +3,9 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Acrobat Environment
 #  Update Date: 2021-05-55, Wenxuan Wang: create environment
 
@@ -23,14 +26,14 @@ class GymPendulumModel(PythBaseModel):
         """
         you need to define parameters here
         """
-        # define your custom parameters here
+        # Define your custom parameters here
         self.max_speed = 8
         self.max_torque = 2.0
         self.g = 10.0
         self.m = 1.0
         self.length = 1.0
 
-        # define common parameters here
+        # Define common parameters here
         lb_state = [-1.0, -1.0, -self.max_speed]
         hb_state = [1.0, 1.0, self.max_speed]
         lb_action = [-self.max_torque]
@@ -84,7 +87,7 @@ class GymPendulumModel(PythBaseModel):
         reward = -reward
         ############################################################################################
 
-        # define the ending condation here the format is just like isdone = l(next_state)
+        # Define the ending condation here the format is just like isdone = l(next_state)
         isdone = state[:, 0].new_zeros(size=[state.size()[0]], dtype=torch.bool)
 
         return state_next, reward, isdone, {}

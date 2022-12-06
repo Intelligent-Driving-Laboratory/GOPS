@@ -1,8 +1,11 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
-#
+
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+
 #  Description: Create sampler
 #  Update: 2021-03-05, Yuheng Lei: create sampler module
 
@@ -19,7 +22,7 @@ def create_sampler(**kwargs):
         raise NotImplementedError("This sampler does not exist")
     sampler_name = formatter(sampler_file_name)
 
-    if hasattr(module, sampler_name):  #
+    if hasattr(module, sampler_name):
         sampler_cls = getattr(module, sampler_name)
         if trainer == "off_serial_trainer" or trainer == "on_serial_trainer":
             sampler = sampler_cls(**kwargs)

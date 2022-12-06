@@ -1,9 +1,20 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab (iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: plot module for trained policy
+#  Update Date: 2022-12-05, Congsheng Zhang: create plot module
+
 import argparse
 import datetime
 import glob
 import os
-from gops.create_pkg.create_env_model import create_env_model
 
+from typing import Any, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -12,6 +23,7 @@ import pandas as pd
 from gym import wrappers
 from copy import copy
 
+from gops.create_pkg.create_env_model import create_env_model
 from gops.create_pkg.create_env import create_env
 from gops.utils.plot_evaluation import cm2inch
 from gops.utils.common_utils import get_args_from_json, mp4togif
@@ -39,9 +51,26 @@ default_cfg["img_fmt"] = "png"
 
 
 class PolicyRunner:
-    def __init__(self, log_policy_dir_list, trained_policy_iteration_list, save_render=False, plot_range=None,
-                 is_init_info=False, init_info=None, legend_list=None, use_opt=False, opt_args=None, constrained_env=False,
-                 is_tracking=False, use_dist=False, dt=None, obs_noise_type=None, obs_noise_data=None, action_noise_type=None, action_noise_data=None) -> None:
+    def __init__(
+        self,
+        log_policy_dir_list: list,
+        trained_policy_iteration_list: list,
+        save_render: bool = False,
+        plot_range: list = None,
+        is_init_info: bool = False,
+        init_info: dict = None,
+        legend_list: list = None,
+        use_opt: bool = False,
+        opt_args: dict = None,
+        constrained_env: bool = False,
+        is_tracking: bool = False,
+        use_dist: bool = False,
+        dt: float = None,
+        obs_noise_type: str = None,
+        obs_noise_data: list = None,
+        action_noise_type: str = None,
+        action_noise_data: list = None,
+    ):
         self.log_policy_dir_list = log_policy_dir_list
         self.trained_policy_iteration_list = trained_policy_iteration_list
         self.save_render = save_render
@@ -65,10 +94,9 @@ class PolicyRunner:
         self.obs_noise_data = obs_noise_data
         self.action_noise_type = action_noise_type
         self.action_noise_data = action_noise_data
+        self.ref_state_num = 0
 
         # data for plot
-
-        #####################################################
         self.args_list = []
         self.eval_list = []
         self.env_id_list = []
@@ -88,7 +116,9 @@ class PolicyRunner:
         self.save_path = os.path.join(path, algs_name + self.env_id, datetime.datetime.now().strftime("%y%m%d-%H%M%S"))
         os.makedirs(self.save_path, exist_ok=True)
 
-    def run_an_episode(self, env, controller, init_info, is_opt, render=True):
+    def run_an_episode(self, env: Any, controller: Any, init_info: dict,
+                       is_opt: bool, render: bool = True
+                       ) -> Tuple[dict, dict]:
         state_list = []
         action_list = []
         reward_list = []
@@ -171,7 +201,7 @@ class PolicyRunner:
 
         return eval_dict, tracking_dict
 
-    def compute_action(self, obs, networks):
+    def compute_action(self, obs: np.ndarray, networks: Any) -> np.ndarray:
         batch_obs = torch.from_numpy(np.expand_dims(obs, axis=0).astype("float32"))
         logits = networks.policy(batch_obs)
         action_distribution = networks.create_action_distributions(logits)
@@ -190,13 +220,13 @@ class PolicyRunner:
             constrain_dim = self.eval_list[0]["constrain_list"][0].shape[0]
         policy_num = len(self.algorithm_list)
         if self.use_opt:
+            legend = ''
             policy_num += 1
             if self.opt_args['opt_controller_type'] == 'OPT':
                 legend = 'OPT'
             elif self.opt_args['opt_controller_type'] == 'MPC':
                 legend = 'MPC-' + str(self.opt_args['num_pred_step'])
-                if 'use_terminal_cost' not in self.opt_args.keys() or \
-                    self.opt_args['use_terminal_cost'] == False:
+                if 'use_terminal_cost' not in self.opt_args.keys() or self.opt_args['use_terminal_cost'] is False:
                     legend += "(w/o TC)"
                 else:
                     legend += "(w/ TC)"
@@ -323,13 +353,15 @@ class PolicyRunner:
             for j in range(self.ref_state_num):
 
                 # plot state and ref
-                path_tracking_state_fmt = os.path.join(self.save_path, "State-{}.{}".format(j + 1, default_cfg["img_fmt"]))
+                path_tracking_state_fmt = os.path.join(self.save_path,
+                                                       "State-{}.{}".format(j + 1, default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
                 # save tracking state data to csv
                 tracking_state_data = []
                 for i in range(policy_num):
                     legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
-                    sns.lineplot(x=step_array[i], y=state_ref_error_array[i]["state-{}".format(j)], label="{}".format(legend))
+                    sns.lineplot(x=step_array[i],
+                                 y=state_ref_error_array[i]["state-{}".format(j)], label="{}".format(legend))
                     tracking_state_data.append(state_ref_error_array[i]["state-{}".format(j)])
                 sns.lineplot(x=step_array[0], y=state_ref_error_array[0]["ref-{}".format(j)], label="ref")
                 tracking_state_data.append(state_ref_error_array[0]["ref-{}".format(j)])
@@ -346,13 +378,15 @@ class PolicyRunner:
                 tracking_state_data.to_csv(os.path.join(self.save_path, 'State-{}.csv'.format(j+1)), encoding='gbk')
 
                 # plot state-ref error
-                path_tracking_error_fmt = os.path.join(self.save_path, "Ref - State-{}.{}".format(j+1, default_cfg["img_fmt"]))
+                path_tracking_error_fmt = os.path.join(self.save_path,
+                                                       "Ref - State-{}.{}".format(j+1, default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
                 # save tracking error data to csv
                 tracking_error_data = []
                 for i in range(policy_num):
                     legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
-                    sns.lineplot(x=step_array[i], y=state_ref_error_array[i]["state-{}-error".format(j)], label="{}".format(legend))
+                    sns.lineplot(x=step_array[i],
+                                 y=state_ref_error_array[i]["state-{}-error".format(j)], label="{}".format(legend))
                     tracking_error_data.append(state_ref_error_array[i]["state-{}-error".format(j)])
                 plt.tick_params(labelsize=default_cfg["tick_size"])
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
@@ -364,12 +398,14 @@ class PolicyRunner:
                 plt.savefig(path_tracking_error_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
 
                 tracking_error_data = pd.DataFrame(data=np.array(tracking_error_data))
-                tracking_error_data.to_csv(os.path.join(self.save_path, 'Ref - State-{}.csv'.format(j+1)), encoding='gbk')
+                tracking_error_data.to_csv(os.path.join(self.save_path,
+                                                        'Ref - State-{}.csv'.format(j+1)), encoding='gbk')
 
         # plot constraint value
         if self.constrained_env:
             for j in range(constrain_dim):
-                path_constraint_fmt = os.path.join(self.save_path, "Constrain-{}.{}".format(j+1, default_cfg["img_fmt"]))
+                path_constraint_fmt = os.path.join(self.save_path,
+                                                   "Constrain-{}.{}".format(j+1, default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
 
                 # save reward data to csv
@@ -413,7 +449,8 @@ class PolicyRunner:
 
             # action error
             for j in range(action_dim):
-                path_action_error_fmt = os.path.join(self.save_path, "Action-{} error.{}".format(j+1, default_cfg["img_fmt"]))
+                path_action_error_fmt = os.path.join(self.save_path,
+                                                     "Action-{} error.{}".format(j+1, default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
 
                 action_error_array = np.zeros_like(action_array[:-1])
@@ -434,11 +471,13 @@ class PolicyRunner:
 
                 # save action error data to csv
                 action_error_data = pd.DataFrame(data=action_error_array[:, :, j])
-                action_error_data.to_csv(os.path.join(self.save_path, 'Action-{} error.csv'.format(j+1)), encoding='gbk')
+                action_error_data.to_csv(os.path.join(self.save_path,
+                                                      'Action-{} error.csv'.format(j+1)), encoding='gbk')
 
             # state error
             for j in range(state_dim):
-                path_state_error_fmt = os.path.join(self.save_path, "State-{} error.{}".format(j+1, default_cfg["img_fmt"]))
+                path_state_error_fmt = os.path.join(self.save_path,
+                                                    "State-{} error.{}".format(j+1, default_cfg["img_fmt"]))
                 fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
 
                 state_error_array = np.zeros_like(state_array[:-1])
@@ -497,7 +536,6 @@ class PolicyRunner:
                 policy_result.to_excel(writer, legend)
             writer.save()
             error_result_data = pd.DataFrame(data=error_result)
-            # error_result_data.to_csv(os.path.join(self.save_path, 'Error-result.csv'), encoding='gbk')
             pd.set_option('display.max_columns', None)
             pd.set_option('display.max_rows', None)
             for key, value in error_result_data.items():
@@ -510,7 +548,7 @@ class PolicyRunner:
 
 
     @staticmethod
-    def __load_args(log_policy_dir):
+    def __load_args(log_policy_dir: str):
         json_path = os.path.join(log_policy_dir, "config.json")
         parser = argparse.ArgumentParser()
         args_dict = vars(parser.parse_args())
@@ -526,7 +564,7 @@ class PolicyRunner:
             self.env_id_list.append(env_id)
             self.algorithm_list.append(args["algorithm"])
 
-    def __load_env(self, use_opt = False):
+    def __load_env(self, use_opt: bool = False):
         if use_opt:
             env = create_env(**self.args)
         else:
@@ -544,29 +582,26 @@ class PolicyRunner:
                                        name_prefix="{}_video".format(self.args["algorithm"]))
         self.args["action_high_limit"] = env.action_space.high
         self.args["action_low_limit"] = env.action_space.low
-        # self.args["has_controller"] = hasattr(env, 'has_optimal_controller') & env.has_optimal_controller
         return env
 
-    def __load_policy(self, log_policy_dir, trained_policy_iteration):
+    def __load_policy(self, log_policy_dir: str, trained_policy_iteration: str):
         # Create policy
         alg_name = self.args["algorithm"]
         alg_file_name = alg_name.lower()
         file = __import__(alg_file_name)
         ApproxContainer = getattr(file, "ApproxContainer")
         networks = ApproxContainer(**self.args)
-        # print("Create {}-policy successfully!".format(alg_name))
 
         # Load trained policy
         log_path = log_policy_dir + "/apprfunc/apprfunc_{}.pkl".format(trained_policy_iteration)
         networks.load_state_dict(torch.load(log_path))
-        # print("Load {}-policy successfully!".format(alg_name))
         return networks
 
-    def __convert_format(self,origin_data_list:list):
+    def __convert_format(self, origin_data_list: list):
         data_list = copy(origin_data_list)
         for i in range(len(origin_data_list)):
-            if isinstance(origin_data_list[i],list) or isinstance(origin_data_list[i],np.ndarray) :
-                data_list[i]= self.__convert_format(origin_data_list[i])
+            if isinstance(origin_data_list[i], list) or isinstance(origin_data_list[i], np.ndarray):
+                data_list[i] = self.__convert_format(origin_data_list[i])
             else:
                 data_list[i] = '{:.2g}'.format(origin_data_list[i])
         return(data_list)
@@ -644,22 +679,8 @@ class PolicyRunner:
             self.eval_list.append(eval_dict_opt)
             if self.is_tracking:
                 self.tracking_list.append(tracking_dict_opt)
-            # opt_obs_list = eval_dict_opt["obs_list"]
-            # opt_state_list = eval_dict_opt["state_list"]
-            # opt_info_list = eval_dict_opt["info_list"]
-            # self.obs_nums = len(opt_obs_list)
-            # for i in range(self.policy_num):
-            #     log_policy_dir = self.log_policy_dir_list[i]
-            #     trained_policy_iteration = self.trained_policy_iteration_list[i]
-            #     self.args = self.args_list[i]
-            #     env = self.__load_env()
-            #     networks = self.__load_policy(log_policy_dir, trained_policy_iteration)
-            #     net_error_dict = self.__error_compute(env, opt_obs_list, opt_state_list,opt_info_list, networks, self.obs_nums, is_opt=False)
-            #     LQ_error_dict = self.__error_compute(env, opt_obs_list, opt_state_list,opt_info_list, controller, self.obs_nums, is_opt=True)
-            #     self.error_dict["policy_{}".format(i)] = net_error_dict
-            #     self.error_dict["opt"] = LQ_error_dict
 
-    def __action_noise(self, action):
+    def __action_noise(self, action: np.ndarray) -> np.ndarray:
         if self.action_noise_type is None:
             return action
         elif self.action_noise_type == "normal":

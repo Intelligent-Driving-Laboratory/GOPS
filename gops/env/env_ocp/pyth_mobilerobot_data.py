@@ -7,7 +7,7 @@
 #  Paper: https://ieeexplore.ieee.org/document/9785377
 #  Update Date: 2022-06-05, Baiyu Peng: create environment
 
-
+from typing import Any, Tuple
 import gym
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,7 +20,10 @@ gym.logger.setLevel(gym.logger.ERROR)
 
 
 class PythMobilerobot(PythBaseEnv):
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        **kwargs: Any,
+    ):
         self.n_obstacle = 1
         self.safe_margin = 0.15
         self.max_episode_steps = 200
@@ -45,7 +48,7 @@ class PythMobilerobot(PythBaseEnv):
 
         self.robot = Robot()
         self.obses = [Robot() for _ in range(self.n_obstacle)]
-        self.dt = 0.1  # seconds between state updates
+        self.dt = 0.1
         self.state_dim = (1 + self.n_obstacle) * 5 + 3
         self.action_dim = 2
         self.use_constraint = kwargs.get("use_constraint", True)
@@ -80,7 +83,7 @@ class PythMobilerobot(PythBaseEnv):
     def state(self):
         return self._state.reshape(-1)[:5]
 
-    def reset(self, init_state=None, **kwargs):
+    def reset(self, init_state: list = None, **kwargs: Any) -> Tuple[np.ndarray, dict]:
         if init_state is None:
             state = [self.sample_initial_state()]
         else:
@@ -93,10 +96,9 @@ class PythMobilerobot(PythBaseEnv):
 
         return self._state.reshape(-1), {"constraint": self.get_constraint()}
 
-    def step(self, action: np.ndarray):
-        ################################################################################################################
+    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, np.ndarray, dict]:
         #  define your forward function here: the format is just like: state_next = f(state,action)
-        action = action.reshape(1, -1)  # TODO is right
+        action = action.reshape(1, -1)
         for i in range(1 + self.n_obstacle):
             if i == 0:
                 robot_state = self.robot.f_xu(self._state[:, :5], action.reshape(1, -1), self.dt, "ego")
@@ -113,26 +115,24 @@ class PythMobilerobot(PythBaseEnv):
                 state_next = np.concatenate((state_next, obs_state), 1)
 
         self._state = state_next
-        ############################################################################################
+
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
         r_tracking = -3.2 * np.abs(tracking_error[:, 0]) - 10 * np.abs(tracking_error[:, 1]) - 1.6 * np.abs(tracking_error[:, 2])
         r_action = -0 * np.abs(action[:, 0]) - 0 * np.abs(action[:, 1])
         reward = r_tracking + r_action
-        ############################################################################################
-        # define the constraint here
 
+        # define the constraint here
         constraint = self.get_constraint()
         dead = constraint > 0
-        ################################################################################################################
+
         # define the ending condition here the format is just like isdone = l(next_state)
-
         isdone = self.get_done()
-        ############################################################################################
-        self.steps += 1
-        info = {"constraint": constraint}  # TODO is right
-        return np.array(self._state.reshape(-1), dtype=np.float32), float(reward), isdone, info  # TODO is right
 
-    def get_done(self):
+        self.steps += 1
+        info = {"constraint": constraint}
+        return np.array(self._state.reshape(-1), dtype=np.float32), float(reward), isdone, info
+
+    def get_done(self) -> np.ndarray:
         done = self._state[:, 0] < -2 or self._state[:, 1] > 4 or self._state[:, 1] < -4
         for i in range(self.n_obstacle):
             crush = (((self._state[:, 8 + i * 5] - self._state[:, 0]) ** 2 +
@@ -142,15 +142,15 @@ class PythMobilerobot(PythBaseEnv):
         return done
 
 
-    def get_constraint(self):
+    def get_constraint(self) -> np.ndarray:
         constraint = np.zeros((self._state.shape[0], self.n_obstacle))
         for i in range(self.n_obstacle):
-            safe_dis = self.robot.robot_params["radius"] + self.obses[i].robot_params["radius"] + self.safe_margin  # 0.35
+            safe_dis = self.robot.robot_params["radius"] + self.obses[i].robot_params["radius"] + self.safe_margin
             constraint[:, i] = safe_dis - (((self._state[:, 8 + i * 5] - self._state[:, 0]) ** 2 +
                                             (self._state[:, 9 + i * 5] - self._state[:, 1]) ** 2)) ** 0.5
         return constraint.reshape(-1)
 
-    def render(self, mode="human", n_window=1):
+    def render(self, mode: str = "human", n_window: int = 1):
 
         if not hasattr(self, "artists"):
             self.render_init(n_window)
@@ -173,7 +173,7 @@ class PythMobilerobot(PythBaseEnv):
                     arrows[k + 1].set_data(arrow_pos(state[idx, 3 + (k + 1) * 5 : 3 + (k + 1) * 5 + 5]))
             plt.pause(0.02)
 
-    def render_init(self, n_window=1):
+    def render_init(self, n_window: int = 1):
 
         fig, axs = plt.subplots(n_window, n_window, figsize=(9, 9))
         artists = []
@@ -217,7 +217,7 @@ class Robot:
         )
         self.path = ReferencePath()
 
-    def f_xu(self, states, actions, T, type):
+    def f_xu(self, states: np.ndarray, actions: np.ndarray, T: float, type: str) -> np.ndarray:
         v_delta_max = self.robot_params["v_delta_max"]
         v_max = self.robot_params["v_max"]
         w_max = self.robot_params["w_max"]
@@ -242,7 +242,7 @@ class Robot:
 
         return np.stack(next_state, 1)
 
-    def tracking_error(self, x):
+    def tracking_error(self, x: np.ndarray) -> np.ndarray:
         error_position = x[:, 1] - self.path.compute_path_y(x[:, 0])
         error_head = x[:, 2] - self.path.compute_path_phi(x[:, 0])
 
@@ -254,25 +254,17 @@ class ReferencePath(object):
     def __init__(self):
         pass
 
-    def compute_path_y(self, x):
+    def compute_path_y(self, x: np.ndarray) -> np.ndarray:
         y = 0 * np.sin(1/3 * x)
         return y
 
-    def compute_path_phi(self, x):
-        deriv = 0* np.cos(1/3 * x)
+    def compute_path_phi(self, x: np.ndarray) -> np.ndarray:
+        deriv = 0 * np.cos(1/3 * x)
         return np.arctan(deriv)
 
 
-def env_creator(**kwargs):
+def env_creator(**kwargs: Any):
     """
     make env `pyth_mobilerobot`
     """
     return PythMobilerobot(**kwargs)
-
-
-if __name__ == "__main__":
-    env = env_creator()
-    env.reset()
-    a = env.action_space.sample()
-    d, r, d, info = env.step(a)
-    print(info["constraint"].dtype, type(info["constraint"]))

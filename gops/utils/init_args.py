@@ -1,10 +1,13 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: initial Parameters
-#  Update Date: 2021-03-10, Yuhang Zhang: Revise Codes
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: initialize parameters
+#  Update: 2021-03-10, Yuhang Zhang: Revise Codes
 
 
 import copy
@@ -45,7 +48,7 @@ def init_args(env, **args):
     else:
         args["batch_size_per_sampler"] = args["sample_batch_size"]
 
-        # observation dimension
+    # observation dimension
     if len(env.observation_space.shape) == 1:
         args["obsv_dim"] = env.observation_space.shape[0]
     else:
@@ -53,7 +56,8 @@ def init_args(env, **args):
 
     if (
         args["action_type"] == "continu"
-    ):  # get the dimension of continuous action or the num of discrete action
+    ):
+        # get dimension of continuous action or num of discrete action
         args["action_dim"] = (
             env.action_space.shape[0]
             if len(env.action_space.shape) == 1
@@ -62,11 +66,11 @@ def init_args(env, **args):
         args["action_high_limit"] = env.action_space.high.astype('float32')
         args["action_low_limit"] = env.action_space.low.astype('float32')
     else:
-        args["action_dim"] = 1 # required by creating policy function
+        args["action_dim"] = 1
         args["action_num"] = env.action_space.n
         args["noise_params"]["action_num"] = args["action_num"]
 
-    if hasattr(env, "constraint_dim"):  # get the dimension of constrain
+    if hasattr(env, "constraint_dim"):
         args["constraint_dim"] = env.constraint_dim
 
     if hasattr(env, "additional_info"):
@@ -110,4 +114,3 @@ def init_args(env, **args):
     with open(args["save_folder"] + "/config.json", "w", encoding="utf-8") as f:
         json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
     return args
-

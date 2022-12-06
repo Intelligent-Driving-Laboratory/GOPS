@@ -1,11 +1,15 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Serial trainer for RL algorithms
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: Serial trainer for off-policy RL algorithms
 #  Update Date: 2021-05-21, Shengbo LI: Format Revise
 #  Update Date: 2022-04-14, Jiaxin Gao: decrease parameters copy times
+#  Update: 2022-12-05, Wenhan Cao: add annotation
 
 __all__ = ["OffSerialTrainer"]
 
@@ -28,12 +32,13 @@ class OffSerialTrainer:
         self.buffer = buffer
         self.per_flag = (kwargs["buffer_name"] == "prioritized_replay_buffer")
         self.evaluator = evaluator
-
+        
+        # create center network
         self.networks = self.alg.networks
         self.sampler.networks = self.networks
         self.evaluator.networks = self.networks
 
-        # initialize the networks
+        # initialize center network
         if kwargs["ini_network_dir"] is not None:
             self.networks.load_state_dict(torch.load(kwargs["ini_network_dir"]))
 
@@ -52,7 +57,7 @@ class OffSerialTrainer:
         add_scalars({tb_tags["alg_time"]: 0, tb_tags["sampler_time"]: 0}, self.writer, 0)
         self.writer.flush()
 
-        # collect enough warm samples
+        # pre sampling
         while self.buffer.size < kwargs["buffer_warm_size"]:
             samples, _ = self.sampler.sample()
             self.buffer.add_batch(samples)

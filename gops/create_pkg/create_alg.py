@@ -3,9 +3,11 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+
 #  Description: Create algorithm module
 #  Update Date: 2020-12-01, Hao Sun: create algorithm package code
-
 
 import importlib
 
@@ -19,7 +21,7 @@ def create_alg(**kwargs):
     except NotImplementedError:
         raise NotImplementedError("This algorithm does not exist")
 
-    # serial
+    # Serial
     if hasattr(module, alg_name):
         alg_cls = getattr(module, alg_name)
         if (

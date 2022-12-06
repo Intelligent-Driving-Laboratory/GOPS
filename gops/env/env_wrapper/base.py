@@ -1,3 +1,16 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab (iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: base wrapper for model type environments
+#  Update: 2022-09-21, Yuhang Zhang: create base wrapper
+#  Update: 2022-10-26, Yujie Yang: rewrite base wrapper
+
+
 from typing import Tuple
 
 import torch
@@ -7,6 +20,10 @@ from gops.utils.gops_typing import InfoDict
 
 
 class ModelWrapper:
+    """Base wrapper class for model type environment wrapper.
+
+    :param PythBaseModel model: gops model type environment.
+    """
     def __init__(self, model: PythBaseModel):
         self.model = model
 

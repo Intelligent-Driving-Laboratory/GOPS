@@ -1,27 +1,27 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Utils Function
 #  Update Date: 2021-03-10, Yuhang Zhang: Create codes
 
 
-import time
 import sys
 import os
-import torch
 import torch.nn as nn
 import numpy as np
 import logging
 from typing import Optional
 
-from gops.utils.tensorboard_setup import tb_tags
 from gops.utils.act_distribution import *
 import random
-import importlib
 
 logger = logging.getLogger(__name__)
+
 
 def get_activation_func(key: str):
     assert isinstance(key, str)
@@ -55,7 +55,7 @@ def get_activation_func(key: str):
     return activation_func
 
 
-def get_apprfunc_dict(key: str, type=None, **kwargs):
+def get_apprfunc_dict(key: str, **kwargs):
     var = dict()
     var["apprfunc"] = kwargs[key + "_func_type"]
     var["name"] = kwargs[key + "_func_name"]
@@ -121,28 +121,28 @@ def get_apprfunc_dict(key: str, type=None, **kwargs):
 
 def change_type(obj):
     if isinstance(
-        obj,
-        (
-            np.int_,
-            np.intc,
-            np.intp,
-            np.int8,
-            np.int16,
-            np.int32,
-            np.int64,
-            np.uint8,
-            np.uint16,
-            np.uint32,
-            np.uint64,
-        ),
+            obj,
+            (
+                    np.int_,
+                    np.intc,
+                    np.intp,
+                    np.int8,
+                    np.int16,
+                    np.int32,
+                    np.int64,
+                    np.uint8,
+                    np.uint16,
+                    np.uint32,
+                    np.uint64,
+            ),
     ):
         return int(obj)
-    elif isinstance(obj,type):
+    elif isinstance(obj, type):
         return str(obj)
     elif isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
         return float(obj)
-    elif isinstance(obj, (np.ndarray,)):  # add this line
-        return obj.tolist()  # add this line
+    elif isinstance(obj, (np.ndarray,)):
+        return obj.tolist()
     elif isinstance(obj, dict):
         for k, v in obj.items():
             obj[k] = change_type(v)
@@ -175,6 +175,7 @@ def seed_everything(seed: Optional[int] = None) -> int:
         seed = random.randint(min_seed_value, max_seed_value)
 
     elif not isinstance(seed, int):
+        # noinspection PyTypeChecker
         seed = int(seed)
 
     random.seed(seed)
@@ -187,8 +188,8 @@ def seed_everything(seed: Optional[int] = None) -> int:
 
 def set_seed(trainer_name, seed, offset, env=None):
     """
-    When trainer_name is `**_async_**` or `**_sync_**`, set random seed for the subprocess and gym env, 
-    else only set the subprocess for gym env
+    When trainer_name is `**_async_**` or `**_sync_**`, set random seed for subprocess and gym env,
+    else only set subprocess for gym env
 
     Parameters
     ----------
@@ -197,14 +198,14 @@ def set_seed(trainer_name, seed, offset, env=None):
     seed : int
         global seed
     offset : int
-        the offset of random seed for the subprocess
+        offset of random seed for  subprocess
     env : gym.Env, optional
-        a gym env needs to set random seed, by default None
+        gym env needs to set random seed, by default None
 
     Returns
     -------
     (int, gym.Env)
-        the random seed for the subprocess, a gym env which the random seed is set
+        random seed for subprocess, gym env which random seed is set
     """
 
     if trainer_name.split("_")[1] in ["async", "sync"]:
@@ -248,9 +249,9 @@ class FreezeParameters:
 
 def get_parameters(modules):
     """
-    Given a list of torch modules, returns a list of their parameters.
+    Given list of torch modules, returns list of their parameters.
     :param modules: iterable of modules
-    :returns: a list of parameters
+    :returns: list of parameters
     """
     model_parameters = []
     for module in modules:

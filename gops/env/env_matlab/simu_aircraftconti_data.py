@@ -6,16 +6,12 @@
 #  Lab Leader: Prof. Shengbo Eben Li
 #  Email: lisb04@gmail.com
 #
-#  Description: Aircraft Environment
-#  Update: 2021-05-55, Yuhang Zhang: create environment
+#  Description: Simulink Aircraft Environment
+#  Update: 2021-05-05, Yuxuan Jiang: create environment
 
 from gops.env.env_matlab.resources.simu_aircraft_v2.aircraft import GymEnv
 from gops.env.env_matlab.resources.simu_aircraft_v2.aircraft._env import EnvSpec
 
-from gym import spaces
-import gym
-from gym.utils import seeding
-import numpy as np
 
 def env_creator(**kwargs):
     spec = EnvSpec(

@@ -1,9 +1,13 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
+#
 #  Creator: iDLab
-#  Description: check functionality of a given environment model (make, reset, step, data format, file structure)
-
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: check environment of `model` type
+#  Update: 2022-12-05, Yuhang Zhang: create file
 
 import torch
 import numpy as np
@@ -14,8 +18,11 @@ from gops.env.tools.env_data_checker import check_env_file_structures
 
 def check_env_model_file_structures(env_file_name):
     """
-    check that the env model file has all necessary elements
+    check whether the env model file has all necessary elements
+    :param env_file_name: env name
+    :return:
     """
+
     try:
         for sub in ["env_archive", "env_gym", "env_matlab", "env_ocp"]:
             try:
@@ -35,10 +42,13 @@ def check_env_model_file_structures(env_file_name):
         raise RuntimeError(f"the environment `{env_file_name}` is not implemented properly")
     return env_class
 
+
 def check_model0(env, env_model):
     """
-    check that the env model class is well defined
-
+    check whether env model class is well defined
+    :param env: gym.Env
+    :param env_model:
+    :return:
     """
 
     assert hasattr(env_model, "lb_state"), "env model must have lb_state"
@@ -80,8 +90,9 @@ def check_model0(env, env_model):
 
 def check_model(env_name):
     """
-    check that the env model class is well defined
-
+    check whether env model class is well defined
+    :param env_name: env name
+    :return:
     """
     print(f"checking `{env_name}_model` ...")
     try:
@@ -102,7 +113,5 @@ def check_model(env_name):
     check_model0(env, env_model)
 
 
-
 if __name__ == "__main__":
-
     check_model("pyth_carfollowing")

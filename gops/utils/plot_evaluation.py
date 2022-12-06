@@ -1,44 +1,44 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Plot Function
-#  Update Date: 2021-03-10, Yuhang Zhang: Revise Codes
+#  Update: 2021-03-10, Yuhang Zhang: Revise Codes
 
 
 import os
-import string
 import re
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from itertools import cycle
 from gops.utils.tensorboard_setup import read_tensorboard
-import numpy as np
 
 
 def self_plot(
-    data,
-    fname=None,
-    xlabel=None,
-    ylabel=None,
-    legend=None,
-    legend_loc="best",
-    color_list=None,
-    xlim=None,
-    ylim=None,
-    xtick=None,
-    ytick=None,
-    yline=None,
-    xline=None,
-    ncol=1,
-    figsize_scalar=1,
-    display=True,
-    category='plot',
+        data,
+        fname=None,
+        xlabel=None,
+        ylabel=None,
+        legend=None,
+        legend_loc="best",
+        color_list=None,
+        xlim=None,
+        ylim=None,
+        xtick=None,
+        ytick=None,
+        yline=None,
+        xline=None,
+        ncol=1,
+        figsize_scalar=1,
+        category='plot',
 ):
     """
-    plot a single figure containing several curves.
+        Plot single figure containing several curves.
     """
     default_cfg = dict()
     default_cfg["fig_size"] = (12, 9)
@@ -59,7 +59,7 @@ def self_plot(
     }
 
     default_cfg["img_fmt"] = "png"
-    
+
     # pre-process
     assert isinstance(data, (dict, list, tuple))
 
@@ -119,9 +119,6 @@ def self_plot(
     else:
         plt.savefig(fname)
 
-    # if display:
-    #     plt.show()
-
 
 def cm2inch(*tupl):
     inch = 2.54
@@ -166,10 +163,3 @@ def str_edit(str_):
         x_label = "Iteration Steps"
         y_label = str_total
     return x_label, y_label
-
-
-if __name__ == "__main__":
-    import numpy as np
-
-    s = "Total_average_return"
-    print(str_edit(s))

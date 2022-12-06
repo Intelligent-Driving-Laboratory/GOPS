@@ -1,17 +1,23 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Trust Region Policy Optimization Algorithm (TRPO)
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: Trust Region Policy Optimization (TRPO) algorithm
+#  Reference: Schulman, J., Levine, S., Moritz, P., Jordan, M. I. & Abbeel, P. (2015).
+#             Trust region policy optimization.
+#             In International conference on machine learning (pp. 1889-1897). PMLR.
 #  Update: 2021-03-05, Yuxuan Jiang: create TRPO algorithm
 
 
 __all__ = ["TRPO"]
 
+import time
 from copy import deepcopy
 from typing import Callable, Tuple
-import time
 
 import torch
 import torch.nn as nn
@@ -31,7 +37,7 @@ EPSILON = 1e-8
 class ApproxContainer(ApprBase):
     """Approximate function container for TRPO.
 
-    Contains a policy and a state value.
+    Contains one policy and one state value.
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -158,7 +164,6 @@ class TRPO(AlgorithmBase):
 
         for i in range(self.max_search):
             update_policy(self.alpha ** i)
-            # with torch.no_grad():
             logits_new = new_policy(obs)
             pi_new = self.networks.create_action_distributions(logits=logits_new)
             logp_new = pi_new.log_prob(act)
@@ -208,7 +213,7 @@ class TRPO(AlgorithmBase):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Conjugate gradient method
 
-        Solve $Ax=b$ where $A$ is a positive definite matrix.
+        Solve $Ax=b$ where $A$ is positive definite matrix.
         Refer to https://en.wikipedia.org/wiki/Conjugate_gradient_method.
 
         Args:
@@ -220,7 +225,7 @@ class TRPO(AlgorithmBase):
             max_cg: Maximum conjugate gradient iterations
 
         Returns:
-            A tuple of (solution of $Ax=b$, residue)
+            Tuple of (solution of $Ax=b$, residue)
         """
         zero = x.new_zeros(())
         r = b - Ax(x)

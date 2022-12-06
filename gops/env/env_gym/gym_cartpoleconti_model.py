@@ -3,6 +3,9 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Acrobat Environment
 #  Update Date: 2021-05-55, Yuhang Zhang: create environment
 
@@ -22,28 +25,31 @@ class GymCartpolecontiModel(PythBaseModel):
         """
         you need to define parameters here
         """
-        # define your custom parameters here
+        # Define your custom parameters here
         self.gravity = 9.8
         self.masscart = 1.0
         self.masspole = 0.1
         self.total_mass = self.masspole + self.masscart
-        self.length = 0.5  # actually half the pole's length
+        # Actually half the pole's length
+        self.length = 0.5
         self.polemass_length = self.masspole * self.length
         self.force_mag = 10.0
-        self.theta_threshold_radians = 12 * 2 * math.pi / 360  # 12deg
+        # 12deg
+        self.theta_threshold_radians = 12 * 2 * math.pi / 360
         self.x_threshold = 2.4
         self.max_x = self.x_threshold * 2
         self.min_x = -self.max_x
         self.max_x_dot = np.finfo(np.float32).max
         self.min_x_dot = -np.finfo(np.float32).max
-        self.max_theta = self.theta_threshold_radians * 2  # 24deg
+        # 24deg
+        self.max_theta = self.theta_threshold_radians * 2
         self.min_theta = -self.max_theta
         self.max_theta_dot = np.finfo(np.float32).max
         self.min_theta_dot = -np.finfo(np.float32).max
         self.min_action = -1.0
         self.max_action = 1.0
 
-        # define common parameters here
+        # Define common parameters here
         lb_state = [self.min_x, self.min_x_dot, self.min_theta, self.min_theta_dot]
         hb_state = [self.max_x, self.max_x_dot, self.max_theta, self.max_theta_dot]
         lb_action = [self.min_action]
@@ -84,7 +90,7 @@ class GymCartpolecontiModel(PythBaseModel):
                       adversary action, etc
         """
         state = obs
-        #  define your forward function here: the format is just like: state_next = f(state,action)
+        #  Define your forward function here: the format is just like: state_next = f(state,action)
         x, x_dot, theta, theta_dot = state[:, 0], state[:, 1], state[:, 2], state[:, 3]
         costheta = torch.cos(theta)
         sintheta = torch.sin(theta)
@@ -100,11 +106,11 @@ class GymCartpolecontiModel(PythBaseModel):
         theta_dot = theta_dot + self.dt * thetaacc
         state_next = torch.stack([x, x_dot, theta, theta_dot]).transpose(1, 0)
         ################################################################################################################
-        # define the ending condation here the format is just like isdone = l(next_state)
+        # Define the ending condation here the format is just like isdone = l(next_state)
         isdone = (x < -self.x_threshold) | (x > self.x_threshold) | \
                  (theta < -self.theta_threshold_radians) | (theta > self.theta_threshold_radians)
         ############################################################################################
-        # define the reward function here the format is just like: reward = l(state,state_next,reward)
+        # Define the reward function here the format is just like: reward = l(state,state_next,reward)
         reward = 1 - isdone.float()
 
         return state_next, reward, isdone, {"state": state_next}

@@ -1,12 +1,15 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Serial trainer for RL algorithms
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: Serial trainer for on-policy RL algorithms
 #  Update Date: 2021-03-10, Wenhan CAO: Revise Codes
 #  Update Date: 2021-05-21, Shengbo LI: Format Revise
-
+#  Update: 2022-12-05, Wenhan Cao: add annotation
 
 __all__ = ["OnSerialTrainer"]
 
@@ -28,11 +31,12 @@ class OnSerialTrainer:
         self.sampler = sampler
         self.evaluator = evaluator
 
+        # create center network
         self.networks = self.alg.networks
         self.sampler.networks = self.networks
         self.evaluator.networks = self.networks
 
-        # initialize the networks
+        # initialize center network
         if kwargs["ini_network_dir"] is not None:
             self.networks.load_state_dict(torch.load(kwargs["ini_network_dir"]))
 

@@ -1,8 +1,12 @@
 #  Copyright (c). All Rights Reserved.
+#  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Car-racing Environment
 #  Update Date: 2021-05-55, Yuhang Zhang: create environment
 
@@ -34,9 +38,10 @@ class Env:
         self.die = False
         img_rgb = self.env.reset()
         img_gray = self.rgb2gray(img_rgb)
-        # four frames for decision
+        # Four frames for decision
         self.stack = [img_gray] * self.img_stack
         return np.array(self.stack)
+
 
     def step(self, action):
         total_reward = 0
@@ -46,7 +51,7 @@ class Env:
             img_rgb, reward, die, info = self.env.step(a)
             total_reward += reward
 
-            # if no reward recently, end the episode
+            # If no reward recently, end the episode
             done = True if self.av_r(reward) <= -0.1 or die else False
             if done or die:
                 done = True
@@ -68,16 +73,16 @@ class Env:
 
     @staticmethod
     def rgb2gray(rgb, norm=True):
-        # rgb image -> gray [0, 1]
+        # Rgb image -> gray [0, 1]
         gray = np.dot(rgb[..., :], [0.299, 0.587, 0.114])
         if norm:
-            # normalize
+            # Normalize
             gray = gray / 128.0 - 1.0
         return gray
 
     @staticmethod
     def reward_memory():
-        # record reward for last 100 steps
+        # Record reward for last 100 steps
         count = 0
         length = 100
         history = np.zeros(length)
