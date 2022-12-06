@@ -1,10 +1,14 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
-#
+
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+
 #  Description: Create environments
 #  Update Date: 2020-11-10, Yuhang Zhang: add create environments code
+
 from gops.env.env_wrapper.wrapping_utils import wrapping_env
 
 def create_env(**kwargs):
@@ -27,7 +31,7 @@ def create_env(**kwargs):
         print("Env name: ", env_name_camel)
         raise NotImplementedError("This environment is not properly defined")
 
-    # wrapping the env
+    # Wrapping the env
     max_episode_steps = kwargs.get("max_episode_steps", None)
     reward_scale = kwargs.get("reward_scale", None)
     reward_shift = kwargs.get("reward_shift", None)

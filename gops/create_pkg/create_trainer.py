@@ -1,8 +1,11 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
-#
+
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+
 #  Description: Create trainers
 #  Update: 2021-03-05, Jiaxin Gao: create trainer module
 
@@ -14,8 +17,8 @@ def create_trainer(alg, sampler, buffer, evaluator, **kwargs):
     except NotImplementedError:
         raise NotImplementedError("This trainer does not exist")
 
-    trainer_name_camel = formatter(trainer_name)  #
-    # get
+    trainer_name_camel = formatter(trainer_name)
+
     if hasattr(file, trainer_name_camel):
         trainer_cls = getattr(file, trainer_name_camel)
         if (

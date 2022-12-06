@@ -3,6 +3,9 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Acrobat Environment
 #  Update Date: 2021-05-55, Hao Sun: create environment
 
@@ -26,10 +29,12 @@ class _GymCartpoleconti(gym.Env):
         self.masscart = 1.0
         self.masspole = 0.1
         self.total_mass = self.masspole + self.masscart
-        self.length = 0.5  # actually half the pole's length
+        # Actually half the pole's length
+        self.length = 0.5
         self.polemass_length = self.masspole * self.length
         self.force_mag = 10.0
-        self.tau = 0.02  # seconds between state updates
+        # Seconds between state updates
+        self.tau = 0.02
         self.min_action = -1.0
         self.max_action = 1.0
 
@@ -41,7 +46,7 @@ class _GymCartpoleconti(gym.Env):
         self.x_threshold = 2.4
 
         # Angle limit set to 2 * theta_threshold_radians so failing observation
-        # is still within bounds
+        # Is still within bounds
         high = np.array(
             [self.x_threshold * 2, np.finfo(np.float32).max, self.theta_threshold_radians * 2, np.finfo(np.float32).max]
         )
@@ -113,7 +118,7 @@ class _GymCartpoleconti(gym.Env):
                     You are calling 'step()' even though this environment has already returned
                     done = True. You should always call 'reset()' once you receive 'done = True'
                     Any further steps are undefined behavior.
-                """
+                    """
                 )
             self.steps_beyond_done += 1
             reward = 0.0
@@ -134,7 +139,8 @@ class _GymCartpoleconti(gym.Env):
 
         world_width = self.x_threshold * 2
         scale = screen_width / world_width
-        carty = 100  # TOP OF CART
+        # TOP OF CART
+        carty = 100
         polewidth = 10.0
         polelen = scale * 1.0
         cartwidth = 50.0
@@ -170,7 +176,8 @@ class _GymCartpoleconti(gym.Env):
             return None
 
         x = self.state
-        cartx = x[0] * scale + screen_width / 2.0  # MIDDLE OF CART
+        # MIDDLE OF CART
+        cartx = x[0] * scale + screen_width / 2.0
         self.carttrans.set_translation(cartx, carty)
         self.poletrans.set_rotation(-x[2])
 
