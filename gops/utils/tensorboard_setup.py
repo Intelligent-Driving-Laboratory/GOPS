@@ -1,10 +1,13 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Tensorboard Related Function
-#  Update Date: 2021-03-10, Yuhang Zhang: Create codes
+#  Update: 2021-03-10, Yuhang Zhang: Create codes
 
 
 import numpy as np
@@ -22,7 +25,7 @@ DEFAULT_TB_PORT = 6001
 
 def read_tensorboard(path):
     """
-    input the dir of the tensorboard log
+        Input dir of tensorboard log.
     """
     import tensorboard
     from tensorboard.backend.event_processing import event_accumulator
@@ -30,7 +33,6 @@ def read_tensorboard(path):
     tensorboard.backend.application.logger.setLevel("ERROR")
     ea = event_accumulator.EventAccumulator(path)
     ea.Reload()
-    # print("All available keys in Tensorboard", ea.scalars.Keys())
     valid_key_list = ea.scalars.Keys()
 
     output_dict = dict()
@@ -125,22 +127,7 @@ def kill_port(port=DEFAULT_TB_PORT):
 
 def save_csv(path, step, value):
     """
-    save 2-column-data to csv
-
-    Parameters
-    ----------
-    path: str
-        The target csv file
-
-    step: numpy.array
-        The first dim of the data
-
-    value: numpy.array
-        The second dim of the data
-
-    Returns
-    -------
-
+        Save 2-column-data to csv.
     """
     df = pd.DataFrame({"Step": step, "Value": value})
     df.to_csv(path, index=False, sep=",")
@@ -148,19 +135,8 @@ def save_csv(path, step, value):
 
 def save_tb_to_csv(path):
     """
-    Parse all tensorboard log file in the give dir (e.g. ./results),
-    and save all data as csv
-
-    Parameters
-    ----------
-    path: str
-        Target dir, such as: './results', './runs'
-    depth: int, optional
-        Layers of the tensorboard log dir
-
-    Returns
-    -------
-    Non
+        Parse all tensorboard log file in given dir (e.g. ./results),
+        and save all data as csv.
     """
 
     data_dict = read_tensorboard(path)
@@ -187,6 +163,3 @@ tb_tags = {
     "sampler_time": "Time/Sampler time [ms]-RL iter",
     "critic_avg_value": "Train/Critic avg value-RL iter",
 }
-
-if __name__ == "__main__":
-    kill_port()

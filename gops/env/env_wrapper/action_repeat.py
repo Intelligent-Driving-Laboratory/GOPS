@@ -1,10 +1,21 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab (iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: action repeat wrappers for data and model type environment
+#  Update: 2022-11-15, Wenxuan Wang: create action repeat wrapper
+
+
 from __future__ import annotations
 
 from typing import TypeVar, Tuple, Union
 
 import gym
 import torch
-
 from gops.env.env_ocp.pyth_base_model import PythBaseModel
 from gops.env.env_wrapper.base import ModelWrapper
 from gops.utils.gops_typing import InfoDict
@@ -14,16 +25,22 @@ ActType = TypeVar("ActType")
 
 
 class ActionRepeatData(gym.Wrapper):
+    """Action repeat wrapper fot data type environments, repeat 'repeat_num' times
+        action in one step and return last step observation.
+
+    :param env: data type environment.
+    :param int repeat_num: repeat n times action in one step.
+    :param bool sum_reward: sum the rewards during repeating steps, if set to False,
+        only use reward in last step.
     """
-        repeat repeat_num times action
-    """
+
     def __init__(self, env, repeat_num: int = 1, sum_reward: bool = True):
         super(ActionRepeatData, self).__init__(env)
         self.repeat_num = repeat_num
         self.sum_reward = sum_reward
 
     def step(self, action: ActType) -> Tuple[ObsType, float, bool, dict]:
-        sum_r  = 0
+        sum_r = 0
         for _ in range(self.repeat_num):
             obs, r, d, info = self.env.step(action)
             sum_r += r
@@ -35,10 +52,14 @@ class ActionRepeatData(gym.Wrapper):
 
 
 class ActionRepeatModel(ModelWrapper):
-    """
-        repeat repeat_num times action
-    """
+    """Action repeat wrapper fot model type environments, repeat 'repeat_num' times
+        action in one step and return last step observation.
 
+    :param PythBaseModel model: gops model type environment.
+    :param int repeat_num: repeat n times action in one step.
+    :param bool sum_reward: sum the rewards during repeating steps, if set to False,
+        only use reward in last step.
+    """
     def __init__(self,
                  model: PythBaseModel,
                  repeat_num: int = 1,
