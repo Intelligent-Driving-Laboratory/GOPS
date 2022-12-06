@@ -73,7 +73,8 @@ class TD3(AlgorithmBase):
         self.networks = ApproxContainer(**kwargs)
         self.target_noise = kwargs.get("target_noise", 0.2)
         self.noise_clip = kwargs.get("noise_clip", 0.5)
-        self.act_limit = kwargs["action_high_limit"]
+        self.act_low_limit = kwargs["action_low_limit"]
+        self.act_high_limit = kwargs["action_high_limit"]
         self.gamma = 0.99
         self.tau = 0.005
         self.delay_update = 2
@@ -150,7 +151,7 @@ class TD3(AlgorithmBase):
             epsilon = torch.randn_like(pi_targ) * self.target_noise
             epsilon = torch.clamp(epsilon, -self.noise_clip, self.noise_clip)
             a2 = pi_targ + epsilon
-            a2 = torch.clamp(a2, -torch.tensor(self.act_limit).to(a2.device), torch.tensor(self.act_limit).to(a2.device))
+            a2 = torch.clamp(a2, torch.tensor(self.act_low_limit).to(a2.device), torch.tensor(self.act_high_limit).to(a2.device))
 
             # Target Q-values
             q1_pi_targ = self.networks.q1_target(o2, a2)
@@ -176,7 +177,7 @@ class TD3(AlgorithmBase):
             epsilon = torch.randn_like(pi_targ) * self.target_noise
             epsilon = torch.clamp(epsilon, -self.noise_clip, self.noise_clip)
             a2 = pi_targ + epsilon
-            a2 = torch.clamp(a2, -torch.tensor(self.act_limit).to(a2.device), torch.tensor(self.act_limit).to(a2.device))
+            a2 = torch.clamp(a2, torch.tensor(self.act_low_limit).to(a2.device), torch.tensor(self.act_high_limit).to(a2.device))
 
             # Target Q-values
             q1_pi_targ = self.networks.q1_target(o2, a2)
