@@ -57,12 +57,12 @@ class PythBaseModel(metaclass=ABCMeta):
     # Subclass can realize it like:
     #   def get_constraint(self, obs: torch.Tensor) -> torch.Tensor:
     #       ...
-    # This function should return Tensor of shape [1],
+    # This function should return Tensor of shape [n] (ndim = 1),
     # each element of which will be required to be lower than or equal to 0
     get_constraint: Callable[[torch.Tensor], torch.Tensor] = None
 
     # Just like get_constraint,
-    # define function returning Tensor of shape [] in subclass
+    # define function returning Tensor of shape [] (ndim = 0) in subclass
     # if you need
     get_terminal_cost: Callable[[torch.Tensor], torch.Tensor] = None
 
