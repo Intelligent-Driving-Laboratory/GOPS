@@ -1,9 +1,12 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
-# 
+#  Intelligent Driving Lab (iDLab), Tsinghua University
+#
 #  Creator: iDLab
-#  Description: check environment if `data` type
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: check environment of `data` type
 #  Update: 2022-12-05, Yuhang Zhang: create file
 
 import logging
