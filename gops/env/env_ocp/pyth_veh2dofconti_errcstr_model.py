@@ -1,11 +1,15 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Vehicle 2DOF model environment with tracking error constraint
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: vehicle 2DOF model environment with tracking error constraint
+#  Update: 2022-11-14, Yujie Yang: create environment
 
-from typing import Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import torch
 
@@ -21,7 +25,7 @@ class Veh2dofcontiErrCstrModel(Veh2dofcontiModel):
         path_para: Optional[Dict[str, Dict]] = None,
         u_para: Optional[Dict[str, Dict]] = None,
         y_error_tol: float = 0.2,
-        **kwargs,
+        **kwargs: Any,
     ):
         super().__init__(pre_horizon, device, path_para, u_para)
         self.y_error_tol = y_error_tol

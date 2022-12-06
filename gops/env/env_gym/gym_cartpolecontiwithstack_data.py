@@ -3,6 +3,9 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Acrobat Environment
 #  Update Date: 2021-05-55, Hao Sun: create environment
 
@@ -25,14 +28,16 @@ class _GymCartpoleconti(gym.Env):
         self.masscart = 1.0
         self.masspole = 0.1
         self.total_mass = self.masspole + self.masscart
-        self.length = 0.5  # actually half the pole's length
+        # Actually half the pole's length
+        self.length = 0.5
         self.polemass_length = self.masspole * self.length
         self.force_mag = 30.0
-        self.tau = 0.02  # seconds between state updates
+        # Seconds between state updates
+        self.tau = 0.02
         self.min_action = -1.0
         self.max_action = 1.0
 
-        # self.is_adversary = kwargs['is_adversary']
+        # Self.is_adversary = kwargs['is_adversary']
 
         self.min_adv_action = -0.5
         self.max_adv_action = 0.5
@@ -42,7 +47,7 @@ class _GymCartpoleconti(gym.Env):
         self.x_threshold = 2.4
 
         # Angle limit set to 2 * theta_threshold_radians so failing observation
-        # is still within bounds
+        # Is still within bounds
         high = np.array(
             [
                 self.x_threshold * 2,
@@ -65,7 +70,7 @@ class _GymCartpoleconti(gym.Env):
 
         self.steps_beyond_done = None
 
-        # self.max_episode_steps = 200
+        # Self.max_episode_steps = 200
         self.steps = 0
 
     def seed(self, seed=None):
@@ -107,7 +112,7 @@ class _GymCartpoleconti(gym.Env):
 
         # -----------------
         self.steps += 1
-        # if self.steps >=self.max_episode_steps:
+        # If self.steps >=self.max_episode_steps:
         #     done = True
         # ---------------
 
@@ -147,7 +152,8 @@ Any further steps are undefined behavior.
 
         world_width = self.x_threshold * 2
         scale = screen_width / world_width
-        carty = 100  # TOP OF CART
+        # TOP OF CART
+        carty = 100
         polewidth = 10.0
         polelen = scale * 1.0
         cartwidth = 50.0
@@ -188,7 +194,8 @@ Any further steps are undefined behavior.
             return None
 
         x = self.state
-        cartx = x[0] * scale + screen_width / 2.0  # MIDDLE OF CART
+        # MIDDLE OF CART
+        cartx = x[0] * scale + screen_width / 2.0
         self.carttrans.set_translation(cartx, carty)
         self.poletrans.set_rotation(-x[2])
 

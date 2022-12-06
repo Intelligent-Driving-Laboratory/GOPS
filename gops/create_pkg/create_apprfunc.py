@@ -1,8 +1,11 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
-#
+
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+
 #  Description: Create approximate function module
 #  Update Date: 2020-12-26, Hao Sun: add create approximate function
 
@@ -15,19 +18,13 @@ def create_apprfunc(**kwargs):
     except NotImplementedError:
         raise NotImplementedError("This apprfunc does not exist")
 
-    # name = kwargs['name'].upper()
-
     name = formatter(kwargs["name"])
-    # print(name)
-    # print(kwargs)
 
-    if hasattr(file, name):  #
+    if hasattr(file, name):
         apprfunc_cls = getattr(file, name)
         apprfunc = apprfunc_cls(**kwargs)
     else:
         raise NotImplementedError("This apprfunc is not properly defined")
-
-    # print("--Initialize appr func: " + name + "...")
     return apprfunc
 
 

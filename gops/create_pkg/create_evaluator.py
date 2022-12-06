@@ -1,8 +1,11 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
-#
+
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+
 #  Description: Create evaluator
 #  Update Date: 2020-11-10, Yang Guan: create evaluator module
 
@@ -18,8 +21,8 @@ def create_evaluator(**kwargs):
     except NotImplementedError:
         raise NotImplementedError("This evaluator does not exist")
     evaluator_name = formatter(evaluator_file_name)
-    #
-    if hasattr(file, evaluator_name):  #
+
+    if hasattr(file, evaluator_name):
         evaluator_cls = getattr(file, evaluator_name)
         if trainer == "off_serial_trainer" or trainer == "on_serial_trainer":
             evaluator = evaluator_cls(**kwargs)

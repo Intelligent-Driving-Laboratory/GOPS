@@ -1,15 +1,19 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Vehicle 3DOF data environment with surrounding vehicles constraint
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: vehicle 3DOF data environment with surrounding vehicles constraint
+#  Update: 2022-11-20, Yujie Yang: create environment
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-import numpy as np
 import gym
+import numpy as np
 
 from gops.env.env_ocp.pyth_veh3dofconti_data import SimuVeh3dofconti, angle_normalize
 
@@ -20,8 +24,10 @@ class SurrVehicleData:
     y: float = 0.0
     phi: float = 0.0
     u: float = 0.0
-    delta: float = 0.0  # front wheel angle
-    l: float = 3.0  # distance from front axle to rear axle
+    # front wheel angle
+    delta: float = 0.0
+    # distance from front axle to rear axle
+    l: float = 3.0
     dt: float = 0.1
 
     def step(self):
@@ -40,7 +46,7 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         surr_veh_num: int = 4,
         veh_length: float = 4.8,
         veh_width: float = 2.0,
-        **kwargs,
+        **kwargs: Any,
     ):
         super().__init__(pre_horizon, path_para, u_para, **kwargs)
         self.observation_space = gym.spaces.Box(
@@ -68,7 +74,8 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         super().reset(init_state, ref_time, path_num, u_num, **kwargs)
 
         surr_x0, surr_y0 = self.ref_points[0, :2]
-        if self.path_num == 3:  # circle path
+        if self.path_num == 3:
+            # circle path
             surr_phi = self.ref_points[0, 2]
             surr_delta = -np.arctan2(SurrVehicleData.l, self.ref_traj.ref_trajs[3].r)
         else:
@@ -82,7 +89,7 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
                 # TODO: sample position according to reference trajectory
                 delta_lon = 10 * self.np_random.uniform(-1, 1)
                 delta_lat = 5 * self.np_random.uniform(-1, 1)
-                if abs(delta_lon) > 0 or abs(delta_lat) > 0:
+                if abs(delta_lon) > 7 or abs(delta_lat) > 3:
                     break
             surr_x = surr_x0 + delta_lon * np.cos(surr_phi) - delta_lat * np.sin(surr_phi)
             surr_y = surr_y0 + delta_lon * np.sin(surr_phi) + delta_lat * np.cos(surr_phi)
@@ -115,8 +122,10 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
 
     def get_constraint(self) -> np.ndarray:
         # collision detection using bicircle model
-        d = (self.veh_length - self.veh_width) / 2  # distance from vehicle center to front/rear circle center
-        r = np.sqrt(2) / 2 * self.veh_width  # circle radius
+        # distance from vehicle center to front/rear circle center
+        d = (self.veh_length - self.veh_width) / 2
+        # circle radius
+        r = np.sqrt(2) / 2 * self.veh_width
 
         x, y, phi = self.state[:3]
         ego_center = np.array([
@@ -133,8 +142,10 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         ), axis=1)
 
         min_dist = np.inf
-        for i in range(2):  # front and rear circle of ego vehicle
-            for j in range(2):  # front and rear circle of surrounding vehicles
+        for i in range(2):
+            # front and rear circle of ego vehicle
+            for j in range(2):
+                # front and rear circle of surrounding vehicles
                 dist = np.linalg.norm(ego_center[np.newaxis, i] - surr_center[:, j], axis=1)
                 min_dist = min(min_dist, np.min(dist))
 
