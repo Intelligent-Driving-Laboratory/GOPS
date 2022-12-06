@@ -3,24 +3,24 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Aircraft Environment
-#  Update Date: 2021-05-55, Yuhang Zhang: create environment
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+
+#  Description: Simulink LQs2a1 Environment
+#  Update: 2022-10-27, Genjin Xie: create environment
+#  Update: 2022-11-03, Xujie Song: modify __init__ and reset
+
+from typing import Any, Optional, Tuple, Sequence
 
 from gops.env.env_matlab.resources.simu_lqs2a1.lqs2a1 import GymEnv
 from gops.env.env_matlab.resources.simu_lqs2a1.lqs2a1._env import EnvSpec
-from gops.env.env_matlab.resources.simu_lqs2a1 import lqs2a1
 from gops.env.env_ocp.pyth_base_data import PythBaseEnv
-
-from gym import spaces
-import gym
-from gym.utils import seeding
 import numpy as np
 
 class Lqs2a1(PythBaseEnv):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         work_space = kwargs.pop("work_space", None)
         if work_space is None:
-            # initial range of [p, theta1, theta2, pdot, theta1dot, theta2dot]
             init_high = np.array([1, 1], dtype=np.float32)
             init_low = -init_high
             work_space = np.stack((init_low, init_high))
@@ -32,15 +32,11 @@ class Lqs2a1(PythBaseEnv):
             strict_reset=True
         )
         self.env = GymEnv(spec)
-
-        # max step
         self.max_episode_steps = kwargs['max_episode_steps']
 
-        # Inherit or override with a user provided space
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
 
-        # Split RNG, if randomness is needed
         self.rng = np.random.default_rng()
         self.Q = np.array(kwargs['punish_Q'])
         self.R = np.array(kwargs['punish_R'])
@@ -51,13 +47,16 @@ class Lqs2a1(PythBaseEnv):
         self.seed()
         self.reset()
     
-    def reset(self, *, init_state=None, **kwargs):
+    def reset(self, *,
+              init_state: Optional[Sequence] = None,
+              **kwargs: Any
+        ) -> Tuple[np.ndarray]:
         def callback():
             """Custom reset logic goes here."""
-            # Modify your parameter
+            # Modify  parameters
             # e.g. self.env.model_class.foo_InstP.your_parameter
             if init_state is None:
-                self._state = self.sample_initial_state() # np.random.uniform(low=self.rand_low, high=self.rand_high) ##todo
+                self._state = self.sample_initial_state()
             else:
                 self._state = init_state
             self.env.model_class.lqs2a1_InstP.x_ini[:] = self._state
@@ -65,14 +64,11 @@ class Lqs2a1(PythBaseEnv):
             self.env.model_class.lqs2a1_InstP.R = self.R
 
         # Reset takes an optional callback
-        # This callback will be called after model & parameter initialization
-        # and before taking first step.
+        # This callback will be called after model & parameter initialization and before taking first step.
         return self.env.reset(callback)
 
-    def step(self, action):
-        # Preprocess action here
+    def step(self, action: np.ndarray) -> Tuple[np.ndarray, bool, float, dict]:
         obs, done, reward, info = self.env.step(action)
-        # Postprocess (obs, reward, done, info) here
         return obs, done, reward, info
 
     def seed(self, seed=None):
@@ -82,27 +78,4 @@ class Lqs2a1(PythBaseEnv):
 def env_creator(**kwargs):
     return Lqs2a1(**kwargs)
 
-
-if __name__ == "__main__":
-    import gym
-    import numpy as np
-    import time
-    env_config = {
-                  "rand_center": [0, 0],
-                  "rand_bias": [1, 1],
-                  "punish_Q": [2, 1],
-                  "punish_R": [1],
-                  "punish_done": 0.,
-                  }
-    env = Lqs2a1(**env_config)
-    s = env.reset()
-    print(s,'sssssssssssssss')
-    # print(env.env.model_class.dof14model_InstP.done_range)
-    for i in range(1000):
-        # print(i)
-        a = np.array([0.02])
-        sp, d, re, _ = env.step(a)
-        print(i)
-        print(sp)
-        s = sp
 
