@@ -1,20 +1,27 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Proximal Policy Optimization Algorithm (PPO)
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: Proximal Policy Optimization (PPO) algorithm
+#  Reference: Schulman, J., Wolski, F., Dhariwal, P., Radford, A. & Klimov, O. (2017).
+#             Proximal policy optimization algorithms.
+#             arXiv preprint arXiv:1707.06347.
 #  Update: 2021-03-05, Yuxuan Jiang: create PPO algorithm
 
 
 __all__ = ["ApproxContainer", "PPO"]
 
 
+import time
+
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.optim import Adam
-import time
 
 from gops.algorithm.base import AlgorithmBase, ApprBase
 from gops.create_pkg.create_apprfunc import create_apprfunc
@@ -26,7 +33,7 @@ from gops.utils.tensorboard_setup import tb_tags
 class ApproxContainer(ApprBase):
     """Approximate function container for PPO.
 
-    Contains a policy and a state value.
+    Contains one policy and one state value.
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -139,13 +146,10 @@ class PPO(AlgorithmBase):
         end_time = time.perf_counter()
 
         tb_info = dict()
-        # tb_info[tb_tags["loss_total"]] = loss_total.item()
         tb_info[tb_tags["loss_actor"]] = loss_surrogate.item()
         tb_info[tb_tags["loss_critic"]] = loss_value.item()
-        # tb_info[tb_tags["loss_entropy"]] = loss_entropy.item()
         tb_info["PPO/KL_divergence-RL iter"] = approximate_kl.item()
-        # tb_info[tb_tags["clip_fraction"]] = clip_fra.item()
-        tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
+        tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000
 
         return tb_info
 
@@ -212,7 +216,7 @@ class PPO(AlgorithmBase):
 
         if self.schedule_clip == "linear":
             decay_rate = 1 - (iteration / self.max_iteration)
-            assert decay_rate >= 0, "the decay_rate is less than 0!"
+            assert decay_rate >= 0, "decay_rate is less than 0!"
             self.clip_now = self.clip * decay_rate
 
         return (
