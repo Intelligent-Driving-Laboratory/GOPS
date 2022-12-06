@@ -1,19 +1,18 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Twin Delayed Deep Deterministic Policy Gradient Algorithm (TD3)
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: Twin Delayed Deep Deterministic policy gradient (TD3) algorithm
+#  Reference: Fujimoto, S., Hoof, H., & Meger, D. (2018, July).
+#             Addressing function approximation error in actor-critic methods.
+#             In International conference on machine learning (pp. 1587-1596). PMLR.
 #  Update: 2021-03-05, Wenxuan Wang: create TD3 algorithm
 
-
-"""
-class ApproxContainer
-
-class DDPG
-"""
-
-__all__ = ["TD3"]
+__all__ = ["ApproxContainer", "TD3"]
 
 import time
 from copy import deepcopy
@@ -68,18 +67,35 @@ class ApproxContainer(ApprBase):
 
 
 class TD3(AlgorithmBase):
-    def __init__(self, index=0, **kwargs):
+    """
+        Twin Delayed Deep Deterministic policy gradient (TD3) algorithm
+
+        Paper: https://arxiv.org/pdf/1802.09477.pdf
+
+        Args:
+            list    action_high_limit   : action limit for available actions.
+            float   target_noise        : action noise for target pi network. Default to 0.2
+            float   noise_clip          : range [-noise_clip, noise_clip] for target_noise. Default to 0.5
+            string  buffer_name         : buffer type. Default to 'replay_buffer'.
+            int     index               : for calculating offset of random seed for subprocess. Default to 0.
+    """
+    def __init__(self,
+        target_noise=0.2,
+        noise_clip=0.5,
+        buffer_name="replay_buffer",
+        index=0, **kwargs
+        ):
         super(TD3, self).__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
-        self.target_noise = kwargs.get("target_noise", 0.2)
-        self.noise_clip = kwargs.get("noise_clip", 0.5)
+        self.target_noise = target_noise
+        self.noise_clip = noise_clip
         self.act_low_limit = kwargs["action_low_limit"]
         self.act_high_limit = kwargs["action_high_limit"]
         self.gamma = 0.99
         self.tau = 0.005
         self.delay_update = 2
         self.reward_scale = 1
-        self.per_flag = (kwargs["buffer_name"] == "prioritized_replay_buffer")
+        self.per_flag = (buffer_name == "prioritized_replay_buffer")
 
     @property
     def adjustable_parameters(self):
@@ -249,15 +265,3 @@ class TD3(AlgorithmBase):
             p._grad = grad
 
         self.__update(iteration)
-
-
-if __name__ == "__main__":
-    print("Current algorithm is TD3, this script is not the entry of TD3 demo!")
-    # a = True
-    # b = 1 - a
-    # print(b)
-    # a = [1,2,3]
-    # b = [4,5,6]
-    # c = itertools.chain(a, b)
-    # a[2] =222
-    # print(list(c))
