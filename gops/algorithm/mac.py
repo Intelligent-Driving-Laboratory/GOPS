@@ -9,7 +9,7 @@
 #  Description: Mixed Actor Critic Algorithm (MAC)
 #  Reference: Mu, Y., B. Peng, Z. Gu, S. E. Li, C. Liu, B. Nie, J. Zheng, & B. Zhang. (2020, October).
 #             Mixed Reinforcement Learning for Efficient Policy Optimization in Stochastic Environments. 
-#             In International Conference on Control, Automation and Systems (pp. 1212-1219).  ICCAS.
+#             In International Conference on Control, Automation and Systems (pp. 1212-1219). ICCAS.
 #  Update: 2021-03-05, Yao Mu: create MAC algorithm
 
 
