@@ -1,11 +1,15 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Deep Deterministic Policy Gradient Algorithm (DDPG)
-#  Update: 2021-03-05, Wenxuan Wang: create DDPG algorithm
-
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: Deep Deterministic Policy Gradient (DDPG) algorithm
+#  Reference: [1] springer reference format
+#  Update: 2020-11-03, Hao Sun: create ddpg
+#  Update: 2022-12-03, Yujie Yang: rewrite ddpg class
 
 __all__ = ["ApproxContainer", "DDPG"]
 

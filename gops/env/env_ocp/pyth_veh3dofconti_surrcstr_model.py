@@ -1,12 +1,16 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Vehicle 3DOF model environment with surrounding vehicles constraint
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: vehicle 3DOF model environment with surrounding vehicles constraint
+#  Update: 2022-11-20, Yujie Yang: create environment
 
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -18,7 +22,8 @@ from gops.utils.gops_typing import InfoDict
 
 @dataclass
 class SurrVehicleModel:
-    l: float = 3.0  # distance from front axle to rear axle
+    # distance from front axle to rear axle
+    l: float = 3.0
     dt: float = 0.1
 
     def forward(self, state: torch.Tensor) -> torch.Tensor:
@@ -40,7 +45,7 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
         surr_veh_num: int = 4,
         veh_length: float = 4.8,
         veh_width: float = 2.0,
-        **kwargs,
+        **kwargs: Any,
     ):
         self.state_dim = 6
         super(Veh3dofcontiModel, self).__init__(
@@ -80,8 +85,10 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
 
     def get_constraint(self, obs: torch.Tensor, info: InfoDict) -> torch.Tensor:
         # collision detection using bicircle model
-        d = (self.veh_length - self.veh_width) / 2  # distance from vehicle center to front/rear circle center
-        r = np.sqrt(2) / 2 * self.veh_width  # circle radius
+        # distance from vehicle center to front/rear circle center
+        d = (self.veh_length - self.veh_width) / 2
+        # circle radius
+        r = np.sqrt(2) / 2 * self.veh_width
 
         x, y, phi = info["state"][:, :3].split(1, dim=1)
         ego_center = torch.stack((
@@ -96,8 +103,10 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
         ), dim=2)
 
         min_dist = np.finfo(np.float32).max * torch.ones_like(x)
-        for i in range(2):  # front and rear circle of ego vehicle
-            for j in range(2):  # front and rear circle of surrounding vehicles
+        for i in range(2):
+            # front and rear circle of ego vehicle
+            for j in range(2):
+                # front and rear circle of surrounding vehicles
                 dist = torch.linalg.norm(ego_center[:, i].unsqueeze(1) - surr_center[..., j], dim=2)
                 min_dist = torch.minimum(min_dist, torch.min(dist, dim=1, keepdim=True).values)
 

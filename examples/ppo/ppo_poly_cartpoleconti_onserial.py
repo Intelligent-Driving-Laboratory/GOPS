@@ -63,7 +63,7 @@ if __name__ == "__main__":
     parser.add_argument("--policy_func_type", type=str, default="POLY")
     parser.add_argument("--policy_act_distribution", type=str, default="default")
     parser.add_argument('--policy_degree', type=int, default=2)
-    parser.add_argument('--policy_add_bias', type=float, default=0)
+    parser.add_argument('--policy_add_bias', type=bool, default=False)
     parser.add_argument("--policy_min_log_std", type=int, default=-20)
     parser.add_argument("--policy_max_log_std", type=int, default=1)
 
@@ -158,7 +158,6 @@ if __name__ == "__main__":
     alg = create_alg(**args)
     alg.set_parameters(
         {
-            "gamma": 0.99,
             "loss_coefficient_value": 0.5,
             "loss_coefficient_entropy": 0.01,
             "schedule_adam": "None",

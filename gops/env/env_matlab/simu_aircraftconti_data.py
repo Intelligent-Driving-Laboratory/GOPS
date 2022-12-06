@@ -1,10 +1,13 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Aircraft Environment
-#  Update Date: 2021-05-55, Yuhang Zhang: create environment
+#  Update: 2021-05-55, Yuhang Zhang: create environment
 
 from gops.env.env_matlab.resources.simu_aircraft_v2.aircraft import GymEnv
 from gops.env.env_matlab.resources.simu_aircraft_v2.aircraft._env import EnvSpec
