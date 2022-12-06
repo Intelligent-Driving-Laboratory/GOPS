@@ -1,11 +1,13 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
-#  Creator: Yao MU
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Structural definition for approximation function
-#
-#  Update Date: 2021-05-21, Shengbo Li: revise headline
+#  Update: 2021-03-05, Wenjun Zou: create poly function
 
 __all__ = [
     "DetermPolicy",

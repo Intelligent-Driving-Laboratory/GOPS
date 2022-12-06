@@ -1,8 +1,11 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Convolutional Neural NetworksAction (CNN)
 #  Update: 2021-03-05, Wenjun Zou: create CNN function
 
@@ -23,15 +26,14 @@ from gops.utils.act_distribution_cls import Action_Distribution
 
 
 def CNN(kernel_sizes, channels, strides, activation, input_channel):
-    """
-    Input parameters lists for CNN.
-    kernel_sizes: list of kernel_size,
-    channels: list of channels,
-    strides: list of stride,
-    activation: activation function,
-    input_channel: number of channels of input image.
+    """Implementation of CNN.
+    :param list kernel_sizes: list of kernel_size,
+    :param list channels: list of channels,
+    :param list strides: list of stride,
+    :param activation: activation function,
+    :param int input_channel: number of channels of input image.
     Return CNN.
-    Input size for CNN: (batch_size, channel_num, height, width).
+    Input shape for CNN: (batch_size, channel_num, height, width).
     """
     layers = []
     for j in range(len(kernel_sizes)):

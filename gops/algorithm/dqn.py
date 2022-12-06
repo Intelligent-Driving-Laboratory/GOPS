@@ -1,9 +1,16 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Deep Q-Learning Algorithm (DQN)
+# Reference: Mnih, V., Kavukcuoglu, K., Silver, D., Rusu, A. A., Veness, 
+#            J., Bellemare, M. G., ... & Hassabis, D. (2015). 
+#            Human-level control through deep reinforcement learning. 
+#            nature, 518(7540), 529-533.
 #  Update: 2021-03-05, Wenxuan Wang: create DQN algorithm
 
 
@@ -26,8 +33,7 @@ from gops.utils.tensorboard_setup import tb_tags
 
 class ApproxContainer(ApprBase):
     def __init__(self, **kwargs):
-        """
-        Approximate function container for DQN.
+        """Approximate function container for DQN.
 
         Contains an action value.
         """
@@ -56,13 +62,11 @@ class ApproxContainer(ApprBase):
         return self.q.get_act_dist(logits)
 
 class DQN(AlgorithmBase):
-    """
-    Deep Q-Network (DQN) algorithm
-
-    A DQN implementation with soft target update.
+    """Deep Q-Network (DQN) algorithm
 
     Paper: https://doi.org/10.1038/nature14236
 
+    :param int index: algorithm index.
     Args:
         learning_rate (float, optional): Q network learning rate. Defaults to 0.001.
         gamma (float, optional): Discount factor. Defaults to 0.995.
