@@ -7,6 +7,10 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: Deep Deterministic Policy Gradient (DDPG) algorithm
+#  Reference: Lillicrap, T. P., Hunt, J. J., Pritzel, A., Heess,
+#             N., Erez, T., Tassa, Y., ... & Wierstra, D. (2015).
+#             Continuous control with deep reinforcement learning.
+#             arXiv preprint arXiv:1509.02971.
 #  Update: 2020-11-03, Hao Sun: create ddpg
 #  Update: 2022-12-03, Yujie Yang: rewrite ddpg class
 
