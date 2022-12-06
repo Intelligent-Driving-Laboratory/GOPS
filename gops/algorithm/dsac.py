@@ -1,12 +1,18 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: Distributed Soft Actor Critic Algorithm (DSAC)
-#  Update Date: 2021-03-05, Ziqing Gu: create DSAC algorithm
-#  Update Date: 2021-03-05, Wenxuan Wang: debug DSAC algorithm
-
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: Distributed Soft Actor-Critic (DSAC) algorithm
+#  Reference: Duan J, Guan Y, Li S E, et al.
+#             Distributional soft actor-critic: Off-policy reinforcement learning
+#             for addressing value estimation errors[J].
+#             IEEE transactions on neural networks and learning systems, 2021.
+#  Update: 2021-03-05, Ziqing Gu: create DSAC algorithm
+#  Update: 2021-03-05, Wenxuan Wang: debug DSAC algorithm
 
 __all__ = ["ApproxContainer", "DSAC"]
 
@@ -29,9 +35,8 @@ from gops.utils.common_utils import get_apprfunc_dict
 class ApproxContainer(ApprBase):
     """Approximate function container for DSAC.
 
-    Contains a policy and an action value.
+    Contains one policy and one action value.
     """
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # create q networks
@@ -67,8 +72,21 @@ class ApproxContainer(ApprBase):
 
 
 class DSAC(AlgorithmBase):
-    """DSAC algorithm"""
+    """DSAC algorithm
 
+    Paper: https://arxiv.org/pdf/2001.02811
+
+    :param int index: algorithm index.
+    :param float gamma: discount factor.
+    :param float tau: param for soft update of target network.
+    :param bool auto_alpha: whether to adjust temperature automatically.
+    :param float alpha: initial temperature.
+    :param float TD_bound: the bound of temporal difference.
+    :param bool bound: whether to bound the q value.
+    :param float delay_update: the update delay of the policy network.
+    :param Optional[float] target_entropy: target entropy for automatic
+        temperature adjustment.
+    """
     def __init__(self, index=0, **kwargs):
         super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
@@ -128,6 +146,7 @@ class DSAC(AlgorithmBase):
 
     def __compute_gradient(self, data: DataDict, iteration: int):
         start_time = time.time()
+
         obs = data["obs"]
         logits = self.networks.policy(obs)
         policy_mean = torch.tanh(logits[..., 0]).mean().item()
