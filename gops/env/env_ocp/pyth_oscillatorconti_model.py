@@ -1,10 +1,14 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
-#  Creator: Jie Li
-#  Description: Oscillator Environment
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
 #
+#  Description: Oscillator Model
+#  Update Date: 2022-08-12, Jie Li: create environment
+#  Update Date: 2022-10-24, Yvjie Yang: add wrapper
 
 from typing import Tuple, Union
 
@@ -29,9 +33,7 @@ class PythOscillatorcontiModel(PythBaseModel):
         self.state_dim = 2
         self.action_dim = 1
         self.adversary_dim = 1
-        self.dt = 1 / 200  # seconds between state updates
-
-        # define your custom parameters here
+        self.dt = 1 / 200
 
         # utility information
         self.Q = torch.eye(self.state_dim)
@@ -40,8 +42,8 @@ class PythOscillatorcontiModel(PythBaseModel):
         self.gamma_atte = kwargs['gamma_atte']
 
         # state & action space
-        self.fixed_initial_state = kwargs['fixed_initial_state']  # for env_data & on_sampler
-        self.initial_state_range = kwargs['initial_state_range']  # for env_model
+        self.fixed_initial_state = kwargs['fixed_initial_state']
+        self.initial_state_range = kwargs['initial_state_range']
         self.battery_a_initial = self.initial_state_range[0]
         self.battery_b_initial = self.initial_state_range[1]
         self.state_threshold = kwargs['state_threshold']
@@ -58,7 +60,7 @@ class PythOscillatorcontiModel(PythBaseModel):
             self.lb_action = torch.tensor(self.min_action + self.min_adv_action, dtype=torch.float32)
             self.hb_action = torch.tensor(self.max_action + self.max_adv_action, dtype=torch.float32)
         else:
-            self.lb_action = torch.tensor(self.min_action, dtype=torch.float32)  # action & adversary
+            self.lb_action = torch.tensor(self.min_action, dtype=torch.float32)
             self.hb_action = torch.tensor(self.max_action, dtype=torch.float32)
 
         self.ones_ = torch.ones(self.sample_batch_size)
@@ -93,15 +95,17 @@ class PythOscillatorcontiModel(PythBaseModel):
         battery_a = np.random.uniform(-self.battery_a_initial, self.battery_a_initial, [self.sample_batch_size, 1])
         battery_b = np.random.uniform(-self.battery_b_initial, self.battery_b_initial, [self.sample_batch_size, 1])
 
-        state = np.concatenate([battery_a, battery_b], axis=1)  # concatenate column
+        state = np.concatenate([battery_a, battery_b], axis=1)
 
         return torch.from_numpy(state).float()
 
     def step(self, action: torch.Tensor):
         dt = self.dt
         battery_a, battery_b = self.parallel_state[:, 0], self.parallel_state[:, 1]
-        memristor = action[:, 0]  # memristor
-        noise = action[:, 1]  # noise
+        # memristor
+        memristor = action[:, 0]
+        # noise
+        noise = action[:, 1]
 
         deri_battery_a = - 0.25 * battery_a
         deri_battery_b = 0.5 * torch.mul(battery_a ** 2, battery_b) - 1 / (2 * self.gamma_atte ** 2) * battery_b ** 3 \
@@ -145,9 +149,11 @@ class PythOscillatorcontiModel(PythBaseModel):
 
         dt = self.dt
         battery_a, battery_b = state[:, 0], state[:, 1]
-        memristor = action[:, 0]  # memristor
+        # memristor
+        memristor = action[:, 0]
         if self.is_adversary:
-            noise = action[:, 1]      # noise
+            # noise
+            noise = action[:, 1]
         else:
             noise = torch.zeros_like(memristor)
 
@@ -175,12 +181,12 @@ class PythOscillatorcontiModel(PythBaseModel):
     def f_x(self, state, batch_size):
 
         if batch_size > 1:
-            fx = torch.zeros((batch_size, self.state_dim))  # [64, 2]
+            fx = torch.zeros((batch_size, self.state_dim))
             fx[:, 0] = - 0.25 * state[:, 0]
             fx[:, 1] = 0.5 * torch.mul(state[:, 0] ** 2, state[:, 1]) \
                        - 1 / (2 * self.gamma_atte ** 2) * state[:, 1] ** 3 - 0.5 * state[:, 1]
         else:
-            fx = torch.zeros((self.state_dim, 1))  # [2, 1]
+            fx = torch.zeros((self.state_dim, 1))
             fx[0, 0] = - 0.25 * state[0, 0]
             fx[1, 0] = 0.5 * torch.mul(state[0, 0] ** 2, state[0, 1]) \
                        - 1 / (2 * self.gamma_atte ** 2) * state[0, 1] ** 3 - 0.5 * state[0, 1]
@@ -190,11 +196,11 @@ class PythOscillatorcontiModel(PythBaseModel):
     def g_x(self, state, batch_size):
 
         if batch_size > 1:
-            gx = torch.zeros((batch_size, self.state_dim, self.action_dim))  # [64, 2, 1]
+            gx = torch.zeros((batch_size, self.state_dim, self.action_dim))
             gx[:, 0, 0] = torch.zeros((batch_size,))
             gx[:, 1, 0] = state[:, 0]
         else:
-            gx = torch.zeros((self.state_dim, self.action_dim))  # [2, 1]
+            gx = torch.zeros((self.state_dim, self.action_dim))
             gx[0, 0] = 0
             gx[1, 0] = state[0, 0]
 
@@ -204,11 +210,11 @@ class PythOscillatorcontiModel(PythBaseModel):
         batch_size = state.size()[0]
 
         if batch_size > 1:
-            gx = self.g_x(state, batch_size)  # [64, 2, 1]
-            delta_value = delta_value[:, :, np.newaxis]  # [64, 2, 1]
-            act = - 0.5 * torch.matmul(self.R.inverse(), torch.bmm(gx.transpose(1, 2), delta_value)).squeeze(-1)  # [64, 1]
+            gx = self.g_x(state, batch_size)
+            delta_value = delta_value[:, :, np.newaxis]
+            act = - 0.5 * torch.matmul(self.R.inverse(), torch.bmm(gx.transpose(1, 2), delta_value)).squeeze(-1)
         else:
-            gx = self.g_x(state, batch_size)  # [2, 1]
+            gx = self.g_x(state, batch_size)
             act = - 0.5 * torch.mm(self.R.inverse(), torch.mm(gx.t(), delta_value.t()))
 
         return act.detach()
@@ -216,11 +222,11 @@ class PythOscillatorcontiModel(PythBaseModel):
     def k_x(self, state, batch_size):
 
         if batch_size > 1:
-            kx = torch.zeros((batch_size, self.state_dim, self.adversary_dim))  # [64, 2, 1]
+            kx = torch.zeros((batch_size, self.state_dim, self.adversary_dim))
             kx[:, 0, 0] = torch.zeros((batch_size,))
             kx[:, 1, 0] = state[:, 1]
         else:
-            kx = torch.zeros((self.state_dim, self.adversary_dim))  # [2, 1]
+            kx = torch.zeros((self.state_dim, self.adversary_dim))
             kx[0, 0] = 0
             kx[1, 0] = state[0, 1]
 
@@ -230,24 +236,11 @@ class PythOscillatorcontiModel(PythBaseModel):
         batch_size = state.size()[0]
 
         if batch_size > 1:
-            kx = self.k_x(state, batch_size)  # [64, 2, 1]
-            delta_value = delta_value[:, :, np.newaxis]  # [64, 2, 1]
-            adv = 0.5 / (self.gamma_atte ** 2) * torch.bmm(kx.transpose(1, 2), delta_value).squeeze(-1)  # [64, 1]
+            kx = self.k_x(state, batch_size)
+            delta_value = delta_value[:, :, np.newaxis]
+            adv = 0.5 / (self.gamma_atte ** 2) * torch.bmm(kx.transpose(1, 2), delta_value).squeeze(-1)
         else:
-            kx = self.k_x(state, batch_size)  # [2, 1]
+            kx = self.k_x(state, batch_size)
             adv = 0.5 / (self.gamma_atte ** 2) * torch.mm(kx.t(), delta_value.t())
 
         return adv.detach()
-
-
-def clip_by_tensor(t, t_min, t_max):
-    """
-    clip_by_tensor
-    :param t: tensor
-    :param t_min: min
-    :param t_max: max
-    :return: cliped tensor
-    """
-    result = (t >= t_min) * t + (t < t_min) * t_min
-    result = (result <= t_max) * result + (result > t_max) * t_max
-    return result

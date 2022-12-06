@@ -1,18 +1,20 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
-#  Creator: Jie Li
-#  Description: Aircraft Environment
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
 #
+#  Description: Aircraft Model
+#  Update Date: 2022-08-12, Jie Li: create environment
+#  Update Date: 2022-10-24, Yvjie Yang: add wrapper
 
 from math import sin, cos
 
 import gym
 import numpy as np
 from gym import spaces
-from gym.wrappers.time_limit import TimeLimit
-
 from gops.env.env_ocp.pyth_base_data import PythBaseEnv
 
 gym.logger.setLevel(gym.logger.ERROR)
@@ -78,7 +80,7 @@ class _GymAircraftconti(PythBaseEnv):
 
         self.steps_beyond_done = None
 
-        self.max_episode_steps = kwargs['max_episode_steps']  # original = 200
+        self.max_episode_steps = kwargs['max_episode_steps']
         self.steps = 0
 
     @property
@@ -103,8 +105,10 @@ class _GymAircraftconti(PythBaseEnv):
         tau = self.tau
         A = self.A
         attack_ang, rate, elevator_ang = self.state
-        elevator_vol = action[0]  # the elevator actuator voltage
-        wind_attack_angle = adv_action[0]  # wind gusts on angle of attack
+        # the elevator actuator voltage
+        elevator_vol = action[0]
+        # wind gusts on angle of attack
+        wind_attack_angle = adv_action[0]
 
         attack_ang_dot = A[0, 0] * attack_ang + A[0, 1] * rate + A[0, 2] * elevator_ang + wind_attack_angle
         rate_dot = A[1, 0] * attack_ang + A[1, 1] * rate + A[1, 2] * elevator_ang
@@ -146,9 +150,9 @@ class _GymAircraftconti(PythBaseEnv):
         else:
             if self.steps_beyond_done == 0:
                 gym.logger.warn("""
-You are calling 'step()' even though this environment has already returned
-done = True. You should always call 'reset()' once you receive 'done = True'
-Any further steps are undefined behavior.
+                You are calling 'step()' even though this environment has already returned
+                done = True. You should always call 'reset()' once you receive 'done = True'
+                Any further steps are undefined behavior.
                 """)
             self.steps_beyond_done += 1
             reward = 0.0
@@ -171,7 +175,3 @@ Any further steps are undefined behavior.
 
 def env_creator(**kwargs):
     return _GymAircraftconti(**kwargs)
-
-
-if __name__ == '__main__':
-    pass
