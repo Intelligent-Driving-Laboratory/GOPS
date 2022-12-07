@@ -4,7 +4,7 @@
 #
 #  Creator: iDLab
 #  Description: Implementation of optimal controller based on MPC
-#  Update Date: 2022-12-05, Zhilong Zheng: create OptController
+#  Update: 2022-12-05, Zhilong Zheng: create OptController
 
 
 from typing import Callable, Optional, Tuple, Union
