@@ -16,7 +16,9 @@ from gops.utils.common_utils import set_seed
 
 class Evaluator:
     def __init__(self, index=0, **kwargs):
-        kwargs.update({'reward_scale': None,'repeat_num':None}) # evaluation don't need to scale reward
+        kwargs.update(
+            {"reward_scale": None, "repeat_num": None}
+        )  # evaluation don't need to scale reward
         self.env = create_env(**kwargs)
 
         _, self.env = set_seed(kwargs["trainer"], kwargs["seed"], index + 400, self.env)

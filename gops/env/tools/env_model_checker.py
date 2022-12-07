@@ -26,7 +26,9 @@ def check_env_model_file_structures(env_file_name):
     try:
         for sub in ["env_archive", "env_gym", "env_matlab", "env_ocp"]:
             try:
-                file_obj = importlib.import_module("gops.env." + sub + "." + env_file_name)
+                file_obj = importlib.import_module(
+                    "gops.env." + sub + "." + env_file_name
+                )
                 break
             except:
                 pass
@@ -39,7 +41,9 @@ def check_env_model_file_structures(env_file_name):
     elif hasattr(file_obj, env_name_camel):
         env_class = getattr(file_obj, env_name_camel)
     else:
-        raise RuntimeError(f"the environment `{env_file_name}` is not implemented properly")
+        raise RuntimeError(
+            f"the environment `{env_file_name}` is not implemented properly"
+        )
     return env_class
 
 
@@ -81,11 +85,17 @@ def check_model0(env, env_model):
     assert isinstance(info, dict), "state_next must be a Tensor"
 
     assert s_next.size() == s_torch.size(), "something wrong in dynamics"
-    assert len(r.shape) == 1 and r.shape[0] == batch_size, "something wrong in reward singal"
-    assert len(d.shape) == 1 and d.shape[0] == batch_size, "something wrong in done singal"
+    assert (
+        len(r.shape) == 1 and r.shape[0] == batch_size
+    ), "something wrong in reward singal"
+    assert (
+        len(d.shape) == 1 and d.shape[0] == batch_size
+    ), "something wrong in done singal"
 
     if hasattr(env, "constraint_dim") and env.constraint_dim is not None:
-        assert "constraint" in info.keys(), "constraint function must be implemented in info"
+        assert (
+            "constraint" in info.keys()
+        ), "constraint function must be implemented in info"
 
 
 def check_model(env_name):

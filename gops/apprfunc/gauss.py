@@ -35,10 +35,8 @@ class RBF(nn.Module):
         self.w = nn.Parameter(torch.randn(1, out_dim, self.kernel))
         self.b = nn.Parameter(torch.randn(1, out_dim, 1))
 
-    def forward(self, x): 
-        r = torch.sum(
-            (x.view(-1, 1, self.input_dim) - self.C) ** 2, dim=-1
-        ) 
+    def forward(self, x):
+        r = torch.sum((x.view(-1, 1, self.input_dim) - self.C) ** 2, dim=-1)
         phi = torch.exp(-r / (2 * torch.abs(self.sigma_square))).unsqueeze(-1)
         return (self.w @ phi + self.b).squeeze(-1)
 
@@ -49,6 +47,7 @@ class DetermPolicy(nn.Module, Action_Distribution):
     Input: observation.
     Output: action.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -72,9 +71,10 @@ class FiniteHorizonPolicy(nn.Module, Action_Distribution):
     Input: observation, time step.
     Output: action.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
-        obs_dim = kwargs["obs_dim"]+1
+        obs_dim = kwargs["obs_dim"] + 1
         act_dim = kwargs["act_dim"]
         num_kernel = kwargs["num_kernel"]
         self.pi = RBF(obs_dim, act_dim, num_kernel)
@@ -83,12 +83,15 @@ class FiniteHorizonPolicy(nn.Module, Action_Distribution):
         self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs, virtual_t=1):
-        virtual_t = virtual_t * torch.ones(size=[obs.shape[0], 1],dtype=torch.float32, device=obs.device)
-        expand_obs = torch.cat((obs,virtual_t),1)
+        virtual_t = virtual_t * torch.ones(
+            size=[obs.shape[0], 1], dtype=torch.float32, device=obs.device
+        )
+        expand_obs = torch.cat((obs, virtual_t), 1)
         action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(
             self.pi(expand_obs)
         ) + (self.act_high_lim + self.act_low_lim) / 2
         return action
+
 
 class StochaPolicy(nn.Module, Action_Distribution):
     """
@@ -96,6 +99,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
     Input: observation.
     Output: parameters of action distribution.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -124,6 +128,7 @@ class ActionValue(nn.Module, Action_Distribution):
     Input: observation, action.
     Output: action-value.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -143,6 +148,7 @@ class ActionValueDis(nn.Module, Action_Distribution):
     Input: observation.
     Output: action-value for all action.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -161,6 +167,7 @@ class StateValue(nn.Module, Action_Distribution):
     Input: observation, action.
     Output: state-value.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]

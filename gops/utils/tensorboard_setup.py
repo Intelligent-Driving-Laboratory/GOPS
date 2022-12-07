@@ -25,7 +25,7 @@ DEFAULT_TB_PORT = 6001
 
 def read_tensorboard(path):
     """
-        Input dir of tensorboard log.
+    Input dir of tensorboard log.
     """
     import tensorboard
     from tensorboard.backend.event_processing import event_accumulator
@@ -127,7 +127,7 @@ def kill_port(port=DEFAULT_TB_PORT):
 
 def save_csv(path, step, value):
     """
-        Save 2-column-data to csv.
+    Save 2-column-data to csv.
     """
     df = pd.DataFrame({"Step": step, "Value": value})
     df.to_csv(path, index=False, sep=",")
@@ -135,8 +135,8 @@ def save_csv(path, step, value):
 
 def save_tb_to_csv(path):
     """
-        Parse all tensorboard log file in given dir (e.g. ./results),
-        and save all data as csv.
+    Parse all tensorboard log file in given dir (e.g. ./results),
+    and save all data as csv.
     """
 
     data_dict = read_tensorboard(path)

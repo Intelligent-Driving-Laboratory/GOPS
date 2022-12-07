@@ -18,6 +18,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 
 import numpy as np
 import torch
+
 torch.set_num_threads(1)
 torch.set_num_interop_threads(1)
 from gops.create_pkg.create_alg import create_alg
@@ -47,31 +48,41 @@ if __name__ == "__main__":
     parser.add_argument("--reward_scale", type=float, default=0.1, help="reward scale factor")
     parser.add_argument("--reward_shift", type=float, default=0, help="reward shift factor")
     parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
-    parser.add_argument(
-        "--is_adversary", type=bool, default=False, help="Adversary training"
-    )
-    parser.add_argument(
-        "--is_constrained", type=bool, default=False, help="Adversary training"
-    )
+    parser.add_argument("--is_adversary", type=bool, default=False, help="Adversary training")
+    parser.add_argument("--is_constrained", type=bool, default=False, help="Adversary training")
     ################################################
     # 2.1 Parameters of value approximate function
-    parser.add_argument("--value_func_name", type=str, default="StateValue",
-                        help="Options: StateValue/ActionValue/ActionValueDis/ActionValueDistri")
-    parser.add_argument("--value_func_type", type=str, default="POLY",
-                        help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS")
+    parser.add_argument(
+        "--value_func_name",
+        type=str,
+        default="StateValue",
+        help="Options: StateValue/ActionValue/ActionValueDis/ActionValueDistri",
+    )
+    parser.add_argument(
+        "--value_func_type", type=str, default="POLY", help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS"
+    )
     value_func_type = parser.parse_known_args()[0].value_func_type
-    parser.add_argument('--value_degree', type=int, default=2, help="degree of poly function")
-    parser.add_argument('--value_add_bias', type=bool, default=False, help="add 0 degree term")
+    parser.add_argument("--value_degree", type=int, default=2, help="degree of poly function")
+    parser.add_argument("--value_add_bias", type=bool, default=False, help="add 0 degree term")
 
     # 2.2 Parameters of policy approximate function
-    parser.add_argument("--policy_func_name", type=str, default="DetermPolicy",
-                        help="Options: None/DetermPolicy/FiniteHorizonPolicy/StochaPolicy")
-    parser.add_argument("--policy_func_type", type=str, default="POLY",
-                        help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS")
-    parser.add_argument("--policy_act_distribution", type=str, default="default",
-                        help="Options: default/TanhGaussDistribution/GaussDistribution")
-    parser.add_argument('--policy_degree', type=int, default=1, help="degree of poly function")
-    parser.add_argument('--policy_add_bias', type=bool, default=False, help="add 0 degree term")
+    parser.add_argument(
+        "--policy_func_name",
+        type=str,
+        default="DetermPolicy",
+        help="Options: None/DetermPolicy/FiniteHorizonPolicy/StochaPolicy",
+    )
+    parser.add_argument(
+        "--policy_func_type", type=str, default="POLY", help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS"
+    )
+    parser.add_argument(
+        "--policy_act_distribution",
+        type=str,
+        default="default",
+        help="Options: default/TanhGaussDistribution/GaussDistribution",
+    )
+    parser.add_argument("--policy_degree", type=int, default=1, help="degree of poly function")
+    parser.add_argument("--policy_add_bias", type=bool, default=False, help="add 0 degree term")
     policy_func_type = parser.parse_known_args()[0].policy_func_type
 
     ################################################
@@ -81,18 +92,27 @@ if __name__ == "__main__":
 
     ################################################
     # 4. Parameters for trainer
-    parser.add_argument("--trainer", type=str, default="off_serial_trainer",
-                        help="Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer")
+    parser.add_argument(
+        "--trainer",
+        type=str,
+        default="off_serial_trainer",
+        help="Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer",
+    )
     # Maximum iteration number
     parser.add_argument("--max_iteration", type=int, default=500000)
-    parser.add_argument("--ini_network_dir", type=str, default=None,
-                        help="path of saved approximate functions, if specified, the saved approximate functions "
-                             "will be loaded before training")
+    parser.add_argument(
+        "--ini_network_dir",
+        type=str,
+        default=None,
+        help="path of saved approximate functions, if specified, the saved approximate functions "
+        "will be loaded before training",
+    )
     trainer_type = parser.parse_known_args()[0].trainer
 
     # 4.1. Parameters for off_serial_trainer
-    parser.add_argument("--buffer_name", type=str, default="replay_buffer",
-                        help="Options:replay_buffer/prioritized_replay_buffer")
+    parser.add_argument(
+        "--buffer_name", type=str, default="replay_buffer", help="Options:replay_buffer/prioritized_replay_buffer"
+    )
     # Size of collected samples before training
     parser.add_argument("--buffer_warm_size", type=int, default=1000)
     # Max size of reply buffer
@@ -103,8 +123,7 @@ if __name__ == "__main__":
     parser.add_argument("--sample_interval", type=int, default=1)
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument("--sampler_name", type=str, default="off_sampler",
-                        help="Options: on_sampler/off_sampler")
+    parser.add_argument("--sampler_name", type=str, default="off_sampler", help="Options: on_sampler/off_sampler")
     # Batch size of sampler for buffer store
     parser.add_argument("--sample_batch_size", type=int, default=8)
     # Add noise to action for better exploration
@@ -131,7 +150,7 @@ if __name__ == "__main__":
     work_space = np.stack((init_mean - 0.5 * init_std, init_mean + 0.5 * init_std))
     parser.add_argument("--train_space", type=np.array, default=train_space)
     parser.add_argument("--work_space", type=np.array, default=work_space)
-    
+
     ################################################
     # 7. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
@@ -147,7 +166,13 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
-    alg.set_parameters({"gamma": 0.99, "tau": 0.2,"forward_step":1,})
+    alg.set_parameters(
+        {
+            "gamma": 0.99,
+            "tau": 0.2,
+            "forward_step": 1,
+        }
+    )
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

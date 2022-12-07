@@ -25,35 +25,47 @@ class VehicleDynamicsData:
             k_r=-85943.6,  # rear wheel cornering stiffness [N/rad]
             l_f=1.06,  # distance from CG to front axle [m]
             l_r=1.85,  # distance from CG to rear axle [m]
-            m=1412.,  # mass [kg]
+            m=1412.0,  # mass [kg]
             I_z=1536.7,  # Polar moment of inertia at CG [kg*m^2]
             miu=1.0,  # tire-road friction coefficient
             g=9.81,  # acceleration of gravity [m/s^2]
         )
-        l_f, l_r, mass, g = self.vehicle_params['l_f'], self.vehicle_params['l_r'], \
-            self.vehicle_params['m'], self.vehicle_params['g']
+        l_f, l_r, mass, g = (
+            self.vehicle_params["l_f"],
+            self.vehicle_params["l_r"],
+            self.vehicle_params["m"],
+            self.vehicle_params["g"],
+        )
         F_zf, F_zr = l_r * mass * g / (l_f + l_r), l_f * mass * g / (l_f + l_r)
         self.vehicle_params.update(dict(F_zf=F_zf, F_zr=F_zr))
 
     def f_xu(self, states, actions, delta_t):
         x, y, phi, u, v, w = states
         steer, a_x = actions
-        k_f = self.vehicle_params['k_f']
-        k_r = self.vehicle_params['k_r']
-        l_f = self.vehicle_params['l_f']
-        l_r = self.vehicle_params['l_r']
-        m = self.vehicle_params['m']
-        I_z = self.vehicle_params['I_z']
+        k_f = self.vehicle_params["k_f"]
+        k_r = self.vehicle_params["k_r"]
+        l_f = self.vehicle_params["l_f"]
+        l_r = self.vehicle_params["l_r"]
+        m = self.vehicle_params["m"]
+        I_z = self.vehicle_params["I_z"]
         next_state = [
             x + delta_t * (u * np.cos(phi) - v * np.sin(phi)),
             y + delta_t * (u * np.sin(phi) + v * np.cos(phi)),
             phi + delta_t * w,
             u + delta_t * a_x,
-            (m * v * u + delta_t * (
-                l_f * k_f - l_r * k_r) * w - delta_t * k_f * steer * u - delta_t * m * np.square(
-                u) * w) / (m * u - delta_t * (k_f + k_r)),
-            (I_z * w * u + delta_t * (l_f * k_f - l_r * k_r) * v - delta_t * l_f * k_f * steer * u) / (
-                I_z * u - delta_t * (np.square(l_f) * k_f + np.square(l_r) * k_r))
+            (
+                m * v * u
+                + delta_t * (l_f * k_f - l_r * k_r) * w
+                - delta_t * k_f * steer * u
+                - delta_t * m * np.square(u) * w
+            )
+            / (m * u - delta_t * (k_f + k_r)),
+            (
+                I_z * w * u
+                + delta_t * (l_f * k_f - l_r * k_r) * v
+                - delta_t * l_f * k_f * steer * u
+            )
+            / (I_z * u - delta_t * (np.square(l_f) * k_f + np.square(l_r) * k_r)),
         ]
         next_state[2] = angle_normalize(next_state[2])
         return np.array(next_state, dtype=np.float32)
@@ -84,10 +96,13 @@ class SimuVeh3dofconti(PythBaseEnv):
         self.observation_space = gym.spaces.Box(
             low=np.array([-np.inf] * (2 * self.pre_horizon + self.state_dim)),
             high=np.array([np.inf] * (2 * self.pre_horizon + self.state_dim)),
-            dtype=np.float32)
-        self.action_space = gym.spaces.Box(low=np.array([-max_steer, -3]),
-                                           high=np.array([max_steer, 3]),
-                                           dtype=np.float32)
+            dtype=np.float32,
+        )
+        self.action_space = gym.spaces.Box(
+            low=np.array([-max_steer, -3]),
+            high=np.array([max_steer, 3]),
+            dtype=np.float32,
+        )
         self.dt = 0.1
         self.max_episode_steps = 200
 
@@ -123,7 +138,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         if ref_time is not None:
             self.t = ref_time
         else:
-            self.t = 20. * self.np_random.uniform(0., 1.)
+            self.t = 20.0 * self.np_random.uniform(0.0, 1.0)
 
         if path_num is not None:
             self.path_num = path_num
@@ -137,10 +152,18 @@ class SimuVeh3dofconti(PythBaseEnv):
 
         ref_points = []
         for i in range(self.pre_horizon + 1):
-            ref_x = self.ref_traj.compute_x(self.t + i * self.dt, self.path_num, self.u_num)
-            ref_y = self.ref_traj.compute_y(self.t + i * self.dt, self.path_num, self.u_num)
-            ref_phi = self.ref_traj.compute_phi(self.t + i * self.dt, self.path_num, self.u_num)
-            ref_u = self.ref_traj.compute_u(self.t + i * self.dt, self.path_num, self.u_num)
+            ref_x = self.ref_traj.compute_x(
+                self.t + i * self.dt, self.path_num, self.u_num
+            )
+            ref_y = self.ref_traj.compute_y(
+                self.t + i * self.dt, self.path_num, self.u_num
+            )
+            ref_phi = self.ref_traj.compute_phi(
+                self.t + i * self.dt, self.path_num, self.u_num
+            )
+            ref_u = self.ref_traj.compute_u(
+                self.t + i * self.dt, self.path_num, self.u_num
+            )
             ref_points.append([ref_x, ref_y, ref_phi, ref_u])
         self.ref_points = np.array(ref_points, dtype=np.float32)
 
@@ -148,7 +171,9 @@ class SimuVeh3dofconti(PythBaseEnv):
             delta_state = np.array(init_state, dtype=np.float32)
         else:
             delta_state = self.sample_initial_state()
-        self.state = np.concatenate((self.ref_points[0] + delta_state[:4], delta_state[4:]))
+        self.state = np.concatenate(
+            (self.ref_points[0] + delta_state[:4], delta_state[4:])
+        )
 
         return self.get_obs(), self.info
 
@@ -162,12 +187,23 @@ class SimuVeh3dofconti(PythBaseEnv):
         self.t = self.t + self.dt
 
         self.ref_points[:-1] = self.ref_points[1:]
-        new_ref_point = np.array([
-            self.ref_traj.compute_x(self.t + self.pre_horizon * self.dt, self.path_num, self.u_num),
-            self.ref_traj.compute_y(self.t + self.pre_horizon * self.dt, self.path_num, self.u_num),
-            self.ref_traj.compute_phi(self.t + self.pre_horizon * self.dt, self.path_num, self.u_num),
-            self.ref_traj.compute_u(self.t + self.pre_horizon * self.dt, self.path_num, self.u_num),
-        ], dtype=np.float32)
+        new_ref_point = np.array(
+            [
+                self.ref_traj.compute_x(
+                    self.t + self.pre_horizon * self.dt, self.path_num, self.u_num
+                ),
+                self.ref_traj.compute_y(
+                    self.t + self.pre_horizon * self.dt, self.path_num, self.u_num
+                ),
+                self.ref_traj.compute_phi(
+                    self.t + self.pre_horizon * self.dt, self.path_num, self.u_num
+                ),
+                self.ref_traj.compute_u(
+                    self.t + self.pre_horizon * self.dt, self.path_num, self.u_num
+                ),
+            ],
+            dtype=np.float32,
+        )
         self.ref_points[-1] = new_ref_point
 
         self.done = self.judge_done()
@@ -186,22 +222,22 @@ class SimuVeh3dofconti(PythBaseEnv):
         ref_x, ref_y, ref_phi, ref_u = self.ref_points[0]
         steer, a_x = action
         return -(
-            0.04 * (x - ref_x) ** 2 +
-            0.04 * (y - ref_y) ** 2 +
-            0.02 * (phi - ref_phi) ** 2 +
-            0.02 * (u - ref_u) ** 2 +
-            0.01 * w ** 2 +
-            0.01 * steer ** 2 +
-            0.01 * a_x ** 2
+            0.04 * (x - ref_x) ** 2
+            + 0.04 * (y - ref_y) ** 2
+            + 0.02 * (phi - ref_phi) ** 2
+            + 0.02 * (u - ref_u) ** 2
+            + 0.01 * w**2
+            + 0.01 * steer**2
+            + 0.01 * a_x**2
         )
 
     def judge_done(self) -> bool:
         x, y, phi = self.state[:3]
         ref_x, ref_y, ref_phi = self.ref_points[0, :3]
         done = (
-            (np.abs(x - ref_x) > 5) |
-            (np.abs(y - ref_y) > 2) |
-            (np.abs(phi - ref_phi) > np.pi)
+            (np.abs(x - ref_x) > 5)
+            | (np.abs(y - ref_y) > 2)
+            | (np.abs(phi - ref_phi) > np.pi)
         )
         return done
 

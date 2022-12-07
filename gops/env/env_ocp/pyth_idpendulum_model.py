@@ -70,10 +70,20 @@ class Dynamics(object):
                 + 0.5 * m2 * l2 * torch.square(theta2dot) * torch.sin(theta2)
                 - d1 * pdot
                 + u,
-                -0.5 * l1 * l2 * m2 * torch.square(theta2dot) * torch.sin(theta1 - theta2)
+                -0.5
+                * l1
+                * l2
+                * m2
+                * torch.square(theta2dot)
+                * torch.sin(theta1 - theta2)
                 + g * (0.5 * m1 + m2) * l1 * torch.sin(theta1)
                 - d2 * theta1dot,
-                0.5 * l1 * l2 * m2 * torch.square(theta1dot) * torch.sin(theta1 - theta2)
+                0.5
+                * l1
+                * l2
+                * m2
+                * torch.square(theta1dot)
+                * torch.sin(theta1 - theta2)
                 + g * 0.5 * l2 * m2 * torch.sin(theta2),
             ],
             dim=1,
@@ -99,7 +109,17 @@ class Dynamics(object):
         next_pdot = next_pdot.reshape(-1, 1)
         next_theta1dot = next_theta1dot.reshape(-1, 1)
         next_theta2dot = next_theta2dot.reshape(-1, 1)
-        next_states = torch.cat([next_p, next_theta1, next_theta2, next_pdot, next_theta1dot, next_theta2dot], dim=1)
+        next_states = torch.cat(
+            [
+                next_p,
+                next_theta1,
+                next_theta2,
+                next_pdot,
+                next_theta1dot,
+                next_theta2dot,
+            ],
+            dim=1,
+        )
         # print(next_states.shape, "-------------")
         return next_states
 
@@ -116,9 +136,13 @@ class Dynamics(object):
         tip_x = p + self.l_rod1 * torch.sin(theta1) + self.l_rod2 * torch.sin(theta2)
         tip_y = self.l_rod1 * torch.cos(theta1) + self.l_rod2 * torch.cos(theta2)
 
-        dist_penalty = 0 * torch.square(p) + 5 * torch.square(theta1) + 10 * torch.square(theta2)
+        dist_penalty = (
+            0 * torch.square(p) + 5 * torch.square(theta1) + 10 * torch.square(theta2)
+        )
         v0, v1, v2 = pdot, theta1dot, theta2dot
-        vel_penalty = 0.5 * torch.square(v0) + 0.5 * torch.square(v1) + 1 * torch.square(v2)
+        vel_penalty = (
+            0.5 * torch.square(v0) + 0.5 * torch.square(v1) + 1 * torch.square(v2)
+        )
         act_penalty = 1 * torch.square(actions)
         rewards = 10 - dist_penalty - vel_penalty - act_penalty
 
@@ -170,11 +194,18 @@ class PythInvertedpendulum(PythBaseModel):
 
         self.dynamics = Dynamics()
 
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+    def forward(
+        self,
+        obs: torch.Tensor,
+        action: torch.Tensor,
+        done: torch.Tensor,
+        info: InfoDict,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         next_obs = obs
         for _ in range(self.discrete_num):
-            next_obs = self.dynamics.f_xu(obs, 500 * action, self.dt / self.discrete_num)
+            next_obs = self.dynamics.f_xu(
+                obs, 500 * action, self.dt / self.discrete_num
+            )
             obs = next_obs
         reward = self.dynamics.compute_rewards(next_obs, action).reshape(-1)
         # done = torch.full([obs.size()[0]], False, dtype=torch.bool, device=self.device)

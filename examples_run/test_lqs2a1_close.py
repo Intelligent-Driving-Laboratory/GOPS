@@ -13,6 +13,8 @@
 from gops.env.tools.env_dynamic_checker import check_dynamic
 
 
-check_dynamic(env_info={'env_id':'pyth_lq', 'lq_config':'s2a1'},
-              log_policy_dir='./results/INFADP/s2a1',
-              policy_iteration='350000')
+check_dynamic(
+    env_info={"env_id": "pyth_lq", "lq_config": "s2a1"},
+    log_policy_dir="./results/INFADP/s2a1",
+    policy_iteration="350000",
+)

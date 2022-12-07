@@ -60,13 +60,17 @@ class PythBaseEnv(gym.Env):
 
     def sample_initial_state(self):
         if self.initial_distribution == "uniform":
-            state = self.np_random.uniform(low=self.init_space[0], high=self.init_space[1])
+            state = self.np_random.uniform(
+                low=self.init_space[0], high=self.init_space[1]
+            )
         elif self.initial_distribution == "normal":
             mean = (self.init_space[0] + self.init_space[1]) / 2
             std = (self.init_space[1] - self.init_space[0]) / 6
             state = self.np_random.normal(loc=mean, scale=std)
         else:
-            raise ValueError(f"Invalid initial distribution: {self.initial_distribution}!")
+            raise ValueError(
+                f"Invalid initial distribution: {self.initial_distribution}!"
+            )
         return state
 
     def seed(self, seed=None):

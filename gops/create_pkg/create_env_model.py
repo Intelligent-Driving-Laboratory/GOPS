@@ -11,6 +11,7 @@
 
 from gops.env.env_wrapper.wrapping_utils import wrapping_model
 
+
 def create_env_model(**kwargs):
     env_model_name = kwargs["env_id"] + "_model"
     try:

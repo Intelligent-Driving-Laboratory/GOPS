@@ -35,6 +35,7 @@ class ApproxContainer(ApprBase):
 
     Contains one policy and one state value.
     """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -49,13 +50,17 @@ class ApproxContainer(ApprBase):
 
 class PPO(AlgorithmBase):
     """PPO algorithm"""
-    def __init__(self, *,
+
+    def __init__(
+        self,
+        *,
         max_iteration: int,
         num_repeat: int,
         num_mini_batch: int,
         mini_batch_size: int,
         sample_batch_size: int,
-        index=0, **kwargs
+        index=0,
+        **kwargs
     ):
         """PPO algorithm
 
@@ -99,12 +104,19 @@ class PPO(AlgorithmBase):
 
     @property
     def adjustable_parameters(self):
-        return ("gamma", "reward_scale",
-            "clip", "loss_value_clip", "value_clip",
-            "loss_value_norm", "advantage_norm",
-            "loss_coefficient_kl", "loss_coefficient_value",
-            "loss_coefficient_entropy", 
-            "schedule_adam", "schedule_clip", 
+        return (
+            "gamma",
+            "reward_scale",
+            "clip",
+            "loss_value_clip",
+            "value_clip",
+            "loss_value_norm",
+            "advantage_norm",
+            "loss_coefficient_kl",
+            "loss_coefficient_value",
+            "loss_coefficient_entropy",
+            "schedule_adam",
+            "schedule_clip",
         )
 
     def local_update(self, data: DataDict, iteration: int) -> dict:
@@ -114,7 +126,7 @@ class PPO(AlgorithmBase):
         )
         with torch.no_grad():
             data["val"] = self.networks.value(data["obs"])
-            data["logits"] = self.networks.policy(data["obs"]) 
+            data["logits"] = self.networks.policy(data["obs"])
 
         for _ in range(self.num_repeat):
             np.random.shuffle(self.indices)

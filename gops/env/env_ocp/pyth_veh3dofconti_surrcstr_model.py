@@ -15,7 +15,11 @@ from typing import Any, Dict, Optional, Tuple, Union
 import numpy as np
 import torch
 
-from gops.env.env_ocp.pyth_veh3dofconti_model import VehicleDynamicsModel, Veh3dofcontiModel, angle_normalize
+from gops.env.env_ocp.pyth_veh3dofconti_model import (
+    VehicleDynamicsModel,
+    Veh3dofcontiModel,
+    angle_normalize,
+)
 from gops.env.env_ocp.resources.ref_traj_model import MultiRefTrajModel
 from gops.utils.gops_typing import InfoDict
 
@@ -65,10 +69,17 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
         self.veh_length = veh_length
         self.veh_width = veh_width
 
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
-        ego_obs = obs[:, :self.state_dim + self.pre_horizon * 2]
-        next_ego_obs, reward, next_done, next_info = super().forward(ego_obs, action, done, info)
+    def forward(
+        self,
+        obs: torch.Tensor,
+        action: torch.Tensor,
+        done: torch.Tensor,
+        info: InfoDict,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+        ego_obs = obs[:, : self.state_dim + self.pre_horizon * 2]
+        next_ego_obs, reward, next_done, next_info = super().forward(
+            ego_obs, action, done, info
+        )
 
         surr_state = info["surr_state"]
         next_surr_state = self.surr_veh_model.forward(surr_state)
@@ -77,10 +88,12 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
         next_surr_obs = next_surr_obs.reshape((-1, self.surr_veh_num * 4))
         next_obs = torch.cat((next_ego_obs, next_surr_obs), dim=1)
 
-        next_info.update({
-            "surr_state": next_surr_state,
-            "constraint": self.get_constraint(obs, info),
-        })
+        next_info.update(
+            {
+                "surr_state": next_surr_state,
+                "constraint": self.get_constraint(obs, info),
+            }
+        )
         return next_obs, reward, next_done, next_info
 
     def get_constraint(self, obs: torch.Tensor, info: InfoDict) -> torch.Tensor:
@@ -91,24 +104,46 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
         r = np.sqrt(2) / 2 * self.veh_width
 
         x, y, phi = info["state"][:, :3].split(1, dim=1)
-        ego_center = torch.stack((
-            torch.cat((x + d * torch.cos(phi), y + d * torch.sin(phi)), dim=1),
-            torch.cat((x - d * torch.cos(phi), y - d * torch.sin(phi)), dim=1)
-        ), dim=1)
+        ego_center = torch.stack(
+            (
+                torch.cat((x + d * torch.cos(phi), y + d * torch.sin(phi)), dim=1),
+                torch.cat((x - d * torch.cos(phi), y - d * torch.sin(phi)), dim=1),
+            ),
+            dim=1,
+        )
 
         surr_x, surr_y, surr_phi = info["surr_state"][..., :3].split(1, dim=2)
-        surr_center = torch.stack((
-            torch.cat(((surr_x + d * torch.cos(surr_phi)), surr_y + d * torch.sin(surr_phi)), dim=2),
-            torch.cat(((surr_x - d * torch.cos(surr_phi)), surr_y - d * torch.sin(surr_phi)), dim=2)
-        ), dim=2)
+        surr_center = torch.stack(
+            (
+                torch.cat(
+                    (
+                        (surr_x + d * torch.cos(surr_phi)),
+                        surr_y + d * torch.sin(surr_phi),
+                    ),
+                    dim=2,
+                ),
+                torch.cat(
+                    (
+                        (surr_x - d * torch.cos(surr_phi)),
+                        surr_y - d * torch.sin(surr_phi),
+                    ),
+                    dim=2,
+                ),
+            ),
+            dim=2,
+        )
 
         min_dist = np.finfo(np.float32).max * torch.ones_like(x)
         for i in range(2):
             # front and rear circle of ego vehicle
             for j in range(2):
                 # front and rear circle of surrounding vehicles
-                dist = torch.linalg.norm(ego_center[:, i].unsqueeze(1) - surr_center[..., j], dim=2)
-                min_dist = torch.minimum(min_dist, torch.min(dist, dim=1, keepdim=True).values)
+                dist = torch.linalg.norm(
+                    ego_center[:, i].unsqueeze(1) - surr_center[..., j], dim=2
+                )
+                min_dist = torch.minimum(
+                    min_dist, torch.min(dist, dim=1, keepdim=True).values
+                )
 
         return r - min_dist
 

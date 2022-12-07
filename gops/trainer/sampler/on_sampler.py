@@ -54,7 +54,7 @@ class OnSampler:
         self.mb_done = np.zeros(self.sample_batch_size, dtype=np.bool_)
         self.mb_tlim = np.zeros(self.sample_batch_size, dtype=np.bool_)
         self.mb_logp = np.zeros(self.sample_batch_size, dtype=np.float32)
-        self.need_value_flag = not(alg_name == "FHADP" or alg_name == "INFADP")
+        self.need_value_flag = not (alg_name == "FHADP" or alg_name == "INFADP")
         if self.need_value_flag:
             self.gae_lambda = 0.95
             self.mb_val = np.zeros(self.sample_batch_size, dtype=np.float32)
@@ -63,8 +63,12 @@ class OnSampler:
         self.mb_info = {}
         self.info_keys = kwargs["additional_info"].keys()
         for k, v in kwargs["additional_info"].items():
-            self.mb_info[k] = np.zeros((self.sample_batch_size, *v["shape"]), dtype=v["dtype"])
-            self.mb_info["next_" + k] = np.zeros((self.sample_batch_size, *v["shape"]), dtype=v["dtype"])
+            self.mb_info[k] = np.zeros(
+                (self.sample_batch_size, *v["shape"]), dtype=v["dtype"]
+            )
+            self.mb_info["next_" + k] = np.zeros(
+                (self.sample_batch_size, *v["shape"]), dtype=v["dtype"]
+            )
         if self.noise_params is not None:
             if self.action_type == "continu":
                 self.noise_processor = GaussNoise(**self.noise_params)
@@ -150,9 +154,9 @@ class OnSampler:
                 self.obs, self.info = self.env.reset()
             # calculate value target (mb_ret) & gae (mb_adv)
             if (
-                    self.done
-                    or next_info["TimeLimit.truncated"]
-                    or t == self.sample_batch_size - 1
+                self.done
+                or next_info["TimeLimit.truncated"]
+                or t == self.sample_batch_size - 1
             ) and self.need_value_flag:
                 last_obs_expand = torch.from_numpy(
                     np.expand_dims(next_obs, axis=0).astype("float32")
@@ -204,9 +208,9 @@ class OnSampler:
         gae = 0.0
         for i in reversed(range(length)):
             delta = (
-                    rews_slice[i]
-                    + self.gamma * value_preds_slice[i + 1]
-                    - value_preds_slice[i]
+                rews_slice[i]
+                + self.gamma * value_preds_slice[i + 1]
+                - value_preds_slice[i]
             )
             gae = delta + self.gamma * self.gae_lambda * gae
             ret[i] = gae + value_preds_slice[i]

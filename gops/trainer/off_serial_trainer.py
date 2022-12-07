@@ -30,9 +30,9 @@ class OffSerialTrainer:
         self.alg = alg
         self.sampler = sampler
         self.buffer = buffer
-        self.per_flag = (kwargs["buffer_name"] == "prioritized_replay_buffer")
+        self.per_flag = kwargs["buffer_name"] == "prioritized_replay_buffer"
         self.evaluator = evaluator
-        
+
         # create center network
         self.networks = self.alg.networks
         self.sampler.networks = self.networks
@@ -54,7 +54,9 @@ class OffSerialTrainer:
 
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
         # flush tensorboard at the beginning
-        add_scalars({tb_tags["alg_time"]: 0, tb_tags["sampler_time"]: 0}, self.writer, 0)
+        add_scalars(
+            {tb_tags["alg_time"]: 0, tb_tags["sampler_time"]: 0}, self.writer, 0
+        )
         self.writer.flush()
 
         # pre sampling
@@ -85,7 +87,9 @@ class OffSerialTrainer:
                 replay_samples[k] = v.cuda()
 
         if self.per_flag:
-            alg_tb_dict, idx, new_priority = self.alg.local_update(replay_samples, self.iteration)
+            alg_tb_dict, idx, new_priority = self.alg.local_update(
+                replay_samples, self.iteration
+            )
             self.buffer.update_batch(idx, new_priority)
         else:
             alg_tb_dict = self.alg.local_update(replay_samples, self.iteration)
@@ -100,18 +104,22 @@ class OffSerialTrainer:
         if self.iteration % self.eval_interval == 0:
             with ModuleOnDevice(self.networks, "cpu"):
                 total_avg_return = self.evaluator.run_evaluation(self.iteration)
-            
-            if total_avg_return > self.best_tar and self.iteration >= self.max_iteration / 5:
+
+            if (
+                total_avg_return > self.best_tar
+                and self.iteration >= self.max_iteration / 5
+            ):
                 self.best_tar = total_avg_return
-                print('Best return = {}!'.format(str(self.best_tar)))
+                print("Best return = {}!".format(str(self.best_tar)))
 
                 for filename in os.listdir(self.save_folder + "/apprfunc/"):
                     if filename.endswith("_opt.pkl"):
                         os.remove(self.save_folder + "/apprfunc/" + filename)
-                
+
                 torch.save(
                     self.networks.state_dict(),
-                    self.save_folder + "/apprfunc/apprfunc_{}_opt.pkl".format(self.iteration),
+                    self.save_folder
+                    + "/apprfunc/apprfunc_{}_opt.pkl".format(self.iteration),
                 )
 
             self.writer.add_scalar(

@@ -14,10 +14,5 @@ from gops.env.env_matlab.resources.simu_aircraft_v2.aircraft._env import EnvSpec
 
 
 def env_creator(**kwargs):
-    spec = EnvSpec(
-        id="SimuAircraftConti-v0",
-        max_episode_steps=200
-    )
+    spec = EnvSpec(id="SimuAircraftConti-v0", max_episode_steps=200)
     return GymEnv(spec)
-
-

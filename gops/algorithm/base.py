@@ -22,16 +22,20 @@ import torch
 
 class ApprBase(ABC, torch.nn.Module):
     """Base Class of Approximate function container"""
+
     def __init__(self, **kwargs):
         super().__init__()
         # Create a shared feature networks for value function and policy function
         if kwargs["cnn_shared"]:
-            feature_args = get_apprfunc_dict("feature", kwargs["value_func_type"], **kwargs)
+            feature_args = get_apprfunc_dict(
+                "feature", kwargs["value_func_type"], **kwargs
+            )
             kwargs["feature_net"] = create_apprfunc(**feature_args)
 
 
 class AlgorithmBase(metaclass=ABCMeta):
     """Base Class of Algorithm"""
+
     def __init__(self, index, **kwargs):
         self.networks = None
         set_seed(kwargs["trainer"], kwargs["seed"], index + 300)
@@ -53,8 +57,12 @@ class AlgorithmBase(metaclass=ABCMeta):
 
     def get_parameters(self):
         """Get the current hyperparameters of the algorithm"""
-        params = dict(zip(self.adjustable_parameters,
-                          (getattr(self, para) for para in self.adjustable_parameters)))
+        params = dict(
+            zip(
+                self.adjustable_parameters,
+                (getattr(self, para) for para in self.adjustable_parameters),
+            )
+        )
         return params
 
     def state_dict(self):

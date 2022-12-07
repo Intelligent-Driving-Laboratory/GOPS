@@ -44,7 +44,8 @@ def make_features(x, degree):
             a = matmul_crossing(a, b)
         return a
 
-    return torch.cat([n_matmul(x, i) for i in range(1, degree+1)], 1)
+    return torch.cat([n_matmul(x, i) for i in range(1, degree + 1)], 1)
+
 
 # input_dim: dimention of state, degree: degree of polynomial function
 # return dimention of feature
@@ -70,7 +71,7 @@ def create_features(x, degree=2):
         k = 0
         for i in range(0, obs_dim):
             for j in range(i, obs_dim):
-                features[:, k:k + 1] = torch.mul(x[:, i:i + 1], x[:, j:j + 1])
+                features[:, k : k + 1] = torch.mul(x[:, i : i + 1], x[:, j : j + 1])
                 k = k + 1
     else:
         raise ValueError("Not set degree properly")
@@ -89,13 +90,16 @@ class DetermPolicy(nn.Module, Action_Distribution):
     Input: observation.
     Output: action.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
         act_dim = kwargs["act_dim"]
         self.degree = kwargs["degree"]
-        self.add_bias = kwargs['add_bias']
-        self.pi = nn.Linear(get_features_dim(obs_dim, self.degree), act_dim, bias=self.add_bias)
+        self.add_bias = kwargs["add_bias"]
+        self.pi = nn.Linear(
+            get_features_dim(obs_dim, self.degree), act_dim, bias=self.add_bias
+        )
         action_high_limit = kwargs["act_high_lim"]
         action_low_limit = kwargs["act_low_lim"]
         self.register_buffer("act_high_lim", torch.from_numpy(action_high_limit))
@@ -117,13 +121,16 @@ class FiniteHorizonPolicy(nn.Module, Action_Distribution):
     Input: observation, time step.
     Output: action.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
         act_dim = kwargs["act_dim"]
         self.degree = kwargs["degree"]
-        self.add_bias = kwargs['add_bias']
-        self.pi = nn.Linear(get_features_dim(obs_dim, self.degree)+1, act_dim, bias=self.add_bias)
+        self.add_bias = kwargs["add_bias"]
+        self.pi = nn.Linear(
+            get_features_dim(obs_dim, self.degree) + 1, act_dim, bias=self.add_bias
+        )
         action_high_limit = kwargs["act_high_lim"]
         action_low_limit = kwargs["act_low_lim"]
         self.register_buffer("act_high_lim", torch.from_numpy(action_high_limit))
@@ -132,7 +139,9 @@ class FiniteHorizonPolicy(nn.Module, Action_Distribution):
 
     def forward(self, obs, virtual_t=1):
         obs = make_features(obs, self.degree)
-        virtual_t = virtual_t * torch.ones(size=[obs.shape[0], 1], dtype=torch.float32, device=obs.device)
+        virtual_t = virtual_t * torch.ones(
+            size=[obs.shape[0], 1], dtype=torch.float32, device=obs.device
+        )
         expand_obs = torch.cat((obs, virtual_t), 1)
         # obs = make_features(obs, self.degree)
         # action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(
@@ -148,6 +157,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
     Input: observation.
     Output: parameters of action distribution.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -178,6 +188,7 @@ class ActionValue(nn.Module, Action_Distribution):
     Input: observation, action.
     Output: action-value.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -199,6 +210,7 @@ class ActionValueDis(nn.Module, Action_Distribution):
     Input: observation.
     Output: action-value for all action.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -218,6 +230,7 @@ class StochaPolicyDis(ActionValueDis, Action_Distribution):
     Input: observation.
     Output: parameters of action distribution.
     """
+
     pass
 
 
@@ -227,15 +240,20 @@ class StateValue(nn.Module, Action_Distribution):
     Input: observation, action.
     Output: state-value.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
-        self.add_bias = kwargs['add_bias']
-        if kwargs['norm_matrix'] is None:
-            kwargs['norm_matrix'] = [1.0] * obs_dim
-        self.norm_matrix = torch.from_numpy(np.array(kwargs['norm_matrix'], dtype=np.float32))
+        self.add_bias = kwargs["add_bias"]
+        if kwargs["norm_matrix"] is None:
+            kwargs["norm_matrix"] = [1.0] * obs_dim
+        self.norm_matrix = torch.from_numpy(
+            np.array(kwargs["norm_matrix"], dtype=np.float32)
+        )
         self.degree = kwargs["degree"]
-        self.v = nn.Linear(count_features_dim(obs_dim, self.degree), 1, bias= self.add_bias)
+        self.v = nn.Linear(
+            count_features_dim(obs_dim, self.degree), 1, bias=self.add_bias
+        )
         self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):

@@ -66,8 +66,13 @@ class GymCartpolecontiModel(PythBaseModel):
             device=device,
         )
 
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+    def forward(
+        self,
+        obs: torch.Tensor,
+        action: torch.Tensor,
+        done: torch.Tensor,
+        info: InfoDict,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
@@ -95,9 +100,13 @@ class GymCartpolecontiModel(PythBaseModel):
         costheta = torch.cos(theta)
         sintheta = torch.sin(theta)
         force = self.force_mag * action
-        temp = (torch.squeeze(force) + self.polemass_length * theta_dot * theta_dot * sintheta) / self.total_mass
+        temp = (
+            torch.squeeze(force)
+            + self.polemass_length * theta_dot * theta_dot * sintheta
+        ) / self.total_mass
         thetaacc = (self.gravity * sintheta - costheta * temp) / (
-            self.length * (4.0 / 3.0 - self.masspole * costheta * costheta / self.total_mass)
+            self.length
+            * (4.0 / 3.0 - self.masspole * costheta * costheta / self.total_mass)
         )
         xacc = temp - self.polemass_length * thetaacc * costheta / self.total_mass
         x = x + self.dt * x_dot
@@ -107,12 +116,14 @@ class GymCartpolecontiModel(PythBaseModel):
         state_next = torch.stack([x, x_dot, theta, theta_dot]).transpose(1, 0)
         ################################################################################################################
         # Define the ending condation here the format is just like isdone = l(next_state)
-        isdone = (x < -self.x_threshold) | (x > self.x_threshold) | \
-                 (theta < -self.theta_threshold_radians) | (theta > self.theta_threshold_radians)
+        isdone = (
+            (x < -self.x_threshold)
+            | (x > self.x_threshold)
+            | (theta < -self.theta_threshold_radians)
+            | (theta > self.theta_threshold_radians)
+        )
         ############################################################################################
         # Define the reward function here the format is just like: reward = l(state,state_next,reward)
         reward = 1 - isdone.float()
 
         return state_next, reward, isdone, {"state": state_next}
-
-

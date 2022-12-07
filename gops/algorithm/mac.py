@@ -8,7 +8,7 @@
 
 #  Description: Mixed Actor Critic Algorithm (MAC)
 #  Reference: Mu, Y., B. Peng, Z. Gu, S. E. Li, C. Liu, B. Nie, J. Zheng, & B. Zhang. (2020, October).
-#             Mixed Reinforcement Learning for Efficient Policy Optimization in Stochastic Environments. 
+#             Mixed Reinforcement Learning for Efficient Policy Optimization in Stochastic Environments.
 #             In International Conference on Control, Automation and Systems (pp. 1212-1219). ICCAS.
 #  Update: 2021-03-05, Yao Mu: create MAC algorithm
 
@@ -56,7 +56,7 @@ class ApproxContainer(ApprBase):
 
         self.policy_optimizer = Adam(
             self.policy.parameters(), lr=kwargs["policy_learning_rate"]
-        )  
+        )
         self.v_optimizer = Adam(self.v.parameters(), lr=kwargs["value_learning_rate"])
 
         self.net_dict = {"v": self.v, "policy": self.policy}
@@ -66,7 +66,7 @@ class ApproxContainer(ApprBase):
     # create action_distributions
     def create_action_distributions(self, logits):
         return self.policy.get_act_dist(logits)
-    
+
     def update(self, grad_info):
         tau = grad_info["tau"]
         grads_dict = grad_info["grads_dict"]
@@ -90,6 +90,7 @@ class MAC(AlgorithmBase):
 
     Paper:https://ieeexplore.ieee.org/document/9268413
     """
+
     def __init__(self, index=0, **kwargs):
         super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
@@ -108,7 +109,14 @@ class MAC(AlgorithmBase):
 
     @property
     def adjustable_parameters(self):
-        para_tuple = ("gamma", "tau", "pev_step", "pim_step", "forward_step", "reward_scale")
+        para_tuple = (
+            "gamma",
+            "tau",
+            "pev_step",
+            "pim_step",
+            "forward_step",
+            "reward_scale",
+        )
         return para_tuple
 
     def local_update(self, data: dict, iteration: int) -> dict:
@@ -120,7 +128,9 @@ class MAC(AlgorithmBase):
         update_list = self.__compute_gradient(data, iteration)
         update_info = dict()
         for net_name in update_list:
-            update_info[net_name] = [p.grad for p in self.networks.net_dict[net_name].parameters()]
+            update_info[net_name] = [
+                p.grad for p in self.networks.net_dict[net_name].parameters()
+            ]
         return self.tb_info, update_info
 
     def remote_update(self, update_info: dict):
@@ -137,8 +147,8 @@ class MAC(AlgorithmBase):
         with torch.no_grad():
             for net_name in update_list:
                 for p, p_targ in zip(
-                        self.networks.net_dict[net_name].parameters(),
-                        self.networks.target_net_dict[net_name].parameters(),
+                    self.networks.net_dict[net_name].parameters(),
+                    self.networks.target_net_dict[net_name].parameters(),
                 ):
                     p_targ.data.mul_(1 - tau)
                     p_targ.data.add_(tau * p.data)
@@ -157,7 +167,7 @@ class MAC(AlgorithmBase):
         self.delta = self.iterative_bayes_estimator(
             data, zero_prior_mean, diag_variance
         )
-        
+
     def iterative_bayes_estimator(self, data, basic_mu, basic_var):
         N, input_dim = data.shape
         var = torch.diag(torch.var(data, 0))
@@ -226,10 +236,10 @@ class MAC(AlgorithmBase):
                     o = o2
                     a = self.networks.policy(o)
                     o2, r, d = self.dynamic_model_forward(o, a, d)
-                    backup += self.reward_scale * self.gamma ** step * r
+                    backup += self.reward_scale * self.gamma**step * r
 
             backup += (
-                (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
+                (~d) * self.gamma**self.forward_step * self.networks.v_target(o2)
             )
         loss_v = ((v - backup) ** 2).mean()
         return loss_v, torch.mean(v)
@@ -254,12 +264,8 @@ class MAC(AlgorithmBase):
                 o = o2
                 a = self.networks.policy(o)
                 o2, r, d = self.dynamic_model_forward(o, a, d)
-                v_pi += self.reward_scale * self.gamma ** step * r
-        v_pi += (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
+                v_pi += self.reward_scale * self.gamma**step * r
+        v_pi += (~d) * self.gamma**self.forward_step * self.networks.v_target(o2)
         for p in self.networks.v.parameters():
             p.requires_grad = True
         return -v_pi.mean()
-
-
-
-

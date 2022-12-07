@@ -68,6 +68,7 @@ class FiniteHorizonPolicy(nn.Module, Action_Distribution):
     Input: observation, time step.
     Output: action.
     """
+
     def __init__(self, **kwargs):
         raise NotImplementedError
 
@@ -78,6 +79,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
     Input: observation.
     Output: parameters of action distribution.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"][1]
@@ -120,6 +122,7 @@ class ActionValue(nn.Module, Action_Distribution):
     Input: observation, action.
     Output: action-value.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"][1]
@@ -145,6 +148,7 @@ class ActionValueDis(nn.Module, Action_Distribution):
     Input: observation.
     Output: action-value for all action.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"][1]
@@ -169,6 +173,7 @@ class StateValue(nn.Module, Action_Distribution):
     Input: observation, action.
     Output: state-value.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"][1]

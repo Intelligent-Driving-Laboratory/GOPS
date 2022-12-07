@@ -37,6 +37,7 @@ class ShapingRewardData(gym.Wrapper):
         parser.add_argument("--reward_scale", default=0.5)
         parser.add_argument("--reward_shift", default=0)
     """
+
     def __init__(self, env, reward_shift: float = 0.0, reward_scale: float = 1.0):
         super(ShapingRewardData, self).__init__(env)
         self.reward_shift = reward_shift
@@ -63,17 +64,25 @@ class ShapingRewardModel(ModelWrapper):
         parser.add_argument("--reward_shift", default=0)
     """
 
-    def __init__(self,
-                 model: PythBaseModel,
-                 reward_shift: Union[torch.Tensor, float] = 0.0,
-                 reward_scale: Union[torch.Tensor, float] = 1.0
-                 ):
+    def __init__(
+        self,
+        model: PythBaseModel,
+        reward_shift: Union[torch.Tensor, float] = 0.0,
+        reward_scale: Union[torch.Tensor, float] = 1.0,
+    ):
         super(ShapingRewardModel, self).__init__(model)
         self.shift = reward_shift
         self.scale = reward_scale
 
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
-        next_obs, reward, next_done, next_info = self.model.forward(obs, action, done, info)
+    def forward(
+        self,
+        obs: torch.Tensor,
+        action: torch.Tensor,
+        done: torch.Tensor,
+        info: InfoDict,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+        next_obs, reward, next_done, next_info = self.model.forward(
+            obs, action, done, info
+        )
         reward_scaled = (reward + self.shift) * self.scale
         return next_obs, reward_scaled, next_done, next_info

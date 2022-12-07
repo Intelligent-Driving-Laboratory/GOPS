@@ -34,6 +34,7 @@ class ApproxContainer(ApprBase):
 
     Contains one policy and one state value.
     """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # create v network
@@ -55,7 +56,9 @@ class ApproxContainer(ApprBase):
             p.requires_grad = False
 
         # create optimizers
-        self.policy_optimizer = Adam(self.policy.parameters(), lr=kwargs["policy_learning_rate"])
+        self.policy_optimizer = Adam(
+            self.policy.parameters(), lr=kwargs["policy_learning_rate"]
+        )
         self.v_optimizer = Adam(self.v.parameters(), lr=kwargs["value_learning_rate"])
 
         self.net_dict = {"v": self.v, "policy": self.policy}
@@ -80,6 +83,7 @@ class SPIL(AlgorithmBase):
     :param int forward_step: predictive step in virtual horizon.
     :param float reward_scale: param for reward scale.
     """
+
     def __init__(
         self,
         index: int = 0,
@@ -112,7 +116,14 @@ class SPIL(AlgorithmBase):
 
     @property
     def adjustable_parameters(self):
-        para_tuple = ("gamma", "tau", "pev_step", "pim_step", "forward_step", "reward_scale")
+        para_tuple = (
+            "gamma",
+            "tau",
+            "pev_step",
+            "pim_step",
+            "forward_step",
+            "reward_scale",
+        )
         return para_tuple
 
     def local_update(self, data: dict, iteration: int) -> dict:
@@ -124,7 +135,9 @@ class SPIL(AlgorithmBase):
         update_list = self.__compute_gradient(data, iteration)
         update_info = dict()
         for net_name in update_list:
-            update_info[net_name] = [p.grad for p in self.networks.net_dict[net_name].parameters()]
+            update_info[net_name] = [
+                p.grad for p in self.networks.net_dict[net_name].parameters()
+            ]
         return self.tb_info, update_info
 
     def remote_update(self, update_info: dict):
@@ -141,8 +154,8 @@ class SPIL(AlgorithmBase):
         with torch.no_grad():
             for net_name in update_list:
                 for p, p_targ in zip(
-                        self.networks.net_dict[net_name].parameters(),
-                        self.networks.target_net_dict[net_name].parameters(),
+                    self.networks.net_dict[net_name].parameters(),
+                    self.networks.target_net_dict[net_name].parameters(),
                 ):
                     p_targ.data.mul_(1 - tau)
                     p_targ.data.add_(tau * p.data)
@@ -156,12 +169,12 @@ class SPIL(AlgorithmBase):
         loss_v.backward()
         self.tb_info[tb_tags["loss_critic"]] = loss_v.item()
         self.tb_info[tb_tags["critic_avg_value"]] = v.item()
-        update_list.append('v')
+        update_list.append("v")
         self.networks.policy.zero_grad()
         loss_policy = self.__compute_loss_policy(deepcopy(data))
         loss_policy.backward()
         self.tb_info[tb_tags["loss_actor"]] = loss_policy.item()
-        update_list.append('policy')
+        update_list.append("policy")
 
         end_time = time.time()
 
@@ -193,10 +206,10 @@ class SPIL(AlgorithmBase):
                     o = o2
                     a = self.networks.policy(o)
                     o2, r, d, info = self.envmodel.forward(o, a, d, info)
-                    r_sum += self.reward_scale * self.gamma ** step * r
+                    r_sum += self.reward_scale * self.gamma**step * r
                     traj_issafe *= info["constraint"] <= 0
 
-            r_sum += self.gamma ** self.forward_step * self.networks.v_target(o2)
+            r_sum += self.gamma**self.forward_step * self.networks.v_target(o2)
         loss_v = ((v - r_sum) ** 2).mean()
         self.safe_prob = traj_issafe.mean(0).numpy()
         return loss_v, torch.mean(v)
@@ -217,7 +230,7 @@ class SPIL(AlgorithmBase):
             m2 = m1 / (1 + m1) * 0.9
             tau = 0.07
             sig = (1 + tau * m1) / (
-                    1 + m2 * tau * torch.exp(torch.clamp(y / tau, min=-10, max=5))
+                1 + m2 * tau * torch.exp(torch.clamp(y / tau, min=-10, max=5))
             )
             return sig
 
@@ -237,7 +250,7 @@ class SPIL(AlgorithmBase):
                 o2, r, d, info = self.envmodel.forward(o, a, d, info)
                 c = info["constraint"]
                 c = Phi(c)
-                r_sum = r_sum + self.reward_scale * self.gamma ** step * r
+                r_sum = r_sum + self.reward_scale * self.gamma**step * r
                 c_sum = c_sum + c
                 c_mul = c_mul * c
         w_r, w_c = self.__spil_get_weight()

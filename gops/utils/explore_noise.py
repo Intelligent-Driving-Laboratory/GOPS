@@ -15,7 +15,7 @@ import numpy as np
 
 class EpsilonScheduler:
     """
-        Epsilon-greedy scheduler with epsilon schedule.
+    Epsilon-greedy scheduler with epsilon schedule.
     """
 
     def __init__(self, EPS_START=0.9, EPS_END=0.05, EPS_DECAY=2000):

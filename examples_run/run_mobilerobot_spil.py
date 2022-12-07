@@ -2,13 +2,12 @@ from sys_run import PolicyRunner
 import numpy as np
 
 runner = PolicyRunner(
-    log_policy_dir_list=["../../results/SPIL/221203-160948"]*1,
-    trained_policy_iteration_list=['10000'],
+    log_policy_dir_list=["../../results/SPIL/221203-160948"] * 1,
+    trained_policy_iteration_list=["10000"],
     is_init_info=True,
-    init_info={"init_state": [1, -0.1, 0.0, 0.3, 0.0, 0.0, 0.0,0.0,
-                              2.5, -1, np.pi/2+0.1, 0.25, 0]},
+    init_info={"init_state": [1, -0.1, 0.0, 0.3, 0.0, 0.0, 0.0, 0.0, 2.5, -1, np.pi / 2 + 0.1, 0.25, 0]},
     save_render=False,
-    legend_list=['9000'],
+    legend_list=["9000"],
     use_opt=False,
     # plot_range= [0,50],
     constrained_env=True,
@@ -25,7 +24,7 @@ runner = PolicyRunner(
         },
         "use_terminal_cost": False,
         # "terminal_cost": terminal_cost,
-    }
+    },
 )
 
 runner.run()

@@ -89,7 +89,9 @@ class PolicyRunner:
         self.dt = dt
         self.policy_num = len(self.log_policy_dir_list)
         if self.policy_num != len(self.trained_policy_iteration_list):
-            raise RuntimeError("The lenth of policy number is not equal to the number of policy iteration")
+            raise RuntimeError(
+                "The lenth of policy number is not equal to the number of policy iteration"
+            )
         self.obs_noise_type = obs_noise_type
         self.obs_noise_data = obs_noise_data
         self.action_noise_type = action_noise_type
@@ -105,7 +107,7 @@ class PolicyRunner:
 
         self.__load_all_args()
         self.env_id = self.get_n_verify_env_id()
-   
+
         # save path
         path = os.path.join(os.path.dirname(__file__), "..", "..", "figures")
         path = os.path.abspath(path)
@@ -113,12 +115,21 @@ class PolicyRunner:
         algs_name = ""
         for item in self.algorithm_list:
             algs_name = algs_name + item + "-"
-        self.save_path = os.path.join(path, algs_name + self.env_id, datetime.datetime.now().strftime("%y%m%d-%H%M%S"))
+        self.save_path = os.path.join(
+            path,
+            algs_name + self.env_id,
+            datetime.datetime.now().strftime("%y%m%d-%H%M%S"),
+        )
         os.makedirs(self.save_path, exist_ok=True)
 
-    def run_an_episode(self, env: Any, controller: Any, init_info: dict,
-                       is_opt: bool, render: bool = True
-                       ) -> Tuple[dict, dict]:
+    def run_an_episode(
+        self,
+        env: Any,
+        controller: Any,
+        init_info: dict,
+        is_opt: bool,
+        render: bool = True,
+    ) -> Tuple[dict, dict]:
         state_list = []
         action_list = []
         reward_list = []
@@ -129,7 +140,7 @@ class PolicyRunner:
         info_list = [init_info]
         obs, info = env.reset(**init_info)
         state = env.state
-        print('The initial state is:')
+        print("The initial state is:")
         print(self.__convert_format(state))
         # plot tracking
         state_with_ref_error = {}
@@ -177,9 +188,13 @@ class PolicyRunner:
 
                 for i in range(state_num):
                     if info["ref"][i] is not None:
-                        state_with_ref_error["state-{}".format(i)].append(info["state"][i])
+                        state_with_ref_error["state-{}".format(i)].append(
+                            info["state"][i]
+                        )
                         state_with_ref_error["ref-{}".format(i)].append(info["ref"][i])
-                        state_with_ref_error["state-{}-error".format(i)].append(info["ref"][i] - info["state"][i])
+                        state_with_ref_error["state-{}-error".format(i)].append(
+                            info["ref"][i] - info["state"][i]
+                        )
 
         eval_dict = {
             "reward_list": reward_list,
@@ -187,12 +202,14 @@ class PolicyRunner:
             "state_list": state_list,
             "step_list": step_list,
             "obs_list": obs_list,
-            "info_list": info_list
+            "info_list": info_list,
         }
         if self.constrained_env:
-            eval_dict.update({
-                "constrain_list": constrain_list,
-            })
+            eval_dict.update(
+                {
+                    "constrain_list": constrain_list,
+                }
+            )
 
         if self.is_tracking:
             tracking_dict = state_with_ref_error
@@ -220,13 +237,16 @@ class PolicyRunner:
             constrain_dim = self.eval_list[0]["constrain_list"][0].shape[0]
         policy_num = len(self.algorithm_list)
         if self.use_opt:
-            legend = ''
+            legend = ""
             policy_num += 1
-            if self.opt_args['opt_controller_type'] == 'OPT':
-                legend = 'OPT'
-            elif self.opt_args['opt_controller_type'] == 'MPC':
-                legend = 'MPC-' + str(self.opt_args['num_pred_step'])
-                if 'use_terminal_cost' not in self.opt_args.keys() or self.opt_args['use_terminal_cost'] is False:
+            if self.opt_args["opt_controller_type"] == "OPT":
+                legend = "OPT"
+            elif self.opt_args["opt_controller_type"] == "MPC":
+                legend = "MPC-" + str(self.opt_args["num_pred_step"])
+                if (
+                    "use_terminal_cost" not in self.opt_args.keys()
+                    or self.opt_args["use_terminal_cost"] is False
+                ):
                     legend += "(w/o TC)"
                 else:
                     legend += "(w/ TC)"
@@ -258,15 +278,15 @@ class PolicyRunner:
                 start_range = self.plot_range[0]
                 end_range = min(self.plot_range[1], reward_list[i].shape[0])
 
-                reward_list[i] = reward_list[i][start_range: end_range]
-                action_list[i] = action_list[i][start_range: end_range]
-                state_list[i] = state_list[i][start_range: end_range]
-                step_list[i] = step_list[i][start_range: end_range]
+                reward_list[i] = reward_list[i][start_range:end_range]
+                action_list[i] = action_list[i][start_range:end_range]
+                state_list[i] = state_list[i][start_range:end_range]
+                step_list[i] = step_list[i][start_range:end_range]
                 if self.constrained_env:
-                    constrain_list[i] = constrain_list[i][start_range: end_range]
+                    constrain_list[i] = constrain_list[i][start_range:end_range]
                 if self.is_tracking:
                     for key, value in self.tracking_list[i].items():
-                        self.tracking_list[i][key] = value[start_range: end_range]
+                        self.tracking_list[i][key] = value[start_range:end_range]
         else:
             raise NotImplementedError("The setting of plot range is wrong")
 
@@ -285,15 +305,21 @@ class PolicyRunner:
             constrain_array = np.array(constrain_list)
 
         # Plot reward
-        path_reward_fmt = os.path.join(self.save_path, "Reward.{}".format(default_cfg["img_fmt"]))
+        path_reward_fmt = os.path.join(
+            self.save_path, "Reward.{}".format(default_cfg["img_fmt"])
+        )
         fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
 
         # save reward data to csv
         reward_data = pd.DataFrame(data=reward_array)
-        reward_data.to_csv(os.path.join(self.save_path, 'Reward.csv'), encoding='gbk')
+        reward_data.to_csv(os.path.join(self.save_path, "Reward.csv"), encoding="gbk")
 
         for i in range(policy_num):
-            legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
+            legend = (
+                self.legend_list[i]
+                if len(self.legend_list) == policy_num
+                else self.algorithm_list[i]
+            )
             sns.lineplot(x=step_array[i], y=reward_array[i], label="{}".format(legend))
         plt.tick_params(labelsize=default_cfg["tick_size"])
         labels = ax.get_xticklabels() + ax.get_yticklabels()
@@ -306,64 +332,104 @@ class PolicyRunner:
 
         # plot action
         for j in range(action_dim):
-            path_action_fmt = os.path.join(self.save_path, "Action-{}.{}".format(j+1, default_cfg["img_fmt"]))
+            path_action_fmt = os.path.join(
+                self.save_path, "Action-{}.{}".format(j + 1, default_cfg["img_fmt"])
+            )
             fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
 
             # save action data to csv
             action_data = pd.DataFrame(data=action_array[:, :, j])
-            action_data.to_csv(os.path.join(self.save_path, 'Action-{}.csv'.format(j+1)), encoding='gbk')
+            action_data.to_csv(
+                os.path.join(self.save_path, "Action-{}.csv".format(j + 1)),
+                encoding="gbk",
+            )
 
             for i in range(policy_num):
-                legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
-                sns.lineplot(x=step_array[i], y=action_array[i, :, j],
-                             label="{}".format(legend))
+                legend = (
+                    self.legend_list[i]
+                    if len(self.legend_list) == policy_num
+                    else self.algorithm_list[i]
+                )
+                sns.lineplot(
+                    x=step_array[i], y=action_array[i, :, j], label="{}".format(legend)
+                )
             plt.tick_params(labelsize=default_cfg["tick_size"])
             labels = ax.get_xticklabels() + ax.get_yticklabels()
             [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
             plt.xlabel(x_label, default_cfg["label_font"])
-            plt.ylabel("Action-{}".format(j+1), default_cfg["label_font"])
+            plt.ylabel("Action-{}".format(j + 1), default_cfg["label_font"])
             plt.legend(loc="best", prop=default_cfg["legend_font"])
             fig.tight_layout(pad=default_cfg["pad"])
-            plt.savefig(path_action_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+            plt.savefig(
+                path_action_fmt, format=default_cfg["img_fmt"], bbox_inches="tight"
+            )
 
         # plot state
         for j in range(state_dim):
-            path_state_fmt = os.path.join(self.save_path, "State-{}.{}".format(j+1, default_cfg["img_fmt"]))
+            path_state_fmt = os.path.join(
+                self.save_path, "State-{}.{}".format(j + 1, default_cfg["img_fmt"])
+            )
             fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
 
             # save state data to csv
             state_data = pd.DataFrame(data=state_array[:, :, j])
-            state_data.to_csv(os.path.join(self.save_path, 'State-{}.csv'.format(j+1)), encoding='gbk')
+            state_data.to_csv(
+                os.path.join(self.save_path, "State-{}.csv".format(j + 1)),
+                encoding="gbk",
+            )
 
             for i in range(policy_num):
-                legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
-                sns.lineplot(x=step_array[i], y=state_array[i, :, j],
-                             label="{}".format(legend))
+                legend = (
+                    self.legend_list[i]
+                    if len(self.legend_list) == policy_num
+                    else self.algorithm_list[i]
+                )
+                sns.lineplot(
+                    x=step_array[i], y=state_array[i, :, j], label="{}".format(legend)
+                )
             plt.tick_params(labelsize=default_cfg["tick_size"])
             labels = ax.get_xticklabels() + ax.get_yticklabels()
             [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
             plt.xlabel(x_label, default_cfg["label_font"])
-            plt.ylabel("State-{}".format(j+1), default_cfg["label_font"])
+            plt.ylabel("State-{}".format(j + 1), default_cfg["label_font"])
             plt.legend(loc="best", prop=default_cfg["legend_font"])
             fig.tight_layout(pad=default_cfg["pad"])
-            plt.savefig(path_state_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+            plt.savefig(
+                path_state_fmt, format=default_cfg["img_fmt"], bbox_inches="tight"
+            )
 
         # plot tracking
         if self.is_tracking:
             for j in range(self.ref_state_num):
 
                 # plot state and ref
-                path_tracking_state_fmt = os.path.join(self.save_path,
-                                                       "State-{}.{}".format(j + 1, default_cfg["img_fmt"]))
-                fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
+                path_tracking_state_fmt = os.path.join(
+                    self.save_path, "State-{}.{}".format(j + 1, default_cfg["img_fmt"])
+                )
+                fig, ax = plt.subplots(
+                    figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"]
+                )
                 # save tracking state data to csv
                 tracking_state_data = []
                 for i in range(policy_num):
-                    legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
-                    sns.lineplot(x=step_array[i],
-                                 y=state_ref_error_array[i]["state-{}".format(j)], label="{}".format(legend))
-                    tracking_state_data.append(state_ref_error_array[i]["state-{}".format(j)])
-                sns.lineplot(x=step_array[0], y=state_ref_error_array[0]["ref-{}".format(j)], label="ref")
+                    legend = (
+                        self.legend_list[i]
+                        if len(self.legend_list) == policy_num
+                        else self.algorithm_list[i]
+                    )
+                    sns.lineplot(
+                        x=step_array[i],
+                        y=state_ref_error_array[i]["state-{}".format(j)],
+                        label="{}".format(legend),
+                    )
+                    tracking_state_data.append(
+                        state_ref_error_array[i]["state-{}".format(j)]
+                    )
+                sns.lineplot(
+                    x=step_array[0],
+                    y=state_ref_error_array[0]["ref-{}".format(j)],
+                    label="ref",
+                )
                 tracking_state_data.append(state_ref_error_array[0]["ref-{}".format(j)])
                 plt.tick_params(labelsize=default_cfg["tick_size"])
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
@@ -372,72 +438,127 @@ class PolicyRunner:
                 plt.ylabel("State-{}".format(j + 1), default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
-                plt.savefig(path_tracking_state_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+                plt.savefig(
+                    path_tracking_state_fmt,
+                    format=default_cfg["img_fmt"],
+                    bbox_inches="tight",
+                )
 
                 tracking_state_data = pd.DataFrame(data=np.array(tracking_state_data))
-                tracking_state_data.to_csv(os.path.join(self.save_path, 'State-{}.csv'.format(j+1)), encoding='gbk')
+                tracking_state_data.to_csv(
+                    os.path.join(self.save_path, "State-{}.csv".format(j + 1)),
+                    encoding="gbk",
+                )
 
                 # plot state-ref error
-                path_tracking_error_fmt = os.path.join(self.save_path,
-                                                       "Ref - State-{}.{}".format(j+1, default_cfg["img_fmt"]))
-                fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
+                path_tracking_error_fmt = os.path.join(
+                    self.save_path,
+                    "Ref - State-{}.{}".format(j + 1, default_cfg["img_fmt"]),
+                )
+                fig, ax = plt.subplots(
+                    figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"]
+                )
                 # save tracking error data to csv
                 tracking_error_data = []
                 for i in range(policy_num):
-                    legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
-                    sns.lineplot(x=step_array[i],
-                                 y=state_ref_error_array[i]["state-{}-error".format(j)], label="{}".format(legend))
-                    tracking_error_data.append(state_ref_error_array[i]["state-{}-error".format(j)])
+                    legend = (
+                        self.legend_list[i]
+                        if len(self.legend_list) == policy_num
+                        else self.algorithm_list[i]
+                    )
+                    sns.lineplot(
+                        x=step_array[i],
+                        y=state_ref_error_array[i]["state-{}-error".format(j)],
+                        label="{}".format(legend),
+                    )
+                    tracking_error_data.append(
+                        state_ref_error_array[i]["state-{}-error".format(j)]
+                    )
                 plt.tick_params(labelsize=default_cfg["tick_size"])
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
                 plt.xlabel(x_label, default_cfg["label_font"])
-                plt.ylabel("Ref $-$ State-{}".format(j+1), default_cfg["label_font"])
+                plt.ylabel("Ref $-$ State-{}".format(j + 1), default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
-                plt.savefig(path_tracking_error_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+                plt.savefig(
+                    path_tracking_error_fmt,
+                    format=default_cfg["img_fmt"],
+                    bbox_inches="tight",
+                )
 
                 tracking_error_data = pd.DataFrame(data=np.array(tracking_error_data))
-                tracking_error_data.to_csv(os.path.join(self.save_path,
-                                                        'Ref - State-{}.csv'.format(j+1)), encoding='gbk')
+                tracking_error_data.to_csv(
+                    os.path.join(self.save_path, "Ref - State-{}.csv".format(j + 1)),
+                    encoding="gbk",
+                )
 
         # plot constraint value
         if self.constrained_env:
             for j in range(constrain_dim):
-                path_constraint_fmt = os.path.join(self.save_path,
-                                                   "Constrain-{}.{}".format(j+1, default_cfg["img_fmt"]))
-                fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
+                path_constraint_fmt = os.path.join(
+                    self.save_path,
+                    "Constrain-{}.{}".format(j + 1, default_cfg["img_fmt"]),
+                )
+                fig, ax = plt.subplots(
+                    figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"]
+                )
 
                 # save reward data to csv
                 constrain_data = pd.DataFrame(data=constrain_array[:, :, j])
-                constrain_data.to_csv(os.path.join(self.save_path, 'Constrain-{}.csv'.format(j+1)), encoding='gbk')
+                constrain_data.to_csv(
+                    os.path.join(self.save_path, "Constrain-{}.csv".format(j + 1)),
+                    encoding="gbk",
+                )
 
                 for i in range(policy_num):
-                    legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
-                    sns.lineplot(x=step_array[i], y=constrain_array[i, :, j], label="{}".format(legend))
+                    legend = (
+                        self.legend_list[i]
+                        if len(self.legend_list) == policy_num
+                        else self.algorithm_list[i]
+                    )
+                    sns.lineplot(
+                        x=step_array[i],
+                        y=constrain_array[i, :, j],
+                        label="{}".format(legend),
+                    )
                 plt.tick_params(labelsize=default_cfg["tick_size"])
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
                 plt.xlabel(x_label, default_cfg["label_font"])
-                plt.ylabel("Constrain-{}".format(j+1), default_cfg["label_font"])
+                plt.ylabel("Constrain-{}".format(j + 1), default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
-                plt.savefig(path_constraint_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+                plt.savefig(
+                    path_constraint_fmt,
+                    format=default_cfg["img_fmt"],
+                    bbox_inches="tight",
+                )
 
         # plot error with opt
         if self.use_opt:
             # reward error
-            path_reward_error_fmt = os.path.join(self.save_path, "Reward error.{}".format(default_cfg["img_fmt"]))
+            path_reward_error_fmt = os.path.join(
+                self.save_path, "Reward error.{}".format(default_cfg["img_fmt"])
+            )
             fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
 
             # save reward error data to csv
             reward_error_array = reward_array[:-1] - reward_array[-1]
             reward_error_data = pd.DataFrame(data=reward_error_array)
-            reward_error_data.to_csv(os.path.join(self.save_path, 'Reward error.csv'), encoding='gbk')
+            reward_error_data.to_csv(
+                os.path.join(self.save_path, "Reward error.csv"), encoding="gbk"
+            )
 
             for i in range(policy_num - 1):
-                legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
-                sns.lineplot(x=step_array[i], y=reward_error_array[i], label="{}".format(legend))
+                legend = (
+                    self.legend_list[i]
+                    if len(self.legend_list) == policy_num
+                    else self.algorithm_list[i]
+                )
+                sns.lineplot(
+                    x=step_array[i], y=reward_error_array[i], label="{}".format(legend)
+                )
             plt.tick_params(labelsize=default_cfg["tick_size"])
             labels = ax.get_xticklabels() + ax.get_yticklabels()
             [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
@@ -445,107 +566,163 @@ class PolicyRunner:
             plt.ylabel("Reward error", default_cfg["label_font"])
             plt.legend(loc="best", prop=default_cfg["legend_font"])
             fig.tight_layout(pad=default_cfg["pad"])
-            plt.savefig(path_reward_error_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+            plt.savefig(
+                path_reward_error_fmt,
+                format=default_cfg["img_fmt"],
+                bbox_inches="tight",
+            )
 
             # action error
             for j in range(action_dim):
-                path_action_error_fmt = os.path.join(self.save_path,
-                                                     "Action-{} error.{}".format(j+1, default_cfg["img_fmt"]))
-                fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
+                path_action_error_fmt = os.path.join(
+                    self.save_path,
+                    "Action-{} error.{}".format(j + 1, default_cfg["img_fmt"]),
+                )
+                fig, ax = plt.subplots(
+                    figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"]
+                )
 
                 action_error_array = np.zeros_like(action_array[:-1])
 
                 for i in range(policy_num - 1):
                     action_error_array[i] = action_array[i] - action_array[-1]
-                    legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
-                    sns.lineplot(x=step_array[i], y=action_error_array[i, :, j],
-                                 label="{}".format(legend))
+                    legend = (
+                        self.legend_list[i]
+                        if len(self.legend_list) == policy_num
+                        else self.algorithm_list[i]
+                    )
+                    sns.lineplot(
+                        x=step_array[i],
+                        y=action_error_array[i, :, j],
+                        label="{}".format(legend),
+                    )
                 plt.tick_params(labelsize=default_cfg["tick_size"])
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
                 plt.xlabel(x_label, default_cfg["label_font"])
-                plt.ylabel("Action-{} error".format(j+1), default_cfg["label_font"])
+                plt.ylabel("Action-{} error".format(j + 1), default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
-                plt.savefig(path_action_error_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+                plt.savefig(
+                    path_action_error_fmt,
+                    format=default_cfg["img_fmt"],
+                    bbox_inches="tight",
+                )
 
                 # save action error data to csv
                 action_error_data = pd.DataFrame(data=action_error_array[:, :, j])
-                action_error_data.to_csv(os.path.join(self.save_path,
-                                                      'Action-{} error.csv'.format(j+1)), encoding='gbk')
+                action_error_data.to_csv(
+                    os.path.join(self.save_path, "Action-{} error.csv".format(j + 1)),
+                    encoding="gbk",
+                )
 
             # state error
             for j in range(state_dim):
-                path_state_error_fmt = os.path.join(self.save_path,
-                                                    "State-{} error.{}".format(j+1, default_cfg["img_fmt"]))
-                fig, ax = plt.subplots(figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"])
+                path_state_error_fmt = os.path.join(
+                    self.save_path,
+                    "State-{} error.{}".format(j + 1, default_cfg["img_fmt"]),
+                )
+                fig, ax = plt.subplots(
+                    figsize=cm2inch(*fig_size), dpi=default_cfg["dpi"]
+                )
 
                 state_error_array = np.zeros_like(state_array[:-1])
 
                 for i in range(policy_num - 1):
                     state_error_array[i] = state_array[i] - state_array[-1]
-                    legend = self.legend_list[i] if len(self.legend_list) == policy_num else self.algorithm_list[i]
-                    sns.lineplot(x=step_array[i], y=state_error_array[i, :, j],
-                                 label="{}".format(legend))
+                    legend = (
+                        self.legend_list[i]
+                        if len(self.legend_list) == policy_num
+                        else self.algorithm_list[i]
+                    )
+                    sns.lineplot(
+                        x=step_array[i],
+                        y=state_error_array[i, :, j],
+                        label="{}".format(legend),
+                    )
                 plt.tick_params(labelsize=default_cfg["tick_size"])
                 labels = ax.get_xticklabels() + ax.get_yticklabels()
                 [label.set_fontname(default_cfg["tick_label_font"]) for label in labels]
                 plt.xlabel(x_label, default_cfg["label_font"])
-                plt.ylabel("State-{} error".format(j+1), default_cfg["label_font"])
+                plt.ylabel("State-{} error".format(j + 1), default_cfg["label_font"])
                 plt.legend(loc="best", prop=default_cfg["legend_font"])
                 fig.tight_layout(pad=default_cfg["pad"])
-                plt.savefig(path_state_error_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+                plt.savefig(
+                    path_state_error_fmt,
+                    format=default_cfg["img_fmt"],
+                    bbox_inches="tight",
+                )
 
                 # save state data to csv
                 state_error_data = pd.DataFrame(data=state_error_array[:, :, j])
-                state_error_data.to_csv(os.path.join(self.save_path, 'State-{} error.csv'.format(j+1)), encoding='gbk')
+                state_error_data.to_csv(
+                    os.path.join(self.save_path, "State-{} error.csv".format(j + 1)),
+                    encoding="gbk",
+                )
 
             # compute relative error with opt
             error_result = {}
             # action error
             for i in range(policy_num - 1):
-                legend = self.legend_list[i] if len(self.legend_list) == policy_num else "Policy-{}".format(i+1)
+                legend = (
+                    self.legend_list[i]
+                    if len(self.legend_list) == policy_num
+                    else "Policy-{}".format(i + 1)
+                )
                 error_result.update({legend: {}})
                 # action error
                 for j in range(action_dim):
                     action_error = {}
                     error_list = []
                     for q in range(len(action_array[0])):
-                        error = np.abs(action_array[i, q, j] - action_array[-1, q, j]) \
-                                / (np.max(action_array[-1, :, j]) - np.min(action_array[-1, :, j]))
+                        error = np.abs(
+                            action_array[i, q, j] - action_array[-1, q, j]
+                        ) / (
+                            np.max(action_array[-1, :, j])
+                            - np.min(action_array[-1, :, j])
+                        )
                         error_list.append(error)
-                    action_error["Max_error"] = '{:.2f}%'.format(max(error_list)*100)
-                    action_error["Mean_error"] = '{:.2f}%'.format(sum(error_list) / len(error_list)*100)
-                    error_result[legend].update({"Action-{}".format(j + 1): action_error})
+                    action_error["Max_error"] = "{:.2f}%".format(max(error_list) * 100)
+                    action_error["Mean_error"] = "{:.2f}%".format(
+                        sum(error_list) / len(error_list) * 100
+                    )
+                    error_result[legend].update(
+                        {"Action-{}".format(j + 1): action_error}
+                    )
                 # state error
                 for o in range(state_dim):
                     state_error = {}
                     error_list = []
                     for q in range(len(state_array[0])):
-                        error = np.abs(state_array[i, q, o] - state_array[-1, q, o]) \
-                                / (np.max(state_array[-1, :, o]) - np.min(state_array[-1, :, o]))
+                        error = np.abs(state_array[i, q, o] - state_array[-1, q, o]) / (
+                            np.max(state_array[-1, :, o])
+                            - np.min(state_array[-1, :, o])
+                        )
                         error_list.append(error)
-                    state_error["Max_error"] = '{:.2f}%'.format(max(error_list)*100)
-                    state_error["Mean_error"] = '{:.2f}%'.format(sum(error_list) / len(error_list)*100)
+                    state_error["Max_error"] = "{:.2f}%".format(max(error_list) * 100)
+                    state_error["Mean_error"] = "{:.2f}%".format(
+                        sum(error_list) / len(error_list) * 100
+                    )
                     error_result[legend].update({"State-{}".format(o + 1): state_error})
 
-            writer = pd.ExcelWriter(os.path.join(self.save_path, 'Error-result.xlsx'))
+            writer = pd.ExcelWriter(os.path.join(self.save_path, "Error-result.xlsx"))
             for i in range(self.policy_num):
-                legend = self.legend_list[i] if len(self.legend_list) == policy_num else "Policy-{}".format(i + 1)
+                legend = (
+                    self.legend_list[i]
+                    if len(self.legend_list) == policy_num
+                    else "Policy-{}".format(i + 1)
+                )
                 policy_result = pd.DataFrame(data=error_result[legend])
                 policy_result.to_excel(writer, legend)
             writer.save()
             error_result_data = pd.DataFrame(data=error_result)
-            pd.set_option('display.max_columns', None)
-            pd.set_option('display.max_rows', None)
+            pd.set_option("display.max_columns", None)
+            pd.set_option("display.max_rows", None)
             for key, value in error_result_data.items():
                 print("===========================================================")
-                print('Policy {}'.format(key))
+                print("Policy {}".format(key))
                 for key, value in value.items():
                     print(key, value)
-
-
-
 
     @staticmethod
     def __load_args(log_policy_dir: str):
@@ -578,8 +755,9 @@ class PolicyRunner:
             env = create_env(**env_args)
         if self.save_render:
             video_path = os.path.join(self.save_path, "videos")
-            env = wrappers.RecordVideo(env, video_path,
-                                       name_prefix="{}_video".format(self.args["algorithm"]))
+            env = wrappers.RecordVideo(
+                env, video_path, name_prefix="{}_video".format(self.args["algorithm"])
+            )
         self.args["action_high_limit"] = env.action_space.high
         self.args["action_low_limit"] = env.action_space.low
         return env
@@ -593,22 +771,22 @@ class PolicyRunner:
         networks = ApproxContainer(**self.args)
 
         # Load trained policy
-        log_path = log_policy_dir + "/apprfunc/apprfunc_{}.pkl".format(trained_policy_iteration)
+        log_path = log_policy_dir + "/apprfunc/apprfunc_{}.pkl".format(
+            trained_policy_iteration
+        )
         networks.load_state_dict(torch.load(log_path))
         return networks
 
     def __convert_format(self, origin_data_list: list):
         data_list = copy(origin_data_list)
         for i in range(len(origin_data_list)):
-            if isinstance(origin_data_list[i], list) or isinstance(origin_data_list[i], np.ndarray):
+            if isinstance(origin_data_list[i], list) or isinstance(
+                origin_data_list[i], np.ndarray
+            ):
                 data_list[i] = self.__convert_format(origin_data_list[i])
             else:
-                data_list[i] = '{:.2g}'.format(origin_data_list[i])
-        return(data_list)
-
-
-
-
+                data_list[i] = "{:.2g}".format(origin_data_list[i])
+        return data_list
 
     def __run_data(self):
         for i in range(self.policy_num):
@@ -616,64 +794,76 @@ class PolicyRunner:
             trained_policy_iteration = self.trained_policy_iteration_list[i]
 
             self.args = self.args_list[i]
-            print('Using policy {}'.format(i+1))
+            print("Using policy {}".format(i + 1))
             env = self.__load_env()
-            if hasattr(env, 'set_mode'):
-                env.set_mode('test')
-            
-            print('The environment for policy {}'.format(i+1))
-            if hasattr(env, 'train_space') and hasattr(env, 'work_space'):
-                print('The train space is')
+            if hasattr(env, "set_mode"):
+                env.set_mode("test")
+
+            print("The environment for policy {}".format(i + 1))
+            if hasattr(env, "train_space") and hasattr(env, "work_space"):
+                print("The train space is")
                 print(self.__convert_format(env.train_space))
-                print('The work space is')
+                print("The work space is")
                 print(self.__convert_format(env.work_space))
             networks = self.__load_policy(log_policy_dir, trained_policy_iteration)
 
             # Run policy
-            eval_dict, tracking_dict = self.run_an_episode(env, networks, self.init_info, is_opt=False, render=False)
-            print("Successfully run an episode with policy {}".format(i+1))
+            eval_dict, tracking_dict = self.run_an_episode(
+                env, networks, self.init_info, is_opt=False, render=False
+            )
+            print("Successfully run an episode with policy {}".format(i + 1))
             print("===========================================================\n")
             # mp4 to gif
             self.eval_list.append(eval_dict)
             self.tracking_list.append(tracking_dict)
 
         if self.use_opt:
-            self.args = self.args_list[self.policy_num-1]
-            print('Using optimal controller')
+            self.args = self.args_list[self.policy_num - 1]
+            print("Using optimal controller")
             env = self.__load_env(use_opt=True)
-            print('The environment for opt')
-            if hasattr(env, 'set_mode'):
-                env.set_mode('test')
+            print("The environment for opt")
+            if hasattr(env, "set_mode"):
+                env.set_mode("test")
 
-            assert self.opt_args is not None, "Choose to use optimal controller, but the opt_args is None."
+            assert (
+                self.opt_args is not None
+            ), "Choose to use optimal controller, but the opt_args is None."
 
-            if self.opt_args['opt_controller_type'] == 'OPT':
-                assert env.has_optimal_controller, "The environment has no theoretical optimal controller."
+            if self.opt_args["opt_controller_type"] == "OPT":
+                assert (
+                    env.has_optimal_controller
+                ), "The environment has no theoretical optimal controller."
                 opt_controller = env.control_policy
-                legend = 'OPT'
-            
-            elif self.opt_args['opt_controller_type'] == 'MPC':
-                model = create_env_model(**self.args_list[self.policy_num-1])
+                legend = "OPT"
+
+            elif self.opt_args["opt_controller_type"] == "MPC":
+                model = create_env_model(**self.args_list[self.policy_num - 1])
                 opt_args = self.opt_args.copy()
-                opt_args.pop('opt_controller_type')
+                opt_args.pop("opt_controller_type")
                 opt_controller = OptController(
                     model,
-                    **opt_args,                
+                    **opt_args,
                 )
-                legend = 'MPC-' + str(self.opt_args['num_pred_step'])
-                if 'use_terminal_cost' not in self.opt_args.keys() or \
-                    self.opt_args['use_terminal_cost'] == False:
+                legend = "MPC-" + str(self.opt_args["num_pred_step"])
+                if (
+                    "use_terminal_cost" not in self.opt_args.keys()
+                    or self.opt_args["use_terminal_cost"] == False
+                ):
                     legend += "(w/o TC)"
                 else:
                     legend += "(w/ TC)"
 
             else:
-                raise ValueError("The optimal controller type should be either 'OPT' or 'MPC'.")
-            
+                raise ValueError(
+                    "The optimal controller type should be either 'OPT' or 'MPC'."
+                )
+
             self.legend_list.append(legend)
             self.error_dict = {}
 
-            eval_dict_opt, tracking_dict_opt = self.run_an_episode(env, opt_controller, self.init_info, is_opt=True, render=False)
+            eval_dict_opt, tracking_dict_opt = self.run_an_episode(
+                env, opt_controller, self.init_info, is_opt=True, render=False
+            )
             print("Successfully run an episode with optimal controller!")
             print("===========================================================\n")
             self.eval_list.append(eval_dict_opt)
@@ -684,9 +874,13 @@ class PolicyRunner:
         if self.action_noise_type is None:
             return action
         elif self.action_noise_type == "normal":
-            return action + np.random.normal(loc=self.action_noise_data[0], scale=self.action_noise_data[1])
+            return action + np.random.normal(
+                loc=self.action_noise_data[0], scale=self.action_noise_data[1]
+            )
         elif self.action_noise_type == "uniform":
-            return action + np.random.uniform(low=self.action_noise_data[0], high=self.action_noise_data[1])
+            return action + np.random.uniform(
+                low=self.action_noise_data[0], high=self.action_noise_data[1]
+            )
 
     def __save_mp4_as_gif(self):
         if self.save_render:
@@ -699,7 +893,9 @@ class PolicyRunner:
     def get_n_verify_env_id(self):
         env_id = self.env_id_list[0]
         for i, eid in enumerate(self.env_id_list):
-            assert env_id == eid, "policy {} and policy 0 is not trained in the same environment".format(i)
+            assert (
+                env_id == eid
+            ), "policy {} and policy 0 is not trained in the same environment".format(i)
         return env_id
 
     def run(self):

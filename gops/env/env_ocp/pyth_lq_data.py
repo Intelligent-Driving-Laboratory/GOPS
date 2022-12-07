@@ -31,5 +31,5 @@ def env_creator(**kwargs):
     else:
         raise RuntimeError("lq_config invalid")
     lq_configs.check_lq_config(config)
-    
+
     return LqEnv(config, **kwargs)

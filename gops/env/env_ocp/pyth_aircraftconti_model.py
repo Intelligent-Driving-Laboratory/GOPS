@@ -20,43 +20,48 @@ from gops.utils.gops_typing import InfoDict
 
 
 class PythAircraftcontiModel(PythBaseModel):
-    def __init__(self,
-                 device: Union[torch.device, str, None] = None,
-                 **kwargs):
+    def __init__(self, device: Union[torch.device, str, None] = None, **kwargs):
         """
         you need to define parameters here
         """
         # define common parameters here
-        self.is_adversary = kwargs['is_adversary']
-        self.sample_batch_size = kwargs['sample_batch_size']
+        self.is_adversary = kwargs["is_adversary"]
+        self.sample_batch_size = kwargs["sample_batch_size"]
         self.state_dim = 3
         self.action_dim = 1
         self.adversary_dim = 1
         self.dt = 1 / 200  # seconds between state updates
 
         # define your custom parameters here
-        self.A = torch.tensor([[-1.01887, 0.90506, -0.00215],
-                               [0.82225, -1.07741, -0.17555],
-                               [0, 0, -1]], dtype=torch.float32)
-        self.A_attack_ang = torch.tensor([-1.01887, 0.90506, -0.00215], dtype=torch.float32).reshape((3, 1))
-        self.A_rate = torch.tensor([0.82225, -1.07741, -0.17555], dtype=torch.float32).reshape((3, 1))
-        self.A_elevator_ang = torch.tensor([0, 0, -1], dtype=torch.float32).reshape((3, 1))
-        self.B = torch.tensor([0., 0., 1.]).reshape((3, 1))
-        self.D = torch.tensor([1., 0., 0.]).reshape((3, 1))
+        self.A = torch.tensor(
+            [[-1.01887, 0.90506, -0.00215], [0.82225, -1.07741, -0.17555], [0, 0, -1]],
+            dtype=torch.float32,
+        )
+        self.A_attack_ang = torch.tensor(
+            [-1.01887, 0.90506, -0.00215], dtype=torch.float32
+        ).reshape((3, 1))
+        self.A_rate = torch.tensor(
+            [0.82225, -1.07741, -0.17555], dtype=torch.float32
+        ).reshape((3, 1))
+        self.A_elevator_ang = torch.tensor([0, 0, -1], dtype=torch.float32).reshape(
+            (3, 1)
+        )
+        self.B = torch.tensor([0.0, 0.0, 1.0]).reshape((3, 1))
+        self.D = torch.tensor([1.0, 0.0, 0.0]).reshape((3, 1))
 
         # utility information
         self.Q = torch.eye(self.state_dim)
         self.R = torch.eye(self.action_dim)
         self.gamma = 1
-        self.gamma_atte = kwargs['gamma_atte']
+        self.gamma_atte = kwargs["gamma_atte"]
 
         # state & action space
-        self.fixed_initial_state = kwargs['fixed_initial_state']
-        self.initial_state_range = kwargs['initial_state_range']
+        self.fixed_initial_state = kwargs["fixed_initial_state"]
+        self.initial_state_range = kwargs["initial_state_range"]
         self.attack_ang_initial = self.initial_state_range[0]
         self.rate_initial = self.initial_state_range[1]
         self.elevator_ang_initial = self.initial_state_range[2]
-        self.state_threshold = kwargs['state_threshold']
+        self.state_threshold = kwargs["state_threshold"]
         self.attack_ang_threshold = self.state_threshold[0]
         self.rate_threshold = self.state_threshold[1]
         self.elevator_ang_threshold = self.state_threshold[2]
@@ -65,11 +70,29 @@ class PythAircraftcontiModel(PythBaseModel):
         self.max_adv_action = [1.0 / self.gamma_atte]
         self.min_adv_action = [-1.0 / self.gamma_atte]
 
-        self.lb_state = torch.tensor([-self.attack_ang_threshold, -self.rate_threshold, -self.elevator_ang_threshold], dtype=torch.float32)
-        self.hb_state = torch.tensor([self.attack_ang_threshold, self.rate_threshold, self.elevator_ang_threshold], dtype=torch.float32)
+        self.lb_state = torch.tensor(
+            [
+                -self.attack_ang_threshold,
+                -self.rate_threshold,
+                -self.elevator_ang_threshold,
+            ],
+            dtype=torch.float32,
+        )
+        self.hb_state = torch.tensor(
+            [
+                self.attack_ang_threshold,
+                self.rate_threshold,
+                self.elevator_ang_threshold,
+            ],
+            dtype=torch.float32,
+        )
         if self.is_adversary:
-            self.lb_action = torch.tensor(self.min_action + self.min_adv_action, dtype=torch.float32)
-            self.hb_action = torch.tensor(self.max_action + self.max_adv_action, dtype=torch.float32)
+            self.lb_action = torch.tensor(
+                self.min_action + self.min_adv_action, dtype=torch.float32
+            )
+            self.hb_action = torch.tensor(
+                self.max_action + self.max_adv_action, dtype=torch.float32
+            )
         else:
             self.lb_action = torch.tensor(self.min_action, dtype=torch.float32)
             self.hb_action = torch.tensor(self.max_action, dtype=torch.float32)
@@ -79,8 +102,8 @@ class PythAircraftcontiModel(PythBaseModel):
 
         # parallel sample
         self.parallel_state = None
-        self.lower_step = kwargs['lower_step']
-        self.upper_step = kwargs['upper_step']
+        self.lower_step = kwargs["lower_step"]
+        self.upper_step = kwargs["upper_step"]
         self.max_step_per_episode = self.max_step()
         self.step_per_episode = self.initial_step()
 
@@ -96,16 +119,26 @@ class PythAircraftcontiModel(PythBaseModel):
         )
 
     def max_step(self):
-        return torch.from_numpy(np.floor(np.random.uniform(self.lower_step, self.upper_step, [self.sample_batch_size])))
+        return torch.from_numpy(
+            np.floor(
+                np.random.uniform(
+                    self.lower_step, self.upper_step, [self.sample_batch_size]
+                )
+            )
+        )
 
     def initial_step(self):
         return torch.zeros(self.sample_batch_size)
 
     def reset(self):
 
-        attack_ang = np.random.normal(0, self.attack_ang_initial, [self.sample_batch_size, 1])
+        attack_ang = np.random.normal(
+            0, self.attack_ang_initial, [self.sample_batch_size, 1]
+        )
         rate = np.random.normal(0, self.rate_initial, [self.sample_batch_size, 1])
-        elevator_ang = np.random.normal(0, self.elevator_ang_initial, [self.sample_batch_size, 1])
+        elevator_ang = np.random.normal(
+            0, self.elevator_ang_initial, [self.sample_batch_size, 1]
+        )
 
         state = np.concatenate([attack_ang, rate, elevator_ang], axis=1)
 
@@ -117,7 +150,11 @@ class PythAircraftcontiModel(PythBaseModel):
         A_rate = self.A_rate
         A_elevator_ang = self.A_elevator_ang
         state = self.parallel_state
-        attack_ang, rate, elevator_ang = self.parallel_state[:, 0], self.parallel_state[:, 1], self.parallel_state[:, 2]
+        attack_ang, rate, elevator_ang = (
+            self.parallel_state[:, 0],
+            self.parallel_state[:, 1],
+            self.parallel_state[:, 2],
+        )
         # the elevator actuator voltage
         elevator_vol = action[:, 0]
         # wind gusts on angle of attack
@@ -127,25 +164,56 @@ class PythAircraftcontiModel(PythBaseModel):
         deri_rate = torch.mm(state, A_rate).squeeze(-1)
         deri_elevator_ang = torch.mm(state, A_elevator_ang).squeeze(-1) + elevator_vol
 
-        delta_state = torch.stack([deri_attack_ang, deri_rate, deri_elevator_ang], dim=-1)
+        delta_state = torch.stack(
+            [deri_attack_ang, deri_rate, deri_elevator_ang], dim=-1
+        )
         self.parallel_state = self.parallel_state + delta_state * dt
 
-        reward = (self.Q[0][0] * attack_ang ** 2 + self.Q[1][1] * rate ** 2 + self.Q[2][2] * elevator_ang ** 2
-                  + self.R[0][0] * (elevator_vol ** 2).squeeze(-1) - self.gamma_atte ** 2 * (wind_attack_angle ** 2).squeeze(-1))
+        reward = (
+            self.Q[0][0] * attack_ang**2
+            + self.Q[1][1] * rate**2
+            + self.Q[2][2] * elevator_ang**2
+            + self.R[0][0] * (elevator_vol**2).squeeze(-1)
+            - self.gamma_atte**2 * (wind_attack_angle**2).squeeze(-1)
+        )
 
         # define the ending condation here the format is just like isdone = l(next_state)
-        done = (torch.where(abs(self.parallel_state[:, 0]) > self.attack_ang_threshold, self.ones_, self.zeros_).bool()
-                | torch.where(abs(self.parallel_state[:, 1]) > self.rate_threshold, self.ones_, self.zeros_).bool()
-                | torch.where(abs(self.parallel_state[:, 2]) > self.elevator_ang_threshold, self.ones_, self.zeros_).bool())
+        done = (
+            torch.where(
+                abs(self.parallel_state[:, 0]) > self.attack_ang_threshold,
+                self.ones_,
+                self.zeros_,
+            ).bool()
+            | torch.where(
+                abs(self.parallel_state[:, 1]) > self.rate_threshold,
+                self.ones_,
+                self.zeros_,
+            ).bool()
+            | torch.where(
+                abs(self.parallel_state[:, 2]) > self.elevator_ang_threshold,
+                self.ones_,
+                self.zeros_,
+            ).bool()
+        )
 
         self.step_per_episode += 1
-        info = {'TimeLimit.truncated': torch.where(self.step_per_episode > self.max_step_per_episode,
-                                                   self.ones_, self.zeros_).bool()}
+        info = {
+            "TimeLimit.truncated": torch.where(
+                self.step_per_episode > self.max_step_per_episode,
+                self.ones_,
+                self.zeros_,
+            ).bool()
+        }
 
         return self.parallel_state, reward, done, info
 
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+    def forward(
+        self,
+        obs: torch.Tensor,
+        action: torch.Tensor,
+        done: torch.Tensor,
+        info: InfoDict,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
@@ -181,17 +249,24 @@ class PythAircraftcontiModel(PythBaseModel):
         deri_rate = torch.mm(state, A_rate).squeeze(-1)
         deri_elevator_ang = torch.mm(state, A_elevator_ang).squeeze(-1) + elevator_vol
 
-        delta_state = torch.stack([deri_attack_ang, deri_rate, deri_elevator_ang], dim=-1)
+        delta_state = torch.stack(
+            [deri_attack_ang, deri_rate, deri_elevator_ang], dim=-1
+        )
         state_next = state + delta_state * dt
-        cost = (self.Q[0][0] * attack_ang ** 2 + self.Q[1][1] * rate ** 2 + self.Q[2][2] * elevator_ang ** 2
-                + self.R[0][0] * (elevator_vol ** 2).squeeze(-1) - self.gamma_atte ** 2 * (wind_attack_angle ** 2).squeeze(-1))
-        reward = - cost
+        cost = (
+            self.Q[0][0] * attack_ang**2
+            + self.Q[1][1] * rate**2
+            + self.Q[2][2] * elevator_ang**2
+            + self.R[0][0] * (elevator_vol**2).squeeze(-1)
+            - self.gamma_atte**2 * (wind_attack_angle**2).squeeze(-1)
+        )
+        reward = -cost
         ############################################################################################
 
         # define the ending condation here the format is just like isdone = l(next_state)
         isdone = state[:, 0].new_zeros(size=[state.size()[0]], dtype=torch.bool)
 
-        return state_next, reward, isdone, {'delta_state': delta_state}
+        return state_next, reward, isdone, {"delta_state": delta_state}
 
     def f_x(self, state):
         batch_size = state.size()[0]
@@ -220,10 +295,12 @@ class PythAircraftcontiModel(PythBaseModel):
         if batch_size > 1:
             gx = self.g_x(state, batch_size)
             delta_value = delta_value[:, :, np.newaxis]
-            act = - 0.5 * torch.matmul(self.R.inverse(), torch.bmm(gx.transpose(1, 2), delta_value)).squeeze(-1)
+            act = -0.5 * torch.matmul(
+                self.R.inverse(), torch.bmm(gx.transpose(1, 2), delta_value)
+            ).squeeze(-1)
         else:
             gx = self.B
-            act = - 0.5 * torch.mm(self.R.inverse(), torch.mm(gx.t(), delta_value.t()))
+            act = -0.5 * torch.mm(self.R.inverse(), torch.mm(gx.t(), delta_value.t()))
 
         return act.detach()
 
@@ -244,9 +321,13 @@ class PythAircraftcontiModel(PythBaseModel):
         if batch_size > 1:
             kx = self.k_x(state, batch_size)
             delta_value = delta_value[:, :, np.newaxis]
-            adv = 0.5 / (self.gamma_atte ** 2) * torch.bmm(kx.transpose(1, 2), delta_value).squeeze(-1)
+            adv = (
+                0.5
+                / (self.gamma_atte**2)
+                * torch.bmm(kx.transpose(1, 2), delta_value).squeeze(-1)
+            )
         else:
             kx = self.D
-            adv = 0.5 / (self.gamma_atte ** 2) * torch.mm(kx.t(), delta_value.t())
+            adv = 0.5 / (self.gamma_atte**2) * torch.mm(kx.t(), delta_value.t())
 
         return adv.detach()

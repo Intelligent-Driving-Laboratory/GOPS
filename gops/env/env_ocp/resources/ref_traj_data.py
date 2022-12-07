@@ -17,37 +17,37 @@ from typing import Dict, Optional, Sequence
 import numpy as np
 
 DEFAULT_PATH_PARAM = {
-    'sine': {
-        'A': 1.5,
-        'omega': 2 * np.pi / 10,
-        'phi': 0.0,
+    "sine": {
+        "A": 1.5,
+        "omega": 2 * np.pi / 10,
+        "phi": 0.0,
     },
-    'double_lane': {
-        't1': 5.0,
-        't2': 9.0,
-        't3': 14.0,
-        't4': 18.0,
-        'y1': 0.0,
-        'y2': 3.5,
+    "double_lane": {
+        "t1": 5.0,
+        "t2": 9.0,
+        "t3": 14.0,
+        "t4": 18.0,
+        "y1": 0.0,
+        "y2": 3.5,
     },
-    'triangle': {
-        'A': 3.0,
-        'T': 10.0,
+    "triangle": {
+        "A": 3.0,
+        "T": 10.0,
     },
-    'circle': {
-        'r': 100.0,
+    "circle": {
+        "r": 100.0,
     },
 }
 
 DEFAULT_SPEED_PARAM = {
-    'sine': {
-        'A': 1.0,
-        'omega': 2 * np.pi / 10,
-        'phi': 0.0,
-        'b': 5.0,
+    "sine": {
+        "A": 1.0,
+        "omega": 2 * np.pi / 10,
+        "phi": 0.0,
+        "b": 5.0,
     },
-    'constant': {
-        'u': 5.0,
+    "constant": {
+        "u": 5.0,
     },
 }
 
@@ -69,15 +69,15 @@ class MultiRefTrajData:
                 self.speed_param[k].update(v)
 
         ref_speeds = [
-            SineRefSpeedData(**self.speed_param['sine']),
-            ConstantRefSpeedData(**self.speed_param['constant']),
+            SineRefSpeedData(**self.speed_param["sine"]),
+            ConstantRefSpeedData(**self.speed_param["constant"]),
         ]
 
         self.ref_trajs: Sequence[RefTrajData] = [
-            SineRefTrajData(ref_speeds, **self.path_param['sine']),
-            DoubleLaneRefTrajData(ref_speeds, **self.path_param['double_lane']),
-            TriangleRefTrajData(ref_speeds, **self.path_param['triangle']),
-            CircleRefTrajData(ref_speeds, **self.path_param['circle']),
+            SineRefTrajData(ref_speeds, **self.path_param["sine"]),
+            DoubleLaneRefTrajData(ref_speeds, **self.path_param["double_lane"]),
+            TriangleRefTrajData(ref_speeds, **self.path_param["triangle"]),
+            CircleRefTrajData(ref_speeds, **self.path_param["circle"]),
         ]
 
     def compute_x(self, t: float, path_num: int, speed_num: int) -> float:
@@ -125,8 +125,11 @@ class SineRefSpeedData(RefSpeedData):
         return self.A * np.sin(self.omega * t + self.phi) + self.b
 
     def compute_integrate_u(self, t: float) -> float:
-        return -self.A / self.omega * np.cos(self.omega * t + self.phi) + \
-            self.b * t + self.A / self.omega * np.cos(self.phi)
+        return (
+            -self.A / self.omega * np.cos(self.omega * t + self.phi)
+            + self.b * t
+            + self.A / self.omega * np.cos(self.phi)
+        )
 
 
 @dataclass

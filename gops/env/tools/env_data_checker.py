@@ -13,7 +13,12 @@ import logging
 
 import gym
 from gym import spaces
-from gym.utils.env_checker import _check_spaces, _check_box_obs, _check_box_action, _check_returned_values  # noqa:
+from gym.utils.env_checker import (
+    _check_spaces,
+    _check_box_obs,
+    _check_box_action,
+    _check_returned_values,
+)  # noqa:
 import numpy as np
 import importlib
 import gops.create_pkg.create_env as ce
@@ -30,7 +35,9 @@ def _check_all_spaces(env):
     """
     _check_spaces(env)
     if hasattr(env, "adv_action_space"):
-        assert isinstance(env.action_space, spaces.Space), "The adv action space must inherit from gym.spaces"
+        assert isinstance(
+            env.action_space, spaces.Space
+        ), "The adv action space must inherit from gym.spaces"
     else:
         pass
 
@@ -49,10 +56,14 @@ def _check_constraint(env):
     _, _, _, info = env.step(a)
     assert "constraint" in info.keys(), "`constraint` must be a key of info"
     if isinstance(info["constraint"], (tuple, list)):
-        assert len(info["constraint"]) == env.constraint_dim, "wrong constraint dimension"
+        assert (
+            len(info["constraint"]) == env.constraint_dim
+        ), "wrong constraint dimension"
     elif isinstance(info["constraint"], np.ndarray):
         assert len(info["constraint"].shape) == 1, "wrong constraint shape"
-        assert info["constraint"].shape[0] == env.constraint_dim, "wrong constraint dimension"
+        assert (
+            info["constraint"].shape[0] == env.constraint_dim
+        ), "wrong constraint dimension"
     else:
         raise ValueError("the constrint should be a np.ndarray, list or tuple")
     pass
@@ -67,7 +78,9 @@ def check_env_file_structures(env_file_name):
     try:
         for sub in ["env_archive", "env_gym", "env_matlab", "env_ocp"]:
             try:
-                file_obj = importlib.import_module("gops.env." + sub + "." + env_file_name)
+                file_obj = importlib.import_module(
+                    "gops.env." + sub + "." + env_file_name
+                )
                 break
             except:
                 pass
@@ -80,7 +93,9 @@ def check_env_file_structures(env_file_name):
     elif hasattr(file_obj, env_name_camel):
         env_class = getattr(file_obj, env_name_camel)
     else:
-        raise RuntimeError(f"the environment `{env_file_name}` is not implemented properly")
+        raise RuntimeError(
+            f"the environment `{env_file_name}` is not implemented properly"
+        )
     return env_class
 
 
@@ -95,7 +110,11 @@ def check_env0(env: gym.Env):
     observation_space = env.observation_space
     action_space = env.action_space
 
-    obs_spaces = observation_space.spaces if isinstance(observation_space, spaces.Dict) else {"": observation_space}
+    obs_spaces = (
+        observation_space.spaces
+        if isinstance(observation_space, spaces.Dict)
+        else {"": observation_space}
+    )
     for key, space in obs_spaces.items():
         if isinstance(space, spaces.Box):
             _check_box_obs(space, key)
@@ -105,7 +124,9 @@ def check_env0(env: gym.Env):
         _check_box_action(action_space)
     if isinstance(action_space, spaces.Box):
         _check_box_action(action_space)
-    if hasattr(env, "adv_action_space") and isinstance(env.adv_action_space, spaces.Box):
+    if hasattr(env, "adv_action_space") and isinstance(
+        env.adv_action_space, spaces.Box
+    ):
         _check_box_action(env.adv_action_space)
 
     _check_returned_values(env, observation_space, action_space)
