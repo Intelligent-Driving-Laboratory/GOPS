@@ -8,7 +8,7 @@
 #
 #  Description: Linear quadratic control environment model
 #  Update Date: 2022-08-12, Yuhang Zhang: create environment model
-#  Update Date: 2022-10-24, Yvjie Yang: add wrapper
+#  Update Date: 2022-10-24, Yujie Yang: add wrapper
 
 
 from gops.env.env_ocp.resources import lq_configs
