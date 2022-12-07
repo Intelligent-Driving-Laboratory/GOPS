@@ -7,7 +7,7 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: plot module for trained policy
-#  Update Date: 2022-12-05, Congsheng Zhang: create plot module
+#  Update: 2022-12-05, Congsheng Zhang: create plot module
 
 import argparse
 import datetime

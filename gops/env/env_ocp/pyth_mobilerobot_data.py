@@ -4,7 +4,6 @@
 #
 #  Creator: iDLab
 #  Description: Mobile Robot Environment
-#  Paper: https://ieeexplore.ieee.org/document/9785377
 #  Update Date: 2022-06-05, Baiyu Peng: create environment
 
 from typing import Any, Tuple
