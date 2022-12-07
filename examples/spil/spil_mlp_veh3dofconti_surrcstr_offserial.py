@@ -7,7 +7,6 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: example for spil + mobilerobot + veh3dofconti_surrcstr + mlp + off_serial
-#  Paper: https://ieeexplore.ieee.org/document/9785377
 #  Update: 2021-03-05, Baiyu Peng: create example
 
 import argparse
