@@ -68,34 +68,35 @@ class ApproxContainer(ApprBase):
 
 class DDPG(AlgorithmBase):
     """
-        Deep Deterministic Policy Gradient (DDPG) algorithm
+    Deep Deterministic Policy Gradient (DDPG) algorithm
 
-        Paper: https://arxiv.org/pdf/1509.02971.pdf
+    Paper: https://arxiv.org/pdf/1509.02971.pdf
 
-        Args:
-            int     index       : for calculating offset of random seed for subprocess. Default to 0.
-            string  buffer_name : buffer type. Default to 'replay_buffer'.
+    Args:
+        int     index       : for calculating offset of random seed for subprocess. Default to 0.
+        string  buffer_name : buffer type. Default to 'replay_buffer'.
     """
+
     def __init__(self, index=0, buffer_name="replay_buffer", **kwargs):
         super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
         self.gamma = 0.99
         self.tau = 0.005
         self.delay_update = 1
-        self.per_flag = (buffer_name == "prioritized_replay_buffer")
+        self.per_flag = buffer_name == "prioritized_replay_buffer"
 
     @property
     def adjustable_parameters(self):
         return (
-            "gamma", 
-            "tau", 
+            "gamma",
+            "tau",
             "delay_update",
         )
 
     def __compute_gradient(self, data: dict, iteration):
         tb_info = dict()
         start_time = time.perf_counter()
-        
+
         self.networks.q_optimizer.zero_grad()
         if not self.per_flag:
             o, a, r, o2, d = (
@@ -115,11 +116,10 @@ class DDPG(AlgorithmBase):
                 data["obs2"],
                 data["done"],
                 data["idx"],
-                data["weight"]
+                data["weight"],
             )
             loss_q, q, abs_err = self.__compute_loss_q_per(o, a, r, o2, d, idx, weight)
             loss_q.backward()
-
 
         for p in self.networks.q.parameters():
             p.requires_grad = False
@@ -181,11 +181,14 @@ class DDPG(AlgorithmBase):
             self.networks.policy_optimizer.step()
 
         with torch.no_grad():
-            for p, p_targ in zip(self.networks.q.parameters(), self.networks.q_target.parameters()):
+            for p, p_targ in zip(
+                self.networks.q.parameters(), self.networks.q_target.parameters()
+            ):
                 p_targ.data.mul_(polyak)
                 p_targ.data.add_((1 - polyak) * p.data)
             for p, p_targ in zip(
-                    self.networks.policy.parameters(), self.networks.policy_target.parameters()
+                self.networks.policy.parameters(),
+                self.networks.policy_target.parameters(),
             ):
                 p_targ.data.mul_(polyak)
                 p_targ.data.add_((1 - polyak) * p.data)

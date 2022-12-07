@@ -40,54 +40,60 @@ if __name__ == "__main__":
     parser.add_argument("--action_dim", type=int, default=None, help="dim(Action)")
     parser.add_argument("--action_high_limit", type=list, default=None)
     parser.add_argument("--action_low_limit", type=list, default=None)
-    parser.add_argument(
-        "--action_type", type=str, default="continu", help="Options: continu/discret"
-    )
-    parser.add_argument(
-        "--is_render", type=bool, default=False, help="Draw environment animation"
-    )
-    parser.add_argument(
-        "--is_adversary", type=bool, default=False, help="Adversary training"
-    )
+    parser.add_argument("--action_type", type=str, default="continu", help="Options: continu/discret")
+    parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
+    parser.add_argument("--is_adversary", type=bool, default=False, help="Adversary training")
     ################################################
     # 2.1 Parameters of value approximate function
-    parser.add_argument("--value_func_name", type=str, default="ActionValue",
-                        help="Options: StateValue/ActionValue/ActionValueDis/ActionValueDistri")
+    parser.add_argument(
+        "--value_func_name",
+        type=str,
+        default="ActionValue",
+        help="Options: StateValue/ActionValue/ActionValueDis/ActionValueDistri",
+    )
     parser.add_argument("--value_func_type", type=str, default="MLP", help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS")
     value_func_type = parser.parse_known_args()[0].value_func_type
     parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
-    parser.add_argument("--value_hidden_activation", type=str, default="relu",
-                        help="Options: relu/gelu/elu/selu/sigmoid/tanh")
+    parser.add_argument(
+        "--value_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
+    )
     parser.add_argument("--value_output_activation", type=str, default="linear", help="Options: linear/tanh")
 
     # 2.2 Parameters of policy approximate function
-    parser.add_argument("--policy_func_name", type=str, default="DetermPolicy",
-                        help="Options: None/DetermPolicy/FiniteHorizonPolicy/StochaPolicy")
-    parser.add_argument("--policy_func_type", type=str, default="MLP",
-                        help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS")
-    parser.add_argument("--policy_act_distribution", type=str, default="default",
-                        help="Options: default/TanhGaussDistribution/GaussDistribution")
+    parser.add_argument(
+        "--policy_func_name",
+        type=str,
+        default="DetermPolicy",
+        help="Options: None/DetermPolicy/FiniteHorizonPolicy/StochaPolicy",
+    )
+    parser.add_argument(
+        "--policy_func_type", type=str, default="MLP", help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS"
+    )
+    parser.add_argument(
+        "--policy_act_distribution",
+        type=str,
+        default="default",
+        help="Options: default/TanhGaussDistribution/GaussDistribution",
+    )
     policy_func_type = parser.parse_known_args()[0].policy_func_type
     parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
     parser.add_argument(
         "--policy_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
     )
-    parser.add_argument(
-        "--policy_output_activation", type=str, default="linear", help="Options: linear/tanh"
-    )
+    parser.add_argument("--policy_output_activation", type=str, default="linear", help="Options: linear/tanh")
 
     ################################################
     # 3. Parameters for RL algorithm
     parser.add_argument("--value_learning_rate", type=float, default=1e-3)
     parser.add_argument("--policy_learning_rate", type=float, default=5e-4)
     # special parameter
-    parser.add_argument("--pge_method", type=str, default='mixed_weight', help='mixed_weight/mixed_state')
+    parser.add_argument("--pge_method", type=str, default="mixed_weight", help="mixed_weight/mixed_state")
     pge_method = parser.parse_known_args()[0].pge_method
-    if pge_method == 'mixed_weight':
+    if pge_method == "mixed_weight":
         parser.add_argument("--eta", type=float, default=0.3)
         parser.add_argument("--terminal_iter", type=float, default=1e8)  # always use model because model is accurate
     else:
-        assert pge_method == 'mixed_state'
+        assert pge_method == "mixed_state"
         parser.add_argument("--kappa", type=float, default=0.5)
     parser.add_argument("--forward_step", type=int, default=15)
     parser.add_argument("--gamma", type=float, default=0.99)
@@ -98,18 +104,27 @@ if __name__ == "__main__":
 
     ################################################
     # 4. Parameters for trainer
-    parser.add_argument("--trainer", type=str, default="off_serial_trainer",
-                        help="Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer")
+    parser.add_argument(
+        "--trainer",
+        type=str,
+        default="off_serial_trainer",
+        help="Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer",
+    )
     # Maximum iteration number
     parser.add_argument("--max_iteration", type=int, default=5000)
     trainer_type = parser.parse_known_args()[0].trainer
-    parser.add_argument("--ini_network_dir", type=str, default=None,
-                        help="path of saved approximate functions, if specified, the saved approximate functions "
-                             "will be loaded before training")
+    parser.add_argument(
+        "--ini_network_dir",
+        type=str,
+        default=None,
+        help="path of saved approximate functions, if specified, the saved approximate functions "
+        "will be loaded before training",
+    )
 
     # 4.1. Parameters for off_serial_trainer
-    parser.add_argument("--buffer_name", type=str, default="replay_buffer",
-                        help="Options:replay_buffer/prioritized_replay_buffer")
+    parser.add_argument(
+        "--buffer_name", type=str, default="replay_buffer", help="Options:replay_buffer/prioritized_replay_buffer"
+    )
     # Size of collected samples before training
     parser.add_argument("--buffer_warm_size", type=int, default=1000)
     # Max size of reply buffer
@@ -121,8 +136,7 @@ if __name__ == "__main__":
 
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument("--sampler_name", type=str, default="off_sampler",
-                        help="Options: on_sampler/off_sampler")
+    parser.add_argument("--sampler_name", type=str, default="off_sampler", help="Options: on_sampler/off_sampler")
     # Batch size of sampler for buffer store
     parser.add_argument("--sample_batch_size", type=int, default=8)
     # Add noise to action for better exploration

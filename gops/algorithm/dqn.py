@@ -7,9 +7,9 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: Deep Q-Learning Algorithm (DQN)
-#  Reference: Mnih, V., Kavukcuoglu, K., Silver, D., Rusu, A. A., Veness, 
-#             J., Bellemare, M. G., ... & Hassabis, D. (2015). 
-#             Human-level control through deep reinforcement learning. 
+#  Reference: Mnih, V., Kavukcuoglu, K., Silver, D., Rusu, A. A., Veness,
+#             J., Bellemare, M. G., ... & Hassabis, D. (2015).
+#             Human-level control through deep reinforcement learning.
 #             nature, 518(7540), 529-533.
 #  Update: 2021-03-05, Wenxuan Wang: create DQN algorithm
 
@@ -30,6 +30,7 @@ from gops.algorithm.base import AlgorithmBase, ApprBase
 from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.utils.common_utils import get_apprfunc_dict
 from gops.utils.tensorboard_setup import tb_tags
+
 
 class ApproxContainer(ApprBase):
     def __init__(self, **kwargs):
@@ -54,12 +55,14 @@ class ApproxContainer(ApprBase):
         def policy_q(obs):
             with torch.no_grad():
                 return self.q.forward(obs)
+
         self.policy = policy_q
         # set optimizers
         self.q_optimizer = Adam(self.q.parameters(), lr=kwargs["value_learning_rate"])
 
     def create_action_distributions(self, logits):
         return self.q.get_act_dist(logits)
+
 
 class DQN(AlgorithmBase):
     """Deep Q-Network (DQN) algorithm
@@ -72,21 +75,18 @@ class DQN(AlgorithmBase):
         gamma (float, optional): Discount factor. Defaults to 0.995.
         tau (float, optional): Average factor. Defaults to 0.005.
     """
+
     def __init__(self, index=0, **kwargs):
         super().__init__(index, **kwargs)
         self.gamma = 0.99
         self.tau = 0.005
         self.reward_scale = 1
         self.networks = ApproxContainer(**kwargs)
-        self.per_flag = (kwargs["buffer_name"] == "prioritized_replay_buffer")
+        self.per_flag = kwargs["buffer_name"] == "prioritized_replay_buffer"
 
     @property
     def adjustable_parameters(self):
-        return (
-            "gamma", 
-            "tau", 
-            "reward_scale"
-        )
+        return ("gamma", "tau", "reward_scale")
 
     def set_parameters(self, param_dict):
         for key in param_dict:
@@ -121,7 +121,7 @@ class DQN(AlgorithmBase):
                 data["obs2"],
                 data["done"],
                 data["idx"],
-                data["weight"]
+                data["weight"],
             )
             loss_q, abs_err = self.__compute_loss_per(o, a, r, o2, d, idx, weight)
             loss_q.backward()
@@ -164,7 +164,9 @@ class DQN(AlgorithmBase):
         self.networks.q_optimizer.step()
 
         with torch.no_grad():
-            for p, p_targ in zip(self.networks.q.parameters(), self.networks.q_target.parameters()):
+            for p, p_targ in zip(
+                self.networks.q.parameters(), self.networks.q_target.parameters()
+            ):
                 p_targ.data.mul_(polyak)
                 p_targ.data.add_((1 - polyak) * p.data)
 

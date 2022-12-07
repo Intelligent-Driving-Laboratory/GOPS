@@ -39,6 +39,7 @@ class ApproxContainer(ApprBase):
         float value_learning_rate: learning rate of value network.
         float policy_learning_rate: learning rate of policy network.
     """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # policy gradient estimation method
@@ -49,7 +50,7 @@ class ApproxContainer(ApprBase):
         q_args = get_apprfunc_dict("value", value_func_type, **kwargs)
         self.q1 = create_apprfunc(**q_args)
         self.q2 = create_apprfunc(**q_args)
-        if pge_method == 'mixed_state':
+        if pge_method == "mixed_state":
             self.q1_model = deepcopy(self.q1)
             self.q2_model = deepcopy(self.q2)
 
@@ -65,7 +66,7 @@ class ApproxContainer(ApprBase):
         #  create target networks
         self.q1_target = deepcopy(self.q1)
         self.q2_target = deepcopy(self.q2)
-        if pge_method == 'mixed_state':
+        if pge_method == "mixed_state":
             self.q1_model_target = deepcopy(self.q1_model)
             self.q2_model_target = deepcopy(self.q2_model)
         self.policy_target = deepcopy(self.policy)
@@ -77,7 +78,7 @@ class ApproxContainer(ApprBase):
             p.requires_grad = False
         for p in self.policy_target.parameters():
             p.requires_grad = False
-        if pge_method == 'mixed_state':
+        if pge_method == "mixed_state":
             for p in self.q1_model_target.parameters():
                 p.requires_grad = False
             for p in self.q2_model_target.parameters():
@@ -86,9 +87,13 @@ class ApproxContainer(ApprBase):
         # set optimizers
         self.q1_optimizer = Adam(self.q1.parameters(), lr=kwargs["value_learning_rate"])
         self.q2_optimizer = Adam(self.q2.parameters(), lr=kwargs["value_learning_rate"])
-        if pge_method == 'mixed_state':
-            self.q1_model_optimizer = Adam(self.q1_model.parameters(), lr=kwargs["value_learning_rate"])
-            self.q2_model_optimizer = Adam(self.q2_model.parameters(), lr=kwargs["value_learning_rate"])
+        if pge_method == "mixed_state":
+            self.q1_model_optimizer = Adam(
+                self.q1_model.parameters(), lr=kwargs["value_learning_rate"]
+            )
+            self.q2_model_optimizer = Adam(
+                self.q2_model.parameters(), lr=kwargs["value_learning_rate"]
+            )
         self.policy_optimizer = Adam(
             self.policy.parameters(), lr=kwargs["policy_learning_rate"]
         )
@@ -100,21 +105,22 @@ class ApproxContainer(ApprBase):
 
 class MPG(AlgorithmBase):
     """
-        Mixed Policy Gradient (MPG) algorithm
-        Paper: https://arxiv.org/abs/2102.11513.
+    Mixed Policy Gradient (MPG) algorithm
+    Paper: https://arxiv.org/abs/2102.11513.
     """
+
     def __init__(
-            self,
-            index: int = 0,
-            terminal_iter: int = 10000,
-            eta: float = 0.1,
-            kappa: float = 0.5,
-            gamma: float = 0.99,
-            tau: float = 0.1,
-            reward_scale: float = 0.1,
-            delay_update: int = 1,
-            forward_step: int = 10,
-            **kwargs,
+        self,
+        index: int = 0,
+        terminal_iter: int = 10000,
+        eta: float = 0.1,
+        kappa: float = 0.5,
+        gamma: float = 0.99,
+        tau: float = 0.1,
+        reward_scale: float = 0.1,
+        delay_update: int = 1,
+        forward_step: int = 10,
+        **kwargs,
     ) -> None:
         """
         Mixed Policy Gradient (MPG) algorithm.
@@ -128,15 +134,15 @@ class MPG(AlgorithmBase):
             :param: float reward_scale: scale reward.
             :param: int delay_update: delay update of policy network.
             :param: int forward_step: forward step in calculating model return.
-            """
+        """
         super(MPG, self).__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
         self.pge_method = kwargs["pge_method"]
-        if self.pge_method == 'mixed_weight':
+        if self.pge_method == "mixed_weight":
             self.terminal_iter = terminal_iter
             self.eta = eta
-        elif self.pge_method == 'mixed_state':
+        elif self.pge_method == "mixed_state":
             self.kappa = kappa
         self.gamma = gamma
         self.tau = tau
@@ -147,8 +153,14 @@ class MPG(AlgorithmBase):
 
     @property
     def adjustable_parameters(self):
-        para_tuple = ("gamma", "tau", "delay_update", "reward_scale",
-                      "terminal_iter", "eta")
+        para_tuple = (
+            "gamma",
+            "tau",
+            "delay_update",
+            "reward_scale",
+            "terminal_iter",
+            "eta",
+        )
         return para_tuple
 
     # compute loss and gradient
@@ -173,10 +185,10 @@ class MPG(AlgorithmBase):
         # compute q loss and backward
         start_time = time.time()
         q_info, backup_info = self.__compute_loss_q(o, a, r, o2, d)
-        loss_q = q_info['MPG/loss_q-RL iter']
+        loss_q = q_info["MPG/loss_q-RL iter"]
         loss_q.backward()
         if self.pge_method == "mixed_state":
-            loss_q_model = q_info['MPG/loss_q_model-RL iter']
+            loss_q_model = q_info["MPG/loss_q_model-RL iter"]
             loss_q_model.backward()
 
         for p in self.networks.q1.parameters():
@@ -240,19 +252,20 @@ class MPG(AlgorithmBase):
 
         # Bellman backup for Q functions
         backup_data = self.__compute_value_backup(o, a, r, o2, d)
-        backup_info = {'backup_data': backup_data}
+        backup_info = {"backup_data": backup_data}
 
         # MSE loss against Bellman backup for data-driven policy gradient
         loss_q1 = ((q1 - backup_data) ** 2).mean()
         loss_q2 = ((q2 - backup_data) ** 2).mean()
         loss_q = loss_q1 + loss_q2
 
-        q_info = {"MPG/loss_q1-RL iter": loss_q1,
-                  "MPG/loss_q2-RL iter": loss_q2,
-                  "MPG/loss_q-RL iter": loss_q,
-                  "MPG/q1_mean-RL iter": q1.mean(),
-                  "MPG/q2_mean-RL iter": q2.mean(),
-                  }
+        q_info = {
+            "MPG/loss_q1-RL iter": loss_q1,
+            "MPG/loss_q2-RL iter": loss_q2,
+            "MPG/loss_q-RL iter": loss_q,
+            "MPG/q1_mean-RL iter": q1.mean(),
+            "MPG/q2_mean-RL iter": q2.mean(),
+        }
 
         if self.pge_method == "mixed_state":
             q1_model = self.networks.q1_model(o, a)
@@ -260,37 +273,42 @@ class MPG(AlgorithmBase):
 
             # Bellman backup for Q functions
             backup_model = self.__compute_value_backup_model(o, a, r, o2, d)
-            backup_info.update({'backup_model': backup_model})
+            backup_info.update({"backup_model": backup_model})
 
             # MSE loss against Bellman backup for model-driven policy gradient
             loss_q1_model = ((q1_model - backup_model) ** 2).mean()
             loss_q2_model = ((q2_model - backup_model) ** 2).mean()
             loss_q_model = loss_q1_model + loss_q2_model
-            q_info.update({"MPG/loss_q1_model-RL iter": loss_q1_model,
-                           "MPG/loss_q2_model-RL iter": loss_q2_model,
-                           "MPG/loss_q_model-RL iter": loss_q_model,
-                           "MPG/q1_model_mean-RL iter": q1_model.mean(),
-                           "MPG/q2_model_mean-RL iter": q2_model.mean(),
-                           })
+            q_info.update(
+                {
+                    "MPG/loss_q1_model-RL iter": loss_q1_model,
+                    "MPG/loss_q2_model-RL iter": loss_q2_model,
+                    "MPG/loss_q_model-RL iter": loss_q_model,
+                    "MPG/q1_model_mean-RL iter": q1_model.mean(),
+                    "MPG/q2_model_mean-RL iter": q2_model.mean(),
+                }
+            )
         return q_info, backup_info
 
     # weights of data-driven policy gradient and model-driven policy gradient
     def __compute_weights(self, iteration):
         # lambda linearly increases in [1 - eta, 1.5]
-        start = 1. - self.eta
-        slope = 2. * self.eta / self.terminal_iter
+        start = 1.0 - self.eta
+        slope = 2.0 * self.eta / self.terminal_iter
         lam = start + slope * iteration
         lam = np.clip(lam, 0, 1.5)
 
         # rule-based errors
-        if lam < 1.:
+        if lam < 1.0:
             # lambda^0 and lambda^H
             biases = np.array([np.power(lam, i) for i in [0, self.forward_step]])
         else:
             # (2 - lambda)^H and (2 - lambda)^0
             max_index = self.forward_step
-            biases = np.array([np.power(2 - lam, max_index - i) for i in [0, self.forward_step]])
-        bias_inverses = 1. / (biases + 1e-8)
+            biases = np.array(
+                [np.power(2 - lam, max_index - i) for i in [0, self.forward_step]]
+            )
+        bias_inverses = 1.0 / (biases + 1e-8)
 
         # weights of data-driven policy gradient and model-driven policy gradient
         ws = torch.softmax(torch.tensor(bias_inverses), dim=0)
@@ -323,8 +341,10 @@ class MPG(AlgorithmBase):
                 o = o2
                 a = self.networks.policy4rollout(o)
                 o2, r, done, info = self.envmodel.forward(o, a, done, info)
-                model_return += self.reward_scale * self.gamma ** step * r
-        model_return += self.gamma ** self.forward_step * self.networks.q1_target(o2, self.networks.policy(o2))
+                model_return += self.reward_scale * self.gamma**step * r
+        model_return += self.gamma**self.forward_step * self.networks.q1_target(
+            o2, self.networks.policy(o2)
+        )
 
         # mixed policy gradient
         if self.pge_method == "mixed_weight":
@@ -339,19 +359,29 @@ class MPG(AlgorithmBase):
                 "MPG/model_w-RL iter": model_w.item(),
                 "MPG/data_loss-RL iter": data_loss.item(),
                 "MPG/model_loss-RL iter": model_loss.item(),
-                "MPG/loss_pi-RL iter": loss.item()}
+                "MPG/loss_pi-RL iter": loss.item(),
+            }
         else:
-            assert self.pge_method == "mixed_state", "the pge_method entry should be mixed_state or mixed_weight"
-            backup_data, backup_model = backup_info['backup_data'], backup_info['backup_model']
+            assert (
+                self.pge_method == "mixed_state"
+            ), "the pge_method entry should be mixed_state or mixed_weight"
+            backup_data, backup_model = (
+                backup_info["backup_data"],
+                backup_info["backup_model"],
+            )
             with torch.no_grad():
-                model_condi = torch.abs_(backup_data - backup_model) < self.kappa * backup_data.std()
+                model_condi = (
+                    torch.abs_(backup_data - backup_model)
+                    < self.kappa * backup_data.std()
+                )
             loss = torch.where(model_condi, -model_return, -data_return).mean()
             model_ratio = model_condi.float().mean()
             pi_tb_info = {
                 "MPG/model_ratio-RL iter": model_ratio.item(),
                 "MPG/data_loss-RL iter": -data_return.mean().item(),
                 "MPG/model_loss-RL iter": -model_return.mean().item(),
-                "MPG/loss_pi-RL iter": loss.item()}
+                "MPG/loss_pi-RL iter": loss.item(),
+            }
         return loss, pi_tb_info
 
     # update networks and target networks
@@ -369,20 +399,33 @@ class MPG(AlgorithmBase):
             p.requires_grad = False
         with torch.no_grad():
             polyak = 1 - self.tau
-            for p, p_targ in zip(self.networks.q1.parameters(), self.networks.q1_target.parameters()):
+            for p, p_targ in zip(
+                self.networks.q1.parameters(), self.networks.q1_target.parameters()
+            ):
                 p_targ.data.mul_(polyak)
                 p_targ.data.add_((1 - polyak) * p.data)
-            for p, p_targ in zip(self.networks.q2.parameters(), self.networks.q2_target.parameters()):
+            for p, p_targ in zip(
+                self.networks.q2.parameters(), self.networks.q2_target.parameters()
+            ):
                 p_targ.data.mul_(polyak)
                 p_targ.data.add_((1 - polyak) * p.data)
-            for p, p_targ in zip(self.networks.policy.parameters(), self.networks.policy_target.parameters()):
+            for p, p_targ in zip(
+                self.networks.policy.parameters(),
+                self.networks.policy_target.parameters(),
+            ):
                 p_targ.data.mul_(polyak)
                 p_targ.data.add_((1 - polyak) * p.data)
             if self.pge_method == "mixed_state":
-                for p, p_targ in zip(self.networks.q1_model.parameters(), self.networks.q1_model_target.parameters()):
+                for p, p_targ in zip(
+                    self.networks.q1_model.parameters(),
+                    self.networks.q1_model_target.parameters(),
+                ):
                     p_targ.data.mul_(polyak)
                     p_targ.data.add_((1 - polyak) * p.data)
-                for p, p_targ in zip(self.networks.q2_model.parameters(), self.networks.q2_model_target.parameters()):
+                for p, p_targ in zip(
+                    self.networks.q2_model.parameters(),
+                    self.networks.q2_model_target.parameters(),
+                ):
                     p_targ.data.mul_(polyak)
                     p_targ.data.add_((1 - polyak) * p.data)
 
@@ -402,8 +445,15 @@ class MPG(AlgorithmBase):
         }
         if self.pge_method == "mixed_state":
             update_info.update(
-                {"q1_model_grad": [p._grad for p in self.networks.q1_model.parameters()],
-                 "q2_model_grad": [p._grad for p in self.networks.q2_model.parameters()]})
+                {
+                    "q1_model_grad": [
+                        p._grad for p in self.networks.q1_model.parameters()
+                    ],
+                    "q2_model_grad": [
+                        p._grad for p in self.networks.q2_model.parameters()
+                    ],
+                }
+            )
 
         return tb_info, update_info
 

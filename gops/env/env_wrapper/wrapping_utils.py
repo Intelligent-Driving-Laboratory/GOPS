@@ -20,7 +20,10 @@ from gops.env.env_wrapper.convert_type import ConvertType
 from gops.env.env_wrapper.mask_at_done import MaskAtDoneModel
 from gops.env.env_wrapper.noise_observation import NoiseData
 from gops.env.env_wrapper.reset_info import ResetInfoData
-from gops.env.env_wrapper.scale_observation import ScaleObservationData, ScaleObservationModel
+from gops.env.env_wrapper.scale_observation import (
+    ScaleObservationData,
+    ScaleObservationModel,
+)
 from gops.env.env_wrapper.shaping_reward import ShapingRewardData, ShapingRewardModel
 from gops.env.env_wrapper.wrap_state import StateData
 from gops.env.env_wrapper.action_repeat import ActionRepeatData, ActionRepeatModel
@@ -35,17 +38,18 @@ def all_none(a, b):
         return False
 
 
-def wrapping_env(env,
-                 max_episode_steps: Optional[int] = None,
-                 reward_shift: Optional[float] = None,
-                 reward_scale: Optional[float] = None,
-                 obs_shift: Union[np.ndarray, float, list, None] = None,
-                 obs_scale: Union[np.ndarray, float, list, None] = None,
-                 obs_noise_type: Optional[str] = None,
-                 obs_noise_data: Optional[list] = None,
-                 repeat_num: Optional[int] = None,
-                 sum_reward: Optional[bool] = True
-                 ):
+def wrapping_env(
+    env,
+    max_episode_steps: Optional[int] = None,
+    reward_shift: Optional[float] = None,
+    reward_scale: Optional[float] = None,
+    obs_shift: Union[np.ndarray, float, list, None] = None,
+    obs_scale: Union[np.ndarray, float, list, None] = None,
+    obs_noise_type: Optional[str] = None,
+    obs_noise_data: Optional[list] = None,
+    repeat_num: Optional[int] = None,
+    sum_reward: Optional[bool] = True,
+):
     """Automatically wrap data type environment according to input arguments. Wrapper will not be used
         if all corresponding parameters are set to None.
     :param env: original data type environment.
@@ -88,17 +92,18 @@ def wrapping_env(env,
     return env
 
 
-def wrapping_model(model,
-                   reward_shift: Optional[float] = None,
-                   reward_scale: Optional[float] = None,
-                   obs_shift: Union[np.ndarray, float, list, None] = None,
-                   obs_scale: Union[np.ndarray, float, list, None] = None,
-                   clip_obs: bool = True,
-                   clip_action: bool = True,
-                   mask_at_done: bool = True,
-                   repeat_num: int = None,
-                   sum_reward: bool = True
-                   ):
+def wrapping_model(
+    model,
+    reward_shift: Optional[float] = None,
+    reward_scale: Optional[float] = None,
+    obs_shift: Union[np.ndarray, float, list, None] = None,
+    obs_scale: Union[np.ndarray, float, list, None] = None,
+    clip_obs: bool = True,
+    clip_action: bool = True,
+    mask_at_done: bool = True,
+    repeat_num: int = None,
+    sum_reward: bool = True,
+):
     """Automatically wrap model type environment according to input arguments. Wrapper will not be used
         if all corresponding parameters are set to None.
     :param model: original data type environment.

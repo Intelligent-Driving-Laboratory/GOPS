@@ -50,7 +50,9 @@ class OnSerialTrainer:
 
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
         # flush tensorboard at the beginning
-        add_scalars({tb_tags["alg_time"]: 0, tb_tags["sampler_time"]: 0}, self.writer, 0)
+        add_scalars(
+            {tb_tags["alg_time"]: 0, tb_tags["sampler_time"]: 0}, self.writer, 0
+        )
         self.writer.flush()
 
         self.use_gpu = kwargs["use_gpu"]
@@ -59,14 +61,19 @@ class OnSerialTrainer:
 
     def step(self):
         # sampling
-        samples_with_replay_format, sampler_tb_dict = self.sampler.sample_with_replay_format()
+        (
+            samples_with_replay_format,
+            sampler_tb_dict,
+        ) = self.sampler.sample_with_replay_format()
 
         # learning
         if self.use_gpu:
             for k, v in samples_with_replay_format.items():
                 samples_with_replay_format[k] = v.cuda()
         with ModuleOnDevice(self.networks, "cuda" if self.use_gpu else "cpu"):
-            alg_tb_dict = self.alg.local_update(samples_with_replay_format, self.iteration)
+            alg_tb_dict = self.alg.local_update(
+                samples_with_replay_format, self.iteration
+            )
 
         # log
         if self.iteration % self.log_save_interval == 0:
@@ -78,17 +85,21 @@ class OnSerialTrainer:
         if self.iteration % self.eval_interval == 0:
             total_avg_return = self.evaluator.run_evaluation(self.iteration)
 
-            if total_avg_return > self.best_tar and self.iteration >= self.max_iteration / 5:
+            if (
+                total_avg_return > self.best_tar
+                and self.iteration >= self.max_iteration / 5
+            ):
                 self.best_tar = total_avg_return
-                print('Best return = {}!'.format(str(self.best_tar)))
+                print("Best return = {}!".format(str(self.best_tar)))
 
                 for filename in os.listdir(self.save_folder + "/apprfunc/"):
                     if filename.endswith("_opt.pkl"):
                         os.remove(self.save_folder + "/apprfunc/" + filename)
-                
+
                 torch.save(
                     self.networks.state_dict(),
-                    self.save_folder + "/apprfunc/apprfunc_{}_opt.pkl".format(self.iteration),
+                    self.save_folder
+                    + "/apprfunc/apprfunc_{}_opt.pkl".format(self.iteration),
                 )
 
             self.writer.add_scalar(

@@ -39,9 +39,13 @@ class NoiseAction(gym.Wrapper):
         if self.noise_type is None:
             return action
         elif self.noise_type == "normal":
-            return action + self.np_random.normal(loc=self.noise_data[0], scale=self.noise_data[1])
+            return action + self.np_random.normal(
+                loc=self.noise_data[0], scale=self.noise_data[1]
+            )
         elif self.noise_type == "uniform":
-            return action + self.np_random.uniform(low=self.noise_data[0], high=self.noise_data[1])
+            return action + self.np_random.uniform(
+                low=self.noise_data[0], high=self.noise_data[1]
+            )
 
     def step(self, action: ActType) -> Tuple[ObsType, float, bool, dict]:
         action_noised = self.noise_action(action)
@@ -50,7 +54,7 @@ class NoiseAction(gym.Wrapper):
 
     def seed(self, seed: Optional[int] = None) -> int:
         np_random, _ = seeding.np_random(seed)
-        noise_seed = int(np_random.randint(2 ** 31))
+        noise_seed = int(np_random.randint(2**31))
         self.np_random, noise_seed = seeding.np_random(noise_seed)
         seeds = self.env.seed(seed)
         return seeds + [noise_seed]

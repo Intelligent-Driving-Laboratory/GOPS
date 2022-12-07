@@ -42,7 +42,9 @@ class PythMobilerobotModel(PythBaseModel):
             + [-30, -30, -2 * np.pi, -1, -np.pi / 2] * self.n_obstacle
         )
         hb_state = (
-            [60, 30, 2 * np.pi, 1, np.pi / 2] + [30, np.pi, 2] + [30, 30, 2 * np.pi, 1, np.pi / 2] * self.n_obstacle
+            [60, 30, 2 * np.pi, 1, np.pi / 2]
+            + [30, np.pi, 2]
+            + [30, 30, 2 * np.pi, 1, np.pi / 2] * self.n_obstacle
         )
         lb_action = [-0.4, -np.pi / 3]
         hb_action = [0.4, np.pi / 3]
@@ -58,8 +60,13 @@ class PythMobilerobotModel(PythBaseModel):
             device=device,
         )
 
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+    def forward(
+        self,
+        obs: torch.Tensor,
+        action: torch.Tensor,
+        done: torch.Tensor,
+        info: InfoDict,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         state = obs
         #  define your forward function here: the format is just like: state_next = f(state,action)
         veh2vehdist = torch.zeros(state.shape[0], self.n_obstacle)
@@ -78,8 +85,11 @@ class PythMobilerobotModel(PythBaseModel):
                 )
                 state_next = torch.cat((state_next, obs_state), 1)
 
-                safe_dis = self.robot.robot_params["radius"] + self.obses[i - 1].robot_params["radius"] \
-                           + self.safe_margin  # 0.35
+                safe_dis = (
+                    self.robot.robot_params["radius"]
+                    + self.obses[i - 1].robot_params["radius"]
+                    + self.safe_margin
+                )  # 0.35
                 veh2vehdist[:, i - 1] = safe_dis - (
                     torch.sqrt(
                         torch.square(state_next[:, 3 + i * 5] - state_next[:, 0])
@@ -89,7 +99,9 @@ class PythMobilerobotModel(PythBaseModel):
 
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
         r_tracking = (
-            -3.2 * torch.abs(tracking_error[:, 0]) - 10 * torch.abs(tracking_error[:, 1]) - 1.6 * torch.abs(tracking_error[:, 2])
+            -3.2 * torch.abs(tracking_error[:, 0])
+            - 10 * torch.abs(tracking_error[:, 1])
+            - 1.6 * torch.abs(tracking_error[:, 2])
         )
         r_action = -0 * torch.abs(action[:, 0]) - 0 * torch.abs(action[:, 1])
         reward = r_tracking + r_action
@@ -109,6 +121,8 @@ class PythMobilerobotModel(PythBaseModel):
             crush = veh2vehdist[:, i] > self.safe_margin
             done = torch.logical_or(done, crush)
         return done
+
+
 class Robot:
     def __init__(self):
         self.robot_params = dict(
@@ -121,7 +135,9 @@ class Robot:
         )
         self.path = ReferencePath()
 
-    def f_xu(self, states: torch.Tensor, actions: torch.Tensor, T: float, type: str) -> torch.Tensor:
+    def f_xu(
+        self, states: torch.Tensor, actions: torch.Tensor, T: float, type: str
+    ) -> torch.Tensor:
         v_delta_max = self.robot_params["v_delta_max"]
         v_max = self.robot_params["v_max"]
         w_max = self.robot_params["w_max"]
@@ -163,10 +179,9 @@ class Robot:
 
         return torch.stack(next_state, 1)
 
-    def tracking_error(self, x:torch.Tensor) -> torch.Tensor:
+    def tracking_error(self, x: torch.Tensor) -> torch.Tensor:
         error_position = x[:, 1] - self.path.compute_path_y(x[:, 0])
         error_head = x[:, 2] - self.path.compute_path_phi(x[:, 0])
-
 
         error_v = x[:, 3] - self.robot_params["v_desired"]
         tracking = torch.cat(
@@ -185,9 +200,9 @@ class ReferencePath(object):
         pass
 
     def compute_path_y(self, x: torch.Tensor) -> torch.Tensor:
-        y = 0*torch.sin(1/3 * x)
+        y = 0 * torch.sin(1 / 3 * x)
         return y
 
     def compute_path_phi(self, x: torch.Tensor) -> torch.Tensor:
-        deriv = 0 * torch.cos(1/3 * x)
+        deriv = 0 * torch.cos(1 / 3 * x)
         return torch.arctan(deriv)

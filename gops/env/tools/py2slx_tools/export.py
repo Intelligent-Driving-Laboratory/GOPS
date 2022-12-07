@@ -20,7 +20,9 @@ def check_jit_compatibility(model: nn.Module, example_obs: torch.Tensor):
         try:
             torch.jit.trace(inference_helper, example_obs)
         except Exception as e:
-            raise RuntimeError("The model cannot be compiled into a trace module.") from e
+            raise RuntimeError(
+                "The model cannot be compiled into a trace module."
+            ) from e
 
 
 def export_model(model: nn.Module, example_obs: torch.Tensor, path: str):
@@ -43,9 +45,13 @@ class _InferenceHelper(nn.Module):
         super().__init__()
 
         from gops.apprfunc.mlp import Action_Distribution
-        assert isinstance(model, nn.Module) and isinstance(model, Action_Distribution), \
-            "The model must inherit from nn.Module and Action_Distribution. " \
+
+        assert isinstance(model, nn.Module) and isinstance(
+            model, Action_Distribution
+        ), (
+            "The model must inherit from nn.Module and Action_Distribution. "
             f"Got {model.__class__.__mro__}"
+        )
         self.model = model
 
     def forward(self, obs: torch.Tensor):
@@ -54,4 +60,3 @@ class _InferenceHelper(nn.Module):
         act_dist = self.model.get_act_dist(logits)
         mode = act_dist.mode()
         return mode.squeeze(0)
-

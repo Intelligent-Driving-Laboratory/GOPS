@@ -54,12 +54,13 @@ class FHADP(AlgorithmBase):
     :param int forward_step: envmodel forward step.
     :param float gamma: discount factor.
     """
+
     def __init__(self, index=0, **kwargs):
         super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
         self.forward_step = kwargs["pre_horizon"]
-        self.gamma = 1.
+        self.gamma = 1.0
         self.tb_info = dict()
 
     @property
@@ -80,7 +81,7 @@ class FHADP(AlgorithmBase):
         return self.tb_info, update_info
 
     def remote_update(self, update_info: dict):
-        for p, grad in zip(self.networks.policy.parameters(), update_info['grad']):
+        for p, grad in zip(self.networks.policy.parameters(), update_info["grad"]):
             p.grad = grad
         self.networks.policy_optimizer.step()
 
@@ -107,18 +108,18 @@ class FHADP(AlgorithmBase):
             data["done"],
         )
         info_init = data
-        v_pi =0
+        v_pi = 0
 
         for step in range(self.forward_step):
             if step == 0:
-                a = self.networks.policy(o,step+1)
+                a = self.networks.policy(o, step + 1)
                 o2, r, d, info = self.envmodel.forward(o, a, d, info_init)
-                v_pi =  r
+                v_pi = r
             else:
                 o = o2
-                a = self.networks.policy(o,step+1)
+                a = self.networks.policy(o, step + 1)
                 o2, r, d, info = self.envmodel.forward(o, a, d, info)
-                v_pi += r*(self.gamma**step)
+                v_pi += r * (self.gamma**step)
 
         return -(v_pi).mean()
 

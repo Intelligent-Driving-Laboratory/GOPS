@@ -21,12 +21,19 @@ from gops.utils.gops_typing import InfoDict
 
 class ClipActionModel(ModelWrapper):
     """
-        Model type environment wrapper that clips action to action space.
+    Model type environment wrapper that clips action to action space.
     """
 
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
-        action_clip = action.clip(self.model.action_lower_bound, self.model.action_upper_bound)
+    def forward(
+        self,
+        obs: torch.Tensor,
+        action: torch.Tensor,
+        done: torch.Tensor,
+        info: InfoDict,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+        action_clip = action.clip(
+            self.model.action_lower_bound, self.model.action_upper_bound
+        )
         if not torch.equal(action_clip, action):
             warnings.warn("Action out of space!")
 

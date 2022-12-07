@@ -121,20 +121,20 @@ def get_apprfunc_dict(key: str, type=None, **kwargs):
 
 def change_type(obj):
     if isinstance(
-            obj,
-            (
-                    np.int_,
-                    np.intc,
-                    np.intp,
-                    np.int8,
-                    np.int16,
-                    np.int32,
-                    np.int64,
-                    np.uint8,
-                    np.uint16,
-                    np.uint32,
-                    np.uint64,
-            ),
+        obj,
+        (
+            np.int_,
+            np.intc,
+            np.intp,
+            np.int8,
+            np.int16,
+            np.int32,
+            np.int64,
+            np.uint8,
+            np.uint16,
+            np.uint32,
+            np.uint64,
+        ),
     ):
         return int(obj)
     elif isinstance(obj, type):
@@ -224,19 +224,17 @@ def set_seed(trainer_name, seed, offset, env=None):
 class FreezeParameters:
     def __init__(self, modules):
         """
-      Context manager to locally freeze gradients.
-      In some cases with can speed up computation because gradients aren't calculated for these listed modules.
-      example:
-      ```
-      with FreezeParameters([module]):
-          output_tensor = module(input_tensor)
-      ```
-      :param modules: iterable of modules. used to call .parameters() to freeze gradients.
-      """
+        Context manager to locally freeze gradients.
+        In some cases with can speed up computation because gradients aren't calculated for these listed modules.
+        example:
+        ```
+        with FreezeParameters([module]):
+            output_tensor = module(input_tensor)
+        ```
+        :param modules: iterable of modules. used to call .parameters() to freeze gradients.
+        """
         self.modules = modules
-        self.param_states = [
-            p.requires_grad for p in get_parameters(self.modules)
-        ]
+        self.param_states = [p.requires_grad for p in get_parameters(self.modules)]
 
     def __enter__(self):
         for param in get_parameters(self.modules):

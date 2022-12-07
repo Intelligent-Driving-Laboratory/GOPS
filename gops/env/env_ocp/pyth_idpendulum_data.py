@@ -20,7 +20,7 @@ from gops.env.env_ocp.pyth_base_data import PythBaseEnv
 from gops.env.env_ocp.pyth_idpendulum_model import Dynamics
 
 gym.logger.setLevel(gym.logger.ERROR)
-plt.rcParams['toolbar'] = 'None'
+plt.rcParams["toolbar"] = "None"
 
 
 class PythInverteddoublependulum(PythBaseEnv):
@@ -35,7 +35,9 @@ class PythInverteddoublependulum(PythBaseEnv):
             init_high = np.array([5, 0.1, 0.1, 0.3, 0.3, 0.3], dtype=np.float32)
             init_low = -init_high
             work_space = np.stack((init_low, init_high))
-        super(PythInverteddoublependulum, self).__init__(work_space=work_space, **kwargs)
+        super(PythInverteddoublependulum, self).__init__(
+            work_space=work_space, **kwargs
+        )
 
         self.is_adversary = kwargs.get("is_adversary", False)
         self.is_constraint = kwargs.get("is_constraint", False)
@@ -49,14 +51,16 @@ class PythInverteddoublependulum(PythBaseEnv):
         # define observation space here
         hb_observation = [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]
         self.observation_space = spaces.Box(
-            low=-np.array(hb_observation, dtype=np.float32), high=np.array(hb_observation, dtype=np.float32)
+            low=-np.array(hb_observation, dtype=np.float32),
+            high=np.array(hb_observation, dtype=np.float32),
         )
 
         # define action space here
         lb_action = [-1.0]
         hb_action = [1.0]
         self.action_space = spaces.Box(
-            low=np.array(lb_action, dtype=np.float32), high=np.array(hb_action, dtype=np.float32)
+            low=np.array(lb_action, dtype=np.float32),
+            high=np.array(hb_action, dtype=np.float32),
         )
 
         self.seed()
@@ -69,7 +73,9 @@ class PythInverteddoublependulum(PythBaseEnv):
         act_batch = torch.as_tensor(action, dtype=torch.float32).reshape(1, -1)
         next_obs_batch = obs_batch
         for _ in range(self.discrete_num):
-            next_obs_batch = self.dynamics.f_xu(obs_batch, 500 * act_batch, self.dt / self.discrete_num)
+            next_obs_batch = self.dynamics.f_xu(
+                obs_batch, 500 * act_batch, self.dt / self.discrete_num
+            )
             obs_batch = next_obs_batch
         reward = self.dynamics.compute_rewards(next_obs_batch, act_batch)
         done = self.dynamics.get_done(next_obs_batch)
@@ -132,7 +138,9 @@ class PythInverteddoublependulum(PythBaseEnv):
             plt.show()
             fig.canvas.draw()
             image_from_plot = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-            image_from_plot = image_from_plot.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+            image_from_plot = image_from_plot.reshape(
+                fig.canvas.get_width_height()[::-1] + (3,)
+            )
             plt.pause(0.01)
             return image_from_plot
         elif mode == "human":

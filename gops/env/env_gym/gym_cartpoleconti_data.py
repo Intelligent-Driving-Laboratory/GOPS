@@ -48,14 +48,23 @@ class _GymCartpoleconti(gym.Env):
         # Angle limit set to 2 * theta_threshold_radians so failing observation
         # Is still within bounds
         high = np.array(
-            [self.x_threshold * 2, np.finfo(np.float32).max, self.theta_threshold_radians * 2, np.finfo(np.float32).max]
+            [
+                self.x_threshold * 2,
+                np.finfo(np.float32).max,
+                self.theta_threshold_radians * 2,
+                np.finfo(np.float32).max,
+            ]
         )
 
-        self.action_space = spaces.Box(low=self.min_action, high=self.max_action, shape=(1,))
+        self.action_space = spaces.Box(
+            low=self.min_action, high=self.max_action, shape=(1,)
+        )
 
         self.observation_space = spaces.Box(-high, high)
 
-        self.adv_action_space = spaces.Box(low=self.min_adv_action, high=self.max_adv_action, shape=(1,))
+        self.adv_action_space = spaces.Box(
+            low=self.min_adv_action, high=self.max_adv_action, shape=(1,)
+        )
 
         self.seed()
         self.viewer = None
@@ -64,9 +73,7 @@ class _GymCartpoleconti(gym.Env):
 
     @property
     def additional_info(self):
-        return {
-            "state": {"shape": self.observation_space.shape, "dtype": np.float32}
-        }
+        return {"state": {"shape": self.observation_space.shape, "dtype": np.float32}}
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -77,9 +84,12 @@ class _GymCartpoleconti(gym.Env):
         x, x_dot, theta, theta_dot = self.state
         costheta = math.cos(theta)
         sintheta = math.sin(theta)
-        temp = (force + self.polemass_length * theta_dot * theta_dot * sintheta) / self.total_mass
+        temp = (
+            force + self.polemass_length * theta_dot * theta_dot * sintheta
+        ) / self.total_mass
         thetaacc = (self.gravity * sintheta - costheta * temp) / (
-            self.length * (4.0 / 3.0 - self.masspole * costheta * costheta / self.total_mass)
+            self.length
+            * (4.0 / 3.0 - self.masspole * costheta * costheta / self.total_mass)
         )
 
         xacc = temp - self.polemass_length * thetaacc * costheta / self.total_mass
@@ -131,7 +141,9 @@ class _GymCartpoleconti(gym.Env):
             self.seed(seed)
         self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
-        return np.array(self.state, dtype=np.float32), {"state": self.state.astype(np.float32)}
+        return np.array(self.state, dtype=np.float32), {
+            "state": self.state.astype(np.float32)
+        }
 
     def render(self, mode="human"):
         screen_width = 600
@@ -156,7 +168,12 @@ class _GymCartpoleconti(gym.Env):
             self.carttrans = rendering.Transform()
             cart.add_attr(self.carttrans)
             self.viewer.add_geom(cart)
-            l, r, t, b = -polewidth / 2, polewidth / 2, polelen - polewidth / 2, -polewidth / 2
+            l, r, t, b = (
+                -polewidth / 2,
+                polewidth / 2,
+                polelen - polewidth / 2,
+                -polewidth / 2,
+            )
             pole = rendering.FilledPolygon([(l, b), (l, t), (r, t), (r, b)])
             pole.set_color(0.8, 0.6, 0.4)
             self.poletrans = rendering.Transform(translation=(0, axleoffset))

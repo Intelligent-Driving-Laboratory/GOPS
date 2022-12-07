@@ -7,9 +7,9 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: Soft Actor-Critic (SAC) algorithm
-#  Reference: Haarnoja, T., Zhou, A., Abbeel, P., & Levine, S. (2018, July). 
-#             Soft actor-critic: Off-policy maximum entropy deep reinforcement 
-#             learning with a stochastic actor. In International conference on 
+#  Reference: Haarnoja, T., Zhou, A., Abbeel, P., & Levine, S. (2018, July).
+#             Soft actor-critic: Off-policy maximum entropy deep reinforcement
+#             learning with a stochastic actor. In International conference on
 #             machine learning (pp. 1861-1870). PMLR.
 #  Update: 2021-03-05, Yujie Yang: create SAC algorithm
 
@@ -35,6 +35,7 @@ class ApproxContainer(ApprBase):
 
     Contains one policy and two action values.
     """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # create q networks
@@ -65,9 +66,7 @@ class ApproxContainer(ApprBase):
         self.policy_optimizer = Adam(
             self.policy.parameters(), lr=kwargs["policy_learning_rate"]
         )
-        self.alpha_optimizer = Adam(
-            [self.log_alpha], lr=kwargs["alpha_learning_rate"]
-        )
+        self.alpha_optimizer = Adam([self.log_alpha], lr=kwargs["alpha_learning_rate"])
 
     def create_action_distributions(self, logits):
         return self.policy.get_act_dist(logits)
@@ -83,9 +82,10 @@ class SAC(AlgorithmBase):
     :param float tau: param for soft update of target network.
     :param bool auto_alpha: whether to adjust temperature automatically.
     :param float alpha: initial temperature.
-    :param Optional[float] target_entropy: target entropy for automatic 
+    :param Optional[float] target_entropy: target entropy for automatic
         temperature adjustment.
     """
+
     def __init__(
         self,
         index: int = 0,
@@ -108,16 +108,16 @@ class SAC(AlgorithmBase):
 
     @property
     def adjustable_parameters(self):
-        return (
-            "gamma", "tau", "auto_alpha", "alpha", "target_entropy"
-        )
+        return ("gamma", "tau", "auto_alpha", "alpha", "target_entropy")
 
     def local_update(self, data: DataDict, iteration: int) -> dict:
         tb_info = self.__compute_gradient(data, iteration)
         self.__update(iteration)
         return tb_info
 
-    def get_remote_update_info(self, data: DataDict, iteration: int) -> Tuple[dict, dict]:
+    def get_remote_update_info(
+        self, data: DataDict, iteration: int
+    ) -> Tuple[dict, dict]:
         tb_info = self.__compute_gradient(data, iteration)
 
         update_info = {
@@ -205,7 +205,7 @@ class SAC(AlgorithmBase):
             data["act"],
             data["rew"],
             data["obs2"],
-            data["done"]
+            data["done"],
         )
         q1 = self.networks.q1(obs, act)
         q2 = self.networks.q2(obs, act)
@@ -216,7 +216,9 @@ class SAC(AlgorithmBase):
             next_q1 = self.networks.q1_target(obs2, next_act)
             next_q2 = self.networks.q2_target(obs2, next_act)
             next_q = torch.min(next_q1, next_q2)
-            backup = rew + (1 - done) * self.gamma * (next_q - self.__get_alpha() * next_logp)
+            backup = rew + (1 - done) * self.gamma * (
+                next_q - self.__get_alpha() * next_logp
+            )
         loss_q1 = ((q1 - backup) ** 2).mean()
         loss_q2 = ((q2 - backup) ** 2).mean()
         return loss_q1 + loss_q2, q1.detach().mean(), q2.detach().mean()
@@ -231,7 +233,9 @@ class SAC(AlgorithmBase):
 
     def __compute_loss_alpha(self, data: DataDict):
         new_logp = data["new_logp"]
-        loss_alpha = (-self.networks.log_alpha * (new_logp.detach() + self.target_entropy).mean())
+        loss_alpha = (
+            -self.networks.log_alpha * (new_logp.detach() + self.target_entropy).mean()
+        )
         return loss_alpha
 
     def __update(self, iteration: int):
@@ -245,9 +249,13 @@ class SAC(AlgorithmBase):
 
         with torch.no_grad():
             polyak = 1 - self.tau
-            for p, p_targ in zip(self.networks.q1.parameters(), self.networks.q1_target.parameters()):
+            for p, p_targ in zip(
+                self.networks.q1.parameters(), self.networks.q1_target.parameters()
+            ):
                 p_targ.data.mul_(polyak)
                 p_targ.data.add_((1 - polyak) * p.data)
-            for p, p_targ in zip(self.networks.q2.parameters(), self.networks.q2_target.parameters()):
+            for p, p_targ in zip(
+                self.networks.q2.parameters(), self.networks.q2_target.parameters()
+            ):
                 p_targ.data.mul_(polyak)
                 p_targ.data.add_((1 - polyak) * p.data)

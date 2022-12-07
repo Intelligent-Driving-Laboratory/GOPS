@@ -28,7 +28,8 @@ class EnvC2U(gym.Wrapper):
     :param env: data type environment.
     :param float punish_factor: punish = punish_factor * constraint
     """
-    def __init__(self, env, punish_factor: float = 10.):
+
+    def __init__(self, env, punish_factor: float = 10.0):
         super().__init__(env)
         self.punish_factor = punish_factor
 
@@ -45,13 +46,19 @@ class ModelC2U(ModelWrapper):
     :param PythBaseModel model: model type environment.
     :param float punish_factor: punish = punish_factor * constraint
     """
-    def __init__(self, model:PythBaseModel, punish_factor:float = 10.):
+
+    def __init__(self, model: PythBaseModel, punish_factor: float = 10.0):
         super(ModelC2U, self).__init__(model)
         self.model = model
         self.punish_factor = punish_factor
-    
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+
+    def forward(
+        self,
+        obs: torch.Tensor,
+        action: torch.Tensor,
+        done: torch.Tensor,
+        info: InfoDict,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         obs_next, reward, done, info = self.model.forward(obs, action, done, info)
         const = info["constraint"].reshape(obs_next.shape[0], -1)
 

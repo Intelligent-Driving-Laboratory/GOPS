@@ -158,4 +158,3 @@ class ValueDiracDistribution:
 
     def mode(self):
         return torch.argmax(self.logits, dim=-1)
-

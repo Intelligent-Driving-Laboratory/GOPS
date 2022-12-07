@@ -19,8 +19,8 @@ from gym.core import ObsType, ActType
 
 class StateData(gym.Wrapper):
     """
-        Wrapper ensures that environment has "state" property.
-        If original environment does not have one, current observation is returned when calling state.
+    Wrapper ensures that environment has "state" property.
+    If original environment does not have one, current observation is returned when calling state.
     """
 
     def __init__(self, env):

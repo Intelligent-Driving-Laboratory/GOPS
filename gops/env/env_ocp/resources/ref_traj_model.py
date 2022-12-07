@@ -17,7 +17,10 @@ from typing import Dict, Optional, Sequence
 import numpy as np
 import torch
 
-from gops.env.env_ocp.resources.ref_traj_data import DEFAULT_PATH_PARAM, DEFAULT_SPEED_PARAM
+from gops.env.env_ocp.resources.ref_traj_data import (
+    DEFAULT_PATH_PARAM,
+    DEFAULT_SPEED_PARAM,
+)
 
 
 class MultiRefTrajModel:
@@ -37,36 +40,44 @@ class MultiRefTrajModel:
                 self.speed_param[k].update(v)
 
         ref_speeds = [
-            SineRefSpeedModel(**self.speed_param['sine']),
-            ConstantRefSpeedModel(**self.speed_param['constant']),
+            SineRefSpeedModel(**self.speed_param["sine"]),
+            ConstantRefSpeedModel(**self.speed_param["constant"]),
         ]
 
         self.ref_trajs: Sequence[RefTrajModel] = [
-            SineRefTrajModel(ref_speeds, **self.path_param['sine']),
-            DoubleLaneRefTrajModel(ref_speeds, **self.path_param['double_lane']),
-            TriangleRefTrajModel(ref_speeds, **self.path_param['triangle']),
-            CircleRefTrajModel(ref_speeds, **self.path_param['circle']),
+            SineRefTrajModel(ref_speeds, **self.path_param["sine"]),
+            DoubleLaneRefTrajModel(ref_speeds, **self.path_param["double_lane"]),
+            TriangleRefTrajModel(ref_speeds, **self.path_param["triangle"]),
+            CircleRefTrajModel(ref_speeds, **self.path_param["circle"]),
         ]
 
-    def compute_x(self, t: torch.Tensor, path_num: torch.Tensor, speed_num: torch.Tensor) -> torch.Tensor:
+    def compute_x(
+        self, t: torch.Tensor, path_num: torch.Tensor, speed_num: torch.Tensor
+    ) -> torch.Tensor:
         x = torch.zeros_like(t)
         for i, ref_traj in enumerate(self.ref_trajs):
             x = x + (path_num == i) * ref_traj.compute_x(t, speed_num)
         return x
 
-    def compute_y(self, t: torch.Tensor, path_num: torch.Tensor, speed_num: torch.Tensor) -> torch.Tensor:
+    def compute_y(
+        self, t: torch.Tensor, path_num: torch.Tensor, speed_num: torch.Tensor
+    ) -> torch.Tensor:
         y = torch.zeros_like(t)
         for i, ref_traj in enumerate(self.ref_trajs):
             y = y + (path_num == i) * ref_traj.compute_y(t, speed_num)
         return y
 
-    def compute_u(self, t: torch.Tensor, path_num: torch.Tensor, speed_num: torch.Tensor) -> torch.Tensor:
+    def compute_u(
+        self, t: torch.Tensor, path_num: torch.Tensor, speed_num: torch.Tensor
+    ) -> torch.Tensor:
         u = torch.zeros_like(t)
         for i, ref_traj in enumerate(self.ref_trajs):
             u = u + (path_num == i) * ref_traj.compute_u(t, speed_num)
         return u
 
-    def compute_phi(self, t: torch.Tensor, path_num: torch.Tensor, speed_num: torch.Tensor) -> torch.Tensor:
+    def compute_phi(
+        self, t: torch.Tensor, path_num: torch.Tensor, speed_num: torch.Tensor
+    ) -> torch.Tensor:
         phi = torch.zeros_like(t)
         for i, ref_traj in enumerate(self.ref_trajs):
             phi = phi + (path_num == i) * ref_traj.compute_phi(t, speed_num)
@@ -105,8 +116,11 @@ class SineRefSpeedModel(RefSpeedModel):
         return self.A * torch.sin(self.omega * t + self.phi) + self.b
 
     def compute_integrate_u(self, t: torch.Tensor) -> torch.Tensor:
-        return -self.A / self.omega * torch.cos(self.omega * t + self.phi) + \
-            self.b * t + self.A / self.omega * np.cos(self.phi)
+        return (
+            -self.A / self.omega * torch.cos(self.omega * t + self.phi)
+            + self.b * t
+            + self.A / self.omega * np.cos(self.phi)
+        )
 
 
 @dataclass
@@ -168,13 +182,11 @@ class DoubleLaneRefTrajModel(RefTrajModel):
     def compute_y(self, t: torch.Tensor, speed_num: torch.Tensor) -> torch.Tensor:
         y1 = self.y1
         mask1 = t <= self.t1
-        y2 = (self.y2 - self.y1) / (self.t2 -
-                                    self.t1) * (t - self.t1) + self.y1
+        y2 = (self.y2 - self.y1) / (self.t2 - self.t1) * (t - self.t1) + self.y1
         mask2 = (t > self.t1) & (t <= self.t2)
         y3 = self.y2
         mask3 = (t > self.t2) & (t <= self.t3)
-        y4 = (self.y1 - self.y2) / (self.t4 -
-                                    self.t3) * (t - self.t3) + self.y2
+        y4 = (self.y1 - self.y2) / (self.t4 - self.t3) * (t - self.t3) + self.y2
         mask4 = (t > self.t3) & (t <= self.t4)
         y5 = self.y1
         mask5 = t > self.t4
@@ -210,13 +222,11 @@ class CircleRefTrajModel(RefTrajModel):
     def compute_x(self, t: torch.Tensor, speed_num: torch.Tensor) -> torch.Tensor:
         arc_len = torch.zeros_like(t)
         for i, ref_speed in enumerate(self.ref_speeds):
-            arc_len = arc_len + (speed_num == i) * \
-                ref_speed.compute_integrate_u(t)
+            arc_len = arc_len + (speed_num == i) * ref_speed.compute_integrate_u(t)
         return self.r * torch.sin(arc_len / self.r)
 
     def compute_y(self, t: torch.Tensor, speed_num: torch.Tensor) -> torch.Tensor:
         arc_len = torch.zeros_like(t)
         for i, ref_speed in enumerate(self.ref_speeds):
-            arc_len = arc_len + (speed_num == i) * \
-                ref_speed.compute_integrate_u(t)
+            arc_len = arc_len + (speed_num == i) * ref_speed.compute_integrate_u(t)
         return self.r * (torch.cos(arc_len / self.r) - 1)

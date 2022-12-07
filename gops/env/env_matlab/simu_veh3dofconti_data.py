@@ -17,13 +17,15 @@ from gym.utils import seeding
 import numpy as np
 from gops.env.env_matlab.resources.simu_vehicle3dof_v2 import vehicle3dof
 
+
 class RefCurve:
-    def __init__(self,
-                 ref_a: List,
-                 ref_t: List,
-                 ref_fai: List,
-                 ref_v: float,
-                 ):
+    def __init__(
+        self,
+        ref_a: List,
+        ref_t: List,
+        ref_fai: List,
+        ref_v: float,
+    ):
         self.A = ref_a
         self.T = ref_t
         self.fai = ref_fai
@@ -34,17 +36,25 @@ class RefCurve:
         k_y = 0
         for items in zip(self.A, self.T, self.fai):
             pos_y += items[0] * np.sin(2 * np.pi / items[1] * pos_x + items[2])
-            k_y += 2 * np.pi / items[1] * items[0] * np.cos(2 * np.pi / items[1] * pos_x + items[2])
+            k_y += (
+                2
+                * np.pi
+                / items[1]
+                * items[0]
+                * np.cos(2 * np.pi / items[1] * pos_x + items[2])
+            )
         return pos_y, np.arctan(k_y), self.V
 
 
-class SimuVeh3dofconti(gym.Env, ):
+class SimuVeh3dofconti(
+    gym.Env,
+):
     def __init__(self, **kwargs: Any):
         spec = vehicle3dof._env.EnvSpec(
-            id='SimuVeh3dofConti-v0',
+            id="SimuVeh3dofConti-v0",
             max_episode_steps=kwargs["Max_step"],
             terminal_bonus_reward=kwargs["punish_done"],
-            strict_reset=True
+            strict_reset=True,
         )
         self.env = vehicle3dof.GymEnv(spec)
         self.dt = 0.01
@@ -52,15 +62,19 @@ class SimuVeh3dofconti(gym.Env, ):
         self.obs_scale = np.array(kwargs["obs_scaling"])
         self.act_scale = np.array(kwargs["act_scaling"])
         self.act_max = np.array(kwargs["act_max"])
-        self.done_range = kwargs['done_range']
+        self.done_range = kwargs["done_range"]
         self.punish_done = kwargs["punish_done"]
-        self.use_ref = kwargs['ref_info']
+        self.use_ref = kwargs["ref_info"]
         self.ref_horizon = kwargs["ref_horizon"]
         self._state = None
 
         obs_low = self.obs_scale * np.array([-9999, -9999, -9999, -9999, -9999, -9999])
-        ref_pos_low = -self.obs_scale[1] * self.done_range[0] * np.ones(self.ref_horizon)
-        ref_phi_low = -self.obs_scale[4] * self.done_range[2] * np.ones(self.ref_horizon)
+        ref_pos_low = (
+            -self.obs_scale[1] * self.done_range[0] * np.ones(self.ref_horizon)
+        )
+        ref_phi_low = (
+            -self.obs_scale[4] * self.done_range[2] * np.ones(self.ref_horizon)
+        )
         if self.use_ref == "None":
             self.observation_space = spaces.Box(obs_low, -obs_low)
         elif self.use_ref == "Pos":
@@ -86,13 +100,13 @@ class SimuVeh3dofconti(gym.Env, ):
         self.act_repeat = kwargs["act_repeat"]
         self.rand_bias = kwargs["rand_bias"]
         self.rand_center = kwargs["rand_center"]
-        ref_A = kwargs['ref_A']
-        ref_T = kwargs['ref_T']
-        ref_fai = kwargs['ref_fai']
-        ref_V = kwargs['ref_V']
+        ref_A = kwargs["ref_A"]
+        ref_T = kwargs["ref_T"]
+        ref_fai = kwargs["ref_fai"]
+        ref_V = kwargs["ref_V"]
 
-        self.Q = np.array(kwargs['punish_Q'])
-        self.R = np.array(kwargs['punish_R'])
+        self.Q = np.array(kwargs["punish_Q"])
+        self.R = np.array(kwargs["punish_R"])
         self.ref_curve = RefCurve(ref_A, ref_T, ref_fai, ref_V)
 
         self.rand_low = np.array(self.rand_center) - np.array(self.rand_bias)
@@ -104,10 +118,9 @@ class SimuVeh3dofconti(gym.Env, ):
     def state(self):
         return self._state
 
-    def reset(self,
-              init_state: Optional[Sequence] = None,
-              **kwargs: Any
-              ) -> Tuple[np.ndarray]:
+    def reset(
+        self, init_state: Optional[Sequence] = None, **kwargs: Any
+    ) -> Tuple[np.ndarray]:
         def callback():
             """Custom reset logic goes here."""
             # Modify your parameter
@@ -118,10 +131,14 @@ class SimuVeh3dofconti(gym.Env, ):
                 self._state = np.array(init_state, dtype=np.float32)
             self.env.model_class.vehicle3dof_InstP.x_ini[:] = self._state
             self.env.model_class.vehicle3dof_InstP.ref_V = np.array(self.ref_curve.V)
-            self.env.model_class.vehicle3dof_InstP.ref_fai[:] = np.array(self.ref_curve.fai)
+            self.env.model_class.vehicle3dof_InstP.ref_fai[:] = np.array(
+                self.ref_curve.fai
+            )
             self.env.model_class.vehicle3dof_InstP.ref_A[:] = np.array(self.ref_curve.A)
             self.env.model_class.vehicle3dof_InstP.ref_T[:] = np.array(self.ref_curve.T)
-            self.env.model_class.vehicle3dof_InstP.done_range[:] = np.array(self.done_range)
+            self.env.model_class.vehicle3dof_InstP.done_range[:] = np.array(
+                self.done_range
+            )
             self.env.model_class.vehicle3dof_InstP.punish_Q[:] = self.Q
             self.env.model_class.vehicle3dof_InstP.punish_R[:] = self.R
 
@@ -166,13 +183,17 @@ class SimuVeh3dofconti(gym.Env, ):
         obs[0:6] = obs[0:6] * self.obs_scale
         # Reference position
         if self.use_ref == "Pos":
-            x_pre = state[0] + ref_v * self.dt * self.act_repeat * np.linspace(1, self.ref_horizon, self.ref_horizon)
+            x_pre = state[0] + ref_v * self.dt * self.act_repeat * np.linspace(
+                1, self.ref_horizon, self.ref_horizon
+            )
             y_pre, _, _ = self.ref_curve.cal_reference(x_pre)
             obs_y_pre = (state[1] - y_pre) * self.obs_scale[1]
             obs[6:] = obs_y_pre
         # Reference position and heading angle
         elif self.use_ref == "Both":
-            x_pre = state[0] + ref_v * self.dt * self.act_repeat * np.linspace(1, self.ref_horizon, self.ref_horizon)
+            x_pre = state[0] + ref_v * self.dt * self.act_repeat * np.linspace(
+                1, self.ref_horizon, self.ref_horizon
+            )
             y_pre, phi_pre, _ = self.ref_curve.cal_reference(x_pre)
             obs_y_pre = (state[1] - y_pre) * self.obs_scale[1]
             obs_phi_pre = (state[4] - phi_pre) * self.obs_scale[4]
@@ -195,4 +216,3 @@ class SimuVeh3dofconti(gym.Env, ):
 
     def close(self):
         pass
-

@@ -4,16 +4,9 @@ import typing
 import numpy
 import vehicle3dof._env
 
-__all__ = [
-    "GymEnv",
-    "GymEnvVec",
-    "RawEnv",
-    "RawEnvVec",
-    "Veh3dofconti"
-]
+__all__ = ["GymEnv", "GymEnvVec", "RawEnv", "RawEnvVec", "Veh3dofconti"]
 
-
-class GymEnv():
+class GymEnv:
     def __enter__(self) -> object: ...
     def __exit__(self, arg0: object, arg1: object, arg2: object) -> bool: ...
     @typing.overload
@@ -22,7 +15,7 @@ class GymEnv():
     def __init__(self, spec: _env.EnvSpec) -> None: ...
     def __repr__(self) -> str: ...
     def close(self) -> None: ...
-    def render(self, mode: str = 'human') -> None: ...
+    def render(self, mode: str = "human") -> None: ...
     def reset(self, callback: typing.Callable[[], None] = None) -> numpy.ndarray: ...
     @typing.overload
     def seed(self) -> typing.List[int]: ...
@@ -44,12 +37,13 @@ class GymEnv():
         """
         :type: object
         """
-    action_space: vehicle3dof._env.BoxFloat64 # value = Box(-3000, 3000, [3])
-    metadata = {'render.modes': []}
-    observation_space: vehicle3dof._env.BoxFloat64 # value = Box(-99999, 99999, [6])
+    action_space: vehicle3dof._env.BoxFloat64  # value = Box(-3000, 3000, [3])
+    metadata = {"render.modes": []}
+    observation_space: vehicle3dof._env.BoxFloat64  # value = Box(-99999, 99999, [6])
     reward_range = [-99999.0, 99999.0]
     pass
-class GymEnvVec():
+
+class GymEnvVec:
     def __enter__(self) -> object: ...
     def __exit__(self, arg0: object, arg1: object, arg2: object) -> bool: ...
     @typing.overload
@@ -59,7 +53,7 @@ class GymEnvVec():
     def __repr__(self) -> str: ...
     def at(self, arg0: int) -> GymEnv: ...
     def close(self) -> None: ...
-    def render(self, mode: str = 'human') -> None: ...
+    def render(self, mode: str = "human") -> None: ...
     @typing.overload
     def reset(self) -> numpy.ndarray: ...
     @typing.overload
@@ -87,26 +81,30 @@ class GymEnvVec():
         """
         :type: object
         """
-    action_space: vehicle3dof._env.BoxFloat64 # value = Box(-3000, 3000, [3])
-    metadata = {'render.modes': []}
-    observation_space: vehicle3dof._env.BoxFloat64 # value = Box(-99999, 99999, [6])
+    action_space: vehicle3dof._env.BoxFloat64  # value = Box(-3000, 3000, [3])
+    metadata = {"render.modes": []}
+    observation_space: vehicle3dof._env.BoxFloat64  # value = Box(-99999, 99999, [6])
     reward_range = [-99999.0, 99999.0]
     pass
-class RawEnv():
+
+class RawEnv:
     def __init__(self) -> None: ...
     def reset(self) -> Veh3dofconti.ExtY_vehicle3dof_T: ...
     @typing.overload
     def seed(self) -> typing.List[int]: ...
     @typing.overload
     def seed(self, seed: int) -> typing.List[int]: ...
-    def step(self, action: Veh3dofconti.ExtU_vehicle3dof_T) -> Veh3dofconti.ExtY_vehicle3dof_T: ...
+    def step(
+        self, action: Veh3dofconti.ExtU_vehicle3dof_T
+    ) -> Veh3dofconti.ExtY_vehicle3dof_T: ...
     @property
     def model_class(self) -> Veh3dofconti:
         """
         :type: Veh3dofconti
         """
     pass
-class RawEnvVec():
+
+class RawEnvVec:
     def __init__(self, batch_size: int) -> None: ...
     def at(self, arg0: int) -> RawEnv: ...
     @typing.overload
@@ -127,8 +125,9 @@ class RawEnvVec():
     @typing.overload
     def step(self, action: numpy.ndarray, mask: numpy.ndarray) -> numpy.ndarray: ...
     pass
-class Veh3dofconti():
-    class B_vehicle3dof_T():
+
+class Veh3dofconti:
+    class B_vehicle3dof_T:
         def __copy__(self) -> Veh3dofconti.B_vehicle3dof_T: ...
         def __deepcopy__(self, memo: dict) -> Veh3dofconti.B_vehicle3dof_T: ...
         def __init__(self) -> None: ...
@@ -190,9 +189,12 @@ class Veh3dofconti():
             """
             :type: numpy.ndarray
             """
-        dtype: numpy.dtype[numpy.void] # value = dtype([('VectorConcatenate3', '<f8', (2,)), ('VectorConcatenate', '<f8', (4,)), ('ZeroOrderHold', '<f8', (6,)), ('Output', '<f8', (3,)), ('ZeroOrderHold1', '<f8', (3,)), ('Product1', '<f8'), ('Product1_oajp', '<f8'), ('stateDer', '<f8', (4,)), ('y', '<f8', (2,)), ('y_fdgf', '<f8', (3,))])
+        dtype: numpy.dtype[
+            numpy.void
+        ]  # value = dtype([('VectorConcatenate3', '<f8', (2,)), ('VectorConcatenate', '<f8', (4,)), ('ZeroOrderHold', '<f8', (6,)), ('Output', '<f8', (3,)), ('ZeroOrderHold1', '<f8', (3,)), ('Product1', '<f8'), ('Product1_oajp', '<f8'), ('stateDer', '<f8', (4,)), ('y', '<f8', (2,)), ('y_fdgf', '<f8', (3,))])
         pass
-    class DW_vehicle3dof_T():
+
+    class DW_vehicle3dof_T:
         def __copy__(self) -> Veh3dofconti.DW_vehicle3dof_T: ...
         def __deepcopy__(self, memo: dict) -> Veh3dofconti.DW_vehicle3dof_T: ...
         def __init__(self) -> None: ...
@@ -222,9 +224,12 @@ class Veh3dofconti():
         @RandSeed.setter
         def RandSeed(self, arg0: int) -> None:
             pass
-        dtype: numpy.dtype[numpy.void] # value = dtype({'names': ['NextOutput', 'RandSeed', 'Integrator_IWORK_aike'], 'formats': ['<f8', '<u4', '<i4'], 'offsets': [0, 8, 16], 'itemsize': 24})
+        dtype: numpy.dtype[
+            numpy.void
+        ]  # value = dtype({'names': ['NextOutput', 'RandSeed', 'Integrator_IWORK_aike'], 'formats': ['<f8', '<u4', '<i4'], 'offsets': [0, 8, 16], 'itemsize': 24})
         pass
-    class ExtU_vehicle3dof_T():
+
+    class ExtU_vehicle3dof_T:
         def __copy__(self) -> Veh3dofconti.ExtU_vehicle3dof_T: ...
         def __deepcopy__(self, memo: dict) -> Veh3dofconti.ExtU_vehicle3dof_T: ...
         def __init__(self) -> None: ...
@@ -243,9 +248,12 @@ class Veh3dofconti():
         @AdverAction.setter
         def AdverAction(self, arg0: float) -> None:
             pass
-        dtype: numpy.dtype[numpy.void] # value = dtype([('Action', '<f8', (3,)), ('AdverAction', '<f8')])
+        dtype: numpy.dtype[
+            numpy.void
+        ]  # value = dtype([('Action', '<f8', (3,)), ('AdverAction', '<f8')])
         pass
-    class ExtY_vehicle3dof_T():
+
+    class ExtY_vehicle3dof_T:
         def __copy__(self) -> Veh3dofconti.ExtY_vehicle3dof_T: ...
         def __deepcopy__(self, memo: dict) -> Veh3dofconti.ExtY_vehicle3dof_T: ...
         def __init__(self) -> None: ...
@@ -280,9 +288,12 @@ class Veh3dofconti():
         @rew.setter
         def rew(self, arg0: float) -> None:
             pass
-        dtype: numpy.dtype[numpy.void] # value = dtype({'names': ['obs', 'rew', 'done', 'info'], 'formats': [('<f8', (6,)), '<f8', '?', '<f8'], 'offsets': [0, 48, 56, 64], 'itemsize': 72})
+        dtype: numpy.dtype[
+            numpy.void
+        ]  # value = dtype({'names': ['obs', 'rew', 'done', 'info'], 'formats': [('<f8', (6,)), '<f8', '?', '<f8'], 'offsets': [0, 48, 56, 64], 'itemsize': 72})
         pass
-    class InstP_vehicle3dof_T():
+
+    class InstP_vehicle3dof_T:
         def __copy__(self) -> Veh3dofconti.InstP_vehicle3dof_T: ...
         def __deepcopy__(self, memo: dict) -> Veh3dofconti.InstP_vehicle3dof_T: ...
         def __init__(self) -> None: ...
@@ -369,9 +380,12 @@ class Veh3dofconti():
             """
             :type: numpy.ndarray
             """
-        dtype: numpy.dtype[numpy.void] # value = dtype([('a_max', '<f8', (3,)), ('a_min', '<f8', (3,)), ('adva_max', '<f8', (3,)), ('adva_min', '<f8', (3,)), ('done_range', '<f8', (3,)), ('punish_Q', '<f8', (4,)), ('punish_R', '<f8', (3,)), ('ref_A', '<f8', (3,)), ('ref_T', '<f8', (3,)), ('ref_fai', '<f8', (3,)), ('x_ini', '<f8', (6,)), ('x_max', '<f8', (6,)), ('x_min', '<f8', (6,)), ('noise_seed', '<f8'), ('ref_V', '<f8')])
+        dtype: numpy.dtype[
+            numpy.void
+        ]  # value = dtype([('a_max', '<f8', (3,)), ('a_min', '<f8', (3,)), ('adva_max', '<f8', (3,)), ('adva_min', '<f8', (3,)), ('done_range', '<f8', (3,)), ('punish_Q', '<f8', (4,)), ('punish_R', '<f8', (3,)), ('ref_A', '<f8', (3,)), ('ref_T', '<f8', (3,)), ('ref_fai', '<f8', (3,)), ('x_ini', '<f8', (6,)), ('x_max', '<f8', (6,)), ('x_min', '<f8', (6,)), ('noise_seed', '<f8'), ('ref_V', '<f8')])
         pass
-    class X_vehicle3dof_T():
+
+    class X_vehicle3dof_T:
         def __copy__(self) -> Veh3dofconti.X_vehicle3dof_T: ...
         def __deepcopy__(self, memo: dict) -> Veh3dofconti.X_vehicle3dof_T: ...
         def __init__(self) -> None: ...
@@ -403,7 +417,9 @@ class Veh3dofconti():
         @lateral_CSTATE_iesm.setter
         def lateral_CSTATE_iesm(self, arg0: float) -> None:
             pass
-        dtype: numpy.dtype[numpy.void] # value = dtype([('Integrator_CSTATE', '<f8', (2,)), ('Integrator_CSTATE_nzof', '<f8', (4,)), ('lateral_CSTATE', '<f8'), ('lateral_CSTATE_iesm', '<f8')])
+        dtype: numpy.dtype[
+            numpy.void
+        ]  # value = dtype([('Integrator_CSTATE', '<f8', (2,)), ('Integrator_CSTATE_nzof', '<f8', (4,)), ('lateral_CSTATE', '<f8'), ('lateral_CSTATE_iesm', '<f8')])
         pass
     def __init__(self) -> None: ...
     def __repr__(self) -> str: ...
@@ -461,6 +477,7 @@ class Veh3dofconti():
         pass
     sample_time = 0.01
     pass
-__all__ = ['RawEnv', 'RawEnvVec', 'GymEnv', 'GymEnvVec', 'Veh3dofconti']
-__author__ = 'hjzsj'
-__version__ = '8.28'
+
+__all__ = ["RawEnv", "RawEnvVec", "GymEnv", "GymEnvVec", "Veh3dofconti"]
+__author__ = "hjzsj"
+__version__ = "8.28"

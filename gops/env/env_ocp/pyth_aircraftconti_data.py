@@ -34,31 +34,38 @@ class _GymAircraftconti(PythBaseEnv):
         super(_GymAircraftconti, self).__init__(work_space=work_space, **kwargs)
 
         # define common parameters here
-        self.is_adversary = kwargs['is_adversary']
+        self.is_adversary = kwargs["is_adversary"]
         self.state_dim = 3
         self.action_dim = 1
         self.adversary_dim = 1
         self.tau = 1 / 200  # seconds between state updates
 
         # define your custom parameters here
-        self.A = np.array([[-1.01887, 0.90506, -0.00215],
-                           [0.82225, -1.07741, -0.17555],
-                           [0, 0, -1]], dtype=np.float32)
-        self.A_attack_ang = np.array([-1.01887, 0.90506, -0.00215], dtype=np.float32).reshape((3, 1))
-        self.A_rate = np.array([0.82225, -1.07741, -0.17555], dtype=np.float32).reshape((3, 1))
+        self.A = np.array(
+            [[-1.01887, 0.90506, -0.00215], [0.82225, -1.07741, -0.17555], [0, 0, -1]],
+            dtype=np.float32,
+        )
+        self.A_attack_ang = np.array(
+            [-1.01887, 0.90506, -0.00215], dtype=np.float32
+        ).reshape((3, 1))
+        self.A_rate = np.array([0.82225, -1.07741, -0.17555], dtype=np.float32).reshape(
+            (3, 1)
+        )
         self.A_elevator_ang = np.array([0, 0, -1], dtype=np.float32).reshape((3, 1))
-        self.B = np.array([0., 0., 1.]).reshape((3, 1))
-        self.D = np.array([1., 0., 0.]).reshape((3, 1))
+        self.B = np.array([0.0, 0.0, 1.0]).reshape((3, 1))
+        self.D = np.array([1.0, 0.0, 0.0]).reshape((3, 1))
 
         # utility information
         self.Q = np.eye(self.state_dim)
         self.R = np.eye(self.action_dim)
         self.gamma = 1
-        self.gamma_atte = kwargs['gamma_atte']
-        self.control_matrix = np.array([[0.166065, 0.180362, -0.437060]], dtype=np.float32)
+        self.gamma_atte = kwargs["gamma_atte"]
+        self.control_matrix = np.array(
+            [[0.166065, 0.180362, -0.437060]], dtype=np.float32
+        )
 
         # state & action space
-        self.state_threshold = kwargs['state_threshold']
+        self.state_threshold = kwargs["state_threshold"]
         self.attack_ang_threshold = self.state_threshold[0]
         self.rate_threshold = self.state_threshold[1]
         self.elevator_ang_threshold = self.state_threshold[2]
@@ -68,11 +75,25 @@ class _GymAircraftconti(PythBaseEnv):
         self.min_adv_action = [-1.0 / self.gamma_atte]
 
         self.observation_space = spaces.Box(
-            low=np.array([-self.attack_ang_threshold, -self.rate_threshold, -self.elevator_ang_threshold]),
-            high=np.array([self.attack_ang_threshold, self.rate_threshold, self.elevator_ang_threshold]),
-            shape=(3,)
+            low=np.array(
+                [
+                    -self.attack_ang_threshold,
+                    -self.rate_threshold,
+                    -self.elevator_ang_threshold,
+                ]
+            ),
+            high=np.array(
+                [
+                    self.attack_ang_threshold,
+                    self.rate_threshold,
+                    self.elevator_ang_threshold,
+                ]
+            ),
+            shape=(3,),
         )
-        self.action_space = spaces.Box(low=np.array(self.min_action), high=np.array(self.max_action), shape=(1,))
+        self.action_space = spaces.Box(
+            low=np.array(self.min_action), high=np.array(self.max_action), shape=(1,)
+        )
 
         self.seed()
         self.viewer = None
@@ -80,7 +101,7 @@ class _GymAircraftconti(PythBaseEnv):
 
         self.steps_beyond_done = None
 
-        self.max_episode_steps = kwargs['max_episode_steps']
+        self.max_episode_steps = kwargs["max_episode_steps"]
         self.steps = 0
 
     @property
@@ -110,9 +131,19 @@ class _GymAircraftconti(PythBaseEnv):
         # wind gusts on angle of attack
         wind_attack_angle = adv_action[0]
 
-        attack_ang_dot = A[0, 0] * attack_ang + A[0, 1] * rate + A[0, 2] * elevator_ang + wind_attack_angle
+        attack_ang_dot = (
+            A[0, 0] * attack_ang
+            + A[0, 1] * rate
+            + A[0, 2] * elevator_ang
+            + wind_attack_angle
+        )
         rate_dot = A[1, 0] * attack_ang + A[1, 1] * rate + A[1, 2] * elevator_ang
-        elevator_ang_dot = A[2, 0] * attack_ang + A[2, 1] * rate + A[2, 2] * elevator_ang + elevator_vol
+        elevator_ang_dot = (
+            A[2, 0] * attack_ang
+            + A[2, 1] * rate
+            + A[2, 2] * elevator_ang
+            + elevator_vol
+        )
 
         next_attack_ang = attack_ang_dot * tau + attack_ang
         next_rate = rate_dot * tau + rate
@@ -120,17 +151,22 @@ class _GymAircraftconti(PythBaseEnv):
         return next_attack_ang, next_rate, next_elevator_angle
 
     def step(self, inputs):
-        action = inputs[:self.action_dim]
-        adv_action = inputs[self.action_dim:]
+        action = inputs[: self.action_dim]
+        adv_action = inputs[self.action_dim :]
         if not adv_action or adv_action is None:
             adv_action = [0]
 
         attack_ang, rate, elevator_ang = self.state
         self.state = self.stepPhysics(action, adv_action)
         next_attack_ang, next_rate, next_elevator_angle = self.state
-        done = next_attack_ang < -self.attack_ang_threshold or next_attack_ang > self.attack_ang_threshold \
-            or next_rate < -self.rate_threshold or next_rate > self.rate_threshold \
-            or next_elevator_angle < -self.elevator_ang_threshold or next_elevator_angle > self.elevator_ang_threshold
+        done = (
+            next_attack_ang < -self.attack_ang_threshold
+            or next_attack_ang > self.attack_ang_threshold
+            or next_rate < -self.rate_threshold
+            or next_rate > self.rate_threshold
+            or next_elevator_angle < -self.elevator_ang_threshold
+            or next_elevator_angle > self.elevator_ang_threshold
+        )
         done = bool(done)
 
         # -----------------
@@ -140,20 +176,32 @@ class _GymAircraftconti(PythBaseEnv):
         # ---------------
 
         if not done:
-            reward = self.Q[0][0] * attack_ang ** 2 + self.Q[1][1] * rate ** 2 + self.Q[2][2] * elevator_ang ** 2 \
-                     + self.R[0][0] * action[0] ** 2 - self.gamma_atte ** 2 * adv_action[0] ** 2
+            reward = (
+                self.Q[0][0] * attack_ang**2
+                + self.Q[1][1] * rate**2
+                + self.Q[2][2] * elevator_ang**2
+                + self.R[0][0] * action[0] ** 2
+                - self.gamma_atte**2 * adv_action[0] ** 2
+            )
         elif self.steps_beyond_done is None:
             # Pole just fell!
             self.steps_beyond_done = 0
-            reward = self.Q[0][0] * attack_ang ** 2 + self.Q[1][1] * rate ** 2 + self.Q[2][2] * elevator_ang ** 2 \
-                     + self.R[0][0] * action[0] ** 2 - self.gamma_atte ** 2 * adv_action[0] ** 2
+            reward = (
+                self.Q[0][0] * attack_ang**2
+                + self.Q[1][1] * rate**2
+                + self.Q[2][2] * elevator_ang**2
+                + self.R[0][0] * action[0] ** 2
+                - self.gamma_atte**2 * adv_action[0] ** 2
+            )
         else:
             if self.steps_beyond_done == 0:
-                gym.logger.warn("""
+                gym.logger.warn(
+                    """
                 You are calling 'step()' even though this environment has already returned
                 done = True. You should always call 'reset()' once you receive 'done = True'
                 Any further steps are undefined behavior.
-                """)
+                """
+                )
             self.steps_beyond_done += 1
             reward = 0.0
 
@@ -161,11 +209,17 @@ class _GymAircraftconti(PythBaseEnv):
 
     @staticmethod
     def exploration_noise(time):
-        n = sin(time)**2 * cos(time) + sin(2 * time)**2 * cos(0.1 * time) + sin(1.2 * time)**2 * cos(0.5 * time) \
-            + sin(time)**5 + sin(1.12 * time)**2 + sin(2.4 * time)**3 * cos(2.4 * time)
+        n = (
+            sin(time) ** 2 * cos(time)
+            + sin(2 * time) ** 2 * cos(0.1 * time)
+            + sin(1.2 * time) ** 2 * cos(0.5 * time)
+            + sin(time) ** 5
+            + sin(1.12 * time) ** 2
+            + sin(2.4 * time) ** 3 * cos(2.4 * time)
+        )
         return np.array([n, 0])
 
-    def render(self, mode='human'):
+    def render(self, mode="human"):
         pass
 
     def close(self):

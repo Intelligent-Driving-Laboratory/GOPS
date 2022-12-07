@@ -29,7 +29,9 @@ class Env:
         self.action_repeat = 4
         self.action_space = self.env.action_space
         self.action_space.low = np.array([0.0, 0.0, 0.0]).astype(np.float32)
-        self.observation_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(4, 96, 96), dtype=np.float64)
+        self.observation_space = gym.spaces.Box(
+            low=-1.0, high=1.0, shape=(4, 96, 96), dtype=np.float64
+        )
 
     def reset(self):
         self.counter = 0
@@ -41,7 +43,6 @@ class Env:
         # Four frames for decision
         self.stack = [img_gray] * self.img_stack
         return np.array(self.stack)
-
 
     def step(self, action):
         total_reward = 0

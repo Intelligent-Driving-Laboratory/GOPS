@@ -50,8 +50,13 @@ class GymPendulumModel(PythBaseModel):
             device=device,
         )
 
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+    def forward(
+        self,
+        obs: torch.Tensor,
+        action: torch.Tensor,
+        done: torch.Tensor,
+        info: InfoDict,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         """
         rollout the model one step, notice this method will not change the value of self.state
         you need to define your own state transition  function here
@@ -76,14 +81,23 @@ class GymPendulumModel(PythBaseModel):
         length = self.length
         dt = self.dt
         newthdot = (
-                thdot + (-3 * g / (2 * length) * torch.sin(th + pi) + 3.0 / (m * length ** 2) * action.squeeze()) * dt
+            thdot
+            + (
+                -3 * g / (2 * length) * torch.sin(th + pi)
+                + 3.0 / (m * length**2) * action.squeeze()
+            )
+            * dt
         )
         newth = th + newthdot * dt
         newthdot = torch.clamp(newthdot, -self.max_speed, self.max_speed)
         newcosth = torch.cos(newth)
         newsinth = torch.sin(newth)
         state_next = torch.stack([newcosth, newsinth, newthdot], dim=-1)
-        reward = angle_normalize(th) ** 2 + 0.1 * thdot ** 2 + 0.001 * (action ** 2).squeeze(-1)
+        reward = (
+            angle_normalize(th) ** 2
+            + 0.1 * thdot**2
+            + 0.001 * (action**2).squeeze(-1)
+        )
         reward = -reward
         ############################################################################################
 

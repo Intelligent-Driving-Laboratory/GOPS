@@ -35,7 +35,11 @@ def create_buffer(**kwargs):
             buffer_cls = getattr(module, buffer_name)
             if trainer == "off_serial_trainer":
                 buffer = buffer_cls(**kwargs)
-            elif trainer == "off_async_trainer" or trainer == "off_async_trainermix" or trainer == "off_sync_trainer":
+            elif (
+                trainer == "off_async_trainer"
+                or trainer == "off_async_trainermix"
+                or trainer == "off_sync_trainer"
+            ):
                 import ray
 
                 buffer = [

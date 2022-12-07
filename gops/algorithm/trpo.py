@@ -39,6 +39,7 @@ class ApproxContainer(ApprBase):
 
     Contains one policy and one state value.
     """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -53,8 +54,10 @@ class ApproxContainer(ApprBase):
 
 class TRPO(AlgorithmBase):
     """TRPO algorithm"""
+
     def __init__(
-        self, *,
+        self,
+        *,
         delta: float,
         rtol: float,
         atol: float,
@@ -64,7 +67,8 @@ class TRPO(AlgorithmBase):
         max_search: int,
         train_v_iters: int,
         value_learning_rate: float,
-        index=0, **kwargs,
+        index=0,
+        **kwargs,
     ):
         """TRPO algorithm
 
@@ -89,14 +93,22 @@ class TRPO(AlgorithmBase):
         self.max_search = max_search
         self.train_v_iters = train_v_iters
         self.networks = ApproxContainer(**kwargs)
-        self.value_optimizer = Adam(self.networks.value.parameters(), lr=value_learning_rate)
+        self.value_optimizer = Adam(
+            self.networks.value.parameters(), lr=value_learning_rate
+        )
 
     @property
     def adjustable_parameters(self):
         return (
-            "delta", "train_v_iters", "value_learning_rate",
-            "rtol", "atol", "damping_factor",
-            "max_cg", "alpha", "max_search",
+            "delta",
+            "train_v_iters",
+            "value_learning_rate",
+            "rtol",
+            "atol",
+            "damping_factor",
+            "max_cg",
+            "alpha",
+            "max_search",
         )
 
     def local_update(self, data: DataDict, iteration: int) -> dict:
@@ -163,7 +175,7 @@ class TRPO(AlgorithmBase):
             )
 
         for i in range(self.max_search):
-            update_policy(self.alpha ** i)
+            update_policy(self.alpha**i)
             logits_new = new_policy(obs)
             pi_new = self.networks.create_action_distributions(logits=logits_new)
             logp_new = pi_new.log_prob(act)
@@ -186,7 +198,7 @@ class TRPO(AlgorithmBase):
             self.value_optimizer.step()
         v_loss = v_loss.item()
         val_avg = val.detach().mean().item()
-        
+
         end_time = time.time()
 
         tb_info = {}

@@ -50,18 +50,22 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
     ):
         super().__init__(pre_horizon, path_para, u_para, **kwargs)
         self.observation_space = gym.spaces.Box(
-            low=-np.inf, high=np.inf,
-            shape=(self.state_dim + self.pre_horizon * 2 + surr_veh_num * 4,), 
-            dtype=np.float32)
+            low=-np.inf,
+            high=np.inf,
+            shape=(self.state_dim + self.pre_horizon * 2 + surr_veh_num * 4,),
+            dtype=np.float32,
+        )
         self.surr_veh_num = surr_veh_num
         self.surr_vehs: List[SurrVehicleData] = None
         self.surr_state = np.zeros((surr_veh_num, 5), dtype=np.float32)
         self.veh_length = veh_length
         self.veh_width = veh_width
-        self.info_dict.update({
-            "surr_state": {"shape": (surr_veh_num, 5), "dtype": np.float32},
-            "constraint": {"shape": (1,), "dtype": np.float32},
-        })
+        self.info_dict.update(
+            {
+                "surr_state": {"shape": (surr_veh_num, 5), "dtype": np.float32},
+                "constraint": {"shape": (1,), "dtype": np.float32},
+            }
+        )
 
     def reset(
         self,
@@ -69,7 +73,7 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         ref_time: Optional[float] = None,
         path_num: Optional[int] = None,
         u_num: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ) -> Tuple[np.ndarray, dict]:
         super().reset(init_state, ref_time, path_num, u_num, **kwargs)
 
@@ -91,11 +95,23 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
                 delta_lat = 5 * self.np_random.uniform(-1, 1)
                 if abs(delta_lon) > 7 or abs(delta_lat) > 3:
                     break
-            surr_x = surr_x0 + delta_lon * np.cos(surr_phi) - delta_lat * np.sin(surr_phi)
-            surr_y = surr_y0 + delta_lon * np.sin(surr_phi) + delta_lat * np.cos(surr_phi)
+            surr_x = (
+                surr_x0 + delta_lon * np.cos(surr_phi) - delta_lat * np.sin(surr_phi)
+            )
+            surr_y = (
+                surr_y0 + delta_lon * np.sin(surr_phi) + delta_lat * np.cos(surr_phi)
+            )
             surr_u = 5 + self.np_random.uniform(-1, 1)
-            self.surr_vehs.append(SurrVehicleData(
-                x=surr_x, y=surr_y, phi=surr_phi, u=surr_u, delta=surr_delta, dt=self.dt))
+            self.surr_vehs.append(
+                SurrVehicleData(
+                    x=surr_x,
+                    y=surr_y,
+                    phi=surr_phi,
+                    u=surr_u,
+                    delta=surr_delta,
+                    dt=self.dt,
+                )
+            )
         self.update_surr_state()
 
         return self.get_obs(), self.info
@@ -111,9 +127,10 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
 
     def update_surr_state(self):
         for i, surr_veh in enumerate(self.surr_vehs):
-            self.surr_state[i] = np.array([
-                surr_veh.x, surr_veh.y, surr_veh.phi, surr_veh.u, surr_veh.delta
-            ], dtype=np.float32)
+            self.surr_state[i] = np.array(
+                [surr_veh.x, surr_veh.y, surr_veh.phi, surr_veh.u, surr_veh.delta],
+                dtype=np.float32,
+            )
 
     def get_obs(self) -> np.ndarray:
         obs = super().get_obs()
@@ -128,25 +145,39 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         r = np.sqrt(2) / 2 * self.veh_width
 
         x, y, phi = self.state[:3]
-        ego_center = np.array([
-            [x + d * np.cos(phi), y + d * np.sin(phi)],
-            [x - d * np.cos(phi), y - d * np.sin(phi)]
-        ], dtype=np.float32)
+        ego_center = np.array(
+            [
+                [x + d * np.cos(phi), y + d * np.sin(phi)],
+                [x - d * np.cos(phi), y - d * np.sin(phi)],
+            ],
+            dtype=np.float32,
+        )
 
         surr_x = self.surr_state[:, 0]
         surr_y = self.surr_state[:, 1]
         surr_phi = self.surr_state[:, 2]
-        surr_center = np.stack((
-            np.stack(((surr_x + d * np.cos(surr_phi)), surr_y + d * np.sin(surr_phi)), axis=1),
-            np.stack(((surr_x - d * np.cos(surr_phi)), surr_y - d * np.sin(surr_phi)), axis=1)
-        ), axis=1)
+        surr_center = np.stack(
+            (
+                np.stack(
+                    ((surr_x + d * np.cos(surr_phi)), surr_y + d * np.sin(surr_phi)),
+                    axis=1,
+                ),
+                np.stack(
+                    ((surr_x - d * np.cos(surr_phi)), surr_y - d * np.sin(surr_phi)),
+                    axis=1,
+                ),
+            ),
+            axis=1,
+        )
 
         min_dist = np.inf
         for i in range(2):
             # front and rear circle of ego vehicle
             for j in range(2):
                 # front and rear circle of surrounding vehicles
-                dist = np.linalg.norm(ego_center[np.newaxis, i] - surr_center[:, j], axis=1)
+                dist = np.linalg.norm(
+                    ego_center[np.newaxis, i] - surr_center[:, j], axis=1
+                )
                 min_dist = min(min_dist, np.min(dist))
 
         return np.array([r - min_dist], dtype=np.float32)
@@ -154,10 +185,12 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
     @property
     def info(self):
         info = super().info
-        info.update({
-            "surr_state": self.surr_state.copy(),
-            "constraint": self.get_constraint(),
-        })
+        info.update(
+            {
+                "surr_state": self.surr_state.copy(),
+                "constraint": self.get_constraint(),
+            }
+        )
         return info
 
 

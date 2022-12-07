@@ -50,8 +50,12 @@ class ReplayBuffer:
         }
         self.additional_info = kwargs["additional_info"]
         for k, v in self.additional_info.items():
-            self.buf[k] = np.zeros(combined_shape(self.max_size, v["shape"]), dtype=v["dtype"])
-            self.buf["next_" + k] = np.zeros(combined_shape(self.max_size, v["shape"]), dtype=v["dtype"])
+            self.buf[k] = np.zeros(
+                combined_shape(self.max_size, v["shape"]), dtype=v["dtype"]
+            )
+            self.buf["next_" + k] = np.zeros(
+                combined_shape(self.max_size, v["shape"]), dtype=v["dtype"]
+            )
         self.ptr, self.size, = (
             0,
             0,
@@ -64,15 +68,15 @@ class ReplayBuffer:
         return int(sys.getsizeof(self.buf)) * self.size / (self.max_size * 1000000)
 
     def store(
-            self,
-            obs: np.ndarray,
-            info: dict,
-            act: np.ndarray,
-            rew: float,
-            next_obs: np.ndarray,
-            done: bool,
-            logp: np.ndarray,
-            next_info: dict
+        self,
+        obs: np.ndarray,
+        info: dict,
+        act: np.ndarray,
+        rew: float,
+        next_obs: np.ndarray,
+        done: bool,
+        logp: np.ndarray,
+        next_info: dict,
     ):
         self.buf["obs"][self.ptr] = obs
         self.buf["obs2"][self.ptr] = next_obs

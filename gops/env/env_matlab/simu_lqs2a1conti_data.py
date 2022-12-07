@@ -17,6 +17,7 @@ from gops.env.env_matlab.resources.simu_lqs2a1.lqs2a1._env import EnvSpec
 from gops.env.env_ocp.pyth_base_data import PythBaseEnv
 import numpy as np
 
+
 class Lqs2a1(PythBaseEnv):
     def __init__(self, **kwargs: Any):
         work_space = kwargs.pop("work_space", None)
@@ -29,28 +30,27 @@ class Lqs2a1(PythBaseEnv):
         spec = EnvSpec(
             id="SimuLqs2a1Conti-v0",
             terminal_bonus_reward=kwargs["punish_done"],
-            strict_reset=True
+            strict_reset=True,
         )
         self.env = GymEnv(spec)
-        self.max_episode_steps = kwargs['max_episode_steps']
+        self.max_episode_steps = kwargs["max_episode_steps"]
 
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
 
         self.rng = np.random.default_rng()
-        self.Q = np.array(kwargs['punish_Q'])
-        self.R = np.array(kwargs['punish_R'])
+        self.Q = np.array(kwargs["punish_Q"])
+        self.R = np.array(kwargs["punish_R"])
         self.rand_bias = kwargs["rand_bias"]
         self.rand_center = kwargs["rand_center"]
         self.rand_low = np.array(self.rand_center) - np.array(self.rand_bias)
         self.rand_high = np.array(self.rand_center) + np.array(self.rand_bias)
         self.seed()
         self.reset()
-    
-    def reset(self, *,
-              init_state: Optional[Sequence] = None,
-              **kwargs: Any
-        ) -> Tuple[np.ndarray]:
+
+    def reset(
+        self, *, init_state: Optional[Sequence] = None, **kwargs: Any
+    ) -> Tuple[np.ndarray]:
         def callback():
             """Custom reset logic goes here."""
             # Modify  parameters
@@ -75,7 +75,6 @@ class Lqs2a1(PythBaseEnv):
         self.rng = np.random.default_rng(seed)
         return self.env.seed(seed) if seed is not None else self.env.seed()
 
+
 def env_creator(**kwargs):
     return Lqs2a1(**kwargs)
-
-

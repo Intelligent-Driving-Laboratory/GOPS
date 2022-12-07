@@ -64,6 +64,7 @@ class Feature(nn.Module):
     """
     CNN for extracting features from picture.
     """
+
     def __init__(self, **kwargs):
         super(Feature, self).__init__()
         obs_dim = kwargs["obs_dim"]
@@ -103,6 +104,7 @@ class DetermPolicy(nn.Module, Action_Distribution):
     Input: observation.
     Output: action.
     """
+
     def __init__(self, **kwargs):
         super(DetermPolicy, self).__init__()
         act_dim = kwargs["act_dim"]
@@ -131,7 +133,7 @@ class DetermPolicy(nn.Module, Action_Distribution):
         feature = img.view(img.size(0), -1)
         feature = self.mlp(feature)
         action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(feature) + (
-                self.act_high_lim + self.act_low_lim
+            self.act_high_lim + self.act_low_lim
         ) / 2
         return action
 
@@ -147,6 +149,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
     Input: observation.
     Output: parameters of action distribution.
     """
+
     def __init__(self, **kwargs):
         super(StochaPolicy, self).__init__()
         act_dim = kwargs["act_dim"]
@@ -189,6 +192,7 @@ class ActionValue(nn.Module, Action_Distribution):
     Input: observation, action.
     Output: action-value.
     """
+
     def __init__(self, **kwargs):
         super(ActionValue, self).__init__()
         act_dim = kwargs["act_dim"]
@@ -220,6 +224,7 @@ class ActionValueDis(nn.Module, Action_Distribution):
     Input: observation.
     Output: action-value for all action.
     """
+
     def __init__(self, **kwargs):
         super(ActionValueDis, self).__init__()
         act_num = kwargs["act_num"]
@@ -252,6 +257,7 @@ class ActionValueDistri(nn.Module, Action_Distribution):
     Input: observation.
     Output: parameters of action-value distribution.
     """
+
     def __init__(self, **kwargs):
         super(ActionValueDistri, self).__init__()
         act_dim = kwargs["act_dim"]
@@ -296,6 +302,7 @@ class StochaPolicyDis(ActionValueDis, Action_Distribution):
     Input: observation.
     Output: parameters of action distribution.
     """
+
     pass
 
 
@@ -305,6 +312,7 @@ class StateValue(nn.Module, Action_Distribution):
     Input: observation, action.
     Output: state-value.
     """
+
     def __init__(self, **kwargs):
         super(StateValue, self).__init__()
         obs_dim = kwargs["obs_dim"]

@@ -22,4 +22,5 @@ if __name__ == "__main__":
     env.reset()
     env.render()
     import time
+
     time.sleep(100)

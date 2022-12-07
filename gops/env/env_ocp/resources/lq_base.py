@@ -32,15 +32,20 @@ MAX_BUFFER = 20100
 
 
 class LQDynamics:
-    def __init__(self,
-                 config: dict,
-                 device: Union[torch.device, str, None] = None,
-                 ):
+    def __init__(
+        self,
+        config: dict,
+        device: Union[torch.device, str, None] = None,
+    ):
         self.A = torch.as_tensor(config["A"], dtype=torch.float32, device=device)
         self.B = torch.as_tensor(config["B"], dtype=torch.float32, device=device)
-        self.Q = torch.as_tensor(config["Q"], dtype=torch.float32, device=device)  # diag vector
-        self.R = torch.as_tensor(config["R"], dtype=torch.float32, device=device)  # diag vector
-        
+        self.Q = torch.as_tensor(
+            config["Q"], dtype=torch.float32, device=device
+        )  # diag vector
+        self.R = torch.as_tensor(
+            config["R"], dtype=torch.float32, device=device
+        )  # diag vector
+
         self.time_step = config["dt"]
         self.K, self.P = self.compute_control_matrix()
 
@@ -56,12 +61,12 @@ class LQDynamics:
 
     def compute_control_matrix(self):
         gamma = 0.99
-        A0 = self.A.cpu().numpy().astype('float64')
+        A0 = self.A.cpu().numpy().astype("float64")
         A = np.linalg.pinv(np.eye(A0.shape[0]) - A0 * self.time_step) * np.sqrt(gamma)
-        B0 = self.B.cpu().numpy().astype('float64')
+        B0 = self.B.cpu().numpy().astype("float64")
         B = A @ B0 * self.time_step
-        Q = np.diag(self.Q.cpu().numpy()).astype('float64')
-        R = np.diag(self.R.cpu().numpy()).astype('float64')
+        Q = np.diag(self.Q.cpu().numpy()).astype("float64")
+        R = np.diag(self.R.cpu().numpy()).astype("float64")
         P = solve_discrete_are(A, B, Q, R)
         K = np.linalg.pinv(R + B.T @ P @ B) @ B.T @ P @ A
         return K, P
@@ -82,13 +87,17 @@ class LQDynamics:
         f_dot = torch.mm(self.A, x.T) + torch.mm(self.B, u.T)
         return f_dot.T
 
-    def prediction(self,
-                   x_t: Union[torch.Tensor, np.ndarray], u_t: Union[torch.Tensor, np.ndarray]
-                   ) -> Union[torch.Tensor, np.ndarray]:
+    def prediction(
+        self, x_t: Union[torch.Tensor, np.ndarray], u_t: Union[torch.Tensor, np.ndarray]
+    ) -> Union[torch.Tensor, np.ndarray]:
         numpy_flag = False
         if isinstance(x_t, np.ndarray):
-            x_t = torch.as_tensor(x_t, dtype=torch.float32, device=self.device).unsqueeze(0)
-            u_t = torch.as_tensor(u_t, dtype=torch.float32, device=self.device).unsqueeze(0)
+            x_t = torch.as_tensor(
+                x_t, dtype=torch.float32, device=self.device
+            ).unsqueeze(0)
+            u_t = torch.as_tensor(
+                u_t, dtype=torch.float32, device=self.device
+            ).unsqueeze(0)
             numpy_flag = True
 
         tmp = torch.mm(self.B, u_t.T) * self.time_step + x_t.T
@@ -100,7 +109,7 @@ class LQDynamics:
         return x_next
 
     def compute_reward(
-            self, x_t: Union[torch.Tensor, np.ndarray], u_t: Union[torch.Tensor, np.ndarray]
+        self, x_t: Union[torch.Tensor, np.ndarray], u_t: Union[torch.Tensor, np.ndarray]
     ) -> Union[torch.Tensor, np.ndarray]:
         """
         reward in torch, batch operation
@@ -116,12 +125,18 @@ class LQDynamics:
         """
         numpy_flag = False
         if isinstance(x_t, np.ndarray):
-            x_t = torch.as_tensor(x_t, dtype=torch.float32, device=self.device).unsqueeze(0)
-            u_t = torch.as_tensor(u_t, dtype=torch.float32, device=self.device).unsqueeze(0)
+            x_t = torch.as_tensor(
+                x_t, dtype=torch.float32, device=self.device
+            ).unsqueeze(0)
+            u_t = torch.as_tensor(
+                u_t, dtype=torch.float32, device=self.device
+            ).unsqueeze(0)
             numpy_flag = True
         reward_state = torch.sum(torch.pow(x_t, 2) * self.Q, dim=-1)
         reward_action = torch.sum(torch.pow(u_t, 2) * self.R, dim=-1)
-        reward = self.reward_scale * (self.reward_shift - 1.0 * (reward_state + reward_action))
+        reward = self.reward_scale * (
+            self.reward_shift - 1.0 * (reward_state + reward_action)
+        )
         if numpy_flag:
             reward = reward[0].item()
         return reward
@@ -144,7 +159,7 @@ class LqEnv(PythBaseEnv):
         self.is_constraint = kwargs.get("is_constraint", False)
 
         self.config = config
-        self.max_episode_steps = config['max_step']
+        self.max_episode_steps = config["max_step"]
         self.dynamics = LQDynamics(config)
 
         state_high = np.array(config["state_high"], dtype=np.float32)
@@ -164,7 +179,9 @@ class LqEnv(PythBaseEnv):
         self.obs = None
 
         self.first_rendering = True
-        self.state_buffer = np.zeros((MAX_BUFFER, self.observation_dim), dtype=np.float32)
+        self.state_buffer = np.zeros(
+            (MAX_BUFFER, self.observation_dim), dtype=np.float32
+        )
         self.action_buffer = np.zeros((MAX_BUFFER, self.action_dim), dtype=np.float32)
         self.step_counter = 0
         self.num_figures = self.observation_dim + self.action_dim
@@ -224,9 +241,9 @@ class LqEnv(PythBaseEnv):
         render 很快
         """
         x_state = range(self.step_counter + 1)
-        y_state = self.state_buffer[0: self.step_counter + 1, :]
+        y_state = self.state_buffer[0 : self.step_counter + 1, :]
         x_actions = range(self.step_counter)
-        y_action = self.action_buffer[0: self.step_counter, :]
+        y_action = self.action_buffer[0 : self.step_counter, :]
 
         if self.first_rendering:
             self.fig = plt.figure()
@@ -244,7 +261,9 @@ class LqEnv(PythBaseEnv):
                 ax.set_xlim([0, self.config["max_step"] + 5])
 
             for idx_a in range(self.action_dim):
-                ax = self.fig.add_subplot(self.nrow, self.ncol, idx_a + self.observation_dim + 1)
+                ax = self.fig.add_subplot(
+                    self.nrow, self.ncol, idx_a + self.observation_dim + 1
+                )
                 (line,) = ax.plot(x_actions, y_action[:, idx_a], color="b")
                 self.lines.append(line)
                 self.axes.append(ax)
@@ -270,8 +289,12 @@ class LqEnv(PythBaseEnv):
             for idx_a in range(self.action_dim):
                 self.lines[self.observation_dim + idx_a].set_xdata(x_state)
                 self.lines[self.observation_dim + idx_a].set_ydata(y_state[:, idx_a])
-                self.axes[self.observation_dim + idx_a].draw_artist(self.axes[self.observation_dim + idx_a].patch)
-                self.axes[self.observation_dim + idx_a].draw_artist(self.lines[self.observation_dim + idx_a])
+                self.axes[self.observation_dim + idx_a].draw_artist(
+                    self.axes[self.observation_dim + idx_a].patch
+                )
+                self.axes[self.observation_dim + idx_a].draw_artist(
+                    self.lines[self.observation_dim + idx_a]
+                )
 
         self.update_canvas()
 
@@ -283,7 +306,9 @@ class LqEnv(PythBaseEnv):
         elif hasattr(self.fig.canvas, "draw"):
             self.fig.canvas.draw()
         else:
-            raise RuntimeError("In current matplotlib backend, canvas has no attr update or draw, cannot rend")
+            raise RuntimeError(
+                "In current matplotlib backend, canvas has no attr update or draw, cannot rend"
+            )
 
     def close(self):
         plt.cla()
@@ -291,10 +316,11 @@ class LqEnv(PythBaseEnv):
 
 
 class LqModel(PythBaseModel):
-    def __init__(self,
-                 config: dict,
-                 device: Union[torch.device, str, None] = None,
-                 ):
+    def __init__(
+        self,
+        config: dict,
+        device: Union[torch.device, str, None] = None,
+    ):
         """
         you need to define parameters here
         """
@@ -317,8 +343,13 @@ class LqModel(PythBaseModel):
         self.dynamics = LQDynamics(config, device)
         self.P = torch.as_tensor(self.dynamics.P, dtype=torch.float32)
 
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+    def forward(
+        self,
+        obs: torch.Tensor,
+        action: torch.Tensor,
+        done: torch.Tensor,
+        info: InfoDict,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         next_obs = self.dynamics.prediction(obs, action)
         reward = self.dynamics.compute_reward(obs, action).reshape(-1)
         done = torch.full([obs.size()[0]], False, dtype=torch.bool, device=self.device)
@@ -333,6 +364,7 @@ def test_check():
     from gops.env.env_ocp.resources.lq_configs import config_s3a1
     from gops.env.tools.env_data_checker import check_env0
     from gops.env.tools.env_model_checker import check_model0
+
     env = LqEnv(config_s3a1)
     model = LqModel(config_s3a1)
     check_env0(env)

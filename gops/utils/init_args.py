@@ -54,17 +54,15 @@ def init_args(env, **args):
     else:
         args["obsv_dim"] = env.observation_space.shape
 
-    if (
-        args["action_type"] == "continu"
-    ):
+    if args["action_type"] == "continu":
         # get dimension of continuous action or num of discrete action
         args["action_dim"] = (
             env.action_space.shape[0]
             if len(env.action_space.shape) == 1
             else env.action_space.shape
         )
-        args["action_high_limit"] = env.action_space.high.astype('float32')
-        args["action_low_limit"] = env.action_space.low.astype('float32')
+        args["action_high_limit"] = env.action_space.high.astype("float32")
+        args["action_low_limit"] = env.action_space.low.astype("float32")
     else:
         args["action_dim"] = 1
         args["action_num"] = env.action_space.n
