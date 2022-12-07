@@ -48,6 +48,7 @@ class DetermPolicy(nn.Module, Action_Distribution):
     Input: observation.
     Output: action.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -77,6 +78,7 @@ class FiniteHorizonPolicy(nn.Module, Action_Distribution):
     Input: observation, time step.
     Output: action.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"] + 1
@@ -94,8 +96,10 @@ class FiniteHorizonPolicy(nn.Module, Action_Distribution):
         self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs, virtual_t=1):
-        virtual_t = virtual_t * torch.ones(size=[obs.shape[0], 1],dtype=torch.float32, device=obs.device)
-        expand_obs = torch.cat((obs,virtual_t),1)
+        virtual_t = virtual_t * torch.ones(
+            size=[obs.shape[0], 1], dtype=torch.float32, device=obs.device
+        )
+        expand_obs = torch.cat((obs, virtual_t), 1)
         action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(
             self.pi(expand_obs)
         ) + (self.act_high_lim + self.act_low_lim) / 2
@@ -109,6 +113,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
     Input: observation.
     Output: parameters of action distribution.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -161,7 +166,9 @@ class StochaPolicy(nn.Module, Action_Distribution):
             ).exp()
         elif self.std_sype == "mlp_shared":
             logits = self.policy(obs)
-            action_mean, action_log_std = torch.chunk(logits, chunks=2, dim=-1)  # output the mean
+            action_mean, action_log_std = torch.chunk(
+                logits, chunks=2, dim=-1
+            )  # output the mean
             action_std = torch.clamp(
                 action_log_std, self.min_log_std, self.max_log_std
             ).exp()
@@ -181,6 +188,7 @@ class ActionValue(nn.Module, Action_Distribution):
     Input: observation, action.
     Output: action-value.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -204,6 +212,7 @@ class ActionValueDis(nn.Module, Action_Distribution):
     Input: observation.
     Output: action-value for all action.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -226,6 +235,7 @@ class ActionValueDistri(nn.Module):
     Input: observation.
     Output: parameters of action-value distribution.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -264,6 +274,7 @@ class StochaPolicyDis(ActionValueDis, Action_Distribution):
     Input: observation.
     Output: parameters of action distribution.
     """
+
     pass
 
 
@@ -273,6 +284,7 @@ class StateValue(nn.Module, Action_Distribution):
     Input: observation, action.
     Output: state-value.
     """
+
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -287,4 +299,3 @@ class StateValue(nn.Module, Action_Distribution):
     def forward(self, obs):
         v = self.v(obs)
         return torch.squeeze(v, -1)
-

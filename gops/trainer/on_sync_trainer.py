@@ -61,7 +61,9 @@ class OnSyncTrainer:
 
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
         # flush tensorboard at the beginning
-        add_scalars({tb_tags["alg_time"]: 0, tb_tags["sampler_time"]: 0}, self.writer, 0)
+        add_scalars(
+            {tb_tags["alg_time"]: 0, tb_tags["sampler_time"]: 0}, self.writer, 0
+        )
         self.writer.flush()
 
         self.use_gpu = kwargs["use_gpu"]
@@ -106,17 +108,21 @@ class OnSyncTrainer:
                 self.evaluator.run_evaluation.remote(self.iteration)
             )
 
-            if total_avg_return > self.best_tar and self.iteration >= self.max_iteration / 5:
+            if (
+                total_avg_return > self.best_tar
+                and self.iteration >= self.max_iteration / 5
+            ):
                 self.best_tar = total_avg_return
-                print('Best return = {}!'.format(str(self.best_tar)))
+                print("Best return = {}!".format(str(self.best_tar)))
 
                 for filename in os.listdir(self.save_folder + "/apprfunc/"):
                     if filename.endswith("_opt.pkl"):
                         os.remove(self.save_folder + "/apprfunc/" + filename)
-                
+
                 torch.save(
                     self.networks.state_dict(),
-                    self.save_folder + "/apprfunc/apprfunc_{}_opt.pkl".format(self.iteration),
+                    self.save_folder
+                    + "/apprfunc/apprfunc_{}_opt.pkl".format(self.iteration),
                 )
 
             self.writer.add_scalar(

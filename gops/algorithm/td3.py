@@ -68,23 +68,26 @@ class ApproxContainer(ApprBase):
 
 class TD3(AlgorithmBase):
     """
-        Twin Delayed Deep Deterministic policy gradient (TD3) algorithm
+    Twin Delayed Deep Deterministic policy gradient (TD3) algorithm
 
-        Paper: https://arxiv.org/pdf/1802.09477.pdf
+    Paper: https://arxiv.org/pdf/1802.09477.pdf
 
-        Args:
-            list    action_high_limit   : action limit for available actions.
-            float   target_noise        : action noise for target pi network. Default to 0.2
-            float   noise_clip          : range [-noise_clip, noise_clip] for target_noise. Default to 0.5
-            string  buffer_name         : buffer type. Default to 'replay_buffer'.
-            int     index               : for calculating offset of random seed for subprocess. Default to 0.
+    Args:
+        list    action_high_limit   : action limit for available actions.
+        float   target_noise        : action noise for target pi network. Default to 0.2
+        float   noise_clip          : range [-noise_clip, noise_clip] for target_noise. Default to 0.5
+        string  buffer_name         : buffer type. Default to 'replay_buffer'.
+        int     index               : for calculating offset of random seed for subprocess. Default to 0.
     """
-    def __init__(self,
+
+    def __init__(
+        self,
         target_noise=0.2,
         noise_clip=0.5,
         buffer_name="replay_buffer",
-        index=0, **kwargs
-        ):
+        index=0,
+        **kwargs
+    ):
         super(TD3, self).__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
         self.target_noise = target_noise
@@ -95,7 +98,7 @@ class TD3(AlgorithmBase):
         self.tau = 0.005
         self.delay_update = 2
         self.reward_scale = 1
-        self.per_flag = (buffer_name == "prioritized_replay_buffer")
+        self.per_flag = buffer_name == "prioritized_replay_buffer"
 
     @property
     def adjustable_parameters(self):
@@ -127,9 +130,11 @@ class TD3(AlgorithmBase):
                 data["obs2"],
                 data["done"],
                 data["idx"],
-                data["weight"]
+                data["weight"],
             )
-            loss_q, loss_q1, loss_q2, abs_err = self.__compute_loss_q_per(o, a, r, o2, d, idx, weight)
+            loss_q, loss_q1, loss_q2, abs_err = self.__compute_loss_q_per(
+                o, a, r, o2, d, idx, weight
+            )
             loss_q.backward()
 
         for p in self.networks.q1.parameters():
@@ -167,7 +172,11 @@ class TD3(AlgorithmBase):
             epsilon = torch.randn_like(pi_targ) * self.target_noise
             epsilon = torch.clamp(epsilon, -self.noise_clip, self.noise_clip)
             a2 = pi_targ + epsilon
-            a2 = torch.clamp(a2, torch.tensor(self.act_low_limit).to(a2.device), torch.tensor(self.act_high_limit).to(a2.device))
+            a2 = torch.clamp(
+                a2,
+                torch.tensor(self.act_low_limit).to(a2.device),
+                torch.tensor(self.act_high_limit).to(a2.device),
+            )
 
             # Target Q-values
             q1_pi_targ = self.networks.q1_target(o2, a2)
@@ -193,7 +202,11 @@ class TD3(AlgorithmBase):
             epsilon = torch.randn_like(pi_targ) * self.target_noise
             epsilon = torch.clamp(epsilon, -self.noise_clip, self.noise_clip)
             a2 = pi_targ + epsilon
-            a2 = torch.clamp(a2, torch.tensor(self.act_low_limit).to(a2.device), torch.tensor(self.act_high_limit).to(a2.device))
+            a2 = torch.clamp(
+                a2,
+                torch.tensor(self.act_low_limit).to(a2.device),
+                torch.tensor(self.act_high_limit).to(a2.device),
+            )
 
             # Target Q-values
             q1_pi_targ = self.networks.q1_target(o2, a2)
@@ -222,14 +235,19 @@ class TD3(AlgorithmBase):
 
         with torch.no_grad():
             polyak = 1 - self.tau
-            for p, p_targ in zip(self.networks.q1.parameters(), self.networks.q1_target.parameters()):
-                p_targ.data.mul_(polyak)
-                p_targ.data.add_((1 - polyak) * p.data)
-            for p, p_targ in zip(self.networks.q2.parameters(), self.networks.q2_target.parameters()):
+            for p, p_targ in zip(
+                self.networks.q1.parameters(), self.networks.q1_target.parameters()
+            ):
                 p_targ.data.mul_(polyak)
                 p_targ.data.add_((1 - polyak) * p.data)
             for p, p_targ in zip(
-                    self.networks.policy.parameters(), self.networks.policy_target.parameters()
+                self.networks.q2.parameters(), self.networks.q2_target.parameters()
+            ):
+                p_targ.data.mul_(polyak)
+                p_targ.data.add_((1 - polyak) * p.data)
+            for p, p_targ in zip(
+                self.networks.policy.parameters(),
+                self.networks.policy_target.parameters(),
             ):
                 p_targ.data.mul_(polyak)
                 p_targ.data.add_((1 - polyak) * p.data)

@@ -75,6 +75,7 @@ class INFADP(AlgorithmBase):
     :param float gamma: discount factor.
     :param float tau: param for soft update of target network.
     """
+
     def __init__(self, index=0, **kwargs):
         super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
@@ -88,7 +89,14 @@ class INFADP(AlgorithmBase):
 
     @property
     def adjustable_parameters(self):
-        para_tuple = ("gamma", "tau", "pev_step", "pim_step", "forward_step", "reward_scale")
+        para_tuple = (
+            "gamma",
+            "tau",
+            "pev_step",
+            "pim_step",
+            "forward_step",
+            "reward_scale",
+        )
         return para_tuple
 
     def local_update(self, data: dict, iteration: int) -> dict:
@@ -100,7 +108,9 @@ class INFADP(AlgorithmBase):
         update_list = self.__compute_gradient(data, iteration)
         update_info = dict()
         for net_name in update_list:
-            update_info[net_name] = [p.grad for p in self.networks.net_dict[net_name].parameters()]
+            update_info[net_name] = [
+                p.grad for p in self.networks.net_dict[net_name].parameters()
+            ]
         return self.tb_info, update_info
 
     def remote_update(self, update_info: dict):
@@ -117,8 +127,8 @@ class INFADP(AlgorithmBase):
         with torch.no_grad():
             for net_name in update_list:
                 for p, p_targ in zip(
-                        self.networks.net_dict[net_name].parameters(),
-                        self.networks.target_net_dict[net_name].parameters(),
+                    self.networks.net_dict[net_name].parameters(),
+                    self.networks.target_net_dict[net_name].parameters(),
                 ):
                     p_targ.data.mul_(1 - tau)
                     p_targ.data.add_(tau * p.data)
@@ -163,15 +173,15 @@ class INFADP(AlgorithmBase):
                 if step == 0:
                     a = self.networks.policy(o)
                     o2, r, d, info = self.envmodel.forward(o, a, d, info_init)
-                    backup =  r
+                    backup = r
                 else:
                     o = o2
                     a = self.networks.policy(o)
                     o2, r, d, info = self.envmodel.forward(o, a, d, info)
-                    backup +=  self.gamma ** step * r
+                    backup += self.gamma**step * r
 
             backup += (
-                    (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
+                (~d) * self.gamma**self.forward_step * self.networks.v_target(o2)
             )
         loss_v = ((v - backup) ** 2).mean()
         return loss_v, torch.mean(v)
@@ -192,13 +202,13 @@ class INFADP(AlgorithmBase):
             if step == 0:
                 a = self.networks.policy(o)
                 o2, r, d, info = self.envmodel.forward(o, a, d, info_init)
-                v_pi =  r
+                v_pi = r
             else:
                 o = o2
                 a = self.networks.policy(o)
                 o2, r, d, info = self.envmodel.forward(o, a, d, info)
-                v_pi +=  self.gamma ** step * r
-        v_pi += (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
+                v_pi += self.gamma**step * r
+        v_pi += (~d) * self.gamma**self.forward_step * self.networks.v_target(o2)
         for p in self.networks.v.parameters():
             p.requires_grad = True
         return -v_pi.mean()

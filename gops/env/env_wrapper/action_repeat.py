@@ -60,20 +60,26 @@ class ActionRepeatModel(ModelWrapper):
     :param bool sum_reward: sum the rewards during repeating steps, if set to False,
         only use reward in last step.
     """
-    def __init__(self,
-                 model: PythBaseModel,
-                 repeat_num: int = 1,
-                 sum_reward: bool = True
-                 ):
+
+    def __init__(
+        self, model: PythBaseModel, repeat_num: int = 1, sum_reward: bool = True
+    ):
         super(ActionRepeatModel, self).__init__(model)
         self.repeat_num = repeat_num
         self.sum_reward = sum_reward
 
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+    def forward(
+        self,
+        obs: torch.Tensor,
+        action: torch.Tensor,
+        done: torch.Tensor,
+        info: InfoDict,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         sum_reward = 0
         for _ in range(self.repeat_num):
-            next_obs, reward, next_done, next_info = self.model.forward(obs, action, done, info)
+            next_obs, reward, next_done, next_info = self.model.forward(
+                obs, action, done, info
+            )
             sum_reward += reward
             obs, done, info = next_obs, done, info
         if not self.sum_reward:

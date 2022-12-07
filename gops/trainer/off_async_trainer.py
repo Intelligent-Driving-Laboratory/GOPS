@@ -36,9 +36,11 @@ class OffAsyncTrainer:
         self.algs = alg
         self.samplers = sampler
         self.buffers = buffer
-        self.per_flag = (kwargs["buffer_name"] == "prioritized_replay_buffer")
-        if self.per_flag and kwargs["num_buffers"]> 1:
-            raise RuntimeError("Using multiple prioritized_replay_buffers is not supported!")
+        self.per_flag = kwargs["buffer_name"] == "prioritized_replay_buffer"
+        if self.per_flag and kwargs["num_buffers"] > 1:
+            raise RuntimeError(
+                "Using multiple prioritized_replay_buffers is not supported!"
+            )
         self.evaluator = evaluator
 
         # create center network
@@ -70,7 +72,9 @@ class OffAsyncTrainer:
 
         self.writer = SummaryWriter(log_dir=self.save_folder, flush_secs=20)
         # flush tensorboard at the beginning
-        add_scalars({tb_tags["alg_time"]: 0, tb_tags["sampler_time"]: 0}, self.writer, 0)
+        add_scalars(
+            {tb_tags["alg_time"]: 0, tb_tags["sampler_time"]: 0}, self.writer, 0
+        )
         self.writer.flush()
 
         # create sample tasks and pre sampling
@@ -79,21 +83,15 @@ class OffAsyncTrainer:
 
         self.warm_size = kwargs["buffer_warm_size"]
         while not all(
-                [
-                    l >= self.warm_size
-                    for l in ray.get([rb.__len__.remote() for rb in self.buffers])
-                ]
+            [
+                l >= self.warm_size
+                for l in ray.get([rb.__len__.remote() for rb in self.buffers])
+            ]
         ):
-            for sampler, objID in list(
-                    self.sample_tasks.completed()
-            ):
+            for sampler, objID in list(self.sample_tasks.completed()):
                 batch_data, _ = ray.get(objID)
-                random.choice(self.buffers).add_batch.remote(
-                    batch_data
-                )
-                self.sample_tasks.add(
-                    sampler, sampler.sample.remote()
-                )
+                random.choice(self.buffers).add_batch.remote(batch_data)
+                self.sample_tasks.add(sampler, sampler.sample.remote())
 
         # create alg tasks and start computing gradient
         self.learn_tasks = TaskPool()
@@ -117,9 +115,7 @@ class OffAsyncTrainer:
         for alg in self.algs:
             alg.load_state_dict.remote(weights)
             buffer, _ = random_choice_with_index(self.buffers)
-            data = ray.get(
-                buffer.sample_batch.remote(self.replay_batch_size)
-            )
+            data = ray.get(buffer.sample_batch.remote(self.replay_batch_size))
             self.learn_tasks.add(
                 alg, alg.get_remote_update_info.remote(data, self.iteration)
             )
@@ -132,25 +128,23 @@ class OffAsyncTrainer:
                 weights = ray.put(self.networks.state_dict())
                 for sampler, objID in self.sample_tasks.completed():
                     batch_data, sampler_tb_dict = ray.get(objID)
-                    random.choice(self.buffers).add_batch.remote(
-                        batch_data
-                    )
+                    random.choice(self.buffers).add_batch.remote(batch_data)
                     sampler.load_state_dict.remote(weights)
                     self.sample_tasks.add(sampler, sampler.sample.remote())
 
         # learning
         for alg, objID in self.learn_tasks.completed():
             if self.per_flag:
-                extra_info,update_info = ray.get(objID)
+                extra_info, update_info = ray.get(objID)
                 alg_tb_dict, idx, new_priority = extra_info
                 self.buffers[0].update_batch.remote(idx, new_priority)
             else:
                 alg_tb_dict, update_info = ray.get(objID)
 
             # replay
-            data = ray.get(random.choice(self.buffers).sample_batch.remote(
-                self.replay_batch_size
-            ))
+            data = ray.get(
+                random.choice(self.buffers).sample_batch.remote(self.replay_batch_size)
+            )
             if self.use_gpu:
                 for k, v in data.items():
                     data[k] = v.cuda()
@@ -181,23 +175,31 @@ class OffAsyncTrainer:
                 total_avg_return = ray.get(
                     self.evaluator.run_evaluation.remote(self.iteration)
                 )
-                
-                if total_avg_return > self.best_tar and self.iteration >= self.max_iteration / 5:
+
+                if (
+                    total_avg_return > self.best_tar
+                    and self.iteration >= self.max_iteration / 5
+                ):
                     self.best_tar = total_avg_return
-                    print('Best return = {}!'.format(str(self.best_tar)))
+                    print("Best return = {}!".format(str(self.best_tar)))
 
                     for filename in os.listdir(self.save_folder + "/apprfunc/"):
                         if filename.endswith("_opt.pkl"):
                             os.remove(self.save_folder + "/apprfunc/" + filename)
-                    
+
                     torch.save(
                         self.networks.state_dict(),
-                        self.save_folder + "/apprfunc/apprfunc_{}_opt.pkl".format(self.iteration),
+                        self.save_folder
+                        + "/apprfunc/apprfunc_{}_opt.pkl".format(self.iteration),
                     )
 
                 self.writer.add_scalar(
                     tb_tags["Buffer RAM of RL iteration"],
-                    sum(ray.get([buffer.__get_RAM__.remote() for buffer in self.buffers])),
+                    sum(
+                        ray.get(
+                            [buffer.__get_RAM__.remote() for buffer in self.buffers]
+                        )
+                    ),
                     self.iteration,
                 )
                 self.writer.add_scalar(

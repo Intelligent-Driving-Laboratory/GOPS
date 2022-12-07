@@ -4,14 +4,9 @@ import typing
 import gym.spaces.box
 import numpy
 
-__all__ = [
-    "GymEnv",
-    "RawEnv",
-    "lqs2a1"
-]
+__all__ = ["GymEnv", "RawEnv", "lqs2a1"]
 
-
-class GymEnv():
+class GymEnv:
     def __enter__(self) -> object: ...
     def __exit__(self, arg0: object, arg1: object, arg2: object) -> bool: ...
     @typing.overload
@@ -20,8 +15,12 @@ class GymEnv():
     def __init__(self, spec: _env.EnvSpec) -> None: ...
     def __repr__(self) -> str: ...
     def close(self) -> None: ...
-    def render(self, mode: str = 'human') -> None: ...
-    def reset(self, preinit: typing.Callable[[], None] = None, postinit: typing.Callable[[], None] = None) -> numpy.ndarray: ...
+    def render(self, mode: str = "human") -> None: ...
+    def reset(
+        self,
+        preinit: typing.Callable[[], None] = None,
+        postinit: typing.Callable[[], None] = None,
+    ) -> numpy.ndarray: ...
     @typing.overload
     def seed(self) -> typing.List[int]: ...
     @typing.overload
@@ -42,12 +41,13 @@ class GymEnv():
         """
         :type: object
         """
-    action_space: gym.spaces.box.Box # value = Box([-5.], [5.], (1,), float64)
-    metadata = {'render.modes': []}
-    observation_space: gym.spaces.box.Box # value = Box([-20. -20.], [20. 20.], (2,), float64)
-    reward_range: tuple # value = (-inf, inf)
+    action_space: gym.spaces.box.Box  # value = Box([-5.], [5.], (1,), float64)
+    metadata = {"render.modes": []}
+    observation_space: gym.spaces.box.Box  # value = Box([-20. -20.], [20. 20.], (2,), float64)
+    reward_range: tuple  # value = (-inf, inf)
     pass
-class RawEnv():
+
+class RawEnv:
     def __init__(self) -> None: ...
     def reset(self) -> lqs2a1.ExtY_lqs2a1_T: ...
     @typing.overload
@@ -61,8 +61,9 @@ class RawEnv():
         :type: lqs2a1
         """
     pass
-class lqs2a1():
-    class B_lqs2a1_T():
+
+class lqs2a1:
+    class B_lqs2a1_T:
         def __copy__(self) -> lqs2a1.B_lqs2a1_T: ...
         def __deepcopy__(self, memo: dict) -> lqs2a1.B_lqs2a1_T: ...
         def __init__(self) -> None: ...
@@ -84,9 +85,12 @@ class lqs2a1():
         @Sum1.setter
         def Sum1(self, arg0: float) -> None:
             pass
-        dtype: numpy.dtype[numpy.void] # value = dtype([('MultiportSwitch2', '<f8'), ('Sum1', '<f8')])
+        dtype: numpy.dtype[
+            numpy.void
+        ]  # value = dtype([('MultiportSwitch2', '<f8'), ('Sum1', '<f8')])
         pass
-    class ExtU_lqs2a1_T():
+
+    class ExtU_lqs2a1_T:
         def __copy__(self) -> lqs2a1.ExtU_lqs2a1_T: ...
         def __deepcopy__(self, memo: dict) -> lqs2a1.ExtU_lqs2a1_T: ...
         def __init__(self) -> None: ...
@@ -108,9 +112,12 @@ class lqs2a1():
         @AdverAction.setter
         def AdverAction(self, arg0: float) -> None:
             pass
-        dtype: numpy.dtype[numpy.void] # value = dtype([('Action', '<f8'), ('AdverAction', '<f8')])
+        dtype: numpy.dtype[
+            numpy.void
+        ]  # value = dtype([('Action', '<f8'), ('AdverAction', '<f8')])
         pass
-    class ExtY_lqs2a1_T():
+
+    class ExtY_lqs2a1_T:
         def __copy__(self) -> lqs2a1.ExtY_lqs2a1_T: ...
         def __deepcopy__(self, memo: dict) -> lqs2a1.ExtY_lqs2a1_T: ...
         def __init__(self) -> None: ...
@@ -137,9 +144,12 @@ class lqs2a1():
             """
             :type: numpy.ndarray
             """
-        dtype: numpy.dtype[numpy.void] # value = dtype({'names': ['State', 'Done', 'Reward'], 'formats': [('<f8', (2,)), '?', '<f8'], 'offsets': [0, 16, 24], 'itemsize': 32})
+        dtype: numpy.dtype[
+            numpy.void
+        ]  # value = dtype({'names': ['State', 'Done', 'Reward'], 'formats': [('<f8', (2,)), '?', '<f8'], 'offsets': [0, 16, 24], 'itemsize': 32})
         pass
-    class InstP_lqs2a1_T():
+
+    class InstP_lqs2a1_T:
         def __copy__(self) -> lqs2a1.InstP_lqs2a1_T: ...
         def __deepcopy__(self, memo: dict) -> lqs2a1.InstP_lqs2a1_T: ...
         def __init__(self) -> None: ...
@@ -163,9 +173,12 @@ class lqs2a1():
             """
             :type: numpy.ndarray
             """
-        dtype: numpy.dtype[numpy.void] # value = dtype([('Q', '<f8', (2,)), ('x_ini', '<f8', (2,)), ('R', '<f8')])
+        dtype: numpy.dtype[
+            numpy.void
+        ]  # value = dtype([('Q', '<f8', (2,)), ('x_ini', '<f8', (2,)), ('R', '<f8')])
         pass
-    class X_lqs2a1_T():
+
+    class X_lqs2a1_T:
         def __copy__(self) -> lqs2a1.X_lqs2a1_T: ...
         def __deepcopy__(self, memo: dict) -> lqs2a1.X_lqs2a1_T: ...
         def __init__(self) -> None: ...
@@ -184,12 +197,14 @@ class lqs2a1():
         @TransferFcn_CSTATE.setter
         def TransferFcn_CSTATE(self, arg0: float) -> None:
             pass
-        dtype: numpy.dtype[numpy.void] # value = dtype([('Plant_CSTATE', '<f8', (2,)), ('TransferFcn_CSTATE', '<f8')])
+        dtype: numpy.dtype[
+            numpy.void
+        ]  # value = dtype([('Plant_CSTATE', '<f8', (2,)), ('TransferFcn_CSTATE', '<f8')])
         pass
     def __init__(self) -> None: ...
     def __repr__(self) -> str: ...
     def initialize(self) -> None: ...
-    def skip(self, n: int) -> None: 
+    def skip(self, n: int) -> None:
         """
         Skip n steps, using current model input
         """
@@ -238,6 +253,7 @@ class lqs2a1():
         pass
     sample_time = 0.05
     pass
-__all__ = ('RawEnv', 'GymEnv', 'lqs2a1')
-__author__ = 'hjzsj'
-__version__ = '10.16'
+
+__all__ = ("RawEnv", "GymEnv", "lqs2a1")
+__author__ = "hjzsj"
+__version__ = "10.16"

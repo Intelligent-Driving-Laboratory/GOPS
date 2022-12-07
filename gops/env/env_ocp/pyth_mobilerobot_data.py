@@ -37,11 +37,17 @@ class PythMobilerobot(PythBaseEnv):
             error_low = np.zeros(3, dtype=np.float32)
 
             # initial range of obstacle
-            obstacle_high = np.array([6, -1, np.pi/2+0.3, 0.25, 0], dtype=np.float32)
-            obstacle_low = np.array([3, -3, np.pi/2-0.3, 0.2, 0], dtype=np.float32)
+            obstacle_high = np.array(
+                [6, -1, np.pi / 2 + 0.3, 0.25, 0], dtype=np.float32
+            )
+            obstacle_low = np.array([3, -3, np.pi / 2 - 0.3, 0.2, 0], dtype=np.float32)
 
-            init_high = np.concatenate([robot_high, error_high] + [obstacle_high] * self.n_obstacle)
-            init_low = np.concatenate([robot_low, error_low] + [obstacle_low] * self.n_obstacle)
+            init_high = np.concatenate(
+                [robot_high, error_high] + [obstacle_high] * self.n_obstacle
+            )
+            init_low = np.concatenate(
+                [robot_low, error_low] + [obstacle_low] * self.n_obstacle
+            )
             work_space = np.stack((init_low, init_high))
         super(PythMobilerobot, self).__init__(work_space=work_space, **kwargs)
 
@@ -59,7 +65,9 @@ class PythMobilerobot(PythBaseEnv):
             + [-30, -30, -np.pi, -1, -np.pi / 2] * self.n_obstacle
         )
         hb_state = np.array(
-            [60, 30, np.pi, 1, np.pi / 2] + [30, np.pi, 2] + [30, 30, np.pi, 1, np.pi / 2] * self.n_obstacle
+            [60, 30, np.pi, 1, np.pi / 2]
+            + [30, np.pi, 2]
+            + [30, 30, np.pi, 1, np.pi / 2] * self.n_obstacle
         )
         lb_action = np.array([-0.4, -np.pi / 3])
         hb_action = np.array([0.4, np.pi / 3])
@@ -100,14 +108,16 @@ class PythMobilerobot(PythBaseEnv):
         action = action.reshape(1, -1)
         for i in range(1 + self.n_obstacle):
             if i == 0:
-                robot_state = self.robot.f_xu(self._state[:, :5], action.reshape(1, -1), self.dt, "ego")
+                robot_state = self.robot.f_xu(
+                    self._state[:, :5], action.reshape(1, -1), self.dt, "ego"
+                )
                 tracking_error = self.robot.tracking_error(robot_state)
                 state_next = np.concatenate((robot_state, tracking_error), 1)
 
             else:
                 obs_state = self.robot.f_xu(
-                    self._state[:, 3 + i * 5: 3 + i * 5 + 5],
-                    self._state[:, 3 + i * 5 + 3: 3 + i * 5 + 5],
+                    self._state[:, 3 + i * 5 : 3 + i * 5 + 5],
+                    self._state[:, 3 + i * 5 + 3 : 3 + i * 5 + 5],
                     self.dt,
                     "obs",
                 )
@@ -116,7 +126,11 @@ class PythMobilerobot(PythBaseEnv):
         self._state = state_next
 
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
-        r_tracking = -3.2 * np.abs(tracking_error[:, 0]) - 10 * np.abs(tracking_error[:, 1]) - 1.6 * np.abs(tracking_error[:, 2])
+        r_tracking = (
+            -3.2 * np.abs(tracking_error[:, 0])
+            - 10 * np.abs(tracking_error[:, 1])
+            - 1.6 * np.abs(tracking_error[:, 2])
+        )
         r_action = -0 * np.abs(action[:, 0]) - 0 * np.abs(action[:, 1])
         reward = r_tracking + r_action
 
@@ -129,24 +143,45 @@ class PythMobilerobot(PythBaseEnv):
 
         self.steps += 1
         info = {"constraint": constraint}
-        return np.array(self._state.reshape(-1), dtype=np.float32), float(reward), isdone, info
+        return (
+            np.array(self._state.reshape(-1), dtype=np.float32),
+            float(reward),
+            isdone,
+            info,
+        )
 
     def get_done(self) -> np.ndarray:
         done = self._state[:, 0] < -2 or self._state[:, 1] > 4 or self._state[:, 1] < -4
         for i in range(self.n_obstacle):
-            crush = (((self._state[:, 8 + i * 5] - self._state[:, 0]) ** 2 +
-                    (self._state[:, 9 + i * 5] - self._state[:, 1]) ** 2)) ** 0.5 -\
-                    (self.robot.robot_params["radius"] + self.obses[i].robot_params["radius"]) < 0
+            crush = (
+                (
+                    (self._state[:, 8 + i * 5] - self._state[:, 0]) ** 2
+                    + (self._state[:, 9 + i * 5] - self._state[:, 1]) ** 2
+                )
+            ) ** 0.5 - (
+                self.robot.robot_params["radius"] + self.obses[i].robot_params["radius"]
+            ) < 0
             done = done or crush
         return done
-
 
     def get_constraint(self) -> np.ndarray:
         constraint = np.zeros((self._state.shape[0], self.n_obstacle))
         for i in range(self.n_obstacle):
-            safe_dis = self.robot.robot_params["radius"] + self.obses[i].robot_params["radius"] + self.safe_margin
-            constraint[:, i] = safe_dis - (((self._state[:, 8 + i * 5] - self._state[:, 0]) ** 2 +
-                                            (self._state[:, 9 + i * 5] - self._state[:, 1]) ** 2)) ** 0.5
+            safe_dis = (
+                self.robot.robot_params["radius"]
+                + self.obses[i].robot_params["radius"]
+                + self.safe_margin
+            )
+            constraint[:, i] = (
+                safe_dis
+                - (
+                    (
+                        (self._state[:, 8 + i * 5] - self._state[:, 0]) ** 2
+                        + (self._state[:, 9 + i * 5] - self._state[:, 1]) ** 2
+                    )
+                )
+                ** 0.5
+            )
         return constraint.reshape(-1)
 
     def render(self, mode: str = "human", n_window: int = 1):
@@ -168,8 +203,12 @@ class PythMobilerobot(PythBaseEnv):
                 circles[0].center = state[idx, :2]
                 arrows[0].set_data(arrow_pos(state[idx, :5]))
                 for k in range(self.n_obstacle):
-                    circles[k + 1].center = state[idx, 3 + (k + 1) * 5 : 3 + (k + 1) * 5 + 2]
-                    arrows[k + 1].set_data(arrow_pos(state[idx, 3 + (k + 1) * 5 : 3 + (k + 1) * 5 + 5]))
+                    circles[k + 1].center = state[
+                        idx, 3 + (k + 1) * 5 : 3 + (k + 1) * 5 + 2
+                    ]
+                    arrows[k + 1].set_data(
+                        arrow_pos(state[idx, 3 + (k + 1) * 5 : 3 + (k + 1) * 5 + 5])
+                    )
             plt.pause(0.02)
 
     def render_init(self, n_window: int = 1):
@@ -212,25 +251,49 @@ class PythMobilerobot(PythBaseEnv):
 class Robot:
     def __init__(self):
         self.robot_params = dict(
-            v_max=0.4, w_max=np.pi / 2, v_delta_max=1.8, w_delta_max=0.8, v_desired=0.3, radius=0.74 / 2  # per second
+            v_max=0.4,
+            w_max=np.pi / 2,
+            v_delta_max=1.8,
+            w_delta_max=0.8,
+            v_desired=0.3,
+            radius=0.74 / 2,  # per second
         )
         self.path = ReferencePath()
 
-    def f_xu(self, states: np.ndarray, actions: np.ndarray, T: float, type: str) -> np.ndarray:
+    def f_xu(
+        self, states: np.ndarray, actions: np.ndarray, T: float, type: str
+    ) -> np.ndarray:
         v_delta_max = self.robot_params["v_delta_max"]
         v_max = self.robot_params["v_max"]
         w_max = self.robot_params["w_max"]
         w_delta_max = self.robot_params["w_delta_max"]
-        std_type = {"ego": [0.0, 0.0], "obs": [0.03, 0.02], "none": [0, 0], "explore": [0.3, 0.3]}
+        std_type = {
+            "ego": [0.0, 0.0],
+            "obs": [0.03, 0.02],
+            "none": [0, 0],
+            "explore": [0.3, 0.3],
+        }
         stds = std_type[type]
 
-        x, y, theta, v, w = states[:, 0], states[:, 1], states[:, 2], states[:, 3], states[:, 4]
+        x, y, theta, v, w = (
+            states[:, 0],
+            states[:, 1],
+            states[:, 2],
+            states[:, 3],
+            states[:, 4],
+        )
         v_cmd, w_cmd = actions[:, 0], actions[:, 1]
 
         delta_v = np.clip(v_cmd - v, -v_delta_max * T, v_delta_max * T)
         delta_w = np.clip(w_cmd - w, -w_delta_max * T, w_delta_max * T)
-        v_cmd = np.clip(v + delta_v, -v_max, v_max) + np.random.normal(0, stds[0], [states.shape[0]]) * 0.5
-        w_cmd = np.clip(w + delta_w, -w_max, w_max) + np.random.normal(0, stds[1], [states.shape[0]]) * 0.5
+        v_cmd = (
+            np.clip(v + delta_v, -v_max, v_max)
+            + np.random.normal(0, stds[0], [states.shape[0]]) * 0.5
+        )
+        w_cmd = (
+            np.clip(w + delta_w, -w_max, w_max)
+            + np.random.normal(0, stds[1], [states.shape[0]]) * 0.5
+        )
         next_state = [
             x + T * np.cos(theta) * v_cmd,
             y + T * np.sin(theta) * v_cmd,
@@ -246,19 +309,27 @@ class Robot:
         error_head = x[:, 2] - self.path.compute_path_phi(x[:, 0])
 
         error_v = x[:, 3] - self.robot_params["v_desired"]
-        tracking = np.concatenate((error_position.reshape(-1, 1), error_head.reshape(-1, 1), error_v.reshape(-1, 1)), 1)
+        tracking = np.concatenate(
+            (
+                error_position.reshape(-1, 1),
+                error_head.reshape(-1, 1),
+                error_v.reshape(-1, 1),
+            ),
+            1,
+        )
         return tracking
+
 
 class ReferencePath(object):
     def __init__(self):
         pass
 
     def compute_path_y(self, x: np.ndarray) -> np.ndarray:
-        y = 0 * np.sin(1/3 * x)
+        y = 0 * np.sin(1 / 3 * x)
         return y
 
     def compute_path_phi(self, x: np.ndarray) -> np.ndarray:
-        deriv = 0 * np.cos(1/3 * x)
+        deriv = 0 * np.cos(1 / 3 * x)
         return np.arctan(deriv)
 
 

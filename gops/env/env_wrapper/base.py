@@ -24,11 +24,17 @@ class ModelWrapper:
 
     :param PythBaseModel model: gops model type environment.
     """
+
     def __init__(self, model: PythBaseModel):
         self.model = model
 
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+    def forward(
+        self,
+        obs: torch.Tensor,
+        action: torch.Tensor,
+        done: torch.Tensor,
+        info: InfoDict,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
         return self.model.forward(obs, action, done, info)
 
     def __getattr__(self, name):

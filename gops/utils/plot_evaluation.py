@@ -20,25 +20,25 @@ from gops.utils.tensorboard_setup import read_tensorboard
 
 
 def self_plot(
-        data,
-        fname=None,
-        xlabel=None,
-        ylabel=None,
-        legend=None,
-        legend_loc="best",
-        color_list=None,
-        xlim=None,
-        ylim=None,
-        xtick=None,
-        ytick=None,
-        yline=None,
-        xline=None,
-        ncol=1,
-        figsize_scalar=1,
-        category='plot',
+    data,
+    fname=None,
+    xlabel=None,
+    ylabel=None,
+    legend=None,
+    legend_loc="best",
+    color_list=None,
+    xlim=None,
+    ylim=None,
+    xtick=None,
+    ytick=None,
+    yline=None,
+    xline=None,
+    ncol=1,
+    figsize_scalar=1,
+    category="plot",
 ):
     """
-        Plot single figure containing several curves.
+    Plot single figure containing several curves.
     """
     default_cfg = dict()
     default_cfg["fig_size"] = (12, 9)
@@ -80,9 +80,9 @@ def self_plot(
 
     # plot figure
     for (i, d) in enumerate(data):
-        if category == 'plot':
+        if category == "plot":
             plt.plot(d["x"], d["y"], color=color_list[i])
-        elif category == 'scatter':
+        elif category == "scatter":
             plt.scatter(d["x"], d["y"], color=color_list[0], s=1)
         else:
             raise NotImplemented

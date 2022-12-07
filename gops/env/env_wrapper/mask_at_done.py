@@ -20,11 +20,19 @@ from gops.utils.gops_typing import InfoDict
 
 class MaskAtDoneModel(ModelWrapper):
     """
-        Model type environment wrapper that masks observation and reward when done is True.
+    Model type environment wrapper that masks observation and reward when done is True.
     """
-    def forward(self, obs: torch.Tensor, action: torch.Tensor, done: torch.Tensor, info: InfoDict) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
-        next_obs, reward, next_done, next_info = super().forward(obs, action, done, info)
+
+    def forward(
+        self,
+        obs: torch.Tensor,
+        action: torch.Tensor,
+        done: torch.Tensor,
+        info: InfoDict,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+        next_obs, reward, next_done, next_info = super().forward(
+            obs, action, done, info
+        )
         done = done.bool()
         next_obs = ~done.unsqueeze(1) * next_obs + done.unsqueeze(1) * obs
         reward = ~done * reward

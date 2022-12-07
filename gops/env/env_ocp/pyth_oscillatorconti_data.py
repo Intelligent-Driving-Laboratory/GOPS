@@ -34,22 +34,28 @@ class _GymOscillatorconti(PythBaseEnv):
         super(_GymOscillatorconti, self).__init__(work_space=work_space, **kwargs)
 
         # define common parameters here
-        self.is_adversary = kwargs['is_adversary']
+        self.is_adversary = kwargs["is_adversary"]
         self.state_dim = 2
         self.action_dim = 1
         self.adversary_dim = 1
         self.tau = 1 / 200
-        self.prob_intensity = kwargs['prob_intensity'] if kwargs.get('prob_intensity') is not None else 1.0
-        self.base_decline = kwargs['base_decline'] if kwargs.get('base_decline') is not None else 0.0
+        self.prob_intensity = (
+            kwargs["prob_intensity"]
+            if kwargs.get("prob_intensity") is not None
+            else 1.0
+        )
+        self.base_decline = (
+            kwargs["base_decline"] if kwargs.get("base_decline") is not None else 0.0
+        )
 
         # utility information
         self.Q = np.eye(self.state_dim)
         self.R = np.eye(self.action_dim)
         self.gamma = 1
-        self.gamma_atte = kwargs['gamma_atte']
+        self.gamma_atte = kwargs["gamma_atte"]
 
         # state & action space
-        self.state_threshold = kwargs['state_threshold']
+        self.state_threshold = kwargs["state_threshold"]
         self.battery_a_threshold = self.state_threshold[0]
         self.battery_b_threshold = self.state_threshold[1]
         self.max_action = [5.0]
@@ -57,14 +63,14 @@ class _GymOscillatorconti(PythBaseEnv):
         self.max_adv_action = [1.0 / self.gamma_atte]
         self.min_adv_action = [-1.0 / self.gamma_atte]
 
-        self.observation_space = spaces.Box(low=np.array([-self.battery_a_threshold, -self.battery_b_threshold]),
-                                            high=np.array([self.battery_a_threshold, self.battery_b_threshold]),
-                                            shape=(2,)
-                                            )
-        self.action_space = spaces.Box(low=np.array(self.min_action),
-                                       high=np.array(self.max_action),
-                                       shape=(1,)
-                                       )
+        self.observation_space = spaces.Box(
+            low=np.array([-self.battery_a_threshold, -self.battery_b_threshold]),
+            high=np.array([self.battery_a_threshold, self.battery_b_threshold]),
+            shape=(2,),
+        )
+        self.action_space = spaces.Box(
+            low=np.array(self.min_action), high=np.array(self.max_action), shape=(1,)
+        )
 
         self.seed()
         self.viewer = None
@@ -72,7 +78,7 @@ class _GymOscillatorconti(PythBaseEnv):
 
         self.steps_beyond_done = None
 
-        self.max_episode_steps = kwargs['max_episode_steps']
+        self.max_episode_steps = kwargs["max_episode_steps"]
         self.steps = 0
 
     @property
@@ -80,7 +86,7 @@ class _GymOscillatorconti(PythBaseEnv):
         return True
 
     def control_policy(self, obs):
-        return np.array([- obs[0] * obs[1]], dtype='f')
+        return np.array([-obs[0] * obs[1]], dtype="f")
 
     def reset(self, init_state=None, **kwargs):
         if init_state is None:
@@ -100,25 +106,34 @@ class _GymOscillatorconti(PythBaseEnv):
         # noise
         noise = adv_action[0]
 
-        battery_a_dot = - 0.25 * battery_a
-        battery_b_dot = 0.5 * battery_a ** 2 * battery_b - 1 / (2 * self.gamma_atte ** 2) * battery_b ** 3 \
-                        - 0.5 * battery_b + battery_a * memristor + battery_b * noise
+        battery_a_dot = -0.25 * battery_a
+        battery_b_dot = (
+            0.5 * battery_a**2 * battery_b
+            - 1 / (2 * self.gamma_atte**2) * battery_b**3
+            - 0.5 * battery_b
+            + battery_a * memristor
+            + battery_b * noise
+        )
 
         next_battery_a = battery_a_dot * tau + battery_a
         next_battery_b = battery_b_dot * tau + battery_b
         return next_battery_a, next_battery_b
 
     def step(self, inputs):
-        action = inputs[:self.action_dim]
-        adv_action = inputs[self.action_dim:]
+        action = inputs[: self.action_dim]
+        adv_action = inputs[self.action_dim :]
         if not adv_action or adv_action is None:
             adv_action = [0]
 
         battery_a, battery_b = self.state
         self.state = self.stepPhysics(action, adv_action)
         next_battery_a, next_battery_b = self.state
-        done = next_battery_a < -self.battery_a_threshold or next_battery_a > self.battery_a_threshold \
-            or next_battery_b < -self.battery_b_threshold or next_battery_b > self.battery_b_threshold
+        done = (
+            next_battery_a < -self.battery_a_threshold
+            or next_battery_a > self.battery_a_threshold
+            or next_battery_b < -self.battery_b_threshold
+            or next_battery_b > self.battery_b_threshold
+        )
         done = bool(done)
 
         # -----------------
@@ -128,31 +143,56 @@ class _GymOscillatorconti(PythBaseEnv):
         # ---------------
 
         if not done:
-            reward = self.Q[0][0] * battery_a ** 2 + self.Q[1][1] * battery_b ** 2 \
-                     + self.R[0][0] * action[0] ** 2 - self.gamma_atte ** 2 * adv_action[0] ** 2
+            reward = (
+                self.Q[0][0] * battery_a**2
+                + self.Q[1][1] * battery_b**2
+                + self.R[0][0] * action[0] ** 2
+                - self.gamma_atte**2 * adv_action[0] ** 2
+            )
         elif self.steps_beyond_done is None:
             # Pole just fell!
             self.steps_beyond_done = 0
-            reward = self.Q[0][0] * battery_a ** 2 + self.Q[1][1] * battery_b ** 2 \
-                     + self.R[0][0] * action[0] ** 2 - self.gamma_atte ** 2 * adv_action[0] ** 2
+            reward = (
+                self.Q[0][0] * battery_a**2
+                + self.Q[1][1] * battery_b**2
+                + self.R[0][0] * action[0] ** 2
+                - self.gamma_atte**2 * adv_action[0] ** 2
+            )
         else:
             if self.steps_beyond_done == 0:
-                gym.logger.warn("""
+                gym.logger.warn(
+                    """
                 You are calling 'step()' even though this environment has already returned
                 done = True. You should always call 'reset()' once you receive 'done = True'
                 Any further steps are undefined behavior.
-                """)
+                """
+                )
             self.steps_beyond_done += 1
             reward = 0.0
 
-        reward_positive = self.Q[0][0] * battery_a ** 2 + self.Q[1][1] * battery_b ** 2 + self.R[0][0] * action[0] ** 2
+        reward_positive = (
+            self.Q[0][0] * battery_a**2
+            + self.Q[1][1] * battery_b**2
+            + self.R[0][0] * action[0] ** 2
+        )
         reward_negative = adv_action[0] ** 2
 
-        return np.array(self.state), reward, done, {'reward_positive': reward_positive, 'reward_negative': reward_negative}
+        return (
+            np.array(self.state),
+            reward,
+            done,
+            {"reward_positive": reward_positive, "reward_negative": reward_negative},
+        )
 
     def exploration_noise(self, time):
-        n = sin(time) ** 2 * cos(time) + sin(2 * time) ** 2 * cos(0.1 * time) + sin(1.2 * time) ** 2 * cos(0.5 * time) \
-            + sin(time) ** 5 + sin(1.12 * time) ** 2 + sin(2.4 * time) ** 3 * cos(2.4 * time)
+        n = (
+            sin(time) ** 2 * cos(time)
+            + sin(2 * time) ** 2 * cos(0.1 * time)
+            + sin(1.2 * time) ** 2 * cos(0.5 * time)
+            + sin(time) ** 5
+            + sin(1.12 * time) ** 2
+            + sin(2.4 * time) ** 3 * cos(2.4 * time)
+        )
         return np.array([self.prob_intensity * exp(self.base_decline * time) * n, 0])
 
     @staticmethod
@@ -162,10 +202,14 @@ class _GymOscillatorconti(PythBaseEnv):
     @staticmethod
     def dist_func(time):
         t0 = 3.0  # 3.0
-        dist = [3.0 * exp(- 1.0 * (time - t0)) * cos(1.0 * (time - t0))] if time > t0 else [0.0]
+        dist = (
+            [3.0 * exp(-1.0 * (time - t0)) * cos(1.0 * (time - t0))]
+            if time > t0
+            else [0.0]
+        )
         return dist
 
-    def render(self, mode='human'):
+    def render(self, mode="human"):
         pass
 
     def close(self):

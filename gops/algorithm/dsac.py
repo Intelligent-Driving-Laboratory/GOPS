@@ -37,6 +37,7 @@ class ApproxContainer(ApprBase):
 
     Contains one policy and one action value.
     """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # create q networks
@@ -63,9 +64,7 @@ class ApproxContainer(ApprBase):
         self.policy_optimizer = Adam(
             self.policy.parameters(), lr=kwargs["policy_learning_rate"]
         )
-        self.alpha_optimizer = Adam(
-            [self.log_alpha], lr=kwargs["alpha_learning_rate"]
-        )
+        self.alpha_optimizer = Adam([self.log_alpha], lr=kwargs["alpha_learning_rate"])
 
     def create_action_distributions(self, logits):
         return self.policy.get_act_dist(logits)
@@ -87,6 +86,7 @@ class DSAC(AlgorithmBase):
     :param Optional[float] target_entropy: target entropy for automatic
         temperature adjustment.
     """
+
     def __init__(self, index=0, **kwargs):
         super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
@@ -102,8 +102,13 @@ class DSAC(AlgorithmBase):
     @property
     def adjustable_parameters(self):
         return (
-            "gamma", "tau", "auto_alpha", "alpha",
-            "TD_bound", "bound", "delay_update"
+            "gamma",
+            "tau",
+            "auto_alpha",
+            "alpha",
+            "TD_bound",
+            "bound",
+            "delay_update",
         )
 
     def local_update(self, data: DataDict, iteration: int) -> dict:
@@ -111,7 +116,9 @@ class DSAC(AlgorithmBase):
         self.__update(iteration)
         return tb_info
 
-    def get_remote_update_info(self, data: DataDict, iteration: int) -> Tuple[dict, dict]:
+    def get_remote_update_info(
+        self, data: DataDict, iteration: int
+    ) -> Tuple[dict, dict]:
         tb_info = self.__compute_gradient(data, iteration)
 
         update_info = {
@@ -236,7 +243,7 @@ class DSAC(AlgorithmBase):
 
     def __compute_target_q(self, r, done, q, q_next, log_prob_a_next):
         target_q = r + (1 - done) * self.gamma * (
-                q_next - self.__get_alpha() * log_prob_a_next
+            q_next - self.__get_alpha() * log_prob_a_next
         )
         difference = torch.clamp(target_q - q, -self.TD_bound, self.TD_bound)
         target_q_bound = q + difference
@@ -252,7 +259,8 @@ class DSAC(AlgorithmBase):
     def __compute_loss_alpha(self, data: DataDict):
         new_log_prob = data["new_log_prob"]
         loss_alpha = (
-                -self.networks.log_alpha * (new_log_prob.detach() + self.target_entropy).mean()
+            -self.networks.log_alpha
+            * (new_log_prob.detach() + self.target_entropy).mean()
         )
         return loss_alpha
 
@@ -267,11 +275,14 @@ class DSAC(AlgorithmBase):
 
             with torch.no_grad():
                 polyak = 1 - self.tau
-                for p, p_targ in zip(self.networks.q.parameters(), self.networks.q_target.parameters()):
+                for p, p_targ in zip(
+                    self.networks.q.parameters(), self.networks.q_target.parameters()
+                ):
                     p_targ.data.mul_(polyak)
                     p_targ.data.add_((1 - polyak) * p.data)
                 for p, p_targ in zip(
-                        self.networks.policy.parameters(), self.networks.policy_target.parameters()
+                    self.networks.policy.parameters(),
+                    self.networks.policy_target.parameters(),
                 ):
                     p_targ.data.mul_(polyak)
                     p_targ.data.add_((1 - polyak) * p.data)

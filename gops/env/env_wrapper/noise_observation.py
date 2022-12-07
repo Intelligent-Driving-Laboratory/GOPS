@@ -31,7 +31,10 @@ class NoiseData(gym.Wrapper):
     def __init__(self, env, noise_type: str, noise_data: list):
         super(NoiseData, self).__init__(env)
         assert noise_type in ["normal", "uniform"]
-        assert len(noise_data) == 2 and len(noise_data[0]) == env.observation_space.shape[0]
+        assert (
+            len(noise_data) == 2
+            and len(noise_data[0]) == env.observation_space.shape[0]
+        )
         self.noise_type = noise_type
         self.noise_data = np.array(noise_data, dtype=np.float32)
 
@@ -39,9 +42,13 @@ class NoiseData(gym.Wrapper):
         if self.noise_type is None:
             return observation
         elif self.noise_type == "normal":
-            return observation + self.np_random.normal(loc=self.noise_data[0], scale=self.noise_data[1])
+            return observation + self.np_random.normal(
+                loc=self.noise_data[0], scale=self.noise_data[1]
+            )
         elif self.noise_type == "uniform":
-            return observation + self.np_random.uniform(low=self.noise_data[0], high=self.noise_data[1])
+            return observation + self.np_random.uniform(
+                low=self.noise_data[0], high=self.noise_data[1]
+            )
 
     def reset(self, **kwargs):
         obs, info = self.env.reset(**kwargs)
