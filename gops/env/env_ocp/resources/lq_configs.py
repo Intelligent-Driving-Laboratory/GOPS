@@ -1,4 +1,14 @@
-import warnings
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab (iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: Linear Quadratic control environment config
+#  Update Date: 2022-08-12, Yuhang Zhang: create environment config
+
 
 import numpy as np
 

@@ -1,4 +1,14 @@
-from gym.wrappers.time_limit import TimeLimit
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab (iDLab), Tsinghua University
+#
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: Linear Quadratic control environment
+#  Update Date: 2022-08-12, Yuhang Zhang: create environment
+#  Update Date: 2022-10-24, Yvjie Yang: add wrapper
 
 from gops.env.env_ocp.resources import lq_configs
 from gops.env.env_ocp.resources.lq_base import LqEnv
