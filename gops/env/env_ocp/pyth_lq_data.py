@@ -8,7 +8,7 @@
 #
 #  Description: Linear Quadratic control environment
 #  Update Date: 2022-08-12, Yuhang Zhang: create environment
-#  Update Date: 2022-10-24, Yvjie Yang: add wrapper
+#  Update Date: 2022-10-24, Yujie Yang: add wrapper
 
 from gops.env.env_ocp.resources import lq_configs
 from gops.env.env_ocp.resources.lq_base import LqEnv

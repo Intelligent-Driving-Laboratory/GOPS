@@ -1,17 +1,20 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Mobile Robot Environment
 #  Update Date: 2022-06-05, Baiyu Peng: create environment
 
 from typing import Any, Tuple
+
 import gym
 import matplotlib.pyplot as plt
 import numpy as np
 from gym import spaces
-from gym.utils import seeding
 
 from gops.env.env_ocp.pyth_base_data import PythBaseEnv
 

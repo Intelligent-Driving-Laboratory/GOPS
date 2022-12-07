@@ -8,7 +8,7 @@
 #
 #  Description: Suspension Model
 #  Update Date: 2022-08-12, Jie Li: create environment
-#  Update Date: 2022-10-24, Yvjie Yang: add wrapper
+#  Update Date: 2022-10-24, Yujie Yang: add wrapper
 
 from typing import Tuple, Union
 

@@ -8,7 +8,7 @@
 #
 #  Description: Linear Quadratic control environment base
 #  Update Date: 2022-08-12, Yuhang Zhang: create environment base
-#  Update Date: 2022-10-24, Yvjie Yang: add wrapper
+#  Update Date: 2022-10-24, Yujie Yang: add wrapper
 
 
 import math
