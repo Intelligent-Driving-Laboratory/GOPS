@@ -3,14 +3,15 @@
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
 #  Creator: iDLab
-#  Description: PPO algorithm, MLP, continuous version of cart pole, on serial trainer
-#  Update Date: 2021-06-11, Li Jie: add PPO algorithm
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: example for ppo + lqrs2a1 + mlp + on_serial
+#  Update Date: 2021-06-11, Li Jie: create example
 
 
 import argparse
 import os
-
-os.environ["OMP_NUM_THREADS"] = "4"
 import numpy as np
 
 from gops.create_pkg.create_alg import create_alg
@@ -23,6 +24,7 @@ from gops.utils.init_args import init_args
 from gops.utils.plot_evaluation import plot_all
 from gops.utils.tensorboard_setup import start_tensorboard, save_tb_to_csv
 
+os.environ["OMP_NUM_THREADS"] = "4"
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -30,55 +32,57 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="pyth_lq")
-    parser.add_argument("--lq_config", type=str, default="s3a1")
-    parser.add_argument("--algorithm", type=str, default="PPO", help="")
+    parser.add_argument("--env_id", type=str, default="pyth_lq", help="id of environment")
+    parser.add_argument("--lq_config", type=str, default="s3a1", help="config of lq")
+    parser.add_argument("--algorithm", type=str, default="PPO", help="RL algorithm")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
 
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--action_type", type=str, default="continu")
-    parser.add_argument("--reward_scale", type=float, default=0.01)
-    parser.add_argument("--reward_shift", type=float, default=10)
-    parser.add_argument("--is_render", type=bool, default=False)
+    parser.add_argument("--action_type", type=str, default="continu", help="Options: continu/discret")
+    parser.add_argument("--reward_scale", type=float, default=0.01, help="reward scale factor")
+    parser.add_argument("--reward_shift", type=float, default=10, help="reward shift factor")
+    parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
     parser.add_argument(
         "--is_adversary", type=bool, default=False, help="Adversary training"
     )
     parser.add_argument(
         "--is_constrained", type=bool, default=False, help="Adversary training"
     )
+
     ################################################
     # 2.1 Parameters of value approximate function
-    # Options: StateValue/ActionValue/ActionValueDis
-    parser.add_argument("--value_func_name", type=str, default="StateValue")
-    # Options: MLP/CNN/RNN/POLY/GAUSS
-    parser.add_argument("--value_func_type", type=str, default="MLP")
+    parser.add_argument("--value_func_name", type=str, default="StateValue",
+                        help="Options: StateValue/ActionValue/ActionValueDis/ActionValueDistri")
+    parser.add_argument("--value_func_type", type=str, default="MLP", help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS")
     value_func_type = parser.parse_known_args()[0].value_func_type
-    if value_func_type == "MLP":
-        parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
-        parser.add_argument("--value_hidden_activation", type=str, default="elu")
-        parser.add_argument("--value_output_activation", type=str, default="linear")
+    parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
+    parser.add_argument("--value_hidden_activation", type=str, default="elu",
+                        help="Options: relu/gelu/elu/selu/sigmoid/tanh")
+    parser.add_argument("--value_output_activation", type=str, default="linear", help="Options: linear/tanh")
 
     # 2.2 Parameters of policy approximate function
-    # Options: None/DetermPolicy/StochaPolicy
-    parser.add_argument("--policy_func_name", type=str, default="StochaPolicy")
-    # Options: MLP/CNN/RNN/POLY/GAUSS
-    parser.add_argument("--policy_func_type", type=str, default="MLP")
+    parser.add_argument("--policy_func_name", type=str, default="StochaPolicy",
+                        help="Options: None/DetermPolicy/FiniteHorizonPolicy/StochaPolicy")
+    parser.add_argument("--policy_func_type", type=str, default="MLP",
+                        help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS")
     parser.add_argument("--policy_act_distribution", type=str, default="GaussDistribution")
     policy_func_type = parser.parse_known_args()[0].policy_func_type
-    if policy_func_type == "MLP":
-        parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
-        parser.add_argument("--policy_hidden_activation", type=str, default="elu", help="")
-        parser.add_argument("--policy_output_activation", type=str, default="linear", help="")
-        parser.add_argument("--policy_min_log_std", type=int, default=-20)  # -6
-        parser.add_argument("--policy_max_log_std", type=int, default=1)  # 3
-        parser.add_argument("--policy_std_sype", type=str, default="parameter")
+    policy_func_type = parser.parse_known_args()[0].policy_func_type
+    parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
+    parser.add_argument("--policy_hidden_activation", type=str, default="elu",
+                        help="Options: relu/gelu/elu/selu/sigmoid/tanh")
+    parser.add_argument("--policy_output_activation", type=str, default="linear", help="Options: linear/tanh")
+    parser.add_argument("--policy_min_log_std", type=int, default=-20)
+    parser.add_argument("--policy_max_log_std", type=int, default=1)
+    parser.add_argument("--policy_std_sype", type=str, default="parameter")
+
     ################################################
     # 3. Parameters for algorithm
-    parser.add_argument("--learning_rate", type=float, default=1e-4, help="3e-4 in the paper")
-    parser.add_argument("--num_repeat", type=int, default=5, help="5")  # 5 repeat
-    parser.add_argument("--num_mini_batch", type=int, default=8, help="8")  # 8 mini_batch
-    parser.add_argument("--mini_batch_size", type=int, default=200, help="128")  # 8 mini_batch * 128 = 1024
+    parser.add_argument("--learning_rate", type=float, default=1e-4)
+    parser.add_argument("--num_repeat", type=int, default=5)
+    parser.add_argument("--num_mini_batch", type=int, default=8)
+    parser.add_argument("--mini_batch_size", type=int, default=200)
     parser.add_argument(
         "--num_epoch",
         type=int,
@@ -89,16 +93,19 @@ if __name__ == "__main__":
 
     ################################################
     # 4. Parameters for trainer
-    # Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer
-    parser.add_argument("--trainer", type=str, default="on_serial_trainer")
+    parser.add_argument("--trainer", type=str, default="on_serial_trainer",
+                        help="Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer")
     # Maximum iteration number
     parser.add_argument("--max_iteration", type=int, default=500)
     trainer_type = parser.parse_known_args()[0].trainer
-    parser.add_argument("--ini_network_dir", type=str, default=None)
+    parser.add_argument("--ini_network_dir", type=str, default=None,
+                        help="path of saved approximate functions, if specified, the saved approximate functions "
+                             "will be loaded before training")
 
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument("--sampler_name", type=str, default="on_sampler")
+    parser.add_argument("--sampler_name", type=str, default="on_sampler",
+                        help="Options: on_sampler/off_sampler")
     # Batch size of sampler for buffer store
     parser.add_argument(
         "--sample_batch_size",

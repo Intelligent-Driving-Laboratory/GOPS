@@ -2,8 +2,12 @@
 #  General Optimal control Problem Solver (GOPS)
 #  Intelligent Driving Lab(iDLab), Tsinghua University
 #
-#  Creator: Guan Yang
-#  Update Date: 2022-06-05
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
+#  Description: example for mpg + cartpoleconti + mlp + off_async
+#  Update Date: 2022-06-05, Guan Yang: create example
 
 import argparse
 import numpy as np
@@ -25,8 +29,8 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="gym_cartpoleconti")
-    parser.add_argument("--algorithm", type=str, default="MPG")
+    parser.add_argument("--env_id", type=str, default="gym_cartpoleconti", help="id of environment")
+    parser.add_argument("--algorithm", type=str, default="MPG", help="RL algorithm")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     ################################################
     # 1. Parameters for environment
@@ -45,24 +49,30 @@ if __name__ == "__main__":
     )
     ################################################
     # 2.1 Parameters of value approximate function
-    parser.add_argument("--value_func_name", type=str, default="ActionValue")
-    parser.add_argument("--value_func_type", type=str, default="MLP")
+    parser.add_argument("--value_func_name", type=str, default="ActionValue",
+                        help="Options: StateValue/ActionValue/ActionValueDis/ActionValueDistri")
+    parser.add_argument("--value_func_type", type=str, default="MLP", help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS")
     value_func_type = parser.parse_known_args()[0].value_func_type
-    ### 2.1.1 MLP, CNN, RNN
-    if value_func_type == "MLP":
-        parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
-        parser.add_argument("--value_hidden_activation", type=str, default="relu")
-        parser.add_argument("--value_output_activation", type=str, default="linear")
+    parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
+    parser.add_argument("--value_hidden_activation", type=str, default="relu",
+                        help="Options: relu/gelu/elu/selu/sigmoid/tanh")
+    parser.add_argument("--value_output_activation", type=str, default="linear", help="Options: linear/tanh")
 
     # 2.2 Parameters of policy approximate function
-    parser.add_argument("--policy_func_name", type=str, default="DetermPolicy")
-    parser.add_argument("--policy_func_type", type=str, default="MLP")
-    parser.add_argument("--policy_act_distribution", type=str, default="default")
+    parser.add_argument("--policy_func_name", type=str, default="DetermPolicy",
+                        help="Options: None/DetermPolicy/FiniteHorizonPolicy/StochaPolicy")
+    parser.add_argument("--policy_func_type", type=str, default="MLP",
+                        help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS")
+    parser.add_argument("--policy_act_distribution", type=str, default="default",
+                        help="Options: default/TanhGaussDistribution/GaussDistribution")
     policy_func_type = parser.parse_known_args()[0].policy_func_type
-    if policy_func_type == "MLP":
-        parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
-        parser.add_argument("--policy_hidden_activation", type=str, default="relu")
-        parser.add_argument("--policy_output_activation", type=str, default="linear")
+    parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
+    parser.add_argument(
+        "--policy_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
+    )
+    parser.add_argument(
+        "--policy_output_activation", type=str, default="linear", help="Options: linear/tanh"
+    )
 
     ################################################
     # 3. Parameters for RL algorithm
@@ -86,44 +96,57 @@ if __name__ == "__main__":
 
     ################################################
     # 4. Parameters for trainer
-    parser.add_argument("--trainer", type=str, default="off_async_trainer")
+    parser.add_argument("--trainer", type=str, default="off_async_trainer",
+                        help="Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer")
+    # Maximum iteration number
     parser.add_argument("--max_iteration", type=int, default=5000)
+    parser.add_argument("--ini_network_dir", type=str, default=None,
+                        help="path of saved approximate functions, if specified, the saved approximate functions "
+                             "will be loaded before training")
     trainer_type = parser.parse_known_args()[0].trainer
-    parser.add_argument("--ini_network_dir", type=str, default=None)
-    if trainer_type == "off_async_trainer":
-        import ray
-        ray.init()
-        parser.add_argument("--num_algs", type=int, default=1, help="number of algs")
-        parser.add_argument(
-            "--num_samplers", type=int, default=2, help="number of samplers"
-        )
-        parser.add_argument(
-            "--num_buffers", type=int, default=1, help="number of buffers"
-        )
-        cpu_core_num = multiprocessing.cpu_count()
-        num_core_input = (
+
+    # 4.1. Parameters for off_async_trainer
+    import ray
+    ray.init()
+    parser.add_argument("--num_algs", type=int, default=1, help="number of algs")
+    parser.add_argument(
+        "--num_samplers", type=int, default=2, help="number of samplers"
+    )
+    parser.add_argument(
+        "--num_buffers", type=int, default=1, help="number of buffers"
+    )
+    cpu_core_num = multiprocessing.cpu_count()
+    num_core_input = (
             parser.parse_known_args()[0].num_algs
             + parser.parse_known_args()[0].num_samplers
             + parser.parse_known_args()[0].num_buffers
             + 2
-        )
-        if num_core_input > cpu_core_num:
-            raise ValueError(
-                "The number of core is {}, but you want {}!".format(
-                    cpu_core_num, num_core_input
-                )
+    )
+    if num_core_input > cpu_core_num:
+        raise ValueError(
+            "The number of core is {}, but you want {}!".format(
+                cpu_core_num, num_core_input
             )
+        )
 
-        parser.add_argument("--buffer_name", type=str, default="replay_buffer")
-        parser.add_argument("--buffer_warm_size", type=int, default=int(1e3))
-        parser.add_argument("--buffer_max_size", type=int, default=int(1e5))
-        parser.add_argument("--replay_batch_size", type=int, default=256)
-        parser.add_argument("--sampler_sync_interval", type=int, default=1)
+    parser.add_argument("--buffer_name", type=str, default="replay_buffer",
+                            help="Options:replay_buffer/prioritized_replay_buffer")
+    # Size of collected samples before training
+    parser.add_argument("--buffer_warm_size", type=int, default=int(1e3))
+    # Max size of reply buffer
+    parser.add_argument("--buffer_max_size", type=int, default=int(1e5))
+    # Batch size of replay samples from buffer
+    parser.add_argument("--replay_batch_size", type=int, default=256)
+    # Period of sampling
+    parser.add_argument("--sampler_sync_interval", type=int, default=1)
 
     ################################################
     # 5. Parameters for sampler
-    parser.add_argument("--sampler_name", type=str, default="off_sampler")
+    parser.add_argument("--sampler_name", type=str, default="off_sampler",
+                        help="Options: on_sampler/off_sampler")
+    # Batch size of sampler for buffer store
     parser.add_argument("--sample_batch_size", type=int, default=8)
+    # Add noise to action for better exploration
     parser.add_argument(
         "--noise_params",
         type=dict,
@@ -134,15 +157,18 @@ if __name__ == "__main__":
     )
 
     ################################################
-    # 7. Parameters for evaluator
+    # 6. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
     parser.add_argument("--num_eval_episode", type=int, default=10)
     parser.add_argument("--eval_interval", type=int, default=100)
+    parser.add_argument("--eval_save", type=str, default=False, help="save evaluation data")
 
     ################################################
-    # 8. Data savings
+    # 7. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
+    # Save value/policy every N updates
     parser.add_argument("--apprfunc_save_interval", type=int, default=5000)
+    # Save key info every N updates
     parser.add_argument("--log_save_interval", type=int, default=100)
 
     # Get parameter dictionary

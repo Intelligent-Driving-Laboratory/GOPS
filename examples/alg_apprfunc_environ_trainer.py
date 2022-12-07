@@ -8,7 +8,7 @@
 #
 #  Description: template for examples
 #  Update: 2020-11-10, Hao Sun: create example template
-#  Update: 2021-05-21, Shengbo Li: reformulate code formats
+#  Update: 2021-05-21, Shengbo Eben Li: reformulate code formats
 #  Update: 2022-12-03, Wenxuan Wang: update example template
 
 
@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="gym_cartpoleconti", help="the id of environment")
+    parser.add_argument("--env_id", type=str, default="gym_cartpoleconti", help="id of environment")
     parser.add_argument("--algorithm", type=str, default="DDPG", help="RL algorithm")
     parser.add_argument("--enable_cuda", default=False, help="enable CUDA")
     parser.add_argument("--seed", default=3328005365, help="seed")
@@ -109,6 +109,7 @@ if __name__ == "__main__":
     # 3. Parameters for RL algorithm
     parser.add_argument("--value_learning_rate", type=float, default=1e-4)
     parser.add_argument("--policy_learning_rate", type=float, default=1e-5)
+
     ################################################
     # 4. Parameters for trainer
     parser.add_argument("--trainer", type=str, default="off_serial_trainer",
@@ -169,14 +170,14 @@ if __name__ == "__main__":
     )
 
     ################################################
-    # 7. Parameters for evaluator
+    # 6. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
     parser.add_argument("--num_eval_episode", type=int, default=5)
     parser.add_argument("--eval_interval", type=int, default=100)
     parser.add_argument("--eval_save", type=str, default=False, help="save evaluation data")
 
     ################################################
-    # 8. Data savings
+    # 7. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
     # Save value/policy every N updates
     parser.add_argument("--apprfunc_save_interval", type=int, default=500)
