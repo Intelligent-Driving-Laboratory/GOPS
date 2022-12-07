@@ -1,8 +1,11 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Recurrent Neural Network (RNN)
 #  Update: 2021-03-05, Wenjun Zou: create RNN function
 
@@ -23,17 +26,13 @@ import torch.nn as nn
 from gops.utils.common_utils import get_activation_func
 from gops.utils.act_distribution_cls import Action_Distribution
 
-
+# Define MLP function
 def mlp(sizes, activation, output_activation=nn.Identity):
     layers = []
     for j in range(len(sizes) - 1):
         act = activation if j < len(sizes) - 2 else output_activation
         layers += [nn.Linear(sizes[j], sizes[j + 1]), act()]
     return nn.Sequential(*layers)
-
-
-def count_vars(module):
-    return sum([np.prod(p.shape) for p in module.parameters()])
 
 
 class DetermPolicy(nn.Module, Action_Distribution):
@@ -64,10 +63,21 @@ class DetermPolicy(nn.Module, Action_Distribution):
 
 
 class FiniteHorizonPolicy(nn.Module, Action_Distribution):
-    raise NotImplementedError
+    """
+    Approximated function of deterministic policy for finite-horizon.
+    Input: observation, time step.
+    Output: action.
+    """
+    def __init__(self, **kwargs):
+        raise NotImplementedError
 
 
 class StochaPolicy(nn.Module, Action_Distribution):
+    """
+    Approximated function of stochastic policy.
+    Input: observation.
+    Output: parameters of action distribution.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"][1]
@@ -105,6 +115,11 @@ class StochaPolicy(nn.Module, Action_Distribution):
 
 
 class ActionValue(nn.Module, Action_Distribution):
+    """
+    Approximated function of action-value function.
+    Input: observation, action.
+    Output: action-value.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"][1]
@@ -125,6 +140,11 @@ class ActionValue(nn.Module, Action_Distribution):
 
 
 class ActionValueDis(nn.Module, Action_Distribution):
+    """
+    Approximated function of action-value function for discrete action space.
+    Input: observation.
+    Output: action-value for all action.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"][1]
@@ -144,6 +164,11 @@ class ActionValueDis(nn.Module, Action_Distribution):
 
 
 class StateValue(nn.Module, Action_Distribution):
+    """
+    Approximated function of state-value function.
+    Input: observation, action.
+    Output: state-value.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"][1]

@@ -1,8 +1,11 @@
 #  Copyright (c). All Rights Reserved.
 #  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab(iDLab), Tsinghua University
+#  Intelligent Driving Lab (iDLab), Tsinghua University
 #
 #  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+#
 #  Description: Multilayer Perceptron (MLP)
 #  Update: 2021-03-05, Wenjun Zou: create MLP function
 
@@ -17,7 +20,7 @@ __all__ = [
     "StateValue",
 ]
 
-import numpy as np  # Matrix computation library
+import numpy as np
 import torch
 import torch.nn as nn
 from gops.utils.common_utils import get_activation_func
@@ -40,6 +43,11 @@ def count_vars(module):
 
 # Deterministic policy
 class DetermPolicy(nn.Module, Action_Distribution):
+    """
+    Approximated function of deterministic policy.
+    Input: observation.
+    Output: action.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -64,6 +72,11 @@ class DetermPolicy(nn.Module, Action_Distribution):
 
 
 class FiniteHorizonPolicy(nn.Module, Action_Distribution):
+    """
+    Approximated function of deterministic policy for finite-horizon.
+    Input: observation, time step.
+    Output: action.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"] + 1
@@ -91,6 +104,11 @@ class FiniteHorizonPolicy(nn.Module, Action_Distribution):
 
 # Stochastic Policy
 class StochaPolicy(nn.Module, Action_Distribution):
+    """
+    Approximated function of stochastic policy.
+    Input: observation.
+    Output: parameters of action distribution.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -98,6 +116,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
         hidden_sizes = kwargs["hidden_sizes"]
         self.std_sype = kwargs["std_sype"]
 
+        # mean and log_std are calculated by different MLP
         if self.std_sype == "mlp_separated":
             pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim]
             self.mean = mlp(
@@ -110,6 +129,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
                 get_activation_func(kwargs["hidden_activation"]),
                 get_activation_func(kwargs["output_activation"]),
             )
+        # mean and log_std are calculated by same MLP
         elif self.std_sype == "mlp_shared":
             pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim * 2]
             self.policy = mlp(
@@ -117,6 +137,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
                 get_activation_func(kwargs["hidden_activation"]),
                 get_activation_func(kwargs["output_activation"]),
             )
+        # mean is calculated by MLP, and log_std is learnable parameter
         elif self.std_sype == "parameter":
             pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim]
             self.mean = mlp(
@@ -155,6 +176,11 @@ class StochaPolicy(nn.Module, Action_Distribution):
 
 
 class ActionValue(nn.Module, Action_Distribution):
+    """
+    Approximated function of action-value function.
+    Input: observation, action.
+    Output: action-value.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -173,6 +199,11 @@ class ActionValue(nn.Module, Action_Distribution):
 
 
 class ActionValueDis(nn.Module, Action_Distribution):
+    """
+    Approximated function of action-value function for discrete action space.
+    Input: observation.
+    Output: action-value for all action.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -190,6 +221,11 @@ class ActionValueDis(nn.Module, Action_Distribution):
 
 
 class ActionValueDistri(nn.Module):
+    """
+    Approximated function of distributed action-value function.
+    Input: observation.
+    Output: parameters of action-value distribution.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -223,10 +259,20 @@ class ActionValueDistri(nn.Module):
 
 
 class StochaPolicyDis(ActionValueDis, Action_Distribution):
+    """
+    Approximated function of stochastic policy for discrete action space.
+    Input: observation.
+    Output: parameters of action distribution.
+    """
     pass
 
 
 class StateValue(nn.Module, Action_Distribution):
+    """
+    Approximated function of state-value function.
+    Input: observation, action.
+    Output: state-value.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         obs_dim = kwargs["obs_dim"]
@@ -242,4 +288,3 @@ class StateValue(nn.Module, Action_Distribution):
         v = self.v(obs)
         return torch.squeeze(v, -1)
 
-#
