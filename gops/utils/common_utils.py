@@ -17,7 +17,7 @@ import numpy as np
 import logging
 from typing import Optional
 
-from gops.utils.act_distribution import *
+from gops.utils.act_distribution_type import *
 import random
 
 logger = logging.getLogger(__name__)

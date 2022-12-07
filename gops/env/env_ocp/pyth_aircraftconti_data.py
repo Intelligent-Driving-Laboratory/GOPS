@@ -108,7 +108,7 @@ class _GymAircraftconti(PythBaseEnv):
     def has_optimal_controller(self):
         return True
 
-    def control_policy(self, obs):
+    def control_policy(self, obs, info):
         action = self.control_matrix @ obs
         return action
 
