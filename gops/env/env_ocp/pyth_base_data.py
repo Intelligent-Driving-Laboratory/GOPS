@@ -46,7 +46,7 @@ class PythBaseEnv(gym.Env):
     def has_optimal_controller(self):
         return False
 
-    def control_policy(self, state):
+    def control_policy(self, state, info):
         return NotImplementedError
 
     @property

@@ -27,7 +27,7 @@ from gops.create_pkg.create_env_model import create_env_model
 from gops.create_pkg.create_env import create_env
 from gops.utils.plot_evaluation import cm2inch
 from gops.utils.common_utils import get_args_from_json, mp4togif
-from gops.sys_simulator.sys_opt_controller import OptController
+from gops.sys_simulator.opt_controller import OptController
 
 default_cfg = dict()
 default_cfg["fig_size"] = (12, 9)

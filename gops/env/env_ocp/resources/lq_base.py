@@ -192,7 +192,7 @@ class LqEnv(PythBaseEnv):
     def has_optimal_controller(self):
         return True
 
-    def control_policy(self, state):
+    def control_policy(self, state, info):
         return -self.control_matrix @ state
 
     def reset(self, init_state=None, **kwargs):
@@ -362,8 +362,8 @@ class LqModel(PythBaseModel):
 
 def test_check():
     from gops.env.env_ocp.resources.lq_configs import config_s3a1
-    from gops.env.tools.env_data_checker import check_env0
-    from gops.env.tools.env_model_checker import check_model0
+    from gops.env.inspector.env_data_checker import check_env0
+    from gops.env.inspector.env_model_checker import check_model0
 
     env = LqEnv(config_s3a1)
     model = LqModel(config_s3a1)

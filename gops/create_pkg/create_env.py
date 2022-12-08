@@ -9,7 +9,7 @@
 #  Description: Create environments
 #  Update Date: 2020-11-10, Yuhang Zhang: add create environments code
 
-from gops.env.env_wrapper.wrapping_utils import wrapping_env
+from gops.env.wrapper.wrapping_utils import wrapping_env
 
 
 def create_env(**kwargs):
