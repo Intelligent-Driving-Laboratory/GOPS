@@ -122,8 +122,6 @@ class RPI(AlgorithmBase):
         max_newton_iteration: int = 50,
         max_step_update_value: int = 10000,
         print_interval: int = 1,
-        env_id: str = "",
-        is_adversary: bool = False,
         learning_rate: float = 1e-3,
         **kwargs,
     ) -> None:
@@ -133,8 +131,6 @@ class RPI(AlgorithmBase):
             :param: int max_newton_iteration: max iteration in Newton's method.
             :param: int max_step_update_value: max gradient step in policy evaluation.
             :param: int print_interval: print interval.
-            :param: str env_id: id of environment.
-            :param: bool is_adversary: is adversary.
             :param: float learning_rate: learning rate of value function.
         """
         super().__init__(index, **kwargs)
@@ -150,8 +146,7 @@ class RPI(AlgorithmBase):
         self.set_state = None
         self.grad_step = np.ones([int(self.max_newton_iteration), 1], dtype="float32")
 
-        self.env_id = env_id
-        self.is_adversary = is_adversary
+        self.is_adversary = kwargs['is_adversary']
         self.env_model = create_env_model(**kwargs)
         self.obsv_dim = self.env_model.state_dim
         self.act_dim = self.env_model.action_dim
