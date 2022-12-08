@@ -51,6 +51,30 @@ default_cfg["img_fmt"] = "png"
 
 
 class PolicyRunner:
+    """Plot module for trained policy
+
+    :param list log_policy_dir_list: directory of trained policy.
+    :param list trained_policy_iteration_list: iteration of trained policy.
+    :param bool save_render: save environment animation or not.
+    :param list plot_range: customize plot range.
+    :param bool is_init_info: customize initial information or not.
+    :param dict init_info: initial information.
+    :param list legend_list: legends of figures.
+    :param bool use_opt: use optimal solution for comparison or not.
+    :param dict opt_args: arguments of optimal solution solver.
+    :param bool constrained_env: constraint environment or not.
+    :param bool is_tracking: tracking problem or not.
+    :param bool use_dist: use adversarial action or not.
+    :param float dt: time interval between steps.
+    :param str obs_noise_type: type of observation noise, "normal" or "uniform".
+    :param list obs_noise_data: Mean and
+        Standard deviation of Normal distribution or Upper
+        and Lower bounds of Uniform distribution.
+    :param str action_noise_type: type of action noise, "normal" or "uniform".
+    :param list action_noise_data: Mean and
+        Standard deviation of Normal distribution or Upper
+        and Lower bounds of Uniform distribution.
+    """
     def __init__(
         self,
         log_policy_dir_list: list,

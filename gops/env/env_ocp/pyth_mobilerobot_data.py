@@ -32,7 +32,7 @@ class PythMobilerobot(PythBaseEnv):
         work_space = kwargs.pop("work_space", None)
         if work_space is None:
             # initial range of robot state
-            robot_high = np.array([5, 1, 0.6, 0.4, 0], dtype=np.float32)
+            robot_high = np.array([2.7, 1, 0.6, 0.3, 0], dtype=np.float32)
             robot_low = np.array([0, -1, -0.6, 0, 0], dtype=np.float32)
 
             # initial range of tracking error
@@ -41,9 +41,9 @@ class PythMobilerobot(PythBaseEnv):
 
             # initial range of obstacle
             obstacle_high = np.array(
-                [6, -1, np.pi / 2 + 0.3, 0.25, 0], dtype=np.float32
+                [6, 3, np.pi / 2 + 0.3, 0.5, 0], dtype=np.float32
             )
-            obstacle_low = np.array([3, -3, np.pi / 2 - 0.3, 0.2, 0], dtype=np.float32)
+            obstacle_low = np.array([3.5, -3, np.pi / 2 - 0.3, 0.0, 0], dtype=np.float32)
 
             init_high = np.concatenate(
                 [robot_high, error_high] + [obstacle_high] * self.n_obstacle
@@ -56,7 +56,7 @@ class PythMobilerobot(PythBaseEnv):
 
         self.robot = Robot()
         self.obses = [Robot() for _ in range(self.n_obstacle)]
-        self.dt = 0.1
+        self.dt = 0.2
         self.state_dim = (1 + self.n_obstacle) * 5 + 3
         self.action_dim = 2
         self.use_constraint = kwargs.get("use_constraint", True)
@@ -130,11 +130,11 @@ class PythMobilerobot(PythBaseEnv):
 
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
         r_tracking = (
-            -3.2 * np.abs(tracking_error[:, 0])
-            - 10 * np.abs(tracking_error[:, 1])
-            - 1.6 * np.abs(tracking_error[:, 2])
+            -1.4 * np.square(tracking_error[:, 0])
+            - 1 * np.square(tracking_error[:, 1])
+            - 16 * np.square(tracking_error[:, 2])
         )
-        r_action = -0 * np.abs(action[:, 0]) - 0 * np.abs(action[:, 1])
+        r_action = -0.2 * np.square(action[:, 0]) - 0.5 * np.square(action[:, 1])
         reward = r_tracking + r_action
 
         # define the constraint here
