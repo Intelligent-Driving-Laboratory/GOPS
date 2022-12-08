@@ -21,9 +21,8 @@ results/
 .idea/
 *.pkl
 
-policy_result/
 figures/
-
+!figures/FHADP-pyth_idpendulum/demo
 # Distribution / packaging
 .Python
 build/
