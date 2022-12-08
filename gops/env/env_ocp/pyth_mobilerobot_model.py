@@ -33,7 +33,7 @@ class PythMobilerobotModel(PythBaseModel):
         self.obses = [Robot() for _ in range(self.n_obstacle)]
 
         # define common parameters here
-        self.dt = 0.1
+        self.dt = 0.2
         self.state_dim = (1 + self.n_obstacle) * 5 + 3
         self.action_dim = 2
         lb_state = (
@@ -99,11 +99,11 @@ class PythMobilerobotModel(PythBaseModel):
 
         # define the reward function here the format is just like: reward = l(state,state_next,reward)
         r_tracking = (
-            -3.2 * torch.abs(tracking_error[:, 0])
-            - 10 * torch.abs(tracking_error[:, 1])
-            - 1.6 * torch.abs(tracking_error[:, 2])
+            -1.4 * torch.square(tracking_error[:, 0])
+            - 1 * torch.square(tracking_error[:, 1])
+            - 16 * torch.square(tracking_error[:, 2])
         )
-        r_action = -0 * torch.abs(action[:, 0]) - 0 * torch.abs(action[:, 1])
+        r_action = -0.2 * torch.square(action[:, 0]) - 0.5 * torch.square(action[:, 1])
         reward = r_tracking + r_action
 
         # define the constraint funtion

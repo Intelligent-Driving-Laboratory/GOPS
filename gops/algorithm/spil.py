@@ -107,12 +107,12 @@ class SPIL(AlgorithmBase):
 
         self.n_constraint = kwargs["constraint_dim"]
         self.delta_i = np.array([0.0] * kwargs["constraint_dim"])
-        self.Kp = 40
-        self.Ki = 0.07 * 5
+        self.Kp = 60
+        self.Ki = 0.02
         self.Kd = 0
         self.tb_info = dict()
         self.safe_prob_pre = np.array([0.0] * kwargs["constraint_dim"])
-        self.chance_thre = np.array([0.99] * kwargs["constraint_dim"])
+        self.chance_thre = np.array([0.97] * kwargs["constraint_dim"])
 
     @property
     def adjustable_parameters(self):
