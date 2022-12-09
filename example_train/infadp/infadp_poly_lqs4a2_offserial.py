@@ -130,10 +130,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--noise_params",
         type=dict,
-        default={
-            "mean": np.array([0], dtype=np.float32),
-            "std": np.array([0.0], dtype=np.float32),
-        },
+        default={"mean": np.array([0], dtype=np.float32), "std": np.array([0.0], dtype=np.float32),},
     )
 
     ################################################
@@ -167,11 +164,7 @@ if __name__ == "__main__":
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
     alg.set_parameters(
-        {
-            "gamma": 0.99,
-            "tau": 0.2,
-            "forward_step": 1,
-        }
+        {"gamma": 0.99, "tau": 0.2, "forward_step": 1,}
     )
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)

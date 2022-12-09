@@ -186,10 +186,7 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
     def info(self):
         info = super().info
         info.update(
-            {
-                "surr_state": self.surr_state.copy(),
-                "constraint": self.get_constraint(),
-            }
+            {"surr_state": self.surr_state.copy(), "constraint": self.get_constraint(),}
         )
         return info
 

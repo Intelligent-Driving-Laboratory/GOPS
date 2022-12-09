@@ -178,10 +178,10 @@ class INFADP(AlgorithmBase):
                     o = o2
                     a = self.networks.policy(o)
                     o2, r, d, info = self.envmodel.forward(o, a, d, info)
-                    backup += self.gamma**step * r
+                    backup += self.gamma ** step * r
 
             backup += (
-                (~d) * self.gamma**self.forward_step * self.networks.v_target(o2)
+                (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
             )
         loss_v = ((v - backup) ** 2).mean()
         return loss_v, torch.mean(v)
@@ -207,8 +207,8 @@ class INFADP(AlgorithmBase):
                 o = o2
                 a = self.networks.policy(o)
                 o2, r, d, info = self.envmodel.forward(o, a, d, info)
-                v_pi += self.gamma**step * r
-        v_pi += (~d) * self.gamma**self.forward_step * self.networks.v_target(o2)
+                v_pi += self.gamma ** step * r
+        v_pi += (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
         for p in self.networks.v.parameters():
             p.requires_grad = True
         return -v_pi.mean()

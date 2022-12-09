@@ -170,11 +170,11 @@ class PythAircraftcontiModel(PythBaseModel):
         self.parallel_state = self.parallel_state + delta_state * dt
 
         reward = (
-            self.Q[0][0] * attack_ang**2
-            + self.Q[1][1] * rate**2
-            + self.Q[2][2] * elevator_ang**2
-            + self.R[0][0] * (elevator_vol**2).squeeze(-1)
-            - self.gamma_atte**2 * (wind_attack_angle**2).squeeze(-1)
+            self.Q[0][0] * attack_ang ** 2
+            + self.Q[1][1] * rate ** 2
+            + self.Q[2][2] * elevator_ang ** 2
+            + self.R[0][0] * (elevator_vol ** 2).squeeze(-1)
+            - self.gamma_atte ** 2 * (wind_attack_angle ** 2).squeeze(-1)
         )
 
         # define the ending condation here the format is just like isdone = l(next_state)
@@ -254,11 +254,11 @@ class PythAircraftcontiModel(PythBaseModel):
         )
         state_next = state + delta_state * dt
         cost = (
-            self.Q[0][0] * attack_ang**2
-            + self.Q[1][1] * rate**2
-            + self.Q[2][2] * elevator_ang**2
-            + self.R[0][0] * (elevator_vol**2).squeeze(-1)
-            - self.gamma_atte**2 * (wind_attack_angle**2).squeeze(-1)
+            self.Q[0][0] * attack_ang ** 2
+            + self.Q[1][1] * rate ** 2
+            + self.Q[2][2] * elevator_ang ** 2
+            + self.R[0][0] * (elevator_vol ** 2).squeeze(-1)
+            - self.gamma_atte ** 2 * (wind_attack_angle ** 2).squeeze(-1)
         )
         reward = -cost
         ############################################################################################
@@ -323,11 +323,11 @@ class PythAircraftcontiModel(PythBaseModel):
             delta_value = delta_value[:, :, np.newaxis]
             adv = (
                 0.5
-                / (self.gamma_atte**2)
+                / (self.gamma_atte ** 2)
                 * torch.bmm(kx.transpose(1, 2), delta_value).squeeze(-1)
             )
         else:
             kx = self.D
-            adv = 0.5 / (self.gamma_atte**2) * torch.mm(kx.t(), delta_value.t())
+            adv = 0.5 / (self.gamma_atte ** 2) * torch.mm(kx.t(), delta_value.t())
 
         return adv.detach()

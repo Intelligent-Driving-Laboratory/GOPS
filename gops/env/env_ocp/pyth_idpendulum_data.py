@@ -106,12 +106,14 @@ class PythInverteddoublependulum(PythBaseEnv):
             states[5],
         )
         point0x, point0y = p, 0
-        point1x, point1y = point0x + self.dynamics.l_rod1 * np.sin(
-            theta1
-        ), point0y + self.dynamics.l_rod1 * np.cos(theta1)
-        point2x, point2y = point1x + self.dynamics.l_rod2 * np.sin(
-            theta2
-        ), point1y + self.dynamics.l_rod2 * np.cos(theta2)
+        point1x, point1y = (
+            point0x + self.dynamics.l_rod1 * np.sin(theta1),
+            point0y + self.dynamics.l_rod1 * np.cos(theta1),
+        )
+        point2x, point2y = (
+            point1x + self.dynamics.l_rod2 * np.sin(theta2),
+            point1y + self.dynamics.l_rod2 * np.cos(theta2),
+        )
 
         plt.title("Inverted Double Pendulum")
         ax = plt.gca()

@@ -79,7 +79,7 @@ class PrioritizedReplayBuffer(object):
         self.beta = 0.4
         self.beta_increment = 0.01
         self.epsilon = 1e-6
-        self.max_priority = 1.0**self.alpha
+        self.max_priority = 1.0 ** self.alpha
 
     def __len__(self):
         return self.size

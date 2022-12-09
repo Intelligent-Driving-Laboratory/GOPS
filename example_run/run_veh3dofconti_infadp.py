@@ -25,7 +25,7 @@ runner = PolicyRunner(
         "opt_controller_type": "MPC",
         "num_pred_step": 10,
         "gamma": 0.99,
-        "mode": 'shooting',
+        "mode": "shooting",
         "minimize_options": {
             "max_iter": 200,
             "tol": 1e-4,

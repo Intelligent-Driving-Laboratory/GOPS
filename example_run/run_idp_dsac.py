@@ -13,12 +13,12 @@
 from gops.sys_simulator.sys_run import PolicyRunner
 
 runner = PolicyRunner(
-    log_policy_dir_list=["../results/DSAC/idpendulum"]+["../results/SAC/idpendulum"],
-    trained_policy_iteration_list=["33500_opt"]+["34500_opt"],
+    log_policy_dir_list=["../results/DSAC/idpendulum"] + ["../results/SAC/idpendulum"],
+    trained_policy_iteration_list=["33500_opt"] + ["34500_opt"],
     is_init_info=True,
     init_info={"init_state": [-1, 0.05, 0.05, 0, 0.1, 0.1]},
     save_render=False,
-    legend_list=["DSAC","SAC"],
+    legend_list=["DSAC", "SAC"],
     dt=0.01,
     use_opt=False,
 )

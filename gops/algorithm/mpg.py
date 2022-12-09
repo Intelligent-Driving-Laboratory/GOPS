@@ -341,8 +341,8 @@ class MPG(AlgorithmBase):
                 o = o2
                 a = self.networks.policy4rollout(o)
                 o2, r, done, info = self.envmodel.forward(o, a, done, info)
-                model_return += self.reward_scale * self.gamma**step * r
-        model_return += self.gamma**self.forward_step * self.networks.q1_target(
+                model_return += self.reward_scale * self.gamma ** step * r
+        model_return += self.gamma ** self.forward_step * self.networks.q1_target(
             o2, self.networks.policy(o2)
         )
 

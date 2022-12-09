@@ -175,7 +175,7 @@ class TRPO(AlgorithmBase):
             )
 
         for i in range(self.max_search):
-            update_policy(self.alpha**i)
+            update_policy(self.alpha ** i)
             logits_new = new_policy(obs)
             pi_new = self.networks.create_action_distributions(logits=logits_new)
             logp_new = pi_new.log_prob(act)

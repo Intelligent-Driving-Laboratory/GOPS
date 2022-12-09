@@ -75,6 +75,7 @@ class PolicyRunner:
         Standard deviation of Normal distribution or Upper
         and Lower bounds of Uniform distribution.
     """
+
     def __init__(
         self,
         log_policy_dir_list: list,
@@ -230,9 +231,7 @@ class PolicyRunner:
         }
         if self.constrained_env:
             eval_dict.update(
-                {
-                    "constrain_list": constrain_list,
-                }
+                {"constrain_list": constrain_list,}
             )
 
         if self.is_tracking:
@@ -864,10 +863,7 @@ class PolicyRunner:
                 model = create_env_model(**self.args_list[self.policy_num - 1])
                 opt_args = self.opt_args.copy()
                 opt_args.pop("opt_controller_type")
-                opt_controller = OptController(
-                    model,
-                    **opt_args,
-                )
+                opt_controller = OptController(model, **opt_args,)
                 legend = "MPC-" + str(self.opt_args["num_pred_step"])
                 if (
                     "use_terminal_cost" not in self.opt_args.keys()

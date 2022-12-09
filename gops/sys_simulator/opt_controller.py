@@ -264,7 +264,7 @@ class OptController:
                     next_x, reward, done, batched_info = self.model.forward(
                         next_x, u, done=done, info=batched_info
                     )
-                    rewards[i] = -reward * (self.gamma**i)
+                    rewards[i] = -reward * (self.gamma ** i)
                     states[i + 1, :] = next_x
                 break
 
@@ -310,7 +310,7 @@ class OptController:
         # Terminal cost for timestep T
         if self.terminal_cost is not None:
             terminal_cost = self.terminal_cost(states[-1, :])
-            cost += terminal_cost * (self.gamma**self.num_pred_step)
+            cost += terminal_cost * (self.gamma ** self.num_pred_step)
         return cost
 
     def _reset_statistics(self):

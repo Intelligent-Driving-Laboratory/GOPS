@@ -23,8 +23,7 @@ gym.logger.setLevel(gym.logger.ERROR)
 
 class PythMobilerobot(PythBaseEnv):
     def __init__(
-        self,
-        **kwargs: Any,
+        self, **kwargs: Any,
     ):
         self.n_obstacle = 1
         self.safe_margin = 0.15
@@ -40,10 +39,10 @@ class PythMobilerobot(PythBaseEnv):
             error_low = np.zeros(3, dtype=np.float32)
 
             # initial range of obstacle
-            obstacle_high = np.array(
-                [6, 3, np.pi / 2 + 0.3, 0.5, 0], dtype=np.float32
+            obstacle_high = np.array([6, 3, np.pi / 2 + 0.3, 0.5, 0], dtype=np.float32)
+            obstacle_low = np.array(
+                [3.5, -3, np.pi / 2 - 0.3, 0.0, 0], dtype=np.float32
             )
-            obstacle_low = np.array([3.5, -3, np.pi / 2 - 0.3, 0.0, 0], dtype=np.float32)
 
             init_high = np.concatenate(
                 [robot_high, error_high] + [obstacle_high] * self.n_obstacle
@@ -158,12 +157,18 @@ class PythMobilerobot(PythBaseEnv):
         for i in range(self.n_obstacle):
             crush = (
                 (
-                    (self._state[:, 8 + i * 5] - self._state[:, 0]) ** 2
-                    + (self._state[:, 9 + i * 5] - self._state[:, 1]) ** 2
+                    (
+                        (self._state[:, 8 + i * 5] - self._state[:, 0]) ** 2
+                        + (self._state[:, 9 + i * 5] - self._state[:, 1]) ** 2
+                    )
                 )
-            ) ** 0.5 - (
-                self.robot.robot_params["radius"] + self.obses[i].robot_params["radius"]
-            ) < 0
+                ** 0.5
+                - (
+                    self.robot.robot_params["radius"]
+                    + self.obses[i].robot_params["radius"]
+                )
+                < 0
+            )
             done = done or crush
         return done
 
