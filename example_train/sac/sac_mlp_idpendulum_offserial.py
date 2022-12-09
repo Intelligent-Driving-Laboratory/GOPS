@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="gym_cartpoleconti", help="id of environment")
+    parser.add_argument("--env_id", type=str, default="pyth_idpendulum", help="id of environment")
     parser.add_argument("--algorithm", type=str, default="SAC", help="RL algorithm")
     parser.add_argument("--enable_cuda", default=False, help="Disable CUDA")
 
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         help="Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer",
     )
     # Maximum iteration number
-    parser.add_argument("--max_iteration", type=int, default=35_000)
+    parser.add_argument("--max_iteration", type=int, default=80_000)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument(
         "--ini_network_dir",
@@ -137,16 +137,16 @@ if __name__ == "__main__":
     # 6. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
     parser.add_argument("--num_eval_episode", type=int, default=10)
-    parser.add_argument("--eval_interval", type=int, default=500)
+    parser.add_argument("--eval_interval", type=int, default=1000)
     parser.add_argument("--eval_save", type=str, default=False, help="save evaluation data")
 
     ################################################
     # 7. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument("--apprfunc_save_interval", type=int, default=3000)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=5000)
     # Save key info every N updates
-    parser.add_argument("--log_save_interval", type=int, default=100)
+    parser.add_argument("--log_save_interval", type=int, default=1000)
 
     # Get parameter dictionary
     args = vars(parser.parse_args())
