@@ -1,0 +1,132 @@
+{
+    "env_id": "pyth_veh3dofconti",
+    "algorithm": "INFADP",
+    "enable_cuda": false,
+    "pre_horizon": 10,
+    "obsv_dim": 26,
+    "action_dim": 2,
+    "action_high_limit": [
+        0.5235987901687622,
+        3.0
+    ],
+    "action_low_limit": [
+        -0.5235987901687622,
+        -3.0
+    ],
+    "action_type": "continu",
+    "reward_scale": 1.0,
+    "state_obs_scale": [
+        0.16666666666666666,
+        0.3333333333333333,
+        0.3333333333333333,
+        0.06666666666666667,
+        0.13333333333333333,
+        0.3333333333333333
+    ],
+    "one_step_scale": [
+        0.05,
+        0.2
+    ],
+    "obs_scale": [
+        0.16666666666666666,
+        0.3333333333333333,
+        0.3333333333333333,
+        0.06666666666666667,
+        0.13333333333333333,
+        0.3333333333333333,
+        0.05,
+        0.2,
+        0.05,
+        0.2,
+        0.05,
+        0.2,
+        0.05,
+        0.2,
+        0.05,
+        0.2,
+        0.05,
+        0.2,
+        0.05,
+        0.2,
+        0.05,
+        0.2,
+        0.05,
+        0.2,
+        0.05,
+        0.2
+    ],
+    "is_render": false,
+    "is_adversary": false,
+    "is_constrained": false,
+    "value_func_name": "StateValue",
+    "value_func_type": "MLP",
+    "value_hidden_sizes": [
+        64,
+        64
+    ],
+    "value_hidden_activation": "relu",
+    "value_output_activation": "linear",
+    "policy_func_name": "DetermPolicy",
+    "policy_func_type": "MLP",
+    "policy_act_distribution": "default",
+    "policy_hidden_sizes": [
+        64,
+        64
+    ],
+    "policy_hidden_activation": "relu",
+    "policy_output_activation": "linear",
+    "value_learning_rate": 0.001,
+    "policy_learning_rate": 0.001,
+    "trainer": "off_serial_trainer",
+    "max_iteration": 4000,
+    "ini_network_dir": null,
+    "buffer_name": "replay_buffer",
+    "buffer_warm_size": 1000,
+    "buffer_max_size": 100000,
+    "replay_batch_size": 64,
+    "sampler_sync_interval": 1,
+    "sampler_name": "off_sampler",
+    "sample_batch_size": 8,
+    "noise_params": {
+        "mean": [
+            0.0
+        ],
+        "std": [
+            0.20000000298023224
+        ]
+    },
+    "evaluator_name": "evaluator",
+    "num_eval_episode": 10,
+    "eval_interval": 100,
+    "save_folder": "E:\\gops\\gops/results/INFADP\\221116-112654",
+    "apprfunc_save_interval": 100,
+    "log_save_interval": 100,
+    "use_gpu": false,
+    "batch_size_per_sampler": 8,
+    "additional_info": {
+        "state": {
+            "shape": 6,
+            "dtype": "<class 'numpy.float32'>"
+        },
+        "ref": {
+            "shape": [
+                2
+            ],
+            "dtype": "<class 'numpy.float32'>"
+        },
+        "path_num": {
+            "shape": [],
+            "dtype": "<class 'numpy.uint8'>"
+        },
+        "u_num": {
+            "shape": [],
+            "dtype": "<class 'numpy.uint8'>"
+        },
+        "ref_time": {
+            "shape": [],
+            "dtype": "<class 'numpy.float32'>"
+        }
+    },
+    "cnn_shared": false,
+    "seed": 4005565695
+}

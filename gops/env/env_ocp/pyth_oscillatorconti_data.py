@@ -85,7 +85,7 @@ class _GymOscillatorconti(PythBaseEnv):
     def has_optimal_controller(self):
         return True
 
-    def control_policy(self, obs):
+    def control_policy(self, obs, info):
         return np.array([-obs[0] * obs[1]], dtype="f")
 
     def reset(self, init_state=None, **kwargs):

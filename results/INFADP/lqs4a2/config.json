@@ -1,0 +1,92 @@
+{
+    "env_id": "pyth_lq",
+    "lq_config": "s4a2",
+    "algorithm": "INFADP",
+    "enable_cuda": false,
+    "action_type": "continu",
+    "reward_scale": 0.1,
+    "reward_shift": 0,
+    "is_render": false,
+    "is_adversary": false,
+    "is_constrained": false,
+    "value_func_name": "StateValue",
+    "value_func_type": "POLY",
+    "value_degree": 2,
+    "value_add_bias": false,
+    "policy_func_name": "DetermPolicy",
+    "policy_func_type": "POLY",
+    "policy_act_distribution": "default",
+    "policy_degree": 1,
+    "policy_add_bias": false,
+    "value_learning_rate": 0.0003,
+    "policy_learning_rate": 8e-05,
+    "trainer": "off_serial_trainer",
+    "max_iteration": 500000,
+    "ini_network_dir": null,
+    "buffer_name": "replay_buffer",
+    "buffer_warm_size": 1000,
+    "buffer_max_size": 100000,
+    "replay_batch_size": 64,
+    "sample_interval": 1,
+    "sampler_name": "off_sampler",
+    "sample_batch_size": 8,
+    "noise_params": {
+        "mean": [
+            0.0
+        ],
+        "std": [
+            0.0
+        ]
+    },
+    "evaluator_name": "evaluator",
+    "num_eval_episode": 10,
+    "eval_interval": 5000,
+    "eval_save": false,
+    "initial_distribution": "uniform",
+    "train_space": [
+        [
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0
+        ],
+        [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+        ]
+    ],
+    "work_space": [
+        [
+            -0.5,
+            -0.5,
+            -0.5,
+            -0.5
+        ],
+        [
+            0.5,
+            0.5,
+            0.5,
+            0.5
+        ]
+    ],
+    "save_folder": "D:\\wwx\\PHD\\Project\\GOPS\\GOPS_code\\temp/results/INFADP\\221209-123347",
+    "apprfunc_save_interval": 25000,
+    "log_save_interval": 5000,
+    "use_gpu": false,
+    "batch_size_per_sampler": 8,
+    "obsv_dim": 4,
+    "action_dim": 2,
+    "action_high_limit": [
+        8.0,
+        8.0
+    ],
+    "action_low_limit": [
+        -8.0,
+        -8.0
+    ],
+    "additional_info": {},
+    "cnn_shared": false,
+    "seed": 2428686243
+}

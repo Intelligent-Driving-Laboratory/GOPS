@@ -1,0 +1,77 @@
+{
+    "env_id": "pyth_aircraftconti",
+    "algorithm": "RPI",
+    "enable_cuda": false,
+    "action_type": "continu",
+    "is_render": false,
+    "is_adversary": true,
+    "is_constrained": false,
+    "value_func_name": "StateValue",
+    "value_func_type": "POLY",
+    "value_degree": 2,
+    "value_add_bias": true,
+    "gt_weight": [
+        1.657267,
+        2.790874,
+        -0.332129,
+        1.657339,
+        -0.360723,
+        0.43706
+    ],
+    "policy_func_name": "DetermPolicy",
+    "policy_func_type": "POLY",
+    "policy_act_distribution": "default",
+    "policy_degree": 1,
+    "policy_add_bias": true,
+    "learning_rate": 0.001,
+    "gamma_atte": 5,
+    "trainer": "on_serial_trainer",
+    "max_newton_iteration": 50,
+    "max_step_update_value": 10000,
+    "max_iteration": 50,
+    "ini_network_dir": null,
+    "sampler_name": "on_sampler",
+    "sample_batch_size": 64,
+    "noise_params": null,
+    "fixed_initial_state": [
+        1.0,
+        1.5,
+        1.0
+    ],
+    "initial_state_range": [
+        0.1,
+        0.2,
+        0.1
+    ],
+    "state_threshold": [
+        2.0,
+        2.0,
+        2.0
+    ],
+    "lower_step": 200,
+    "upper_step": 700,
+    "max_episode_steps": 200,
+    "buffer_name": "replay_buffer",
+    "buffer_warm_size": 64,
+    "buffer_max_size": 64,
+    "evaluator_name": "evaluator",
+    "num_eval_episode": 1,
+    "eval_interval": 2,
+    "print_interval": 1,
+    "save_folder": "D:\\wwx\\PHD\\Project\\GOPS\\GOPS_code\\temp/results/RPI\\221209-113116",
+    "apprfunc_save_interval": 10,
+    "log_save_interval": 1,
+    "use_gpu": false,
+    "batch_size_per_sampler": 64,
+    "obsv_dim": 3,
+    "action_dim": 1,
+    "action_high_limit": [
+        1.0
+    ],
+    "action_low_limit": [
+        -1.0
+    ],
+    "additional_info": {},
+    "cnn_shared": false,
+    "seed": 3344555443
+}
