@@ -57,7 +57,7 @@ class VehicleDynamicsData:
                 m * v * u
                 + delta_t * (l_f * k_f - l_r * k_r) * w
                 - delta_t * k_f * steer * u
-                - delta_t * m * u**2 * w
+                - delta_t * m * u ** 2 * w
             )
             / (m * u - delta_t * (k_f + k_r)),
             (
@@ -65,7 +65,7 @@ class VehicleDynamicsData:
                 + delta_t * (l_f * k_f - l_r * k_r) * v
                 - delta_t * l_f * k_f * steer * u
             )
-            / (I_z * u - delta_t * (l_f**2 * k_f + l_r**2 * k_r)),
+            / (I_z * u - delta_t * (l_f ** 2 * k_f + l_r ** 2 * k_r)),
         ]
         return np.array(next_state, dtype=np.float32)
 
@@ -222,9 +222,9 @@ class SimuVeh2dofconti(PythBaseEnv):
         return -(
             0.04 * (y - ref_y) ** 2
             + 0.02 * (phi - ref_phi) ** 2
-            + 0.01 * v**2
-            + 0.01 * w**2
-            + 0.01 * steer**2
+            + 0.01 * v ** 2
+            + 0.01 * w ** 2
+            + 0.01 * steer ** 2
         )
 
     def judge_done(self) -> bool:

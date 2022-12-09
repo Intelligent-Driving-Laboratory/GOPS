@@ -26,12 +26,7 @@ runner = PolicyRunner(
         "opt_controller_type": "MPC",
         "num_pred_step": 80,
         "gamma": 1,
-        "minimize_options": {
-            "max_iter": 200,
-            "tol": 1e-3,
-            "acceptable_tol": 1e0,
-            "acceptable_iter": 10,
-        },
+        "minimize_options": {"max_iter": 200, "tol": 1e-3, "acceptable_tol": 1e0, "acceptable_iter": 10,},
         "use_terminal_cost": False,
     },
 )

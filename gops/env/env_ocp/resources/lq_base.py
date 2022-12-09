@@ -33,9 +33,7 @@ MAX_BUFFER = 20100
 
 class LQDynamics:
     def __init__(
-        self,
-        config: dict,
-        device: Union[torch.device, str, None] = None,
+        self, config: dict, device: Union[torch.device, str, None] = None,
     ):
         self.A = torch.as_tensor(config["A"], dtype=torch.float32, device=device)
         self.B = torch.as_tensor(config["B"], dtype=torch.float32, device=device)
@@ -317,9 +315,7 @@ class LqEnv(PythBaseEnv):
 
 class LqModel(PythBaseModel):
     def __init__(
-        self,
-        config: dict,
-        device: Union[torch.device, str, None] = None,
+        self, config: dict, device: Union[torch.device, str, None] = None,
     ):
         """
         you need to define parameters here

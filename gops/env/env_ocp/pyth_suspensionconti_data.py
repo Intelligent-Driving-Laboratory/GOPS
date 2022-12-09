@@ -204,23 +204,23 @@ class _GymSuspensionconti(PythBaseEnv):
 
         if not done:
             reward = (
-                self.Q[0][0] * pos_body**2
-                + self.Q[1][1] * vel_body**2
-                + self.Q[2][2] * pos_wheel**2
-                + self.Q[3][3] * vel_wheel**2
+                self.Q[0][0] * pos_body ** 2
+                + self.Q[1][1] * vel_body ** 2
+                + self.Q[2][2] * pos_wheel ** 2
+                + self.Q[3][3] * vel_wheel ** 2
                 + self.R[0][0] * action[0] ** 2
-                - self.gamma_atte**2 * adv_action[0] ** 2
+                - self.gamma_atte ** 2 * adv_action[0] ** 2
             )
         elif self.steps_beyond_done is None:
             # Pole just fell!
             self.steps_beyond_done = 0
             reward = (
-                self.Q[0][0] * pos_body**2
-                + self.Q[1][1] * vel_body**2
-                + self.Q[2][2] * pos_wheel**2
-                + self.Q[3][3] * vel_wheel**2
+                self.Q[0][0] * pos_body ** 2
+                + self.Q[1][1] * vel_body ** 2
+                + self.Q[2][2] * pos_wheel ** 2
+                + self.Q[3][3] * vel_wheel ** 2
                 + self.R[0][0] * action[0] ** 2
-                - self.gamma_atte**2 * adv_action[0] ** 2
+                - self.gamma_atte ** 2 * adv_action[0] ** 2
             )
         else:
             if self.steps_beyond_done == 0:
@@ -235,10 +235,10 @@ class _GymSuspensionconti(PythBaseEnv):
             reward = 0.0
 
         reward_positive = (
-            self.Q[0][0] * pos_body**2
-            + self.Q[1][1] * vel_body**2
-            + self.Q[2][2] * pos_wheel**2
-            + self.Q[3][3] * vel_wheel**2
+            self.Q[0][0] * pos_body ** 2
+            + self.Q[1][1] * vel_body ** 2
+            + self.Q[2][2] * pos_wheel ** 2
+            + self.Q[3][3] * vel_wheel ** 2
             + self.R[0][0] * action[0] ** 2
         )
         reward_negative = adv_action[0] ** 2

@@ -108,8 +108,8 @@ class _GymOscillatorconti(PythBaseEnv):
 
         battery_a_dot = -0.25 * battery_a
         battery_b_dot = (
-            0.5 * battery_a**2 * battery_b
-            - 1 / (2 * self.gamma_atte**2) * battery_b**3
+            0.5 * battery_a ** 2 * battery_b
+            - 1 / (2 * self.gamma_atte ** 2) * battery_b ** 3
             - 0.5 * battery_b
             + battery_a * memristor
             + battery_b * noise
@@ -144,19 +144,19 @@ class _GymOscillatorconti(PythBaseEnv):
 
         if not done:
             reward = (
-                self.Q[0][0] * battery_a**2
-                + self.Q[1][1] * battery_b**2
+                self.Q[0][0] * battery_a ** 2
+                + self.Q[1][1] * battery_b ** 2
                 + self.R[0][0] * action[0] ** 2
-                - self.gamma_atte**2 * adv_action[0] ** 2
+                - self.gamma_atte ** 2 * adv_action[0] ** 2
             )
         elif self.steps_beyond_done is None:
             # Pole just fell!
             self.steps_beyond_done = 0
             reward = (
-                self.Q[0][0] * battery_a**2
-                + self.Q[1][1] * battery_b**2
+                self.Q[0][0] * battery_a ** 2
+                + self.Q[1][1] * battery_b ** 2
                 + self.R[0][0] * action[0] ** 2
-                - self.gamma_atte**2 * adv_action[0] ** 2
+                - self.gamma_atte ** 2 * adv_action[0] ** 2
             )
         else:
             if self.steps_beyond_done == 0:
@@ -171,8 +171,8 @@ class _GymOscillatorconti(PythBaseEnv):
             reward = 0.0
 
         reward_positive = (
-            self.Q[0][0] * battery_a**2
-            + self.Q[1][1] * battery_b**2
+            self.Q[0][0] * battery_a ** 2
+            + self.Q[1][1] * battery_b ** 2
             + self.R[0][0] * action[0] ** 2
         )
         reward_negative = adv_action[0] ** 2

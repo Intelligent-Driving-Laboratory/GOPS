@@ -201,12 +201,12 @@ class PythSuspensioncontiModel(PythBaseModel):
         self.parallel_state = self.parallel_state + delta_state * dt
 
         reward = (
-            self.Q[0][0] * pos_body**2
-            + self.Q[1][1] * vel_body**2
-            + self.Q[2][2] * pos_wheel**2
-            + self.Q[3][3] * vel_wheel**2
-            + self.R[0][0] * (force**2).squeeze(-1)
-            - self.gamma_atte**2 * (pos_road**2).squeeze(-1)
+            self.Q[0][0] * pos_body ** 2
+            + self.Q[1][1] * vel_body ** 2
+            + self.Q[2][2] * pos_wheel ** 2
+            + self.Q[3][3] * vel_wheel ** 2
+            + self.R[0][0] * (force ** 2).squeeze(-1)
+            - self.gamma_atte ** 2 * (pos_road ** 2).squeeze(-1)
         )
 
         # define the ending condation here the format is just like isdone = l(next_state)
@@ -315,12 +315,12 @@ class PythSuspensioncontiModel(PythBaseModel):
         )
         state_next = state + delta_state * dt
         cost = (
-            self.Q[0][0] * pos_body**2
-            + self.Q[1][1] * vel_body**2
-            + self.Q[2][2] * pos_wheel**2
-            + self.Q[3][3] * vel_wheel**2
-            + self.R[0][0] * (force**2).squeeze(-1)
-            - self.gamma_atte**2 * (pos_road**2).squeeze(-1)
+            self.Q[0][0] * pos_body ** 2
+            + self.Q[1][1] * vel_body ** 2
+            + self.Q[2][2] * pos_wheel ** 2
+            + self.Q[3][3] * vel_wheel ** 2
+            + self.R[0][0] * (force ** 2).squeeze(-1)
+            - self.gamma_atte ** 2 * (pos_road ** 2).squeeze(-1)
         )
         reward = -cost
         ############################################################################################
@@ -440,11 +440,11 @@ class PythSuspensioncontiModel(PythBaseModel):
             delta_value = delta_value[:, :, np.newaxis]
             adv = (
                 0.5
-                / (self.gamma_atte**2)
+                / (self.gamma_atte ** 2)
                 * torch.bmm(kx.transpose(1, 2), delta_value).squeeze(-1)
             )
         else:
             kx = self.k_x(state, batch_size)
-            adv = 0.5 / (self.gamma_atte**2) * torch.mm(kx.t(), delta_value.t())
+            adv = 0.5 / (self.gamma_atte ** 2) * torch.mm(kx.t(), delta_value.t())
 
         return adv.detach()

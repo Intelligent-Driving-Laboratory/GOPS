@@ -95,9 +95,7 @@ class Py2slxRuner:
         print("Load {}-policy successfully!".format(alg_name))
         return networks
 
-    def __load_sampler(
-        self,
-    ):
+    def __load_sampler(self,):
         sampler = create_sampler(**self.args)
         return sampler
 

@@ -225,11 +225,7 @@ class DSAC(AlgorithmBase):
             obs2, act2, self.networks.q_target, use_min=False
         )
         target_q, target_q_bound = self.__compute_target_q(
-            rew,
-            done,
-            q.detach(),
-            q_next_sample.detach(),
-            log_prob_act2.detach(),
+            rew, done, q.detach(), q_next_sample.detach(), log_prob_act2.detach(),
         )
         if self.bound:
             q_loss = torch.mean(

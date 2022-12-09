@@ -158,12 +158,14 @@ class Dynamics(object):
             states[:, 5],
         )
         point0x, point0y = p, 0
-        point1x, point1y = point0x + self.l_rod1 * torch.sin(
-            theta1
-        ), point0y + self.l_rod1 * torch.cos(theta1)
-        point2x, point2y = point1x + self.l_rod2 * torch.sin(
-            theta2
-        ), point1y + self.l_rod2 * torch.cos(theta2)
+        point1x, point1y = (
+            point0x + self.l_rod1 * torch.sin(theta1),
+            point0y + self.l_rod1 * torch.cos(theta1),
+        )
+        point2x, point2y = (
+            point1x + self.l_rod2 * torch.sin(theta2),
+            point1y + self.l_rod2 * torch.cos(theta2),
+        )
 
         d1 = point2y <= 1.0
         d2 = torch.abs(point0x) >= 15

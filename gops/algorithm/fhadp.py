@@ -119,7 +119,7 @@ class FHADP(AlgorithmBase):
                 o = o2
                 a = self.networks.policy(o, step + 1)
                 o2, r, d, info = self.envmodel.forward(o, a, d, info)
-                v_pi += r * (self.gamma**step)
+                v_pi += r * (self.gamma ** step)
 
         return -(v_pi).mean()
 

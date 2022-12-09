@@ -54,7 +54,7 @@ class NoiseAction(gym.Wrapper):
 
     def seed(self, seed: Optional[int] = None) -> int:
         np_random, _ = seeding.np_random(seed)
-        noise_seed = int(np_random.randint(2**31))
+        noise_seed = int(np_random.randint(2 ** 31))
         self.np_random, noise_seed = seeding.np_random(noise_seed)
         seeds = self.env.seed(seed)
         return seeds + [noise_seed]

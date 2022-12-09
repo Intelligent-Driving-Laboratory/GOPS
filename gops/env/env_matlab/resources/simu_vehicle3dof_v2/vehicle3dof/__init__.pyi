@@ -193,7 +193,6 @@ class Veh3dofconti:
             numpy.void
         ]  # value = dtype([('VectorConcatenate3', '<f8', (2,)), ('VectorConcatenate', '<f8', (4,)), ('ZeroOrderHold', '<f8', (6,)), ('Output', '<f8', (3,)), ('ZeroOrderHold1', '<f8', (3,)), ('Product1', '<f8'), ('Product1_oajp', '<f8'), ('stateDer', '<f8', (4,)), ('y', '<f8', (2,)), ('y_fdgf', '<f8', (3,))])
         pass
-
     class DW_vehicle3dof_T:
         def __copy__(self) -> Veh3dofconti.DW_vehicle3dof_T: ...
         def __deepcopy__(self, memo: dict) -> Veh3dofconti.DW_vehicle3dof_T: ...
@@ -228,7 +227,6 @@ class Veh3dofconti:
             numpy.void
         ]  # value = dtype({'names': ['NextOutput', 'RandSeed', 'Integrator_IWORK_aike'], 'formats': ['<f8', '<u4', '<i4'], 'offsets': [0, 8, 16], 'itemsize': 24})
         pass
-
     class ExtU_vehicle3dof_T:
         def __copy__(self) -> Veh3dofconti.ExtU_vehicle3dof_T: ...
         def __deepcopy__(self, memo: dict) -> Veh3dofconti.ExtU_vehicle3dof_T: ...
@@ -252,7 +250,6 @@ class Veh3dofconti:
             numpy.void
         ]  # value = dtype([('Action', '<f8', (3,)), ('AdverAction', '<f8')])
         pass
-
     class ExtY_vehicle3dof_T:
         def __copy__(self) -> Veh3dofconti.ExtY_vehicle3dof_T: ...
         def __deepcopy__(self, memo: dict) -> Veh3dofconti.ExtY_vehicle3dof_T: ...
@@ -292,7 +289,6 @@ class Veh3dofconti:
             numpy.void
         ]  # value = dtype({'names': ['obs', 'rew', 'done', 'info'], 'formats': [('<f8', (6,)), '<f8', '?', '<f8'], 'offsets': [0, 48, 56, 64], 'itemsize': 72})
         pass
-
     class InstP_vehicle3dof_T:
         def __copy__(self) -> Veh3dofconti.InstP_vehicle3dof_T: ...
         def __deepcopy__(self, memo: dict) -> Veh3dofconti.InstP_vehicle3dof_T: ...
@@ -384,7 +380,6 @@ class Veh3dofconti:
             numpy.void
         ]  # value = dtype([('a_max', '<f8', (3,)), ('a_min', '<f8', (3,)), ('adva_max', '<f8', (3,)), ('adva_min', '<f8', (3,)), ('done_range', '<f8', (3,)), ('punish_Q', '<f8', (4,)), ('punish_R', '<f8', (3,)), ('ref_A', '<f8', (3,)), ('ref_T', '<f8', (3,)), ('ref_fai', '<f8', (3,)), ('x_ini', '<f8', (6,)), ('x_max', '<f8', (6,)), ('x_min', '<f8', (6,)), ('noise_seed', '<f8'), ('ref_V', '<f8')])
         pass
-
     class X_vehicle3dof_T:
         def __copy__(self) -> Veh3dofconti.X_vehicle3dof_T: ...
         def __deepcopy__(self, memo: dict) -> Veh3dofconti.X_vehicle3dof_T: ...
