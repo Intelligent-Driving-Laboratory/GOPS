@@ -15,9 +15,9 @@ from gops.sys_simulator.sys_run import PolicyRunner
 
 runner = PolicyRunner(
     log_policy_dir_list=["../results/FHADP/idpendulum"],
-    trained_policy_iteration_list=["90000_opt"],
+    trained_policy_iteration_list=["9_opt"],
     is_init_info=True,
-    init_info={"init_state": [-1, 0.1, -0.1, -0.3, 0.3, -0.3]},
+    init_info={"init_state": [-1, 0.05, -0.05, -0.15, 0.15, -0.15]},
     save_render=False,
     legend_list=["FHADP"],
     dt=0.01,

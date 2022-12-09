@@ -9,7 +9,7 @@ __pycache__/
 #add by SUN-Hao
 gops/.idea/*
 .idea/
-results/
+/results/*
 
 .idea/*
 **/__pycache__
@@ -17,12 +17,9 @@ results/
 
 # C extensions
 *.so
-
-.idea/
 *.pkl
 
 figures/
-!figures/FHADP-pyth_idpendulum/demo
 # Distribution / packaging
 .Python
 build/
