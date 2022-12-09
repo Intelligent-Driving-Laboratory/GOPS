@@ -121,7 +121,3 @@ def check_model(env_name):
     env_model = env_model_cls()
 
     check_model0(env, env_model)
-
-
-if __name__ == "__main__":
-    check_model("pyth_carfollowing")

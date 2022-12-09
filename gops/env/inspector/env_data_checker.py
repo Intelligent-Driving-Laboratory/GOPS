@@ -173,7 +173,3 @@ def simple_check_env(env_name):
     a = env.action_space.sample()
     env.step(a)
     print(f"check `{env_name}_data` success")
-
-
-if __name__ == "__main__":
-    check_env("pyth_carfollowing")
