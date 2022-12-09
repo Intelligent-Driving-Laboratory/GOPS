@@ -1,0 +1,68 @@
+{
+    "env_id": "pyth_idpendulum",
+    "algorithm": "INFADP",
+    "enable_cuda": false,
+    "seed": 3328005365,
+    "action_type": "continu",
+    "reward_scale": 1,
+    "repeat_num": null,
+    "sum_reward": false,
+    "is_render": false,
+    "is_adversary": false,
+    "is_constrained": false,
+    "value_func_name": "StateValue",
+    "value_func_type": "MLP",
+    "value_hidden_sizes": [
+        64,
+        64
+    ],
+    "value_hidden_activation": "gelu",
+    "value_output_activation": "linear",
+    "policy_func_name": "DetermPolicy",
+    "policy_func_type": "MLP",
+    "policy_act_distribution": "default",
+    "policy_hidden_sizes": [
+        64,
+        64
+    ],
+    "policy_hidden_activation": "gelu",
+    "policy_output_activation": "linear",
+    "policy_learning_rate": 0.0001,
+    "value_learning_rate": 0.0003,
+    "trainer": "off_serial_trainer",
+    "max_iteration": 100000,
+    "ini_network_dir": null,
+    "buffer_name": "replay_buffer",
+    "buffer_warm_size": 1000,
+    "buffer_max_size": 100000,
+    "replay_batch_size": 256,
+    "sample_interval": 1,
+    "sampler_name": "off_sampler",
+    "sample_batch_size": 64,
+    "noise_params": {
+        "mean": [
+            0.0
+        ],
+        "std": [
+            0.0
+        ]
+    },
+    "evaluator_name": "evaluator",
+    "num_eval_episode": 10,
+    "eval_interval": 1000,
+    "save_folder": "D:\\GOPS_gitee/results/INFADP\\221128-144346",
+    "apprfunc_save_interval": 5000,
+    "log_save_interval": 1000,
+    "use_gpu": false,
+    "batch_size_per_sampler": 64,
+    "obsv_dim": 6,
+    "action_dim": 1,
+    "action_high_limit": [
+        1.0
+    ],
+    "action_low_limit": [
+        -1.0
+    ],
+    "additional_info": {},
+    "cnn_shared": false
+}

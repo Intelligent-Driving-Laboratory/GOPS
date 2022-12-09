@@ -16,6 +16,6 @@ from gops.env.inspector.env_dynamic_checker import check_dynamic
 check_dynamic(
     env_info={"env_id": "pyth_idpendulum"},
     traj_num=5,
-    log_policy_dir="./results/SAC/idp_221017-174348",
-    policy_iteration="27000",
+    log_policy_dir="../results/FHADP/idpendulum",
+    policy_iteration="54000_opt",
 )

@@ -9,7 +9,35 @@ __pycache__/
 #add by SUN-Hao
 gops/.idea/*
 .idea/
+
+# training results
 /results/*
+!/results/FHADP
+/results/FHADP/*
+!/results/FHADP/idpendulum
+
+!/results/RPI
+/results/RPI/*
+!/results/RPI/aircraftconti
+
+!/results/INFADP
+/results/INFADP/*
+!/results/INFADP/idpendulum
+!/results/INFADP/lqs4a2
+!/results/INFADP/veh3dofconti
+
+!/results/DDPG
+/results/DDPG/*
+!/results/DDPG/gym_pendulum
+
+!/results/SAC
+/results/SAC/*
+!/results/SAC/idpendulum
+
+!/results/DSAC
+/results/DSAC/*
+!/results/DSAC/idpendulum
+
 
 .idea/*
 **/__pycache__

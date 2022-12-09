@@ -39,6 +39,7 @@ if __name__ == "__main__":
     parser.add_argument("--action_type", type=str, default="continu", help="Options: continu/discret")
     parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
     parser.add_argument("--is_adversary", type=bool, default=False, help="Adversary training")
+    parser.add_argument("--reward_scale", type=list, default=0.1, help="reward scale factor")
 
     ################################################
     # 2.1 Parameters of value approximate function
@@ -131,7 +132,7 @@ if __name__ == "__main__":
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="off_sampler", help="Options: on_sampler/off_sampler")
     # Batch size of sampler for buffer store
-    parser.add_argument("--sample_batch_size", type=int, default=4)
+    parser.add_argument("--sample_batch_size", type=int, default=8)
     # Add noise to action for better exploration
     parser.add_argument(
         "--noise_params",

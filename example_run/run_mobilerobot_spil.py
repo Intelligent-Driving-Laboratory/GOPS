@@ -21,7 +21,6 @@ runner = PolicyRunner(
     save_render=False,
     legend_list=["9000"],
     use_opt=False,
-    # plot_range= [0,50],
     constrained_env=True,
     opt_args={
         "opt_controller_type": "MPC",
