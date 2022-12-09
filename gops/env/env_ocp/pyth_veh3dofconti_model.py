@@ -55,7 +55,7 @@ class VehicleDynamicsModel(VehicleDynamicsData):
                 + delta_t * (l_f * k_f - l_r * k_r) * v
                 - delta_t * l_f * k_f * steer * u
             )
-            / (I_z * u - delta_t * (l_f**2 * k_f + l_r**2 * k_r)),
+            / (I_z * u - delta_t * (l_f ** 2 * k_f + l_r ** 2 * k_r)),
         ]
         next_state[2] = angle_normalize(next_state[2])
         return torch.stack(next_state, 1)
@@ -156,13 +156,13 @@ class Veh3dofcontiModel(PythBaseModel):
         )
         steer, a_x = action[:, 0], action[:, 1]
         return -(
-            0.04 * delta_x**2
-            + 0.04 * delta_y**2
-            + 0.02 * delta_phi**2
-            + 0.02 * delta_u**2
-            + 0.01 * w**2
-            + 0.01 * steer**2
-            + 0.01 * a_x**2
+            0.04 * delta_x ** 2
+            + 0.04 * delta_y ** 2
+            + 0.02 * delta_phi ** 2
+            + 0.02 * delta_u ** 2
+            + 0.01 * w ** 2
+            + 0.01 * steer ** 2
+            + 0.01 * a_x ** 2
         )
 
     def judge_done(self, obs):

@@ -30,19 +30,14 @@ class SimuVeh3dofcontiErrCstr(SimuVeh3dofconti):
         self.y_error_tol = y_error_tol
         self.u_error_tol = u_error_tol
         self.info_dict.update(
-            {
-                "constraint": {"shape": (2,), "dtype": np.float32},
-            }
+            {"constraint": {"shape": (2,), "dtype": np.float32},}
         )
 
     def get_constraint(self) -> np.ndarray:
         y, u = self.state[1], self.state[3]
         y_ref, u_ref = self.ref_points[0, 1], self.ref_points[0, 3]
         constraint = np.array(
-            [
-                abs(y - y_ref) - self.y_error_tol,
-                abs(u - u_ref) - self.u_error_tol,
-            ],
+            [abs(y - y_ref) - self.y_error_tol, abs(u - u_ref) - self.u_error_tol,],
             dtype=np.float32,
         )
         return constraint
@@ -51,9 +46,7 @@ class SimuVeh3dofcontiErrCstr(SimuVeh3dofconti):
     def info(self):
         info = super().info
         info.update(
-            {
-                "constraint": self.get_constraint(),
-            }
+            {"constraint": self.get_constraint(),}
         )
         return info
 

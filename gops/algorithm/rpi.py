@@ -141,12 +141,12 @@ class RPI(AlgorithmBase):
 
         self.num_update_value = 0
         self.norm_hamiltonian_before = 0
-        self.norm_hamiltonian_after = self.max_step_update_value**3
+        self.norm_hamiltonian_after = self.max_step_update_value ** 3
         self.step_size_newton = 0
         self.set_state = None
         self.grad_step = np.ones([int(self.max_newton_iteration), 1], dtype="float32")
 
-        self.is_adversary = kwargs['is_adversary']
+        self.is_adversary = kwargs["is_adversary"]
         self.env_model = create_env_model(**kwargs)
         self.obsv_dim = self.env_model.state_dim
         self.act_dim = self.env_model.action_dim

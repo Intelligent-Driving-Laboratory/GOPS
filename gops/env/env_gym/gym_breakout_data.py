@@ -40,10 +40,7 @@ class MoveChannel(gym.ObservationWrapper):
         old_obs_shape = self.observation_space.shape
         new_obs_shape = (old_obs_shape[2], old_obs_shape[0], old_obs_shape[1])
         self.observation_space = gym.spaces.Box(
-            low=0.0,
-            high=1.0,
-            shape=new_obs_shape,
-            dtype=np.float32,
+            low=0.0, high=1.0, shape=new_obs_shape, dtype=np.float32,
         )
 
     def observation(self, observation):

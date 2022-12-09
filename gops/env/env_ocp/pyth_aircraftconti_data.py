@@ -177,21 +177,21 @@ class _GymAircraftconti(PythBaseEnv):
 
         if not done:
             reward = (
-                self.Q[0][0] * attack_ang**2
-                + self.Q[1][1] * rate**2
-                + self.Q[2][2] * elevator_ang**2
+                self.Q[0][0] * attack_ang ** 2
+                + self.Q[1][1] * rate ** 2
+                + self.Q[2][2] * elevator_ang ** 2
                 + self.R[0][0] * action[0] ** 2
-                - self.gamma_atte**2 * adv_action[0] ** 2
+                - self.gamma_atte ** 2 * adv_action[0] ** 2
             )
         elif self.steps_beyond_done is None:
             # Pole just fell!
             self.steps_beyond_done = 0
             reward = (
-                self.Q[0][0] * attack_ang**2
-                + self.Q[1][1] * rate**2
-                + self.Q[2][2] * elevator_ang**2
+                self.Q[0][0] * attack_ang ** 2
+                + self.Q[1][1] * rate ** 2
+                + self.Q[2][2] * elevator_ang ** 2
                 + self.R[0][0] * action[0] ** 2
-                - self.gamma_atte**2 * adv_action[0] ** 2
+                - self.gamma_atte ** 2 * adv_action[0] ** 2
             )
         else:
             if self.steps_beyond_done == 0:

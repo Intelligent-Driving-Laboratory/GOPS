@@ -124,10 +124,7 @@ if __name__ == "__main__":
     parser.add_argument("--sampler_name", type=str, default="on_sampler")
     # Batch size of sampler for buffer store
     parser.add_argument(
-        "--sample_batch_size",
-        type=int,
-        default=512,
-        help="Batch size of sampler for buffer store = 1024",
+        "--sample_batch_size", type=int, default=512, help="Batch size of sampler for buffer store = 1024",
     )
     assert (
         parser.parse_known_args()[0].num_mini_batch * parser.parse_known_args()[0].mini_batch_size
@@ -135,10 +132,7 @@ if __name__ == "__main__":
     ), "sample_batch_size error"
     # Add noise to actions for better exploration
     parser.add_argument(
-        "--noise_params",
-        type=dict,
-        default=None,
-        help="Add noise to actions for exploration",
+        "--noise_params", type=dict, default=None, help="Add noise to actions for exploration",
     )
 
     ################################################
@@ -161,9 +155,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_folder", type=str, default=None)
     # Save value/policy every N updates
     parser.add_argument(
-        "--apprfunc_save_interval",
-        type=int,
-        default=100,
+        "--apprfunc_save_interval", type=int, default=100,
     )
     # Save key info every N updates
     parser.add_argument(

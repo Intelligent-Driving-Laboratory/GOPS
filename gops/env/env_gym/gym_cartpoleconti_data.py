@@ -141,9 +141,10 @@ class _GymCartpoleconti(gym.Env):
             self.seed(seed)
         self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
-        return np.array(self.state, dtype=np.float32), {
-            "state": self.state.astype(np.float32)
-        }
+        return (
+            np.array(self.state, dtype=np.float32),
+            {"state": self.state.astype(np.float32)},
+        )
 
     def render(self, mode="human"):
         screen_width = 600

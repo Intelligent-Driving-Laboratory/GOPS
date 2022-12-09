@@ -17,11 +17,7 @@ from typing import Dict, Optional, Sequence
 import numpy as np
 
 DEFAULT_PATH_PARAM = {
-    "sine": {
-        "A": 1.5,
-        "omega": 2 * np.pi / 10,
-        "phi": 0.0,
-    },
+    "sine": {"A": 1.5, "omega": 2 * np.pi / 10, "phi": 0.0,},
     "double_lane": {
         "t1": 5.0,
         "t2": 9.0,
@@ -30,25 +26,13 @@ DEFAULT_PATH_PARAM = {
         "y1": 0.0,
         "y2": 3.5,
     },
-    "triangle": {
-        "A": 3.0,
-        "T": 10.0,
-    },
-    "circle": {
-        "r": 100.0,
-    },
+    "triangle": {"A": 3.0, "T": 10.0,},
+    "circle": {"r": 100.0,},
 }
 
 DEFAULT_SPEED_PARAM = {
-    "sine": {
-        "A": 1.0,
-        "omega": 2 * np.pi / 10,
-        "phi": 0.0,
-        "b": 5.0,
-    },
-    "constant": {
-        "u": 5.0,
-    },
+    "sine": {"A": 1.0, "omega": 2 * np.pi / 10, "phi": 0.0, "b": 5.0,},
+    "constant": {"u": 5.0,},
 }
 
 

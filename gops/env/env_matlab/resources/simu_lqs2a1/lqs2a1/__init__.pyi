@@ -89,7 +89,6 @@ class lqs2a1:
             numpy.void
         ]  # value = dtype([('MultiportSwitch2', '<f8'), ('Sum1', '<f8')])
         pass
-
     class ExtU_lqs2a1_T:
         def __copy__(self) -> lqs2a1.ExtU_lqs2a1_T: ...
         def __deepcopy__(self, memo: dict) -> lqs2a1.ExtU_lqs2a1_T: ...
@@ -116,7 +115,6 @@ class lqs2a1:
             numpy.void
         ]  # value = dtype([('Action', '<f8'), ('AdverAction', '<f8')])
         pass
-
     class ExtY_lqs2a1_T:
         def __copy__(self) -> lqs2a1.ExtY_lqs2a1_T: ...
         def __deepcopy__(self, memo: dict) -> lqs2a1.ExtY_lqs2a1_T: ...
@@ -148,7 +146,6 @@ class lqs2a1:
             numpy.void
         ]  # value = dtype({'names': ['State', 'Done', 'Reward'], 'formats': [('<f8', (2,)), '?', '<f8'], 'offsets': [0, 16, 24], 'itemsize': 32})
         pass
-
     class InstP_lqs2a1_T:
         def __copy__(self) -> lqs2a1.InstP_lqs2a1_T: ...
         def __deepcopy__(self, memo: dict) -> lqs2a1.InstP_lqs2a1_T: ...
@@ -177,7 +174,6 @@ class lqs2a1:
             numpy.void
         ]  # value = dtype([('Q', '<f8', (2,)), ('x_ini', '<f8', (2,)), ('R', '<f8')])
         pass
-
     class X_lqs2a1_T:
         def __copy__(self) -> lqs2a1.X_lqs2a1_T: ...
         def __deepcopy__(self, memo: dict) -> lqs2a1.X_lqs2a1_T: ...

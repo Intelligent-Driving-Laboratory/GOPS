@@ -38,7 +38,7 @@ class VehicleDynamicsModel(VehicleDynamicsData):
                 m * v * u
                 + delta_t * (l_f * k_f - l_r * k_r) * w
                 - delta_t * k_f * steer * u
-                - delta_t * m * u**2 * w
+                - delta_t * m * u ** 2 * w
             )
             / (m * u - delta_t * (k_f + k_r)),
             (
@@ -46,7 +46,7 @@ class VehicleDynamicsModel(VehicleDynamicsData):
                 + delta_t * (l_f * k_f - l_r * k_r) * v
                 - delta_t * l_f * k_f * steer * u
             )
-            / (I_z * u - delta_t * (l_f**2 * k_f + l_r**2 * k_r)),
+            / (I_z * u - delta_t * (l_f ** 2 * k_f + l_r ** 2 * k_r)),
         ]
         return torch.stack(next_state, 1)
 
@@ -152,11 +152,11 @@ class Veh2dofcontiModel(PythBaseModel):
         delta_y, delta_phi, v, w = obs[:, :4].split(1, dim=1)
         steer = action
         return -(
-            0.04 * delta_y**2
-            + 0.02 * delta_phi**2
-            + 0.01 * v**2
-            + 0.01 * w**2
-            + 0.01 * steer**2
+            0.04 * delta_y ** 2
+            + 0.02 * delta_phi ** 2
+            + 0.01 * v ** 2
+            + 0.01 * w ** 2
+            + 0.01 * steer ** 2
         ).squeeze(1)
 
     def judge_done(self, obs: torch.Tensor) -> torch.Tensor:

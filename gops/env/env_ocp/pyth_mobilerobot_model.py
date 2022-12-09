@@ -23,9 +23,7 @@ def env_model_creator(**kwargs):
 
 class PythMobilerobotModel(PythBaseModel):
     def __init__(
-        self,
-        device: Union[torch.device, str, None] = None,
-        **kwargs: Any,
+        self, device: Union[torch.device, str, None] = None, **kwargs: Any,
     ):
         self.n_obstacle = 1
         self.safe_margin = 0.15

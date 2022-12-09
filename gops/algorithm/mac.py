@@ -236,10 +236,10 @@ class MAC(AlgorithmBase):
                     o = o2
                     a = self.networks.policy(o)
                     o2, r, d = self.dynamic_model_forward(o, a, d)
-                    backup += self.reward_scale * self.gamma**step * r
+                    backup += self.reward_scale * self.gamma ** step * r
 
             backup += (
-                (~d) * self.gamma**self.forward_step * self.networks.v_target(o2)
+                (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
             )
         loss_v = ((v - backup) ** 2).mean()
         return loss_v, torch.mean(v)
@@ -264,8 +264,8 @@ class MAC(AlgorithmBase):
                 o = o2
                 a = self.networks.policy(o)
                 o2, r, d = self.dynamic_model_forward(o, a, d)
-                v_pi += self.reward_scale * self.gamma**step * r
-        v_pi += (~d) * self.gamma**self.forward_step * self.networks.v_target(o2)
+                v_pi += self.reward_scale * self.gamma ** step * r
+        v_pi += (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
         for p in self.networks.v.parameters():
             p.requires_grad = True
         return -v_pi.mean()

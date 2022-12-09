@@ -20,11 +20,7 @@ from gops.env.env_matlab.resources.simu_vehicle3dof_v2 import vehicle3dof
 
 class RefCurve:
     def __init__(
-        self,
-        ref_a: List,
-        ref_t: List,
-        ref_fai: List,
-        ref_v: float,
+        self, ref_a: List, ref_t: List, ref_fai: List, ref_v: float,
     ):
         self.A = ref_a
         self.T = ref_t
@@ -46,9 +42,7 @@ class RefCurve:
         return pos_y, np.arctan(k_y), self.V
 
 
-class SimuVeh3dofconti(
-    gym.Env,
-):
+class SimuVeh3dofconti(gym.Env,):
     def __init__(self, **kwargs: Any):
         spec = vehicle3dof._env.EnvSpec(
             id="SimuVeh3dofConti-v0",
@@ -89,8 +83,7 @@ class SimuVeh3dofconti(
 
         self.action_space = self.env.action_space
         self.action_space = spaces.Box(
-            -self.act_scale * self.act_max,
-            self.act_scale * self.act_max,
+            -self.act_scale * self.act_max, self.act_scale * self.act_max,
         )
         # Split RNG, if randomness is needed
         self.rng = np.random.default_rng()

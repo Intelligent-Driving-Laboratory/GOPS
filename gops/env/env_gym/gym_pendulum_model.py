@@ -84,7 +84,7 @@ class GymPendulumModel(PythBaseModel):
             thdot
             + (
                 -3 * g / (2 * length) * torch.sin(th + pi)
-                + 3.0 / (m * length**2) * action.squeeze()
+                + 3.0 / (m * length ** 2) * action.squeeze()
             )
             * dt
         )
@@ -95,8 +95,8 @@ class GymPendulumModel(PythBaseModel):
         state_next = torch.stack([newcosth, newsinth, newthdot], dim=-1)
         reward = (
             angle_normalize(th) ** 2
-            + 0.1 * thdot**2
-            + 0.001 * (action**2).squeeze(-1)
+            + 0.1 * thdot ** 2
+            + 0.001 * (action ** 2).squeeze(-1)
         )
         reward = -reward
         ############################################################################################

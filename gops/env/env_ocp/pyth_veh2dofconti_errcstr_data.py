@@ -28,9 +28,7 @@ class SimuVeh2dofcontiErrCstr(SimuVeh2dofconti):
         super().__init__(pre_horizon, path_para, u_para, **kwargs)
         self.y_error_tol = y_error_tol
         self.info_dict.update(
-            {
-                "constraint": {"shape": (1,), "dtype": np.float32},
-            }
+            {"constraint": {"shape": (1,), "dtype": np.float32},}
         )
 
     def get_constraint(self) -> np.ndarray:
@@ -43,9 +41,7 @@ class SimuVeh2dofcontiErrCstr(SimuVeh2dofconti):
     def info(self):
         info = super().info
         info.update(
-            {
-                "constraint": self.get_constraint(),
-            }
+            {"constraint": self.get_constraint(),}
         )
         return info
 
