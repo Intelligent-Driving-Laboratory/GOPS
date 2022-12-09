@@ -42,13 +42,13 @@ Train the policy by running:
 ```bash
 python example_train/fhadp/fhadp_mlp_idpendulum_serial.py
 ```
-After training, test policy by running:
+After training, test the policy by running:
 ```bash
 python example_run/run_idp_fhadp.py
 ```
 You can record a video by setting `save_render=True` in the test file. Here is a video of running a trained policy on the task:
 
-![Video of FHADP policy on inverted double pendulum environment](https://gitee.com/yangyujie_jack/gops/raw/dev/docs/videos/idp.mp4)
+![Video of FHADP policy on inverted double pendulum environment](https://gitee.com/yangyujie_jack/gops/raw/dev/results/FHADP/idpendulum/videos/idp.mp4)
 
 ## Acknowledgment
 We would like to thank all members in Intelligent Driving Laboratory (iDLab), School of Vehicle and Mobility, Tsinghua University for making excellent contributions and providing helpful advices for GOPS.
