@@ -51,7 +51,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--value_func_name",
         type=str,
-        default="ActionValue",
+        default="StateValue",
         help="Options: StateValue/ActionValue/ActionValueDis/ActionValueDistri",
     )
     parser.add_argument("--value_func_type", type=str, default="CNN", help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS")

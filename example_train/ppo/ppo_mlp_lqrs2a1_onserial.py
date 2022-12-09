@@ -33,7 +33,7 @@ if __name__ == "__main__":
     ################################################
     # Key Parameters for users
     parser.add_argument("--env_id", type=str, default="pyth_lq", help="id of environment")
-    parser.add_argument("--lq_config", type=str, default="s3a1", help="config of lq")
+    parser.add_argument("--lq_config", type=str, default="s2a1", help="config of lq")
     parser.add_argument("--algorithm", type=str, default="PPO", help="RL algorithm")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
 
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     # Batch size of sampler for buffer store
     parser.add_argument(
         "--sample_batch_size", type=int, default=1600, help="Batch size of sampler for buffer store = 1024",
-    )  # 8 env * 128 step
+    )
     assert (
         parser.parse_known_args()[0].num_mini_batch * parser.parse_known_args()[0].mini_batch_size
         == parser.parse_known_args()[0].sample_batch_size
