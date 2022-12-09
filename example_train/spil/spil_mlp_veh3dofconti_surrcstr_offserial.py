@@ -84,6 +84,8 @@ if __name__ == "__main__":
     # 3. Parameters for RL algorithm
     parser.add_argument("--value_learning_rate", type=float, default=1e-3)
     parser.add_argument("--policy_learning_rate", type=float, default=1e-3)
+    parser.add_argument("--forward_step", type=int, default=10)
+    parser.add_argument("--reward_scale", type=float, default=1.0)
 
     # 4. Parameters for trainer
     parser.add_argument(
@@ -140,7 +142,7 @@ if __name__ == "__main__":
     # 7. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument("--apprfunc_save_interval", type=int, default=100)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=1000)
     # Save key info every N updates
     parser.add_argument("--log_save_interval", type=int, default=100)
 

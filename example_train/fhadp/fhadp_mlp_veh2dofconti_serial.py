@@ -126,7 +126,7 @@ if __name__ == "__main__":
     ################################################
     # 6. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=100)
+    parser.add_argument("--num_eval_episode", type=int, default=10)
     parser.add_argument("--eval_interval", type=int, default=100)
     parser.add_argument("--eval_save", type=str, default=False, help="save evaluation data")
 
