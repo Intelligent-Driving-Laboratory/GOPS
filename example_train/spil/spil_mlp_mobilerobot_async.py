@@ -96,7 +96,7 @@ if __name__ == "__main__":
     ################################################
     # 3. Parameters for RL algorithm
     parser.add_argument("--value_learning_rate", type=float, default=2e-3)
-    parser.add_argument("--policy_learning_rate", type=float, default=0.3e-3)
+    parser.add_argument("--policy_learning_rate", type=float, default=3e-4)
 
     # 4. Parameters for trainer
     parser.add_argument(
@@ -168,9 +168,9 @@ if __name__ == "__main__":
     # 7. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument("--apprfunc_save_interval", type=int, default=200)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=1000)
     # Save key info every N updates
-    parser.add_argument("--log_save_interval", type=int, default=1000)
+    parser.add_argument("--log_save_interval", type=int, default=100)
 
     # Get parameter dictionary
     args = vars(parser.parse_args())
@@ -180,7 +180,7 @@ if __name__ == "__main__":
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
     # Step 2: create sampler in trainer
-    sampler = create_sampler(**args)  # 调用alg里面的函数，创建自己的网络
+    sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
     buffer = create_buffer(**args)
     # Step 4: create evaluator in trainer

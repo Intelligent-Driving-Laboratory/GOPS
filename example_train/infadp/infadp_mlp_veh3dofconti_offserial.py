@@ -39,18 +39,6 @@ if __name__ == "__main__":
 
     # 1. Parameters for environment
     parser.add_argument("--action_type", type=str, default="continu", help="Options: continu/discret")
-    parser.add_argument("--reward_scale", type=float, default=0.1, help="reward scale factor")
-    parser.add_argument(
-        "--state_obs_scale", type=list, default=[1.0 / 6.0, 1.0 / 3.0, 1.0 / 3.0, 1.0 / 15.0, 1.0 / 7.5, 1.0 / 3.0]
-    )
-    parser.add_argument("--one_step_scale", type=list, default=[1.0 / 20.0, 1.0 / 5.0])
-    state_obs_scale = parser.parse_known_args()[0].state_obs_scale
-    pre_horizon = parser.parse_known_args()[0].pre_horizon
-    one_step_scale = parser.parse_known_args()[0].one_step_scale
-    obs_scale = state_obs_scale
-    for i in range(pre_horizon):
-        obs_scale = np.hstack((obs_scale, one_step_scale))
-    parser.add_argument("--obs_scale", type=list, default=obs_scale)
     parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
     parser.add_argument("--is_adversary", type=bool, default=False, help="Adversary training")
     parser.add_argument("--is_constrained", type=bool, default=False, help="Adversary training")
@@ -140,7 +128,7 @@ if __name__ == "__main__":
         type=dict,
         default={
             "mean": np.array([0], dtype=np.float32),
-            "std": np.array([0.0], dtype=np.float32),
+            "std": np.array([0.2], dtype=np.float32),
         },
     )
 
@@ -155,7 +143,7 @@ if __name__ == "__main__":
     # 7. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument("--apprfunc_save_interval", type=int, default=100)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=500)
     # Save key info every N updates
     parser.add_argument("--log_save_interval", type=int, default=100)
 
@@ -166,9 +154,8 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
-    alg.set_parameters({"gamma": 0.99, "tau": 0.05})
     # Step 2: create sampler in trainer
-    sampler = create_sampler(**args)  # 调用alg里面的函数，创建自己的网络
+    sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
     buffer = create_buffer(**args)
     # Step 4: create evaluator in trainer

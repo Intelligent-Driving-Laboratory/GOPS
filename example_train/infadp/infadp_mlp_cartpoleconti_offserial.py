@@ -157,7 +157,7 @@ if __name__ == "__main__":
     alg = create_alg(**args)  # create appr_model in algo **vars(args)
     alg.set_parameters({"gamma": 0.99, "tau": 0.2})
     # Step 2: create sampler in trainer
-    sampler = create_sampler(**args)  # 调用alg里面的函数，创建自己的网络
+    sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
     buffer = create_buffer(**args)
     # Step 4: create evaluator in trainer
