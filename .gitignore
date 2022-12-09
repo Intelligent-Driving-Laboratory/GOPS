@@ -38,6 +38,10 @@ gops/.idea/*
 /results/DSAC/*
 !/results/DSAC/idpendulum
 
+!/results/SPIL
+/results/SPIL/*
+!/results/SPIL/mobilerobot
+
 
 .idea/*
 **/__pycache__
