@@ -29,10 +29,15 @@ GOPS requires:
 2. Python 3.6 or greater (GOPS V1.0 precompiled Simulink models use Python 3.6). We recommend using Python 3.8.
 3. (Optional) Matlab/Simulink 2018a or greater.
 
-You can install GOPS through Gitee:
+You can install GOPS through the following steps:
 ```bash
+# clone GOPS repository
 git clone https://gitee.com/tsinghua-university-iDLab-GOPS/gops
 cd gops
+# create conda environment
+conda env create -f environment.yml
+conda activate gops
+# install GOPS
 pip install -e .
 ```
 
