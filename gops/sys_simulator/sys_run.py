@@ -352,6 +352,7 @@ class PolicyRunner:
         plt.legend(loc="best", prop=default_cfg["legend_font"])
         fig.tight_layout(pad=default_cfg["pad"])
         plt.savefig(path_reward_fmt, format=default_cfg["img_fmt"], bbox_inches="tight")
+        plt.close()
 
         # plot action
         for j in range(action_dim):
@@ -386,6 +387,7 @@ class PolicyRunner:
             plt.savefig(
                 path_action_fmt, format=default_cfg["img_fmt"], bbox_inches="tight"
             )
+            plt.close()
 
         # plot state
         for j in range(state_dim):
@@ -420,6 +422,7 @@ class PolicyRunner:
             plt.savefig(
                 path_state_fmt, format=default_cfg["img_fmt"], bbox_inches="tight"
             )
+            plt.close()
 
         # plot tracking
         if self.is_tracking:
@@ -466,6 +469,7 @@ class PolicyRunner:
                     format=default_cfg["img_fmt"],
                     bbox_inches="tight",
                 )
+                plt.close()
 
                 tracking_state_data = pd.DataFrame(data=np.array(tracking_state_data))
                 tracking_state_data.to_csv(
@@ -509,6 +513,7 @@ class PolicyRunner:
                     format=default_cfg["img_fmt"],
                     bbox_inches="tight",
                 )
+                plt.close()
 
                 tracking_error_data = pd.DataFrame(data=np.array(tracking_error_data))
                 tracking_error_data.to_csv(
@@ -557,6 +562,7 @@ class PolicyRunner:
                     format=default_cfg["img_fmt"],
                     bbox_inches="tight",
                 )
+                plt.close()
 
         # plot error with opt
         if self.use_opt:
@@ -594,6 +600,7 @@ class PolicyRunner:
                 format=default_cfg["img_fmt"],
                 bbox_inches="tight",
             )
+            plt.close()
 
             # action error
             for j in range(action_dim):
@@ -631,6 +638,7 @@ class PolicyRunner:
                     format=default_cfg["img_fmt"],
                     bbox_inches="tight",
                 )
+                plt.close()
 
                 # save action error data to csv
                 action_error_data = pd.DataFrame(data=action_error_array[:, :, j])
@@ -675,6 +683,7 @@ class PolicyRunner:
                     format=default_cfg["img_fmt"],
                     bbox_inches="tight",
                 )
+                plt.close()
 
                 # save state data to csv
                 state_error_data = pd.DataFrame(data=state_error_array[:, :, j])
