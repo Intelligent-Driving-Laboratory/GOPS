@@ -7,7 +7,7 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: template for closed-loop dynamic check
-#  Update: 2020-12-10, Xujie Song: create example template
+#  Update: 2022-12-10, Xujie Song: create example template
 
 import argparse
 
