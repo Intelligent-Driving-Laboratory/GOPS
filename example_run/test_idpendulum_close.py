@@ -6,7 +6,7 @@
 #  Lab Leader: Prof. Shengbo Eben Li
 #  Email: lisb04@gmail.com
 #
-#  Description: check the close-loop dynamic of pyth_idpendulum, draw the figures of first/second-order difference of state.
+#  Description: check the closed-loop dynamic of pyth_idpendulum, draw the figures of first/second-order difference of state.
 #               figures will be saved in 'figures' folder.
 #  Update: 2022-12-05, Xujie Song: create file
 
