@@ -45,7 +45,8 @@ setup(
         'pyglet',
         'seaborn',
         'scipy',
-        'slxpy'
+        'slxpy',
+        'openpyxl'
     ],
     python_requires='>=3.6',
 )

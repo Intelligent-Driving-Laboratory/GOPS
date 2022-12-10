@@ -6,7 +6,7 @@
 #  Lab Leader: Prof. Shengbo Eben Li
 #  Email: lisb04@gmail.com
 #
-#  Description: run a closed-loop system
+#  Description: run a closed-loop system, use value function as terminal cost of MPC controller
 #  Update: 2022-12-05, Congsheng Zhang: create file
 
 
@@ -17,6 +17,7 @@ from gops.algorithm.infadp import ApproxContainer
 import os
 import argparse
 
+
 # Load arguments of approximate function
 def load_args(log_policy_dir):
     json_path = os.path.join(log_policy_dir, "config.json")
@@ -26,6 +27,7 @@ def load_args(log_policy_dir):
     return args
 
 
+# Load approximate function class and its parameters
 def load_apprfunc(log_policy_dir, trained_policy_iteration):
     # Create apprfunc
     args = load_args(log_policy_dir)
@@ -37,11 +39,10 @@ def load_apprfunc(log_policy_dir, trained_policy_iteration):
     return networks
 
 
-# Load value approximate function
+# Define terminal cost of MPC controller
 value_net = load_apprfunc("../results/INFADP/lqs4a2", "115000_opt").v
 
 
-# Define terminal cost of MPC controller
 def terminal_cost(obs):
     obs = obs.unsqueeze(0)
     return -value_net(obs).squeeze(-1)
@@ -59,7 +60,7 @@ runner = PolicyRunner(
         "opt_controller_type": "MPC",
         "num_pred_step": 5,
         "gamma": 0.99,
-        "minimize_options": {"max_iter": 200, "tol": 1e-4, "acceptable_tol": 1e-2, "acceptable_iter": 10,},
+        "minimize_options": {"max_iter": 200, "tol": 1e-4, "acceptable_tol": 1e-2, "acceptable_iter": 10, },
         "use_terminal_cost": True,
         "terminal_cost": terminal_cost,
     },
