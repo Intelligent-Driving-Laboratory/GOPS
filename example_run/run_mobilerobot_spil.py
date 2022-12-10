@@ -14,7 +14,7 @@ from gops.sys_simulator.sys_run import PolicyRunner
 import numpy as np
 
 runner = PolicyRunner(
-    log_policy_dir_list=["../results/SPIL/221209-144528"],
+    log_policy_dir_list=["../results/SPIL/mobilerobot"],
     trained_policy_iteration_list=["16500_opt"],
     is_init_info=True,
     init_info={"init_state": [1, -0.5, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 5.5, -2.5, np.pi / 2, 0.2, 0]},
