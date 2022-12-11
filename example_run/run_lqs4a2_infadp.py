@@ -10,29 +10,8 @@
 #  Update: 2022-12-05, Congsheng Zhang: create file
 
 
-from gops.utils.common_utils import get_args_from_json
+from gops.sys_simulator.call_terminal_cost import load_apprfunc
 from gops.sys_simulator.sys_run import PolicyRunner
-import torch
-from gops.algorithm.infadp import ApproxContainer
-import os
-import argparse
-
-# Load arguments of approximate function
-def load_args(log_policy_dir):
-    json_path = os.path.join(log_policy_dir, "config.json")
-    parser = argparse.ArgumentParser()
-    args_dict = vars(parser.parse_args())
-    args = get_args_from_json(json_path, args_dict)
-    return args
-
-def load_apprfunc(log_policy_dir, trained_policy_iteration):
-    # Create apprfunc
-    args = load_args(log_policy_dir)
-    networks = ApproxContainer(**args)
-    # Load trained apprfunc
-    log_path = log_policy_dir + "/apprfunc/apprfunc_{}.pkl".format(trained_policy_iteration)
-    networks.load_state_dict(torch.load(log_path))
-    return networks
 
 # Load value approximate function
 value_net = load_apprfunc("../results/INFADP/lqs4a2_poly", "115000_opt").v
