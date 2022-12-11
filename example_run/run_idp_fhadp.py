@@ -20,15 +20,17 @@ runner = PolicyRunner(
     init_info={"init_state": [-1, 0.05, 0.05, 0, 0.1, 0.1]},
     save_render=False,
     legend_list=["FHADP-54000"],
-    dt=0.01,
-    use_opt=True,
+    use_opt=True, # Use optimal solution for comparison
     opt_args={
-        "opt_controller_type": "MPC",
+        "opt_controller_type": "MPC", # MPC or OPT
         "num_pred_step": 80,
         "gamma": 1,
-        "minimize_options": {"max_iter": 200, "tol": 1e-3, "acceptable_tol": 1e0, "acceptable_iter": 10,},
+        "minimize_options": {"max_iter": 200, "tol": 1e-3,
+                             "acceptable_tol": 1e0,
+                             "acceptable_iter": 10,},
         "use_terminal_cost": False,
     },
+    dt=None,  # time interval between steps
 )
 
 runner.run()

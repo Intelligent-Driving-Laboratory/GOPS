@@ -6,7 +6,7 @@
 #  Lab Leader: Prof. Shengbo Eben Li
 #  Email: lisb04@gmail.com
 #
-#  Description: run a closed-loop system, constrained environment
+#  Description: run a closed-loop system
 #  Update: 2022-12-05, Congsheng Zhang: create file
 
 

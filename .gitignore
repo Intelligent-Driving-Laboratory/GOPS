@@ -15,6 +15,7 @@ gops/.idea/*
 !/results/FHADP
 /results/FHADP/*
 !/results/FHADP/idpendulum
+!/results/FHADP/lqs3a1
 
 !/results/RPI
 /results/RPI/*

@@ -30,53 +30,32 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="gym_cartpoleconti", help="id of environment")
-    parser.add_argument("--algorithm", type=str, default="DDPG", help="RL algorithm")
-    parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
+    parser.add_argument("--env_id", type=str, default="gym_cartpoleconti")
+    parser.add_argument("--algorithm", type=str, default="DDPG")
+    parser.add_argument("--enable_cuda", default=False)
 
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--action_type", type=str, default="continu", help="Options: continu/discret")
-    parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
-    parser.add_argument("--is_adversary", type=bool, default=False, help="Adversary training")
-    parser.add_argument("--reward_scale", type=list, default=0.1, help="reward scale factor")
+    parser.add_argument("--action_type", type=str, default="continu")
+    parser.add_argument("--is_render", type=bool, default=False)
+    parser.add_argument("--is_adversary", type=bool, default=False)
+    parser.add_argument("--reward_scale", type=list, default=0.1)
 
     ################################################
     # 2.1 Parameters of value approximate function
-    parser.add_argument(
-        "--value_func_name",
-        type=str,
-        default="ActionValue",
-        help="Options: StateValue/ActionValue/ActionValueDis/ActionValueDistri",
-    )
-    parser.add_argument("--value_func_type", type=str, default="MLP", help="Options: MLP/CNN/RNN/POLY/GAUSS")
+    parser.add_argument("--value_func_name", type=str, default="ActionValue")
+    parser.add_argument("--value_func_type", type=str, default="MLP")
     parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
-    parser.add_argument(
-        "--value_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
-    )
-    parser.add_argument("--value_output_activation", type=str, default="linear", help="Options: linear/tanh")
+    parser.add_argument("--value_hidden_activation", type=str, default="relu")
+    parser.add_argument("--value_output_activation", type=str, default="linear")
 
     # 2.2 Parameters of policy approximate function
-    parser.add_argument(
-        "--policy_func_name",
-        type=str,
-        default="DetermPolicy",
-        help="Options: None/DetermPolicy/FiniteHorizonPolicy/StochaPolicy",
-    )
-    parser.add_argument(
-        "--policy_func_type", type=str, default="MLP", help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS"
-    )
-    parser.add_argument(
-        "--policy_act_distribution",
-        type=str,
-        default="default",
-        help="Options: default/TanhGaussDistribution/GaussDistribution",
-    )
+    parser.add_argument("--policy_func_name", type=str, default="DetermPolicy")
+    parser.add_argument("--policy_func_type", type=str, default="MLP")
+    parser.add_argument("--policy_act_distribution", type=str, default="default")
     parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
-    parser.add_argument(
-        "--policy_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
-    )
-    parser.add_argument("--policy_output_activation", type=str, default="linear", help="Options: linear/tanh")
+    parser.add_argument("--policy_hidden_activation", type=str, default="relu")
+    parser.add_argument("--policy_output_activation", type=str, default="linear")
 
     ################################################
     # 3. Parameters for RL algorithm
@@ -85,29 +64,17 @@ if __name__ == "__main__":
 
     ################################################
     # 4. Parameters for trainer
-    parser.add_argument(
-        "--trainer",
-        type=str,
-        default="off_async_trainer",
-        help="Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer",
-    )
+    parser.add_argument("--trainer", type=str, default="off_async_trainer")
     # Maximum iteration number
-    parser.add_argument("--max_iteration", type=int, default=6400)
-    parser.add_argument(
-        "--ini_network_dir",
-        type=str,
-        default=None,
-        help="path of saved approximate functions, if specified, the saved approximate functions "
-        "will be loaded before training",
-    )
+    parser.add_argument("--max_iteration", type=int, default=8000)
+    parser.add_argument("--ini_network_dir", type=str, default=None, help="Path of initial networks")
     trainer_type = parser.parse_known_args()[0].trainer
 
     # 4.1. Parameters for off_async_trainer
     import ray
-
     ray.init()
-    parser.add_argument("--num_algs", type=int, default=1)
-    parser.add_argument("--num_samplers", type=int, default=1)
+    parser.add_argument("--num_algs", type=int, default=2)
+    parser.add_argument("--num_samplers", type=int, default=2)
     parser.add_argument("--num_buffers", type=int, default=1)
     cpu_core_num = multiprocessing.cpu_count()
     num_core_input = (
@@ -117,10 +84,8 @@ if __name__ == "__main__":
         + 2
     )
     if num_core_input > cpu_core_num:
-        raise ValueError("The number of core is {}, but you want {}!".format(cpu_core_num, num_core_input))
-    parser.add_argument(
-        "--buffer_name", type=str, default="replay_buffer", help="Options:replay_buffer/prioritized_replay_buffer"
-    )
+        raise ValueError("The number of parallel cores is too large!")
+    parser.add_argument("--buffer_name", type=str, default="replay_buffer")
     # Size of collected samples before training
     parser.add_argument("--buffer_warm_size", type=int, default=1000)
     # Max size of reply buffer
@@ -138,24 +103,25 @@ if __name__ == "__main__":
         "--noise_params",
         type=dict,
         default={"mean": np.array([0], dtype=np.float32), "std": np.array([0.2], dtype=np.float32),},
-        help="used for continuous action space",
+        help="Only used for continuous action space",
     )
 
     ################################################
     # 6. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
     parser.add_argument("--num_eval_episode", type=int, default=10)
-    parser.add_argument("--eval_interval", type=int, default=100)
-    parser.add_argument("--eval_save", type=str, default=False, help="save evaluation data")
+    parser.add_argument("--eval_interval", type=int, default=200)
+    parser.add_argument("--eval_save", type=str, default=True, help="save evaluation data")
 
     ################################################
     # 7. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument("--apprfunc_save_interval", type=int, default=2000)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=500)
     # Save key info every N updates
-    parser.add_argument("--log_save_interval", type=int, default=100)
+    parser.add_argument("--log_save_interval", type=int, default=200)
 
+    ################################################
     # Get parameter dictionary
     args = vars(parser.parse_args())
     env = create_env(**args)
@@ -176,10 +142,13 @@ if __name__ == "__main__":
     # Step 5: create trainer
     trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
 
+    ################################################
     # Start training ... ...
     trainer.train()
     print("Training is finished!")
 
+    ################################################
     # Plot and save training figures
     plot_all(args["save_folder"])
     save_tb_to_csv(args["save_folder"])
+    print("Plot & Save are finished!")

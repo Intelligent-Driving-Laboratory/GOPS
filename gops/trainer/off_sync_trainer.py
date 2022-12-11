@@ -212,7 +212,7 @@ class OffSyncTrainer:
                 )
 
                 if (
-                    total_avg_return > self.best_tar
+                    total_avg_return >= self.best_tar
                     and self.iteration >= self.max_iteration / 5
                 ):
                     self.best_tar = total_avg_return

@@ -6,7 +6,7 @@
 #  Lab Leader: Prof. Shengbo Eben Li
 #  Email: lisb04@gmail.com
 #
-#  Description: check the characteristic of dynamic system, draw the figures of first/second-order difference of state
+#  Description: Check dynamic system to see whether its behaviors are reasonable!
 #  Update: 2022-12-05, Xujie Song: create env_dynamic_checker
 
 import numpy as np
@@ -101,9 +101,9 @@ def draw_figures(
         2, 2, figsize=cm2inch(*default_cfg["fig_size"]), dpi=default_cfg["dpi"]
     )
     if close_loop:
-        fig.suptitle("Close-loop Dynamic Check of State-%d" % state_index)
+        fig.suptitle("Close-loop Check of State-%d" % state_index)
     else:
-        fig.suptitle("Open-loop Dynamic Check of State-%d" % state_index)
+        fig.suptitle("Open-loop Check of State-%d" % state_index)
 
     # plot traj
     for i in range(traj_num):
@@ -145,13 +145,13 @@ def draw_figures(
     if close_loop:
         fig.savefig(
             os.path.join(
-                save_path, "Close-loop Dynamic Check of State-%d.png" % state_index
+                save_path, "Close-loop Check of State-%d.png" % state_index
             )
         )
     else:
         fig.savefig(
             os.path.join(
-                save_path, "Open-loop Dynamic Check of State-%d.png" % state_index
+                save_path, "Open-loop Check of State-%d.png" % state_index
             )
         )
 
@@ -298,7 +298,7 @@ def check_dynamic(
             state = state_next
             obs = obs_next
 
-    # Second, raise warning if dynamic change too fast
+    # Second, raise warning if env change too fast
     df_threshold = state_range * 0.4
     df_too_fast = np.zeros(state_dim).astype(np.bool_)
     for k in range(len(df_state_list)):
@@ -319,7 +319,7 @@ def check_dynamic(
     for i in range(state_dim):
         if df_too_fast[i] or ddf_too_fast[i]:
             warnings.warn(
-                "The %d-th state changes too fast, please check the environment dynamics."
+                "GOPS: The %d-th state changes too fast!"
                 % i
             )
     warnings.formatwarning = origin_format
@@ -384,5 +384,7 @@ if __name__ == "__main__":
     """
     You can find dynamic_checker's example files in 'examples_run' folder, whose names are 'test_**_**.py'.
 
-    In 'examples_run' folder, there are open/close-loop check examples for 8 environments, e.g. lqs2a1, gym_pendulum, simu_lqs2a1, aircraft, veh2dof.
+    In 'examples_run' folder, there are open/close-loop check examples for 8 environments, 
+    
+    e.g. lqs2a1, gym_pendulum, simu_lqs2a1, aircraft, veh2dof.
     """

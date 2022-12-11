@@ -100,10 +100,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ini_network_dir",
         type=str,
-        default=None,
-        help="path of saved approximate functions, if specified, the saved approximate functions "
-        "will be loaded before training",
-    )
+        default=None)
 
     ################################################
     # 5. Parameters for sampler
@@ -147,15 +144,15 @@ if __name__ == "__main__":
     # Save key info every N updates
     parser.add_argument("--log_save_interval", type=int, default=1, help="Save data every N updates")
 
+    ################################################
     # Get parameter dictionary
     args = vars(parser.parse_args())
     env = create_env(**args)
     args = init_args(env, **args)
 
-    # start_tensorboard(args['save_folder'])
+    start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    # alg.set_parameters({'gamma': 0.995, 'loss_coefficient_value': 0.5, 'loss_coefficient_entropy': 0.01})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
@@ -165,43 +162,14 @@ if __name__ == "__main__":
     # Step 5: create trainer
     trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
 
+    ################################################
     # Start training ... ...
     trainer.train()
     print("Training is finished!")
 
-    # # Plot and save training figures
-    # plot_all(args['save_folder'])
-    # save_tb_to_csv(args['save_folder'])
+    ################################################
+    # Plot and save training figures
+    plot_all(args['save_folder'])
+    save_tb_to_csv(args['save_folder'])
+    print("Plot & Save are finished!")
 
-    # data_value_weight = trainer.value_weight
-    # num_data = data_value_weight.shape[0] - 1
-    # num_line = data_value_weight.shape[1]
-    # gt = np.array([[1.657267, 2.790874, -0.332129, 1.657339, -0.360723, 0.437060]])
-    # gt_value_weight = gt.repeat(num_data + 1, axis=0)
-    # my_plot(data=data_value_weight, gt=gt_value_weight,
-    #         figure_size_scalar=1,
-    #         color_list=None, label_list=[r'$\mathregular{\omega_' + str(i + 1) + '}$' for i in range(num_line)],
-    #         loc_legend='center right', ncol=1, style_legend='italic',
-    #         xlim=(0, num_data), ylim=None,
-    #         xtick=None, ytick=None,
-    #         xlabel='iteration', ylabel='weights of value network',
-    #         xline=None, yline=None,
-    #         pad=None,
-    #         figure_name=args['save_folder'] + '/value_weight_{:d}'.format(num_data), figure_type='png',
-    #         display=False)
-    #
-    # accuracy_value_weight = np.zeros((num_data + 1, 1))
-    # for i in range(num_data + 1):
-    #     accuracy_value_weight[i, 0] = \
-    #         math.log10(np.linalg.norm(data_value_weight[i, :] - gt[0, :]) / np.linalg.norm(gt[0, :]))
-    # my_plot(data=accuracy_value_weight, gt=None,
-    #         figure_size_scalar=1,
-    #         color_list=['#DE869E'], label_list=None,
-    #         loc_legend='center right', ncol=1,
-    #         xlim=(0, num_data), ylim=None,
-    #         xtick=None, ytick=None,
-    #         xlabel='iteration', ylabel='logarithm of error',
-    #         xline=None, yline=None,
-    #         pad=None,
-    #         figure_name=args['save_folder'] + '/weight_error_{:d}'.format(num_data), figure_type='png',
-    #         display=True)

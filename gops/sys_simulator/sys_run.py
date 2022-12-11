@@ -115,7 +115,7 @@ class PolicyRunner:
         self.policy_num = len(self.log_policy_dir_list)
         if self.policy_num != len(self.trained_policy_iteration_list):
             raise RuntimeError(
-                "The lenth of policy number is not equal to the number of policy iteration"
+                "The length of policy number is not equal to that of policy iteration"
             )
         self.obs_noise_type = obs_noise_type
         self.obs_noise_data = obs_noise_data
@@ -165,7 +165,7 @@ class PolicyRunner:
         info_list = [init_info]
         obs, info = env.reset(**init_info)
         state = env.state
-        print("The initial state is:")
+        print("Initial state: ")
         print(self.__convert_format(state))
         # plot tracking
         state_with_ref_error = {}
@@ -270,9 +270,9 @@ class PolicyRunner:
                     "use_terminal_cost" not in self.opt_args.keys()
                     or self.opt_args["use_terminal_cost"] is False
                 ):
-                    legend += "(w/o TC)"
+                    legend += " (w/o TC)"
                 else:
-                    legend += "(w/ TC)"
+                    legend += " (w/ TC)"
             self.algorithm_list.append(legend)
 
         # Create initial list
@@ -311,7 +311,7 @@ class PolicyRunner:
                     for key, value in self.tracking_list[i].items():
                         self.tracking_list[i][key] = value[start_range:end_range]
         else:
-            raise NotImplementedError("The setting of plot range is wrong")
+            raise NotImplementedError("Figure range is wrong")
 
         # Convert List to Array
         reward_array = np.array(reward_list)
@@ -319,10 +319,10 @@ class PolicyRunner:
         state_array = np.array(state_list)
         step_array = np.array(step_list)
         state_ref_error_array = np.array(state_ref_error_list)
-        x_label = "Time Step"
+        x_label = "Time step"
         if self.dt is not None:
             step_array = step_array * self.dt
-            x_label = "Time(s)"
+            x_label = "Time (s)"
 
         if self.constrained_env:
             constrain_array = np.array(constrain_list)
@@ -752,7 +752,7 @@ class PolicyRunner:
             pd.set_option("display.max_rows", None)
             for key, value in error_result_data.items():
                 print("===========================================================")
-                print("Policy {}".format(key))
+                print("GOPS: Policy {}".format(key))
                 for key, value in value.items():
                     print(key, value)
 
@@ -826,16 +826,16 @@ class PolicyRunner:
             trained_policy_iteration = self.trained_policy_iteration_list[i]
 
             self.args = self.args_list[i]
-            print("Using policy {}".format(i + 1))
+            print("===========================================================")
+            print("*** Begin to run policy {} ***".format(i + 1))
             env = self.__load_env()
             if hasattr(env, "set_mode"):
                 env.set_mode("test")
 
-            print("The environment for policy {}".format(i + 1))
             if hasattr(env, "train_space") and hasattr(env, "work_space"):
-                print("The train space is")
+                print("Train space: ")
                 print(self.__convert_format(env.train_space))
-                print("The work space is")
+                print("Work space: ")
                 print(self.__convert_format(env.work_space))
             networks = self.__load_policy(log_policy_dir, trained_policy_iteration)
 
@@ -843,7 +843,7 @@ class PolicyRunner:
             eval_dict, tracking_dict = self.run_an_episode(
                 env, networks, self.init_info, is_opt=False, render=False
             )
-            print("Successfully run an episode with policy {}".format(i + 1))
+            print("Successfully run policy {}".format(i + 1))
             print("===========================================================\n")
             # mp4 to gif
             self.eval_list.append(eval_dict)
@@ -851,7 +851,7 @@ class PolicyRunner:
 
         if self.use_opt:
             self.args = self.args_list[self.policy_num - 1]
-            print("Using optimal controller")
+            print("GOPS: Use an optimal controller")
             env = self.__load_env(use_opt=True)
             print("The environment for opt")
             if hasattr(env, "set_mode"):
@@ -878,9 +878,9 @@ class PolicyRunner:
                     "use_terminal_cost" not in self.opt_args.keys()
                     or self.opt_args["use_terminal_cost"] == False
                 ):
-                    legend += "(w/o TC)"
+                    legend += " (w/o TC)"
                 else:
-                    legend += "(w/ TC)"
+                    legend += " (w/ TC)"
 
             else:
                 raise ValueError(
@@ -893,7 +893,7 @@ class PolicyRunner:
             eval_dict_opt, tracking_dict_opt = self.run_an_episode(
                 env, opt_controller, self.init_info, is_opt=True, render=False
             )
-            print("Successfully run an episode with optimal controller!")
+            print("Successfully run an optimal controller!")
             print("===========================================================\n")
             self.eval_list.append(eval_dict_opt)
             if self.is_tracking:
@@ -924,7 +924,7 @@ class PolicyRunner:
         for i, eid in enumerate(self.env_id_list):
             assert (
                 env_id == eid
-            ), "policy {} and policy 0 is not trained in the same environment".format(i)
+            ), "GOPS: policy {} is not trained in the same environment".format(i)
         return env_id
 
     def run(self):

@@ -79,7 +79,7 @@ class Evaluator:
         if self.eval_save:
             np.save(
                 self.save_folder
-                + "/evaluator/iteration{}_episode{}".format(iteration, self.print_time),
+                + "/evaluator/iter{}_ep{}".format(iteration, self.print_time),
                 eval_dict,
             )
         episode_return = sum(reward_list)

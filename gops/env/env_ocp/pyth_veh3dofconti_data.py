@@ -131,8 +131,8 @@ class SimuVeh3dofconti(PythBaseEnv):
         self,
         init_state: Optional[Sequence] = None,
         ref_time: Optional[float] = None,
-        path_num: Optional[int] = None,
-        u_num: Optional[int] = None,
+        ref_num: Optional[int] = None,
+
         **kwargs,
     ) -> Tuple[np.ndarray, dict]:
         if ref_time is not None:
@@ -140,6 +140,15 @@ class SimuVeh3dofconti(PythBaseEnv):
         else:
             self.t = 20.0 * self.np_random.uniform(0.0, 1.0)
 
+        # Calculate path num and speed num: ref_num = [0, 1, 2,..., 7]
+        if ref_num is None:
+            path_num = None
+            u_num = None
+        else:
+            path_num = int(ref_num/2)
+            u_num = int(ref_num/4)
+
+        # If no ref_num, then randomly select path and speed
         if path_num is not None:
             self.path_num = path_num
         else:
