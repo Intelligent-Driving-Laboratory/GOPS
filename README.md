@@ -28,6 +28,7 @@ GOPS requires:
 1. Windows 7 or greater or Linux.
 2. Python 3.6 or greater (GOPS V1.0 precompiled Simulink models use Python 3.6). We recommend using Python 3.8.
 3. (Optional) Matlab/Simulink 2018a or greater.
+4. The installation path must be in English.
 
 You can install GOPS through the following steps:
 ```bash
