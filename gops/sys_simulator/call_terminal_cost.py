@@ -12,9 +12,9 @@
 
 from gops.utils.common_utils import get_args_from_json
 import torch
-from gops.algorithm.infadp import ApproxContainer
 import os
 import argparse
+import importlib
 
 
 # Calling value network to serve as terminal cost
@@ -28,6 +28,7 @@ def load_args(log_policy_dir):
 def load_apprfunc(log_policy_dir, trained_policy_iteration):
     # Create apprfunc
     args = load_args(log_policy_dir)
+    ApproxContainer = getattr(importlib.import_module(f"gops.algorithm.{args['algorithm'].lower()}"), "ApproxContainer")
     networks = ApproxContainer(**args)
     # Load trained apprfunc
     log_path = log_policy_dir + "/apprfunc/apprfunc_{}.pkl".format(trained_policy_iteration)
