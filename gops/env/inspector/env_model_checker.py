@@ -6,7 +6,7 @@
 #  Lab Leader: Prof. Shengbo Eben Li
 #  Email: lisb04@gmail.com
 #
-#  Description: check environment of `model` type
+#  Description: Check the correctness of model-type environment
 #  Update: 2022-12-05, Yuhang Zhang: create file
 
 import torch
@@ -42,7 +42,7 @@ def check_env_model_file_structures(env_file_name):
         env_class = getattr(file_obj, env_name_camel)
     else:
         raise RuntimeError(
-            f"the environment `{env_file_name}` is not implemented properly"
+            f"The environment `{env_file_name}` is not implemented properly"
         )
     return env_class
 
@@ -55,10 +55,10 @@ def check_model0(env, env_model):
     :return:
     """
 
-    assert hasattr(env_model, "lb_state"), "env model must have lb_state"
-    assert hasattr(env_model, "hb_state"), "env model must have hb_state"
-    assert hasattr(env_model, "lb_action"), "env model must have lb_action"
-    assert hasattr(env_model, "hb_action"), "env model must have hb_action"
+    assert hasattr(env_model, "lb_state"), "Env model must have lb_state"
+    assert hasattr(env_model, "hb_state"), "Env model must have hb_state"
+    assert hasattr(env_model, "lb_action"), "Env model must have lb_action"
+    assert hasattr(env_model, "hb_action"), "Env model must have hb_action"
 
     assert isinstance(env_model.lb_action, torch.Tensor)
     assert isinstance(env_model.hb_state, torch.Tensor)
@@ -79,23 +79,23 @@ def check_model0(env, env_model):
 
     s_next, r, d, info = env_model.forward(s_torch, a_torch, beyond_done)
 
-    assert isinstance(s_next, torch.Tensor), "state_next must be a Tensor"
-    assert isinstance(r, torch.Tensor), "reward must be a Tensor"
-    assert isinstance(d, torch.Tensor), "done must be a Tensor"
-    assert isinstance(info, dict), "state_next must be a Tensor"
+    assert isinstance(s_next, torch.Tensor), "Next state must be a Tensor"
+    assert isinstance(r, torch.Tensor), "Reward must be a Tensor"
+    assert isinstance(d, torch.Tensor), "Done signal must be a Tensor"
+    assert isinstance(info, dict), "Next state must be a Tensor"
 
-    assert s_next.size() == s_torch.size(), "something wrong in dynamics"
+    assert s_next.size() == s_torch.size(), "Wrong env dynamics"
     assert (
         len(r.shape) == 1 and r.shape[0] == batch_size
-    ), "something wrong in reward singal"
+    ), "Wrong reward singal"
     assert (
         len(d.shape) == 1 and d.shape[0] == batch_size
-    ), "something wrong in done singal"
+    ), "Wrong done singal"
 
     if hasattr(env, "constraint_dim") and env.constraint_dim is not None:
         assert (
             "constraint" in info.keys()
-        ), "constraint function must be implemented in info"
+        ), "Constraint function must be implemented in info variable"
 
 
 def check_model(env_name):
@@ -111,9 +111,9 @@ def check_model(env_name):
 
     except:
         print(
-            f"can not create `{env_name}`, "
-            f"it may because some modules are not installed, "
-            f"or the environment is not implemented correctly"
+            f"Can not create `{env_name}`, "
+            f"It may because some modules are not installed, "
+            f"or The environment is not implemented correctly"
         )
         return None
 

@@ -106,7 +106,7 @@ class OffSerialTrainer:
                 total_avg_return = self.evaluator.run_evaluation(self.iteration)
 
             if (
-                total_avg_return > self.best_tar
+                total_avg_return >= self.best_tar
                 and self.iteration >= self.max_iteration / 5
             ):
                 self.best_tar = total_avg_return

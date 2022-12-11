@@ -98,13 +98,7 @@ if __name__ == "__main__":
     parser.add_argument("--max_newton_iteration", type=int, default=50)
     parser.add_argument("--max_step_update_value", type=int, default=10000)
     parser.add_argument("--max_iteration", type=int, default=parser.parse_args().max_newton_iteration)
-    parser.add_argument(
-        "--ini_network_dir",
-        type=str,
-        default=None,
-        help="path of saved approximate functions, if specified, the saved approximate functions "
-        "will be loaded before training",
-    )
+    parser.add_argument("--ini_network_dir", type=str, default=None)
 
     ################################################
     # 5. Parameters for sampler
@@ -151,15 +145,15 @@ if __name__ == "__main__":
     # Save key info every N updates
     parser.add_argument("--log_save_interval", type=int, default=1, help="Save data every N updates")
 
+    ################################################
     # Get parameter dictionary
     args = vars(parser.parse_args())
     env = create_env(**args)
     args = init_args(env, **args)
 
-    # start_tensorboard(args['save_folder'])
+    start_tensorboard(args['save_folder'])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    # alg.set_parameters({'gamma': 0.995, 'loss_coefficient_value': 0.5, 'loss_coefficient_entropy': 0.01})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer
@@ -169,122 +163,14 @@ if __name__ == "__main__":
     # Step 5: create trainer
     trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
 
+    ################################################
     # Start training ... ...
     trainer.train()
     print("Training is finished!")
 
-    # # Plot and save training figures
-    # plot_all(args['save_folder'])
-    # save_tb_to_csv(args['save_folder'])
+    ################################################
+    # Plot and save training figures
+    plot_all(args['save_folder'])
+    save_tb_to_csv(args['save_folder'])
+    print("Plot & Save are finished!")
 
-    # import torch
-    # from torch.nn.parameter import Parameter
-    # from modules.create_pkg.create_simulator import create_simulator
-    #
-    # # Create evaluator/simulator in trainer
-    # args.update(dict(simulator_name='simulator',
-    #                  simulation_step=1501))
-    # simulator = create_simulator(**args)
-    # simulator.networks.value_target.v.weight = Parameter(
-    #     torch.tensor(trainer.value_weight[-1, :], dtype=torch.float32), requires_grad=True)
-    # pos_body_tpi = []
-    # control_tpi = []
-    # attenuation_tpi = []
-    # pos_body_without = []
-    # control_without = []
-    # attenuation_without = []
-    #
-    # sim_dict_list_tpi = simulator.run_an_episode(args['max_iteration'], dist=True)
-    # obs_tpi = np.stack(sim_dict_list_tpi['obs_list'], axis=0)
-    # act_tpi = np.stack(sim_dict_list_tpi['action_list'], axis=0)
-    # l2_gain_tpi = np.stack(sim_dict_list_tpi['l2_gain_list'], axis=0)
-    # pos_body_tpi.append(obs_tpi[:, 0])
-    # control_tpi.append(act_tpi[:, 0])
-    # attenuation_tpi.append(l2_gain_tpi[:, 0])
-    #
-    # sim_dict_list_without = simulator.run_an_episode(args['max_iteration'], without_control=True, dist=True)
-    # obs_without = np.stack(sim_dict_list_without['obs_list'], axis=0)
-    # act_without = np.stack(sim_dict_list_without['action_list'], axis=0)
-    # l2_gain_without = np.stack(sim_dict_list_without['l2_gain_list'], axis=0)
-    # pos_body_without.append(obs_without[:, 0])
-    # control_without.append(act_without[:, 0])
-    # attenuation_without.append(l2_gain_without[:, 0])
-    #
-    # time = np.stack(sim_dict_list_without['time_list'], axis=0)
-    # label_list = ['tpi', 'without control']
-    # num_data = obs_without.shape[0] - 1
-    #
-    # save_data(data=obs_tpi, row=num_data + 1, column=args['obsv_dim'],
-    #           save_file=args['save_folder'], xls_name='/comp_state_{:d}'.format(num_data))
-    # my_plot(data=obs_tpi, time=time,
-    #         figure_size_scalar=1,
-    #         color_list=None, label_list=['pos_body [m]', 'vel_body [m/s]', 'pos_wheel[m]', 'vel_wheel[m/s]'],
-    #         loc_legend='upper right', ncol=1,
-    #         xlim=(0, time[-1, 0]), ylim=None,
-    #         xtick=None, ytick=None,
-    #         xlabel='time [s]', ylabel='state',
-    #         xline=None, yline=None,
-    #         pad=None,
-    #         figure_name=args['save_folder'] + '/comp_state_{:d}'.format(num_data), figure_type='png',
-    #         display=False)
-    #
-    # save_data(data=np.stack(pos_body_tpi + pos_body_without, axis=1), row=num_data + 1, column=len(label_list),
-    #           save_file=args['save_folder'], xls_name='/comp_pos_body_{:d}'.format(num_data))
-    # my_plot(data=np.stack(pos_body_tpi + pos_body_without, axis=1), time=time,
-    #         figure_size_scalar=1,
-    #         color_list=None, label_list=label_list,
-    #         loc_legend='upper right', ncol=1,
-    #         xlim=(0, time[-1, 0]), ylim=None,
-    #         xtick=None, ytick=None,
-    #         xlabel='time [s]', ylabel='the positions of the car body [m]',
-    #         xline=None, yline=None,
-    #         pad=None,
-    #         figure_name=args['save_folder'] + '/comp_pos_body_{:d}'.format(num_data), figure_type='png',
-    #         display=False)
-    #
-    # save_data(data=np.stack(control_tpi + control_without, axis=1), row=num_data + 1, column=len(label_list),
-    #           save_file=args['save_folder'], xls_name='/comp_control_force_{:d}'.format(num_data))
-    # my_plot(data=np.stack(control_tpi + control_without, axis=1), time=time,
-    #         figure_size_scalar=1,
-    #         color_list=None, label_list=label_list,
-    #         loc_legend='lower right', ncol=1,
-    #         xlim=(0, time[-1, 0]), ylim=None,
-    #         xtick=None, ytick=None,
-    #         xlabel='time [s]', ylabel='control force [kN]',
-    #         xline=None, yline=None,
-    #         pad=None,
-    #         figure_name=args['save_folder'] + '/comp_control_force_{:d}'.format(num_data), figure_type='png',
-    #         display=False)
-    #
-    # save_data(data=np.stack(attenuation_tpi + attenuation_without, axis=1), row=num_data + 1, column=len(label_list),
-    #           save_file=args['save_folder'], xls_name='/comp_attenuation_{:d}'.format(num_data))
-    # my_plot(data=np.stack(attenuation_tpi + attenuation_without, axis=1), time=time,
-    #         figure_size_scalar=1,
-    #         color_list=None, label_list=label_list,
-    #         loc_legend='lower right', ncol=1,
-    #         xlim=(0, time[-1, 0]), ylim=None,
-    #         xtick=None, ytick=None,
-    #         xlabel='time [s]', ylabel='attenuation',
-    #         xline=None, yline=None,
-    #         pad=None,
-    #         figure_name=args['save_folder'] + '/comp_attenuation_{:d}'.format(num_data), figure_type='png',
-    #         display=False)
-    #
-    # data_value_weight = trainer.value_weight
-    # num_data = data_value_weight.shape[0] - 1
-    # num_line = data_value_weight.shape[1]
-    # # gt = np.array([[2.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
-    # # gt_value_weight = gt.repeat(num_data + 1, axis=0)
-    # save_data(data=data_value_weight, row=num_data + 1, column=num_line,
-    #           save_file=args['save_folder'], xls_name='/value_weight_{:d}'.format(num_data))
-    # my_plot(data=data_value_weight, gt=None,
-    #         figure_size_scalar=1,
-    #         color_list=None, label_list=[r'$\mathregular{{\omega}_{' + str(i + 1) + '}}$' for i in range(num_line)],
-    #         loc_legend='center right', ncol=1, style_legend='italic', font_size_legend=9,
-    #         xlim=(0, num_data), ylim=None,
-    #         xtick=None, ytick=None,
-    #         xlabel='iteration', ylabel='weights of value network',
-    #         xline=None, yline=None,
-    #         pad=None,
-    #         figure_name=args['save_folder'] + '/value_weight_{:d}'.format(num_data), figure_type='png',
-    #         display=True)

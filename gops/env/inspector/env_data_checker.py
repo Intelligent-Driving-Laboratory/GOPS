@@ -6,7 +6,7 @@
 #  Lab Leader: Prof. Shengbo Eben Li
 #  Email: lisb04@gmail.com
 #
-#  Description: check environment of `data` type
+#  Description: Check data-type environment to see whether its behaviors are reasonable!
 #  Update: 2022-12-05, Yuhang Zhang: create file
 
 import logging
@@ -49,8 +49,8 @@ def _check_constraint(env):
     :return:
     """
 
-    assert isinstance(env.constraint_dim, int), "the constraint_sdim must be an int"
-    assert env.constraint_dim >= 1, "the constraint_sdim must be bigger or equal to 1"
+    assert isinstance(env.constraint_dim, int), "The dim of constraint must be an int"
+    assert env.constraint_dim >= 1, "The dim of constraint must be bigger or equal to 1"
     env.reset()
     a = env.action_space.sample()
     _, _, _, info = env.step(a)
@@ -58,14 +58,14 @@ def _check_constraint(env):
     if isinstance(info["constraint"], (tuple, list)):
         assert (
             len(info["constraint"]) == env.constraint_dim
-        ), "wrong constraint dimension"
+        ), "Wrong constraint dimension"
     elif isinstance(info["constraint"], np.ndarray):
-        assert len(info["constraint"].shape) == 1, "wrong constraint shape"
+        assert len(info["constraint"].shape) == 1, "Wrong constraint shape"
         assert (
             info["constraint"].shape[0] == env.constraint_dim
-        ), "wrong constraint dimension"
+        ), "Wrong constraint dimension"
     else:
-        raise ValueError("the constrint should be a np.ndarray, list or tuple")
+        raise ValueError("The constraint should be np.ndarray, list or tuple")
     pass
 
 
@@ -85,7 +85,7 @@ def check_env_file_structures(env_file_name):
             except:
                 pass
     except:
-        raise RuntimeError(f"can not found env `{env_file_name}`")
+        raise RuntimeError(f"Can not found env `{env_file_name}`")
     env_name_camel = ce.formatter(env_file_name)
     if hasattr(file_obj, "env_creator"):
         env_class = getattr(file_obj, "env_creator")
@@ -94,7 +94,7 @@ def check_env_file_structures(env_file_name):
         env_class = getattr(file_obj, env_name_camel)
     else:
         raise RuntimeError(
-            f"the environment `{env_file_name}` is not implemented properly"
+            f"The environment `{env_file_name}` is not implemented properly"
         )
     return env_class
 
@@ -150,9 +150,9 @@ def check_env(env_name: str):
         env = env_cls()
     except:
         print(
-            f"can not create `{env_name}`, "
-            f"it may because some modules are not installed, "
-            f"or the environment is not implemented correctly"
+            f"Can not create `{env_name}`, "
+            f"It may because some modules are not installed, "
+            f"or The environment is not implemented correctly! "
         )
         return None
 
@@ -172,4 +172,4 @@ def simple_check_env(env_name):
     env.reset()
     a = env.action_space.sample()
     env.step(a)
-    print(f"check `{env_name}_data` success")
+    print(f"Check `{env_name}_data` successfully! ")

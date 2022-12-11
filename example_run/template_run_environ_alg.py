@@ -18,7 +18,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     ################################################
-    # Parameters for policies to be runned
+    # Parameters for policies to be run
     parser.add_argument("--log_policy_dir_list", type=list, default=["../results/INFADP/lqs4a2"], help="directory of trained policy")
     parser.add_argument("--trained_policy_iteration_list", type=list, default=["115000_opt"], help="iteration of trained policy")
 
@@ -44,7 +44,9 @@ if __name__ == "__main__":
         "opt_controller_type": "MPC",
         "num_pred_step": 50,
         "gamma": 0.99,
-        "minimize_options": {"max_iter": 200, "tol": 1e-4, "acceptable_tol": 1e-2, "acceptable_iter": 10, },
+        "minimize_options": {"max_iter": 200, "tol": 1e-4,
+                             "acceptable_tol": 1e-2,
+                             "acceptable_iter": 10, },
     }, help="arguments of optimal solution solver")
 
     ################################################

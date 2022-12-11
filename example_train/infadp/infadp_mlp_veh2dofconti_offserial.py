@@ -99,9 +99,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ini_network_dir",
         type=str,
-        default=None,
-        help="path of saved approximate functions, if specified, the saved approximate functions "
-        "will be loaded before training",
+        default=None
     )
     trainer_type = parser.parse_known_args()[0].trainer
     # 4.1. Parameters for off_serial_trainer
@@ -144,6 +142,7 @@ if __name__ == "__main__":
     # Save key info every N updates
     parser.add_argument("--log_save_interval", type=int, default=100)
 
+    ################################################
     # Get parameter dictionary
     args = vars(parser.parse_args())
     env = create_env(**args)
@@ -160,10 +159,13 @@ if __name__ == "__main__":
     # Step 5: create trainer
     trainer = create_trainer(alg, sampler, buffer, evaluator, **args)
 
+    ################################################
     # Start training ... ...
     trainer.train()
     print("Training is finished!")
 
-    # plot and save training curve
+    ################################################
+    # plot and save data
     plot_all(args["save_folder"])
     save_tb_to_csv(args["save_folder"])
+    print("Plot & Save are finished!")

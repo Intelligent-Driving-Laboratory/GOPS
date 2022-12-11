@@ -136,13 +136,9 @@ if __name__ == "__main__":
     )
     # Maximum iteration number
     parser.add_argument("--max_iteration", type=int, default=5000)
-    parser.add_argument(
-        "--ini_network_dir",
-        type=str,
-        default=None,
-        help="path of saved approximate functions, if specified, the saved approximate functions "
-        "will be loaded before training",
-    )
+    parser.add_argument("--ini_network_dir",
+                        type=str, default=None,
+                        help="Path of initial networks")
     trainer_type = parser.parse_known_args()[0].trainer
 
     # 4.1. Parameters for on-policy serial trainer
@@ -171,7 +167,16 @@ if __name__ == "__main__":
         parser.add_argument("--num_algs", type=int, default=2)
         parser.add_argument("--num_samplers", type=int, default=2)
         parser.add_argument("--num_buffers", type=int, default=1)
-        # Note that num of algs+samplers+buffers <= num of computer processors
+        # Note that num of algs+samplers+buffers <= num of computer cores
+        cpu_core_num = multiprocessing.cpu_count()
+        num_core_input = (
+                parser.parse_known_args()[0].num_algs
+                + parser.parse_known_args()[0].num_samplers
+                + parser.parse_known_args()[0].num_buffers
+                + 2
+        )
+        if num_core_input > cpu_core_num:
+            raise ValueError("The number of parallel cores is too large!")
         parser.add_argument("--buffer_name", type=str, default="replay_buffer")
         parser.add_argument("--buffer_warm_size", type=int, default=1000)  # count as samples
         parser.add_argument("--buffer_max_size", type=int, default=100000) # count as samples
@@ -195,8 +200,8 @@ if __name__ == "__main__":
     # 6. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator", help="name of policy evaluator")
     parser.add_argument("--num_eval_episode", type=int, default=5, help="num of episodes in each evaluation")
-    parser.add_argument("--eval_interval", type=int, default=100, help="iteration interval to perform each evaluation")
-    parser.add_argument("--eval_save", type=str, default=False, help="save evaluation data")
+    parser.add_argument("--eval_interval", type=int, default=200, help="iteration interval to perform each evaluation")
+    parser.add_argument("--eval_save", type=str, default=True, help="save evaluation data")
 
     ################################################
     # 7. Data savings
@@ -204,7 +209,7 @@ if __name__ == "__main__":
     # Save value/policy every N updates
     parser.add_argument("--apprfunc_save_interval", type=int, default=500, help="interval to save data in folder")
     # Display key info every N updates
-    parser.add_argument("--log_save_interval", type=int, default=100, help="interval to display in tensorboard")
+    parser.add_argument("--log_save_interval", type=int, default=200, help="interval to display in tensorboard")
 
     ################################################
     # Get parameter dictionary
@@ -233,3 +238,4 @@ if __name__ == "__main__":
     # Plot and save training figures
     plot_all(args["save_folder"])
     save_tb_to_csv(args["save_folder"])
+    print("Plot & Save are finished!")
