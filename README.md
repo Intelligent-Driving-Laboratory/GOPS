@@ -35,7 +35,7 @@ You can install GOPS through the following steps:
 git clone https://gitee.com/tsinghua-university-iDLab-GOPS/gops
 cd gops
 # create conda environment
-conda env create -f environment.yml
+conda env create -f gops_environment.yml
 conda activate gops
 # install GOPS
 pip install -e .
