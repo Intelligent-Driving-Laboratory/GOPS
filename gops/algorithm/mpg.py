@@ -7,9 +7,9 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: Mixed Policy Gradient (MPG) Algorithm
-#  Reference: Guan, Y., Duan, J., Li, S. E., Li, J.,
-#             Chen, J., & Cheng, B. (2021). Mixed policy gradient.
-#             arXiv preprint arXiv:2102.11513.
+#  Reference: Guan Y, Duan J, Li SE et al (2021) 
+#             Mixed policy gradient. 
+#             https://arxiv.org/abs/2102.11513.
 #  Update Date: 2022-06-05, Yang Guan: create MPG algorithm
 
 
@@ -341,8 +341,8 @@ class MPG(AlgorithmBase):
                 o = o2
                 a = self.networks.policy4rollout(o)
                 o2, r, done, info = self.envmodel.forward(o, a, done, info)
-                model_return += self.reward_scale * self.gamma ** step * r
-        model_return += self.gamma ** self.forward_step * self.networks.q1_target(
+                model_return += self.reward_scale * self.gamma**step * r
+        model_return += self.gamma**self.forward_step * self.networks.q1_target(
             o2, self.networks.policy(o2)
         )
 

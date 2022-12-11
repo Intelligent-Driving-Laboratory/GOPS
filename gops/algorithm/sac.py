@@ -7,10 +7,9 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: Soft Actor-Critic (SAC) algorithm
-#  Reference: Haarnoja, T., Zhou, A., Abbeel, P., & Levine, S. (2018, July).
-#             Soft actor-critic: Off-policy maximum entropy deep reinforcement
-#             learning with a stochastic actor. In International conference on
-#             machine learning (pp. 1861-1870). PMLR.
+#  Reference: Haarnoja T, Zhou A, Abbeel P et al (2018) 
+#             Soft actor-critic: off-policy maximum entropy deep reinforcement learning with a stochastic actor. 
+#             ICML, Stockholm, Sweden.
 #  Update: 2021-03-05, Yujie Yang: create SAC algorithm
 
 __all__ = ["ApproxContainer", "SAC"]

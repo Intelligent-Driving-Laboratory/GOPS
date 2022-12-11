@@ -7,9 +7,8 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: Approximate Dynamic Program Algorithm for Infinity Horizon (INFADP)
-#  Reference: Vamvoudakis K, Lewis F, Hudas G (2012) Multi-agent differential graphical
-#             games: Online adaptive learning solution for synchronization with optimality.
-#             Pergamon, Oxford
+#  Reference: Li SE (2023) 
+#             Reinforcement Learning for Sequential Decision and Optimal Control. Springer, Singapore.
 #  Update: 2021-03-05, Wenxuan Wang: create infADP algorithm
 #  Update: 2022-12-04, Jiaxin Gao: supplementary comment information
 
@@ -178,10 +177,10 @@ class INFADP(AlgorithmBase):
                     o = o2
                     a = self.networks.policy(o)
                     o2, r, d, info = self.envmodel.forward(o, a, d, info)
-                    backup += self.gamma ** step * r
+                    backup += self.gamma**step * r
 
             backup += (
-                (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
+                (~d) * self.gamma**self.forward_step * self.networks.v_target(o2)
             )
         loss_v = ((v - backup) ** 2).mean()
         return loss_v, torch.mean(v)
@@ -207,8 +206,8 @@ class INFADP(AlgorithmBase):
                 o = o2
                 a = self.networks.policy(o)
                 o2, r, d, info = self.envmodel.forward(o, a, d, info)
-                v_pi += self.gamma ** step * r
-        v_pi += (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
+                v_pi += self.gamma**step * r
+        v_pi += (~d) * self.gamma**self.forward_step * self.networks.v_target(o2)
         for p in self.networks.v.parameters():
             p.requires_grad = True
         return -v_pi.mean()

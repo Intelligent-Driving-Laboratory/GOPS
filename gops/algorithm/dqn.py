@@ -7,10 +7,9 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: Deep Q-Learning Algorithm (DQN)
-#  Reference: Mnih, V., Kavukcuoglu, K., Silver, D., Rusu, A. A., Veness,
-#             J., Bellemare, M. G., ... & Hassabis, D. (2015).
-#             Human-level control through deep reinforcement learning.
-#             nature, 518(7540), 529-533.
+#  Reference:Mnih V, Kavukcuoglu K, Silver D et al. (2015) .
+#            Human-level control through deep reinforcement learning. 
+#            Nature 518: 529-533. 
 #  Update: 2021-03-05, Wenxuan Wang: create DQN algorithm
 
 

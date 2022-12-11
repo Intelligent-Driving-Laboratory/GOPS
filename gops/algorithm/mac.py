@@ -7,9 +7,9 @@
 #  Email: lisb04@gmail.com
 
 #  Description: Mixed Actor Critic Algorithm (MAC)
-#  Reference: Mu, Y., B. Peng, Z. Gu, S. E. Li, C. Liu, B. Nie, J. Zheng, & B. Zhang. (2020, October).
-#             Mixed Reinforcement Learning for Efficient Policy Optimization in Stochastic Environments.
-#             In International Conference on Control, Automation and Systems (pp. 1212-1219). ICCAS.
+#  Reference: Mu Y, Li SE, Liu C et al (2020) 
+#             Mixed reinforcement learning for efficient policy optimization in stochastic environments. 
+#             IEEE ICCAS, Pusan, Korea.
 #  Update: 2021-03-05, Yao Mu: create MAC algorithm
 
 
@@ -236,10 +236,10 @@ class MAC(AlgorithmBase):
                     o = o2
                     a = self.networks.policy(o)
                     o2, r, d = self.dynamic_model_forward(o, a, d)
-                    backup += self.reward_scale * self.gamma ** step * r
+                    backup += self.reward_scale * self.gamma**step * r
 
             backup += (
-                (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
+                (~d) * self.gamma**self.forward_step * self.networks.v_target(o2)
             )
         loss_v = ((v - backup) ** 2).mean()
         return loss_v, torch.mean(v)
@@ -264,8 +264,8 @@ class MAC(AlgorithmBase):
                 o = o2
                 a = self.networks.policy(o)
                 o2, r, d = self.dynamic_model_forward(o, a, d)
-                v_pi += self.reward_scale * self.gamma ** step * r
-        v_pi += (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
+                v_pi += self.reward_scale * self.gamma**step * r
+        v_pi += (~d) * self.gamma**self.forward_step * self.networks.v_target(o2)
         for p in self.networks.v.parameters():
             p.requires_grad = True
         return -v_pi.mean()
