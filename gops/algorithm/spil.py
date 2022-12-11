@@ -7,9 +7,9 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: Separated Proportional-Integral Lagrangian Algorithm
-#  Reference: Peng B, Duan J, Chen J, et al. Model-Based Chance-Constrained
-#             Reinforcement Learning via Separated Proportional-Integral Lagrangian[J].
-#             IEEE Transactions on Neural Networks and Learning Systems, 2022.
+#  Reference: Peng B, Duan J, Chen J et al (2022) 
+#             Model-Based Chance-Constrained Reinforcement Learning via Separated Proportional-Integral Lagrangian. 
+#             IEEE Transactions on Neural Networks and Learning Systems. Doi: 10.1109/TNNLS.2022.3175595.
 #  Update: 2021-03-05, Baiyu Peng: create SPIL algorithm
 
 
@@ -206,10 +206,10 @@ class SPIL(AlgorithmBase):
                     o = o2
                     a = self.networks.policy(o)
                     o2, r, d, info = self.envmodel.forward(o, a, d, info)
-                    r_sum += self.reward_scale * self.gamma ** step * r
+                    r_sum += self.reward_scale * self.gamma**step * r
                     traj_issafe *= info["constraint"] <= 0
 
-            r_sum += self.gamma ** self.forward_step * self.networks.v_target(o2)
+            r_sum += self.gamma**self.forward_step * self.networks.v_target(o2)
         loss_v = ((v - r_sum) ** 2).mean()
         self.safe_prob = traj_issafe.mean(0).numpy()
         return loss_v, torch.mean(v)
@@ -250,7 +250,7 @@ class SPIL(AlgorithmBase):
                 o2, r, d, info = self.envmodel.forward(o, a, d, info)
                 c = info["constraint"]
                 c = Phi(c)
-                r_sum = r_sum + self.reward_scale * self.gamma ** step * r
+                r_sum = r_sum + self.reward_scale * self.gamma**step * r
                 c_sum = c_sum + c
                 c_mul = c_mul * c
         w_r, w_c = self.__spil_get_weight()

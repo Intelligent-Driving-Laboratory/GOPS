@@ -7,9 +7,9 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: Twin Delayed Deep Deterministic policy gradient (TD3) algorithm
-#  Reference: Fujimoto, S., Hoof, H., & Meger, D. (2018, July).
-#             Addressing function approximation error in actor-critic methods.
-#             In International conference on machine learning (pp. 1587-1596). PMLR.
+#  Reference: Fujimoto S, Hoof H, Meger D (2018) 
+#             Addressing function approximation error in actor-critic methods. 
+#             ICML, Stockholm, Sweden.
 #  Update: 2021-03-05, Wenxuan Wang: create TD3 algorithm
 
 __all__ = ["ApproxContainer", "TD3"]

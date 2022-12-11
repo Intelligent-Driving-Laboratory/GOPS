@@ -7,9 +7,9 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: Trust Region Policy Optimization (TRPO) algorithm
-#  Reference: Schulman, J., Levine, S., Moritz, P., Jordan, M. I. & Abbeel, P. (2015).
-#             Trust region policy optimization.
-#             In International conference on machine learning (pp. 1889-1897). PMLR.
+#  Reference: Schulman J, Levine S, Abbeel P et al (2015) 
+#             Trust region policy optimization. 
+#             ICML, Lille, France.
 #  Update: 2021-03-05, Yuxuan Jiang: create TRPO algorithm
 
 
@@ -175,7 +175,7 @@ class TRPO(AlgorithmBase):
             )
 
         for i in range(self.max_search):
-            update_policy(self.alpha ** i)
+            update_policy(self.alpha**i)
             logits_new = new_policy(obs)
             pi_new = self.networks.create_action_distributions(logits=logits_new)
             logp_new = pi_new.log_prob(act)

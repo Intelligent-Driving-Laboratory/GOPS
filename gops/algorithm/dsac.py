@@ -7,10 +7,10 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: Distributed Soft Actor-Critic (DSAC) algorithm
-#  Reference: Duan J, Guan Y, Li S E, et al.
-#             Distributional soft actor-critic: Off-policy reinforcement learning
-#             for addressing value estimation errors[J].
-#             IEEE transactions on neural networks and learning systems, 2021.
+#  Reference: Duan J, Guan Y, Li SE et al (2021) 
+#             Distributional soft actor-critic: off-policy reinforcement learning 
+#             for addressing value estimation errors. 
+#             IEEE Transactions on Neural Network and Learning Systems 33(11): 6584-6598.
 #  Update: 2021-03-05, Ziqing Gu: create DSAC algorithm
 #  Update: 2021-03-05, Wenxuan Wang: debug DSAC algorithm
 
@@ -225,7 +225,11 @@ class DSAC(AlgorithmBase):
             obs2, act2, self.networks.q_target, use_min=False
         )
         target_q, target_q_bound = self.__compute_target_q(
-            rew, done, q.detach(), q_next_sample.detach(), log_prob_act2.detach(),
+            rew,
+            done,
+            q.detach(),
+            q_next_sample.detach(),
+            log_prob_act2.detach(),
         )
         if self.bound:
             q_loss = torch.mean(

@@ -7,8 +7,8 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: Approximate Dynamic Program Algorithm for Finity Horizon (FHADP)
-#  Reference: Cheng T, Lewis FL, Abu-Khalaf M (2007) A neural network solution for fixed-final
-#             time optimal control of nonlinear systems. Automatica, 43(3):482-490
+#  Reference: Li SE (2023) 
+#             Reinforcement Learning for Sequential Decision and Optimal Control. Springer, Singapore.
 #  Update: 2021-03-05, Fawang Zhang: create FHADP algorithm
 #  Update: 2022-12-04, Jiaxin Gao: supplementary comment information
 
@@ -119,7 +119,7 @@ class FHADP(AlgorithmBase):
                 o = o2
                 a = self.networks.policy(o, step + 1)
                 o2, r, d, info = self.envmodel.forward(o, a, d, info)
-                v_pi += r * (self.gamma ** step)
+                v_pi += r * (self.gamma**step)
 
         return -(v_pi).mean()
 

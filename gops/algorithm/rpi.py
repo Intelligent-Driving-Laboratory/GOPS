@@ -7,10 +7,9 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: Relaxed Policy Iteration (RPI) Algorithm
-#  Reference: Li, J., Li, S. E., Guan, Y., Duan, J.,
-#             Li, W., & Yin, Y. (2020). Ternary Policy
-#             Iteration Algorithm for Nonlinear Robust Control.
-#             arXiv preprint arXiv:2007.06810.
+#  Reference: Li J, Li SE, Guan Y et al (2020) 
+#             Ternary Policy Iteration Algorithm for Nonlinear Robust Control. 
+#             https://arxiv.org/abs/2007.06810.
 #  Update Date: 2022-09-17, Jie Li: create RPI algorithm
 
 
@@ -141,12 +140,12 @@ class RPI(AlgorithmBase):
 
         self.num_update_value = 0
         self.norm_hamiltonian_before = 0
-        self.norm_hamiltonian_after = self.max_step_update_value ** 3
+        self.norm_hamiltonian_after = self.max_step_update_value**3
         self.step_size_newton = 0
         self.set_state = None
         self.grad_step = np.ones([int(self.max_newton_iteration), 1], dtype="float32")
 
-        self.is_adversary = kwargs["is_adversary"]
+        self.is_adversary = kwargs['is_adversary']
         self.env_model = create_env_model(**kwargs)
         self.obsv_dim = self.env_model.state_dim
         self.act_dim = self.env_model.action_dim

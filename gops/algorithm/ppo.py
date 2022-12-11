@@ -7,9 +7,9 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: Proximal Policy Optimization (PPO) algorithm
-#  Reference: Schulman, J., Wolski, F., Dhariwal, P., Radford, A. & Klimov, O. (2017).
-#             Proximal policy optimization algorithms.
-#             arXiv preprint arXiv:1707.06347.
+#  Reference: Schulman J, Wolski F, Dhariwal P et al (2017) 
+#             Proximal policy optimization algorithms. 
+#             https://arxiv.org/abs/1707.06347.
 #  Update: 2021-03-05, Yuxuan Jiang: create PPO algorithm
 
 
