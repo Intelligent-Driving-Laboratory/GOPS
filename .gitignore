@@ -24,7 +24,8 @@ gops/.idea/*
 !/results/INFADP
 /results/INFADP/*
 !/results/INFADP/idpendulum
-!/results/INFADP/lqs4a2
+!/results/INFADP/lqs4a2_mlp
+!/results/INFADP/lqs4a2_poly
 !/results/INFADP/veh3dofconti
 
 !/results/DDPG
