@@ -132,7 +132,6 @@ class SimuVeh3dofconti(PythBaseEnv):
         init_state: Optional[Sequence] = None,
         ref_time: Optional[float] = None,
         ref_num: Optional[int] = None,
-
         **kwargs,
     ) -> Tuple[np.ndarray, dict]:
         if ref_time is not None:
