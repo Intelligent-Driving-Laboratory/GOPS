@@ -71,11 +71,10 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         self,
         init_state: Optional[Sequence] = None,
         ref_time: Optional[float] = None,
-        path_num: Optional[int] = None,
-        u_num: Optional[int] = None,
+        ref_num: Optional[int] = None,
         **kwargs,
     ) -> Tuple[np.ndarray, dict]:
-        super().reset(init_state, ref_time, path_num, u_num, **kwargs)
+        super().reset(init_state, ref_time, ref_num, **kwargs)
 
         surr_x0, surr_y0 = self.ref_points[0, :2]
         if self.path_num == 3:
