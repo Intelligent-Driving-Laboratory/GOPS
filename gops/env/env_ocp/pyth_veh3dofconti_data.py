@@ -144,8 +144,8 @@ class SimuVeh3dofconti(PythBaseEnv):
             path_num = None
             u_num = None
         else:
-            path_num = int(ref_num/2)
-            u_num = int(ref_num/4)
+            path_num = int(ref_num / 2)
+            u_num = int(ref_num % 2)
 
         # If no ref_num, then randomly select path and speed
         if path_num is not None:
