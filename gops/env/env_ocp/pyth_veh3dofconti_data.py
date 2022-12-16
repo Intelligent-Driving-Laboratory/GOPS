@@ -221,8 +221,15 @@ class SimuVeh3dofconti(PythBaseEnv):
         return self.get_obs(), reward, self.done, self.info
 
     def get_obs(self) -> np.ndarray:
-        ego_obs = np.concatenate((self.state[:4] - self.ref_points[0], self.state[4:]))
-        ref_obs = (self.state[np.newaxis, :2] - self.ref_points[1:, :2]).flatten()
+        ego_x_tf, ego_y_tf, ego_phi_tf, ref_x_tf, ref_y_tf, _ = \
+            reference_coordinate_transform(
+                self.state[0], self.state[1], self.state[2],
+                self.ref_points[:, 0], self.ref_points[:, 1], self.ref_points[:, 2],
+            )
+        ego_u_tf = self.state[3] - self.ref_points[0, 3]
+        ego_obs = np.concatenate(([ego_x_tf, ego_y_tf, ego_phi_tf, ego_u_tf],
+                                  self.state[4:]))
+        ref_obs = np.stack((ref_x_tf[1:], ref_y_tf[1:]), 1).flatten()
         return np.concatenate((ego_obs, ref_obs))
 
     def compute_reward(self, action: np.ndarray) -> float:
@@ -263,6 +270,48 @@ class SimuVeh3dofconti(PythBaseEnv):
 
 def angle_normalize(x):
     return ((x + np.pi) % (2 * np.pi)) - np.pi
+
+
+def reference_coordinate_transform(
+    ego_x: np.ndarray,
+    ego_y: np.ndarray,
+    ego_phi: np.ndarray,
+    ref_x: np.ndarray,
+    ref_y: np.ndarray,
+    ref_phi: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Transform absolute coordinate of ego vehicle and reference points to the
+    reference coordinate. The origin of the reference coordinate is the position of
+    the first reference point. The x-axis of the reference coordinate is along the
+    tangent of the first reference point.
+
+    Args:
+        ego_x (np.ndarray): Absolution x-coordinate of ego vehicle, shape ().
+        ego_y (np.ndarray): Absolution y-coordinate of ego vehicle, shape ().
+        ego_phi (np.ndarray): Absolution heading angle of ego vehicle, shape ().
+        ref_x (np.ndarray): Absolution x-coordinate of reference points, shape (N,).
+        ref_y (np.ndarray): Absolution y-coordinate of reference points, shape (N,).
+        ref_phi (np.ndarray): Absolution tangent angle of reference points, shape (N,).
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray, 
+        np.ndarray, np.ndarray, np.ndarray]: Transformed x, y, phi of ego vehicle and
+        reference points. The order is the same as the arguments.
+    """
+    org_x, org_y, org_phi = ref_x[0], ref_y[0], ref_phi[0]
+    cos_tf = np.cos(-org_phi)
+    sin_tf = np.sin(-org_phi)
+
+    def coordinate_transform(x, y, phi):
+        x_tf = (x - org_x) * cos_tf - (y - org_y) * sin_tf
+        y_tf = (x - org_x) * sin_tf + (y - org_y) * cos_tf
+        phi_tf = phi - org_phi
+        return x_tf, y_tf, phi_tf
+
+    ego_tf = coordinate_transform(ego_x, ego_y, ego_phi)
+    ref_tf = coordinate_transform(ref_x, ref_y, ref_phi)
+
+    return ego_tf + ref_tf
 
 
 def env_creator(**kwargs):
