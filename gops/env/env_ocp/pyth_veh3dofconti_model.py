@@ -127,13 +127,7 @@ class Veh3dofcontiModel(PythBaseModel):
         )
         next_ref_points[:, -1] = new_ref_point
 
-        ego_obs = torch.concat(
-            (next_state[:, :4] - next_ref_points[:, 0], next_state[:, 4:]), dim=1
-        )
-        ref_obs = (next_state[:, :2].unsqueeze(1) - next_ref_points[:, 1:, :2]).reshape(
-            (-1, self.pre_horizon * 2)
-        )
-        next_obs = torch.concat((ego_obs, ref_obs), dim=1)
+        next_obs = self.get_obs(next_state, next_ref_points)
 
         isdone = self.judge_done(next_obs)
 
@@ -145,6 +139,20 @@ class Veh3dofcontiModel(PythBaseModel):
             "ref_time": next_t,
         }
         return next_obs, reward, isdone, next_info
+
+    def get_obs(self, state, ref_points):
+        ego_x_tf, ego_y_tf, ego_phi_tf, ref_x_tf, ref_y_tf, _ = \
+            reference_coordinate_transform(
+                state[:, 0], state[:, 1], state[:, 2],
+                ref_points[..., 0], ref_points[..., 1], ref_points[..., 2],
+            )
+        ego_u_tf = state[:, 3] - ref_points[:, 0, 3]
+        ego_obs = torch.concat((
+            torch.stack((ego_x_tf, ego_y_tf, ego_phi_tf, ego_u_tf), 1), state[:, 4:]
+        ), 1)
+        ref_obs = torch.stack((ref_x_tf[:, 1:], ref_y_tf[:, 1:]),
+                              2).reshape(-1, self.pre_horizon * 2)
+        return torch.concat((ego_obs, ref_obs), 1)
 
     def compute_reward(self, obs, action):
         delta_x, delta_y, delta_phi, delta_u, w = (
@@ -173,6 +181,32 @@ class Veh3dofcontiModel(PythBaseModel):
             | (torch.abs(delta_phi) > np.pi)
         )
         return done
+
+
+def reference_coordinate_transform(
+    ego_x: torch.Tensor,
+    ego_y: torch.Tensor,
+    ego_phi: torch.Tensor,
+    ref_x: torch.Tensor,
+    ref_y: torch.Tensor,
+    ref_phi: torch.Tensor,
+):
+    org_x, org_y, org_phi = ref_x[:, 0], ref_y[:, 0], ref_phi[:, 0]
+    cos_tf = torch.cos(-org_phi)
+    sin_tf = torch.sin(-org_phi)
+
+    def coordinate_transform(x, y, phi):
+        x_tf = (x - org_x) * cos_tf - (y - org_y) * sin_tf
+        y_tf = (x - org_x) * sin_tf + (y - org_y) * cos_tf
+        phi_tf = phi - org_phi
+        return x_tf, y_tf, phi_tf
+
+    ego_tf = coordinate_transform(ego_x, ego_y, ego_phi)
+    org_x, org_y, org_phi = org_x.unsqueeze(1), org_y.unsqueeze(1), org_phi.unsqueeze(1)
+    cos_tf, sin_tf = cos_tf.unsqueeze(1), sin_tf.unsqueeze(1)
+    ref_tf = coordinate_transform(ref_x, ref_y, ref_phi)
+
+    return ego_tf + ref_tf
 
 
 def env_model_creator(**kwargs):
