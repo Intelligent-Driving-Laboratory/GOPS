@@ -69,11 +69,11 @@ class PythBaseModel(metaclass=ABCMeta):
     # Define get_constraint as Callable
     # Trick for faster constraint evaluations
     # Subclass can realize it like:
-    #   def get_constraint(self, obs: torch.Tensor) -> torch.Tensor:
+    #   def get_constraint(self, obs: torch.Tensor, info: InfoDict) -> torch.Tensor:
     #       ...
     # This function should return Tensor of shape [n] (ndim = 1),
     # each element of which will be required to be lower than or equal to 0
-    get_constraint: Callable[[torch.Tensor], torch.Tensor] = None
+    get_constraint: Callable[[torch.Tensor, InfoDict], torch.Tensor] = None
 
     # Just like get_constraint,
     # define function returning Tensor of shape [] (ndim = 0) in subclass
