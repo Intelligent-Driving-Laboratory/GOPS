@@ -91,7 +91,7 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
         next_info.update(
             {
                 "surr_state": next_surr_state,
-                "constraint": self.get_constraint(obs, info),
+                "constraint": self.get_constraint(next_obs, next_info),
             }
         )
         return next_obs, reward, next_done, next_info
@@ -139,7 +139,7 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
             for j in range(2):
                 # front and rear circle of surrounding vehicles
                 dist = torch.linalg.norm(
-                    ego_center[:, i].unsqueeze(1) - surr_center[..., j], dim=2
+                    ego_center[:, i].unsqueeze(1) - surr_center[..., j, :], dim=2
                 )
                 min_dist = torch.minimum(
                     min_dist, torch.min(dist, dim=1, keepdim=True).values

@@ -15,8 +15,7 @@ import warnings
 from gops.env.env_ocp.pyth_base_model import PythBaseModel
 from gops.utils.gops_typing import InfoDict
 import torch
-from functools import partial
-from functorch import vmap, vjp
+from functorch import jacrev
 import numpy as np
 from cyipopt import minimize_ipopt
 import scipy.optimize as opt
@@ -180,20 +179,21 @@ class OptController:
     ) -> torch.Tensor:
 
         if self.model.get_constraint is None:
-            self.num_non_trans_cstr = 1
             return torch.tensor([0.0])
         else:
             self.constraint_evaluations += 1
 
             if isinstance(inputs, np.ndarray):
                 inputs = torch.tensor(inputs, dtype=torch.float32)
-            states, _ = self._rollout(inputs, x, info)
+            states, _, infos = self._rollout(inputs, x, info)
+            if info:
+                for key in info.keys():
+                    infos[key] = torch.cat(infos[key])
 
             # model.get_constraint() returns Tensor, each element of which
             # should be required to be lower than or equal to 0
             # minimize_ipopt() takes inequality constraints that should be greater than or equal to 0
-            cstr_vector = -self.model.get_constraint(states).reshape(-1)
-            self.num_non_trans_cstr = cstr_vector.shape[0]
+            cstr_vector = -self.model.get_constraint(states, infos).reshape(-1)
             return cstr_vector
 
     def _constraint_jac(
@@ -203,9 +203,7 @@ class OptController:
         Compute jacobian of constraint function
         """
         inputs = torch.tensor(inputs, dtype=torch.float32)
-        unit_vectors = torch.eye(self.num_non_trans_cstr)
-        _, vjp_fn = vjp(partial(self._constraint_fcn, x=x, info=info), inputs)
-        jac = vmap(vjp_fn)(unit_vectors)[0]
+        jac = jacrev(self._constraint_fcn)(inputs, x, info)
         return jac.numpy().astype("d")
 
     def _trans_constraint_fcn(
@@ -221,7 +219,7 @@ class OptController:
 
             if isinstance(inputs, np.ndarray):
                 inputs = torch.tensor(inputs, dtype=torch.float32)
-            true_states, _ = self._rollout(inputs, x, info)
+            true_states, _, _ = self._rollout(inputs, x, info)
             true_states = true_states[1 :: self.ctrl_interval, :].reshape(-1)
             input_states = inputs.reshape((-1, self.optimize_dim))[
                 :, -self.obs_dim :
@@ -235,9 +233,7 @@ class OptController:
         Compute jacobian of transition constraint function (collocation only)
         """
         inputs = torch.tensor(inputs, dtype=torch.float32)
-        unit_vectors = torch.eye(self.obs_dim * self.num_ctrl_points)
-        _, vjp_fn = vjp(partial(self._trans_constraint_fcn, x=x, info=info), inputs)
-        jac = vmap(vjp_fn)(unit_vectors)[0]
+        jac = jacrev(self._trans_constraint_fcn)(inputs, x, info)
         return jac.numpy().astype("d")
 
     def _rollout(
@@ -252,6 +248,7 @@ class OptController:
         ).repeat_interleave(self.ctrl_interval, dim=0)
         states = torch.zeros((self.num_pred_step + 1, self.obs_dim))
         rewards = torch.zeros(self.num_pred_step)
+        infos = {}
         states[0, :] = x
         done = torch.tensor([False])
 
@@ -262,6 +259,7 @@ class OptController:
                 if info:
                     for (key, value) in info.items():
                         batched_info[key] = value.unsqueeze(0)
+                        infos[key] = [value.unsqueeze(0)]
                 for i in range(self.num_pred_step):
                     u = inputs_repeated[i, : self.action_dim].unsqueeze(0)
                     next_x, reward, done, batched_info = self.model.forward(
@@ -269,6 +267,9 @@ class OptController:
                     )
                     rewards[i] = -reward * (self.gamma ** i)
                     states[i + 1, :] = next_x
+                    if info:
+                        for key in info.keys():
+                            infos[key].append(batched_info[key])
                 break
 
             elif self.rollout_mode == "batch":
@@ -296,7 +297,7 @@ class OptController:
                     # model requires additional info to forward, can't use batch rollout mode
                     self.rollout_mode = "loop"
 
-        return states, rewards
+        return states, rewards, infos
 
     def _compute_cost(
         self, inputs: torch.Tensor, x: torch.Tensor, info: InfoDict
@@ -305,7 +306,7 @@ class OptController:
         Compute total cost of optimization inputs
         """
         # rollout states and rewards
-        states, rewards = self._rollout(inputs, x, info)
+        states, rewards, _ = self._rollout(inputs, x, info)
 
         # sum up intergral costs from timestep 0 to T-1
         cost = torch.sum(rewards)

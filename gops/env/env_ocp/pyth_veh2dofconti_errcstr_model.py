@@ -41,10 +41,10 @@ class Veh2dofcontiErrCstrModel(Veh2dofcontiModel):
         next_obs, reward, next_done, next_info = super().forward(
             obs, action, done, info
         )
-        next_info["constraint"] = self.get_constraint(obs)
+        next_info["constraint"] = self.get_constraint(obs, info)
         return next_obs, reward, next_done, next_info
 
-    def get_constraint(self, obs: torch.Tensor) -> torch.Tensor:
+    def get_constraint(self, obs: torch.Tensor, info: InfoDict = None) -> torch.Tensor:
         y_error = obs[:, 0].unsqueeze(1)
         return y_error.abs() - self.y_error_tol
 

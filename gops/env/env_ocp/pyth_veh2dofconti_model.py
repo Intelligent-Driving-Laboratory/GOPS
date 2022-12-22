@@ -138,13 +138,16 @@ class Veh2dofcontiModel(PythBaseModel):
 
         isdone = self.judge_done(next_obs)
 
-        next_info = {
+        next_info = {}
+        for key, value in info.items():
+            next_info[key] = value.detach().clone()
+        next_info.update({
             "state": next_state,
             "ref_points": next_ref_points,
             "path_num": path_num,
             "u_num": u_num,
             "ref_time": next_t,
-        }
+        })
 
         return next_obs, reward, isdone, next_info
 
