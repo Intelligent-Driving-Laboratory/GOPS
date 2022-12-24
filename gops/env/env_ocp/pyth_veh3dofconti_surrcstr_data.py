@@ -179,7 +179,7 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
                 )
                 min_dist = min(min_dist, np.min(dist))
 
-        return np.array([r - min_dist], dtype=np.float32)
+        return np.array([2 * r - min_dist], dtype=np.float32)
 
     @property
     def info(self):
