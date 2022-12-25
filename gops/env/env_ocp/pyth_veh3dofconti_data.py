@@ -267,6 +267,55 @@ class SimuVeh3dofconti(PythBaseEnv):
             "ref": self.ref_points[0].copy(),
         }
 
+    def render(self, mode="human"):
+        import matplotlib.pyplot as plt
+
+        plt.figure(num=0, figsize=(6.4, 3.2))
+        plt.clf()  
+        ego_x, ego_y = self.state[:2]
+        ax = plt.axes(xlim=(ego_x - 20, ego_x + 20), ylim=(ego_y - 10, ego_y + 10))
+        ax.set_aspect('equal')
+        plt.axis('off')
+        
+        self._render(ax)
+
+        plt.tight_layout()
+        plt.pause(0.01)
+
+    def _render(self, ax, veh_length=4.8, veh_width=2.0):
+        import matplotlib.patches as pc
+
+        # draw ego vehicle
+        ego_x, ego_y, phi = self.state[:3]
+        ax.add_patch(pc.Rectangle(
+            (ego_x - veh_length / 2, ego_y - veh_width / 2), veh_length, veh_width, phi * 180 / np.pi,
+            facecolor='w', edgecolor='r', zorder=1))
+
+        # draw reference paths
+        ref_x = []
+        ref_y = []
+        for i in range(1, 50):
+            ref_x.append(self.ref_traj.compute_x(
+                self.t + i * self.dt, self.path_num, self.u_num
+            ))
+            ref_y .append(self.ref_traj.compute_y(
+                self.t + i * self.dt, self.path_num, self.u_num
+            ))
+        ax.plot(ref_x, ref_y, 'b--', lw=1, zorder=2)
+
+        # draw road
+        road_len = self.max_episode_steps * self.action_space.high[1]
+        ax.plot([-10, road_len], [7.5, 7.5], 'k-', lw=1, zorder=0)
+        ax.plot([-10, road_len], [-7.5, -7.5], 'k-', lw=1, zorder=0)
+        ax.plot([-10, road_len], [0, 0], 'k-.', lw=1, zorder=0)
+
+        # draw texts
+        left_x = ego_x - 20
+        top_y = ego_y + 15
+        delta_y = 2
+        ego_speed = self.state[3] * 3.6  # [km/h]
+        ax.text(left_x, top_y, f'time: {self.t:.1f}s')
+        ax.text(left_x, top_y - delta_y, f'speed: {ego_speed:.1f}km/h')
 
 def angle_normalize(x):
     return ((x + np.pi) % (2 * np.pi)) - np.pi

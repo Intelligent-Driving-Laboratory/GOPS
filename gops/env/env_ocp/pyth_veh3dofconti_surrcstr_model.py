@@ -145,7 +145,7 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
                     min_dist, torch.min(dist, dim=1, keepdim=True).values
                 )
 
-        return r - min_dist
+        return 2 * r - min_dist
 
 
 def env_model_creator(**kwargs):
