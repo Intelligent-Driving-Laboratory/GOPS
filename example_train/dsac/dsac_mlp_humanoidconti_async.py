@@ -23,8 +23,6 @@ from gops.utils.init_args import init_args
 from gops.utils.plot_evaluation import plot_all
 from gops.utils.tensorboard_setup import start_tensorboard, save_tb_to_csv
 
-os.environ["OMP_NUM_THREADS"] = "4"
-
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -104,7 +102,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--trainer",
         type=str,
-        default="off_serial_trainer",
+        default="off_async_trainer",
         help="Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer",
     )
     # Maximum iteration number
@@ -117,6 +115,12 @@ if __name__ == "__main__":
     trainer_type = parser.parse_known_args()[0].trainer
 
     # 4.1. Parameters for off_serial_trainer
+    import ray
+
+    ray.init()
+    parser.add_argument("--num_algs", type=int, default=1, help="number of algs")
+    parser.add_argument("--num_samplers", type=int, default=2, help="number of samplers")
+    parser.add_argument("--num_buffers", type=int, default=1, help="number of buffers")
     parser.add_argument(
         "--buffer_name", type=str, default="replay_buffer", help="Options:replay_buffer/prioritized_replay_buffer"
     )

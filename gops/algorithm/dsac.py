@@ -126,6 +126,8 @@ class DSAC(AlgorithmBase):
             "policy_grad": [p._grad for p in self.networks.policy.parameters()],
             "iteration": iteration,
         }
+        if self.auto_alpha:
+            update_info.update({"log_alpha_grad":self.networks.log_alpha.grad})
 
         return tb_info, update_info
 
@@ -138,6 +140,8 @@ class DSAC(AlgorithmBase):
             p._grad = grad
         for p, grad in zip(self.networks.policy.parameters(), policy_grad):
             p._grad = grad
+        if self.auto_alpha:
+            self.networks.log_alpha._grad = update_info["log_alpha_grad"]
 
         self.__update(iteration)
 
