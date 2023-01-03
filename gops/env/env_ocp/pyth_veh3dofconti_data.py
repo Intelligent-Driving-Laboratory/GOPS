@@ -239,7 +239,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         return -(
             0.04 * (x - ref_x) ** 2
             + 0.04 * (y - ref_y) ** 2
-            + 0.02 * angle_normalize(phi - ref_phi) ** 2
+            + 0.02 * (phi - ref_phi) ** 2
             + 0.02 * (u - ref_u) ** 2
             + 0.01 * w ** 2
             + 0.01 * steer ** 2
@@ -252,7 +252,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         done = (
             (np.abs(x - ref_x) > 5)
             | (np.abs(y - ref_y) > 2)
-            | (np.abs(angle_normalize(phi - ref_phi)) > np.pi)
+            | (np.abs(phi - ref_phi) > np.pi)
         )
         return done
 
@@ -354,7 +354,7 @@ def reference_coordinate_transform(
     def coordinate_transform(x, y, phi):
         x_tf = (x - org_x) * cos_tf - (y - org_y) * sin_tf
         y_tf = (x - org_x) * sin_tf + (y - org_y) * cos_tf
-        phi_tf = angle_normalize(phi - org_phi)
+        phi_tf = phi - org_phi
         return x_tf, y_tf, phi_tf
 
     ego_tf = coordinate_transform(ego_x, ego_y, ego_phi)

@@ -201,7 +201,7 @@ def reference_coordinate_transform(
     def coordinate_transform(x, y, phi):
         x_tf = (x - org_x) * cos_tf - (y - org_y) * sin_tf
         y_tf = (x - org_x) * sin_tf + (y - org_y) * cos_tf
-        phi_tf = angle_normalize(phi - org_phi)
+        phi_tf = phi - org_phi
         return x_tf, y_tf, phi_tf
 
     ego_tf = coordinate_transform(ego_x, ego_y, ego_phi)
