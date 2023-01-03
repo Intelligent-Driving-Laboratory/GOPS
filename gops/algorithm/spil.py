@@ -209,7 +209,7 @@ class SPIL(AlgorithmBase):
                     r_sum += self.reward_scale * self.gamma**step * r
                     traj_issafe *= info["constraint"] <= 0
 
-            r_sum += self.gamma**self.forward_step * self.networks.v_target(o2)
+            r_sum += (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)
         loss_v = ((v - r_sum) ** 2).mean()
         self.safe_prob = traj_issafe.mean(0).numpy()
         return loss_v, torch.mean(v)
@@ -253,6 +253,7 @@ class SPIL(AlgorithmBase):
                 r_sum = r_sum + self.reward_scale * self.gamma**step * r
                 c_sum = c_sum + c
                 c_mul = c_mul * c
+        r_sum += (~d) * self.gamma ** self.forward_step * self.networks.v_target(o2)  # add by zhangxt
         w_r, w_c = self.__spil_get_weight()
         loss_pi = (w_r * r_sum + (c_mul * torch.Tensor(w_c)).sum(1)).mean()
         return -loss_pi
