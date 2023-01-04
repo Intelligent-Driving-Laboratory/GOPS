@@ -90,12 +90,9 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
         next_surr_obs = next_surr_obs.reshape((-1, self.surr_veh_num * 4))
         next_obs = torch.cat((next_ego_obs, next_surr_obs), dim=1)
 
-        next_info.update(
-            {
-                "surr_state": next_surr_state,
-                "constraint": self.get_constraint(next_obs, next_info),
-            }
-        )
+        next_info.update({"surr_state": next_surr_state})
+        next_info.update({"constraint": self.get_constraint(next_obs, next_info)})
+                
         return next_obs, reward, next_done, next_info
 
     def get_constraint(self, obs: torch.Tensor, info: InfoDict) -> torch.Tensor:
@@ -119,14 +116,14 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
             (
                 torch.cat(
                     (
-                        (surr_x + d * torch.cos(surr_phi)),
+                        surr_x + d * torch.cos(surr_phi),
                         surr_y + d * torch.sin(surr_phi),
                     ),
                     dim=2,
                 ),
                 torch.cat(
                     (
-                        (surr_x - d * torch.cos(surr_phi)),
+                        surr_x - d * torch.cos(surr_phi),
                         surr_y - d * torch.sin(surr_phi),
                     ),
                     dim=2,
