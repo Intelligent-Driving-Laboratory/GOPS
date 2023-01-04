@@ -72,6 +72,10 @@ class VehicleDynamicsData:
 
 
 class SimuVeh3dofconti(PythBaseEnv):
+    metadata = {
+        "render.modes": ["human", "rgb_array"],
+    }
+
     def __init__(
         self,
         pre_horizon: int = 10,
@@ -239,7 +243,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         return -(
             0.04 * (x - ref_x) ** 2
             + 0.04 * (y - ref_y) ** 2
-            + 0.02 * (phi - ref_phi) ** 2
+            + 0.02 * angle_normalize(phi - ref_phi) ** 2
             + 0.02 * (u - ref_u) ** 2
             + 0.01 * w ** 2
             + 0.01 * steer ** 2
@@ -252,7 +256,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         done = (
             (np.abs(x - ref_x) > 5)
             | (np.abs(y - ref_y) > 2)
-            | (np.abs(phi - ref_phi) > np.pi)
+            | (np.abs(angle_normalize(phi - ref_phi)) > np.pi)
         )
         return done
 
@@ -270,17 +274,28 @@ class SimuVeh3dofconti(PythBaseEnv):
     def render(self, mode="human"):
         import matplotlib.pyplot as plt
 
-        plt.figure(num=0, figsize=(6.4, 3.2))
         plt.clf()  
         ego_x, ego_y = self.state[:2]
         ax = plt.axes(xlim=(ego_x - 20, ego_x + 20), ylim=(ego_y - 10, ego_y + 10))
         ax.set_aspect('equal')
         plt.axis('off')
+        fig = plt.gcf()
         
         self._render(ax)
 
         plt.tight_layout()
-        plt.pause(0.01)
+
+        if mode == "rgb_array":
+            fig.canvas.draw()
+            image_from_plot = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+            image_from_plot = image_from_plot.reshape(
+                fig.canvas.get_width_height()[::-1] + (3,)
+            )
+            plt.pause(0.01)
+            return image_from_plot
+        elif mode == "human":
+            plt.pause(0.01)
+            plt.show()
 
     def _render(self, ax, veh_length=4.8, veh_width=2.0):
         import matplotlib.patches as pc
@@ -314,8 +329,10 @@ class SimuVeh3dofconti(PythBaseEnv):
         top_y = ego_y + 15
         delta_y = 2
         ego_speed = self.state[3] * 3.6  # [km/h]
+        ref_speed = self.ref_points[0, 3] * 3.6  # [km/h]
         ax.text(left_x, top_y, f'time: {self.t:.1f}s')
         ax.text(left_x, top_y - delta_y, f'speed: {ego_speed:.1f}km/h')
+        ax.text(left_x, top_y - 2 * delta_y, f'ref speed: {ref_speed:.1f}km/h')
 
 def angle_normalize(x):
     return ((x + np.pi) % (2 * np.pi)) - np.pi
@@ -354,7 +371,7 @@ def reference_coordinate_transform(
     def coordinate_transform(x, y, phi):
         x_tf = (x - org_x) * cos_tf - (y - org_y) * sin_tf
         y_tf = (x - org_x) * sin_tf + (y - org_y) * cos_tf
-        phi_tf = phi - org_phi
+        phi_tf = angle_normalize(phi - org_phi)
         return x_tf, y_tf, phi_tf
 
     ego_tf = coordinate_transform(ego_x, ego_y, ego_phi)
