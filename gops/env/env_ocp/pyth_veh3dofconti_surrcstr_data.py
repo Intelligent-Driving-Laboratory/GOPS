@@ -49,10 +49,12 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         **kwargs: Any,
     ):
         super().__init__(pre_horizon, path_para, u_para, **kwargs)
+        ego_obs_dim = 3
+        ref_obs_dim = 2
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
             high=np.inf,
-            shape=(self.state_dim + self.pre_horizon * 2 + surr_veh_num * 4,),
+            shape=(ego_obs_dim + ref_obs_dim * (pre_horizon + 1) + surr_veh_num * 4,),
             dtype=np.float32,
         )
         self.surr_veh_num = surr_veh_num
@@ -179,7 +181,7 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
                 )
                 min_dist = min(min_dist, np.min(dist))
 
-        return np.array([r - min_dist], dtype=np.float32)
+        return np.array([2 * r - min_dist], dtype=np.float32)
 
     @property
     def info(self):
@@ -189,6 +191,16 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         )
         return info
 
+    def _render(self, ax):
+        super()._render(ax, self.veh_length, self.veh_width)
+        import matplotlib.patches as pc
+
+        # draw surrounding vehicles
+        for i in range(self.surr_veh_num):
+            surr_x, surr_y, surr_phi = self.surr_state[i, :3]
+            ax.add_patch(pc.Rectangle(
+                (surr_x - self.veh_length / 2, surr_y - self.veh_width / 2), self.veh_length, self.veh_width, surr_phi * 180 / np.pi,
+                facecolor='w', edgecolor='k', zorder=1))
 
 def env_creator(**kwargs):
     return SimuVeh3dofcontiSurrCstr(**kwargs)

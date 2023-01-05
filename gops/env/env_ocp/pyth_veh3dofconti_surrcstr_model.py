@@ -52,8 +52,10 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
         **kwargs: Any,
     ):
         self.state_dim = 6
+        self.ego_obs_dim = 3
+        self.ref_obs_dim = 2
         super(Veh3dofcontiModel, self).__init__(
-            obs_dim=self.state_dim + pre_horizon * 2 + surr_veh_num * 4,
+            obs_dim=self.ego_obs_dim + self.ref_obs_dim * (pre_horizon + 1) + surr_veh_num * 4,
             action_dim=2,
             dt=0.1,
             action_lower_bound=[-np.pi / 6, -3],
@@ -76,7 +78,7 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
         done: torch.Tensor,
         info: InfoDict,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
-        ego_obs = obs[:, : self.state_dim + self.pre_horizon * 2]
+        ego_obs = obs[:, : self.ego_obs_dim + self.ref_obs_dim * (self.pre_horizon + 1)]
         next_ego_obs, reward, next_done, next_info = super().forward(
             ego_obs, action, done, info
         )
@@ -145,7 +147,7 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
                     min_dist, torch.min(dist, dim=1, keepdim=True).values
                 )
 
-        return r - min_dist
+        return 2 * r - min_dist
 
 
 def env_model_creator(**kwargs):
