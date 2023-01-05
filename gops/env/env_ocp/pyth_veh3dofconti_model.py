@@ -76,9 +76,10 @@ class Veh3dofcontiModel(PythBaseModel):
         """
         self.vehicle_dynamics = VehicleDynamicsModel()
         self.pre_horizon = pre_horizon
-        state_dim = 6
+        ego_obs_dim = 3
+        ref_obs_dim = 2
         super().__init__(
-            obs_dim=state_dim + pre_horizon * 2,
+            obs_dim=ego_obs_dim + ref_obs_dim * (pre_horizon + 1),
             action_dim=2,
             dt=0.1,
             action_lower_bound=[-max_steer, -3],
@@ -100,7 +101,7 @@ class Veh3dofcontiModel(PythBaseModel):
         u_num = info["u_num"]
         t = info["ref_time"]
 
-        reward = self.compute_reward(obs, action)
+        reward = self.compute_reward(state, ref_points, action)
 
         next_state = self.vehicle_dynamics.f_xu(state, action, self.dt)
 
@@ -144,27 +145,27 @@ class Veh3dofcontiModel(PythBaseModel):
         return next_obs, reward, isdone, next_info
 
     def get_obs(self, state, ref_points):
-        ego_x_tf, ego_y_tf, ego_phi_tf, ref_x_tf, ref_y_tf, _ = \
-            reference_coordinate_transform(
+        ref_x_tf, ref_y_tf, _ = \
+            ego_vehicle_coordinate_transform(
                 state[:, 0], state[:, 1], state[:, 2],
                 ref_points[..., 0], ref_points[..., 1], ref_points[..., 2],
             )
-        ego_u_tf = state[:, 3] - ref_points[:, 0, 3]
-        ego_obs = torch.concat((
-            torch.stack((ego_x_tf, ego_y_tf, ego_phi_tf, ego_u_tf), 1), state[:, 4:]
-        ), 1)
-        ref_obs = torch.stack((ref_x_tf[:, 1:], ref_y_tf[:, 1:]),
-                              2).reshape(-1, self.pre_horizon * 2)
+        ego_obs = state[:, 3:]
+        ref_obs = torch.stack((ref_x_tf, ref_y_tf), 2).reshape(ego_obs.shape[0], -1)
         return torch.concat((ego_obs, ref_obs), 1)
 
-    def compute_reward(self, obs, action):
-        delta_x, delta_y, delta_phi, delta_u, w = (
-            obs[:, 0],
-            obs[:, 1],
-            obs[:, 2],
-            obs[:, 3],
-            obs[:, 5],
-        )
+    def compute_reward(
+        self, 
+        state: torch.Tensor, 
+        ref_points: torch.Tensor, 
+        action: torch.Tensor
+    ) -> torch.Tensor:
+        x, y, phi, u, _, w = state.split(1, dim=1)
+        ref_x, ref_y, ref_phi, ref_u = ref_points[:, 0].split(1, dim=1)
+        delta_x = (x - ref_x).squeeze(1)
+        delta_y = (y - ref_y).squeeze(1)
+        delta_phi = angle_normalize(phi - ref_phi).squeeze(1)
+        delta_u = (u - ref_u).squeeze(1)
         steer, a_x = action[:, 0], action[:, 1]
         return -(
             0.04 * delta_x ** 2
@@ -186,30 +187,21 @@ class Veh3dofcontiModel(PythBaseModel):
         return done
 
 
-def reference_coordinate_transform(
+def ego_vehicle_coordinate_transform(
     ego_x: torch.Tensor,
     ego_y: torch.Tensor,
     ego_phi: torch.Tensor,
     ref_x: torch.Tensor,
     ref_y: torch.Tensor,
     ref_phi: torch.Tensor,
-):
-    org_x, org_y, org_phi = ref_x[:, 0], ref_y[:, 0], ref_phi[:, 0]
-    cos_tf = torch.cos(-org_phi)
-    sin_tf = torch.sin(-org_phi)
-
-    def coordinate_transform(x, y, phi):
-        x_tf = (x - org_x) * cos_tf - (y - org_y) * sin_tf
-        y_tf = (x - org_x) * sin_tf + (y - org_y) * cos_tf
-        phi_tf = angle_normalize(phi - org_phi)
-        return x_tf, y_tf, phi_tf
-
-    ego_tf = coordinate_transform(ego_x, ego_y, ego_phi)
-    org_x, org_y, org_phi = org_x.unsqueeze(1), org_y.unsqueeze(1), org_phi.unsqueeze(1)
-    cos_tf, sin_tf = cos_tf.unsqueeze(1), sin_tf.unsqueeze(1)
-    ref_tf = coordinate_transform(ref_x, ref_y, ref_phi)
-
-    return ego_tf + ref_tf
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ego_x, ego_y, ego_phi = ego_x.unsqueeze(1), ego_y.unsqueeze(1), ego_phi.unsqueeze(1)
+    cos_tf = torch.cos(-ego_phi)
+    sin_tf = torch.sin(-ego_phi)
+    ref_x_tf = (ref_x - ego_x) * cos_tf - (ref_y - ego_y) * sin_tf
+    ref_y_tf = (ref_x - ego_x) * sin_tf + (ref_y - ego_y) * cos_tf
+    ref_phi_tf = angle_normalize(ref_phi - ego_phi)
+    return ref_x_tf, ref_y_tf, ref_phi_tf
 
 
 def env_model_creator(**kwargs):
