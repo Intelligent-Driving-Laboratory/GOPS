@@ -93,11 +93,11 @@ class SimuVeh3dofconti(PythBaseEnv):
 
         self.state_dim = 6
         self.pre_horizon = pre_horizon
-        ego_obs_dim = 3
-        ref_obs_dim = 2
+        ego_obs_dim = 6
+        ref_obs_dim = 4
         self.observation_space = gym.spaces.Box(
-            low=np.array([-np.inf] * (ego_obs_dim + ref_obs_dim * (pre_horizon + 1))),
-            high=np.array([np.inf] * (ego_obs_dim + ref_obs_dim * (pre_horizon + 1))),
+            low=np.array([-np.inf] * (ego_obs_dim + ref_obs_dim * pre_horizon)),
+            high=np.array([np.inf] * (ego_obs_dim + ref_obs_dim * pre_horizon)),
             dtype=np.float32,
         )
         self.action_space = gym.spaces.Box(
@@ -223,14 +223,22 @@ class SimuVeh3dofconti(PythBaseEnv):
         return self.get_obs(), reward, self.done, self.info
 
     def get_obs(self) -> np.ndarray:
-        ref_x_tf, ref_y_tf, _ = \
+        ref_x_tf, ref_y_tf, ref_phi_tf = \
             ego_vehicle_coordinate_transform(
                 self.state[0], self.state[1], self.state[2],
                 self.ref_points[:, 0], self.ref_points[:, 1], self.ref_points[:, 2],
             )
-        # ego_obs: [u, v, w]
-        ego_obs = self.state[3:]
-        ref_obs = np.stack((ref_x_tf, ref_y_tf), 1).flatten()
+        ref_u_tf = self.ref_points[:, 3] - self.state[3]
+        # ego_obs: [
+        # delta_x, delta_y, delta_phi, delta_u, (of the first reference point)
+        # v, w (of ego vehicle)
+        # ]
+        ego_obs = np.concatenate(
+            ([ref_x_tf[0], ref_y_tf[0], ref_phi_tf[0], ref_u_tf[0]], self.state[4:]))
+        # ref_obs: [
+        # delta_x, delta_y, delta_phi, delta_u (of the second to last reference point)
+        # ]
+        ref_obs = np.stack((ref_x_tf, ref_y_tf, ref_phi_tf, ref_u_tf), 1)[1:].flatten()
         return np.concatenate((ego_obs, ref_obs))
 
     def compute_reward(self, action: np.ndarray) -> float:
