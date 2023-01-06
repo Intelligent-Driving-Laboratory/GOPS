@@ -49,12 +49,12 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         **kwargs: Any,
     ):
         super().__init__(pre_horizon, path_para, u_para, **kwargs)
-        ego_obs_dim = 3
-        ref_obs_dim = 2
+        ego_obs_dim = 6
+        ref_obs_dim = 4
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
             high=np.inf,
-            shape=(ego_obs_dim + ref_obs_dim * (pre_horizon + 1) + surr_veh_num * 4,),
+            shape=(ego_obs_dim + ref_obs_dim * pre_horizon + surr_veh_num * 4,),
             dtype=np.float32,
         )
         self.surr_veh_num = surr_veh_num

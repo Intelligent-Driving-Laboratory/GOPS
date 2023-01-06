@@ -76,10 +76,10 @@ class Veh3dofcontiModel(PythBaseModel):
         """
         self.vehicle_dynamics = VehicleDynamicsModel()
         self.pre_horizon = pre_horizon
-        ego_obs_dim = 3
-        ref_obs_dim = 2
+        ego_obs_dim = 6
+        ref_obs_dim = 4
         super().__init__(
-            obs_dim=ego_obs_dim + ref_obs_dim * (pre_horizon + 1),
+            obs_dim=ego_obs_dim + ref_obs_dim * pre_horizon,
             action_dim=2,
             dt=0.1,
             action_lower_bound=[-max_steer, -3],
@@ -101,7 +101,7 @@ class Veh3dofcontiModel(PythBaseModel):
         u_num = info["u_num"]
         t = info["ref_time"]
 
-        reward = self.compute_reward(state, ref_points, action)
+        reward = self.compute_reward(obs, action)
 
         next_state = self.vehicle_dynamics.f_xu(state, action, self.dt)
 
@@ -145,27 +145,26 @@ class Veh3dofcontiModel(PythBaseModel):
         return next_obs, reward, isdone, next_info
 
     def get_obs(self, state, ref_points):
-        ref_x_tf, ref_y_tf, _ = \
+        ref_x_tf, ref_y_tf, ref_phi_tf = \
             ego_vehicle_coordinate_transform(
                 state[:, 0], state[:, 1], state[:, 2],
                 ref_points[..., 0], ref_points[..., 1], ref_points[..., 2],
             )
-        ego_obs = state[:, 3:]
-        ref_obs = torch.stack((ref_x_tf, ref_y_tf), 2).reshape(ego_obs.shape[0], -1)
+        ref_u_tf = ref_points[..., 3] - state[:, 3].unsqueeze(1)
+        ego_obs = torch.concat((torch.stack(
+            (ref_x_tf[:, 0], ref_y_tf[:, 0], ref_phi_tf[:, 0], ref_u_tf[:, 0]), dim=1),
+            state[:, 4:]), dim=1)
+        ref_obs = torch.stack((ref_x_tf, ref_y_tf, ref_phi_tf, ref_u_tf), 2)[
+            :, 1:].reshape(ego_obs.shape[0], -1)
         return torch.concat((ego_obs, ref_obs), 1)
 
     def compute_reward(
-        self, 
-        state: torch.Tensor, 
-        ref_points: torch.Tensor, 
+        self,
+        obs: torch.Tensor,
         action: torch.Tensor
     ) -> torch.Tensor:
-        x, y, phi, u, _, w = state.split(1, dim=1)
-        ref_x, ref_y, ref_phi, ref_u = ref_points[:, 0].split(1, dim=1)
-        delta_x = (x - ref_x).squeeze(1)
-        delta_y = (y - ref_y).squeeze(1)
-        delta_phi = angle_normalize(phi - ref_phi).squeeze(1)
-        delta_u = (u - ref_u).squeeze(1)
+        delta_x, delta_y, delta_phi, delta_u = obs[:, 0], obs[:, 1], obs[:, 2], obs[:, 3]
+        w = obs[:, 5]
         steer, a_x = action[:, 0], action[:, 1]
         return -(
             0.04 * delta_x ** 2
@@ -177,7 +176,7 @@ class Veh3dofcontiModel(PythBaseModel):
             + 0.01 * a_x ** 2
         )
 
-    def judge_done(self, obs):
+    def judge_done(self, obs: torch.Tensor) -> torch.Tensor:
         delta_x, delta_y, delta_phi = obs[:, 0], obs[:, 1], obs[:, 2]
         done = (
             (torch.abs(delta_x) > 5)
