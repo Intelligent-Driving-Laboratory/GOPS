@@ -29,12 +29,12 @@ class OptController:
     :param int ctrl_interval:
         (Optional) Optimal control inputs are computed every `ctrl_interval` steps, **it should be factor of num_pred_step**.
         For example, if `num_pred_step` equals 10, and `ctrl_interval` equals 2,
-        then control inputs will be coumputed at timestep 0, 2, 4, 6 and 8.
+        then control inputs will be computed at timestep 0, 2, 4, 6 and 8.
         Control inputs at rest timesteps are set in zero-order holder manner. Default to 1.
     :param float gamma: (Optional) Discounting factor. Valid range: [0, 1]. Default to 1.0.
     :param bool use_terminal_cost: (Optional) Whether to use terminal cost. Default to False.
     :param Callable[[torch.Tensor], torch.Tensor] terminal_cost:
-        (Optional) Self-defined terminal cost function returning one Tensor of shape [] (scarla).
+        (Optional) Self-defined terminal cost function returning one Tensor of shape [] (scalar).
         If `use_terminal_cost` is True and `terminal_cost` is None,
         OptController will use default terminal cost function of environment model (if exists). Default to None.
     :param dict minimize_options:
