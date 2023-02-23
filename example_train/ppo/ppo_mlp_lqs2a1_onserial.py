@@ -82,7 +82,7 @@ if __name__ == "__main__":
     parser.add_argument("--policy_output_activation", type=str, default="linear", help="Options: linear/tanh")
     parser.add_argument("--policy_min_log_std", type=int, default=-20)
     parser.add_argument("--policy_max_log_std", type=int, default=1)
-    parser.add_argument("--policy_std_sype", type=str, default="parameter")
+    parser.add_argument("--policy_std_type", type=str, default="parameter")
 
     ################################################
     # 3. Parameters for algorithm
