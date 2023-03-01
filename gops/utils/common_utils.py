@@ -60,9 +60,9 @@ def get_apprfunc_dict(key: str, type=None, **kwargs):
     var["apprfunc"] = kwargs[key + "_func_type"]
     var["name"] = kwargs[key + "_func_name"]
     var["obs_dim"] = kwargs["obsv_dim"]
-    var["min_log_std"] = kwargs.get(key + "_min_log_std", float("-inf"))
-    var["max_log_std"] = kwargs.get(key + "_max_log_std", float("inf"))
-    var["std_sype"] = kwargs.get(key + "_std_sype", "mlp_shared")
+    var["min_log_std"] = kwargs.get(key + "_min_log_std", float("-20"))
+    var["max_log_std"] = kwargs.get(key + "_max_log_std", float("2"))
+    var["std_type"] = kwargs.get(key + "_std_type", "mlp_shared")
     var["norm_matrix"] = kwargs.get("norm_matrix", None)
 
     apprfunc_type = kwargs[key + "_func_type"]
