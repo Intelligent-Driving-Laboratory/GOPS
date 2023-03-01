@@ -52,8 +52,10 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
         **kwargs: Any,
     ):
         self.state_dim = 6
+        self.ego_obs_dim = 6
+        self.ref_obs_dim = 4
         super(Veh3dofcontiModel, self).__init__(
-            obs_dim=self.state_dim + pre_horizon * 2 + surr_veh_num * 4,
+            obs_dim=self.ego_obs_dim + self.ref_obs_dim * pre_horizon + surr_veh_num * 4,
             action_dim=2,
             dt=0.1,
             action_lower_bound=[-np.pi / 6, -3],
@@ -76,7 +78,7 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
         done: torch.Tensor,
         info: InfoDict,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
-        ego_obs = obs[:, : self.state_dim + self.pre_horizon * 2]
+        ego_obs = obs[:, : self.ego_obs_dim + self.ref_obs_dim * self.pre_horizon]
         next_ego_obs, reward, next_done, next_info = super().forward(
             ego_obs, action, done, info
         )
@@ -91,7 +93,7 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
         next_info.update(
             {
                 "surr_state": next_surr_state,
-                "constraint": self.get_constraint(obs, info),
+                "constraint": self.get_constraint(next_obs, next_info),
             }
         )
         return next_obs, reward, next_done, next_info
@@ -139,13 +141,13 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
             for j in range(2):
                 # front and rear circle of surrounding vehicles
                 dist = torch.linalg.norm(
-                    ego_center[:, i].unsqueeze(1) - surr_center[..., j], dim=2
+                    ego_center[:, i].unsqueeze(1) - surr_center[..., j, :], dim=2
                 )
                 min_dist = torch.minimum(
                     min_dist, torch.min(dist, dim=1, keepdim=True).values
                 )
 
-        return r - min_dist
+        return 2 * r - min_dist
 
 
 def env_model_creator(**kwargs):

@@ -181,6 +181,27 @@ class PolicyRunner:
                 action = self.__action_noise(action)
             if self.use_dist:
                 action = np.hstack((action, env.dist_func(step * env.tau)))
+            if self.constrained_env:
+                constrain_list.append(info["constraint"])
+            if self.is_tracking:
+                state_num = len(info["ref"])
+                self.ref_state_num = sum(x is not None for x in info["ref"])
+                if step == 0:
+                    for i in range(state_num):
+                        if info["ref"][i] is not None:
+                            state_with_ref_error["state-{}".format(i)] = []
+                            state_with_ref_error["ref-{}".format(i)] = []
+                            state_with_ref_error["state-{}-error".format(i)] = []
+
+                for i in range(state_num):
+                    if info["ref"][i] is not None:
+                        state_with_ref_error["state-{}".format(i)].append(
+                            info["state"][i]
+                        )
+                        state_with_ref_error["ref-{}".format(i)].append(info["ref"][i])
+                        state_with_ref_error["state-{}-error".format(i)].append(
+                            info["ref"][i] - info["state"][i]
+                        )
             next_obs, reward, done, info = env.step(action)
 
             action_list.append(action)
@@ -198,28 +219,6 @@ class PolicyRunner:
             # Draw environment animation
             if render:
                 env.render()
-
-            if self.constrained_env:
-                constrain_list.append(info["constraint"])
-            if self.is_tracking:
-                state_num = len(info["ref"])
-                self.ref_state_num = sum(x is not None for x in info["ref"])
-                if step == 1:
-                    for i in range(state_num):
-                        if info["ref"][i] is not None:
-                            state_with_ref_error["state-{}".format(i)] = []
-                            state_with_ref_error["ref-{}".format(i)] = []
-                            state_with_ref_error["state-{}-error".format(i)] = []
-
-                for i in range(state_num):
-                    if info["ref"][i] is not None:
-                        state_with_ref_error["state-{}".format(i)].append(
-                            info["state"][i]
-                        )
-                        state_with_ref_error["ref-{}".format(i)].append(info["ref"][i])
-                        state_with_ref_error["state-{}-error".format(i)].append(
-                            info["ref"][i] - info["state"][i]
-                        )
 
         eval_dict = {
             "reward_list": reward_list,

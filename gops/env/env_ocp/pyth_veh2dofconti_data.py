@@ -142,7 +142,7 @@ class SimuVeh2dofconti(PythBaseEnv):
             u_num = None
         else:
             path_num = int(ref_num / 2)
-            u_num = int(ref_num / 4)
+            u_num = int(ref_num % 2)
 
         if path_num is not None:
             self.path_num = path_num

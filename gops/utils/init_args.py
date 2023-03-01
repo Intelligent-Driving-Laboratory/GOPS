@@ -21,6 +21,9 @@ from gops.utils.common_utils import change_type, seed_everything
 
 
 def init_args(env, **args):
+    # set torch parallel threads nums
+    torch.set_num_threads(4)
+    print("limit torch intra-op parallel threads num to {num} for saving computing resource.".format(num = 4))
     # cuda
     if args["enable_cuda"]:
         if torch.cuda.is_available():
@@ -97,8 +100,8 @@ def init_args(env, **args):
         dir_path = os.path.dirname(dir_path)
         dir_path = os.path.dirname(dir_path)
         args["save_folder"] = os.path.join(
-            dir_path + "/results/",
-            args["algorithm"],
+            dir_path + "/results/",args["env_id"],
+            args["algorithm"] +'_'+
             datetime.datetime.now().strftime("%y%m%d-%H%M%S"),
         )
     os.makedirs(args["save_folder"], exist_ok=True)

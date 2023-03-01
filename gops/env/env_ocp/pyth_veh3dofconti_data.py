@@ -93,9 +93,11 @@ class SimuVeh3dofconti(PythBaseEnv):
 
         self.state_dim = 6
         self.pre_horizon = pre_horizon
+        ego_obs_dim = 6
+        ref_obs_dim = 4
         self.observation_space = gym.spaces.Box(
-            low=np.array([-np.inf] * (2 * self.pre_horizon + self.state_dim)),
-            high=np.array([np.inf] * (2 * self.pre_horizon + self.state_dim)),
+            low=np.array([-np.inf] * (ego_obs_dim + ref_obs_dim * pre_horizon)),
+            high=np.array([np.inf] * (ego_obs_dim + ref_obs_dim * pre_horizon)),
             dtype=np.float32,
         )
         self.action_space = gym.spaces.Box(
@@ -132,7 +134,6 @@ class SimuVeh3dofconti(PythBaseEnv):
         init_state: Optional[Sequence] = None,
         ref_time: Optional[float] = None,
         ref_num: Optional[int] = None,
-
         **kwargs,
     ) -> Tuple[np.ndarray, dict]:
         if ref_time is not None:
@@ -145,8 +146,8 @@ class SimuVeh3dofconti(PythBaseEnv):
             path_num = None
             u_num = None
         else:
-            path_num = int(ref_num/2)
-            u_num = int(ref_num/4)
+            path_num = int(ref_num / 2)
+            u_num = int(ref_num % 2)
 
         # If no ref_num, then randomly select path and speed
         if path_num is not None:
@@ -222,8 +223,22 @@ class SimuVeh3dofconti(PythBaseEnv):
         return self.get_obs(), reward, self.done, self.info
 
     def get_obs(self) -> np.ndarray:
-        ego_obs = np.concatenate((self.state[:4] - self.ref_points[0], self.state[4:]))
-        ref_obs = (self.state[np.newaxis, :2] - self.ref_points[1:, :2]).flatten()
+        ref_x_tf, ref_y_tf, ref_phi_tf = \
+            ego_vehicle_coordinate_transform(
+                self.state[0], self.state[1], self.state[2],
+                self.ref_points[:, 0], self.ref_points[:, 1], self.ref_points[:, 2],
+            )
+        ref_u_tf = self.ref_points[:, 3] - self.state[3]
+        # ego_obs: [
+        # delta_x, delta_y, delta_phi, delta_u, (of the first reference point)
+        # v, w (of ego vehicle)
+        # ]
+        ego_obs = np.concatenate(
+            ([ref_x_tf[0], ref_y_tf[0], ref_phi_tf[0], ref_u_tf[0]], self.state[4:]))
+        # ref_obs: [
+        # delta_x, delta_y, delta_phi, delta_u (of the second to last reference point)
+        # ]
+        ref_obs = np.stack((ref_x_tf, ref_y_tf, ref_phi_tf, ref_u_tf), 1)[1:].flatten()
         return np.concatenate((ego_obs, ref_obs))
 
     def compute_reward(self, action: np.ndarray) -> float:
@@ -233,7 +248,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         return -(
             0.04 * (x - ref_x) ** 2
             + 0.04 * (y - ref_y) ** 2
-            + 0.02 * (phi - ref_phi) ** 2
+            + 0.02 * angle_normalize(phi - ref_phi) ** 2
             + 0.02 * (u - ref_u) ** 2
             + 0.01 * w ** 2
             + 0.01 * steer ** 2
@@ -246,7 +261,7 @@ class SimuVeh3dofconti(PythBaseEnv):
         done = (
             (np.abs(x - ref_x) > 5)
             | (np.abs(y - ref_y) > 2)
-            | (np.abs(phi - ref_phi) > np.pi)
+            | (np.abs(angle_normalize(phi - ref_phi)) > np.pi)
         )
         return done
 
@@ -261,9 +276,90 @@ class SimuVeh3dofconti(PythBaseEnv):
             "ref": self.ref_points[0].copy(),
         }
 
+    def render(self, mode="human"):
+        import matplotlib.pyplot as plt
+
+        plt.figure(num=0, figsize=(6.4, 3.2))
+        plt.clf()  
+        ego_x, ego_y = self.state[:2]
+        ax = plt.axes(xlim=(ego_x - 20, ego_x + 20), ylim=(ego_y - 10, ego_y + 10))
+        ax.set_aspect('equal')
+        plt.axis('off')
+        
+        self._render(ax)
+
+        plt.tight_layout()
+        plt.pause(0.01)
+
+    def _render(self, ax, veh_length=4.8, veh_width=2.0):
+        import matplotlib.patches as pc
+
+        # draw ego vehicle
+        ego_x, ego_y, phi = self.state[:3]
+        ax.add_patch(pc.Rectangle(
+            (ego_x - veh_length / 2, ego_y - veh_width / 2), veh_length, veh_width, phi * 180 / np.pi,
+            facecolor='w', edgecolor='r', zorder=1))
+
+        # draw reference paths
+        ref_x = []
+        ref_y = []
+        for i in range(1, 50):
+            ref_x.append(self.ref_traj.compute_x(
+                self.t + i * self.dt, self.path_num, self.u_num
+            ))
+            ref_y .append(self.ref_traj.compute_y(
+                self.t + i * self.dt, self.path_num, self.u_num
+            ))
+        ax.plot(ref_x, ref_y, 'b--', lw=1, zorder=2)
+
+        # draw road
+        road_len = self.max_episode_steps * self.action_space.high[1]
+        ax.plot([-10, road_len], [7.5, 7.5], 'k-', lw=1, zorder=0)
+        ax.plot([-10, road_len], [-7.5, -7.5], 'k-', lw=1, zorder=0)
+        ax.plot([-10, road_len], [0, 0], 'k-.', lw=1, zorder=0)
+
+        # draw texts
+        left_x = ego_x - 20
+        top_y = ego_y + 15
+        delta_y = 2
+        ego_speed = self.state[3] * 3.6  # [km/h]
+        ax.text(left_x, top_y, f'time: {self.t:.1f}s')
+        ax.text(left_x, top_y - delta_y, f'speed: {ego_speed:.1f}km/h')
 
 def angle_normalize(x):
     return ((x + np.pi) % (2 * np.pi)) - np.pi
+
+
+def ego_vehicle_coordinate_transform(
+    ego_x: np.ndarray,
+    ego_y: np.ndarray,
+    ego_phi: np.ndarray,
+    ref_x: np.ndarray,
+    ref_y: np.ndarray,
+    ref_phi: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transform absolute coordinate of ego vehicle and reference points to the ego 
+    vehicle coordinate. The origin is the position of ego vehicle. The x-axis points 
+    to heading angle of ego vehicle.
+
+    Args:
+        ego_x (np.ndarray): Absolution x-coordinate of ego vehicle, shape ().
+        ego_y (np.ndarray): Absolution y-coordinate of ego vehicle, shape ().
+        ego_phi (np.ndarray): Absolution heading angle of ego vehicle, shape ().
+        ref_x (np.ndarray): Absolution x-coordinate of reference points, shape (N,).
+        ref_y (np.ndarray): Absolution y-coordinate of reference points, shape (N,).
+        ref_phi (np.ndarray): Absolution tangent angle of reference points, shape (N,).
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray]: Transformed x, y, phi of reference 
+        points.
+    """
+    cos_tf = np.cos(-ego_phi)
+    sin_tf = np.sin(-ego_phi)
+    ref_x_tf = (ref_x - ego_x) * cos_tf - (ref_y - ego_y) * sin_tf
+    ref_y_tf = (ref_x - ego_x) * sin_tf + (ref_y - ego_y) * cos_tf
+    ref_phi_tf = angle_normalize(ref_phi - ego_phi)
+    return ref_x_tf, ref_y_tf, ref_phi_tf
 
 
 def env_creator(**kwargs):
