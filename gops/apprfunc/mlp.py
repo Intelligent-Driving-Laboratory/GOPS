@@ -150,7 +150,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
                 get_activation_func(kwargs["hidden_activation"]),
                 get_activation_func(kwargs["output_activation"]),
             )
-            self.log_std = nn.Parameter(torch.zeros(1, act_dim))
+            self.log_std = nn.Parameter(-0.5*torch.ones(1, act_dim))
 
         self.min_log_std = kwargs["min_log_std"]
         self.max_log_std = kwargs["max_log_std"]

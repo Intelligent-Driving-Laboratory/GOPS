@@ -6,10 +6,13 @@
 #  Lab Leader: Prof. Shengbo Eben Li
 #  Email: lisb04@gmail.com
 #
-#  Description: example for dsac + humanoidconti + mlp + offserial
-#  Update Date: 2021-03-05, Wenxuan Wang: create example
+#  Description: example for TD3 + gym_ant(mujoco) + mlp + offserial
+#  Update Date: 2023-03-01, Xujie Song: create example
+
 
 import argparse
+import os
+import numpy as np
 
 from gops.create_pkg.create_alg import create_alg
 from gops.create_pkg.create_buffer import create_buffer
@@ -28,9 +31,9 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="gym_humanoid", help="id of environment")
-    parser.add_argument("--algorithm", type=str, default="DSAC", help="RL algorithm")
-    parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
+    parser.add_argument("--env_id", type=str, default="gym_ant", help="id of environment")
+    parser.add_argument("--algorithm", type=str, default="TD3", help="RL algorithm")
+    parser.add_argument("--enable_cuda", default=True, help="Enable CUDA")
     ################################################
     # 1. Parameters for environment
     parser.add_argument("--reward_scale", type=float, default=1, help="reward scale factor")
@@ -43,7 +46,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--value_func_name",
         type=str,
-        default="ActionValueDistri",
+        default="ActionValue",
         help="Options: StateValue/ActionValue/ActionValueDis/ActionValueDistri",
     )
     parser.add_argument("--value_func_type", type=str, default="MLP", help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS")
@@ -53,14 +56,12 @@ if __name__ == "__main__":
         "--value_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
     )
     parser.add_argument("--value_output_activation", type=str, default="linear", help="Options: linear/tanh")
-    parser.add_argument("--value_min_log_std", type=int, default=-0.1)
-    parser.add_argument("--value_max_log_std", type=int, default=4)
 
     # 2.2 Parameters of policy approximate function
     parser.add_argument(
         "--policy_func_name",
         type=str,
-        default="StochaPolicy",
+        default="DetermPolicy",
         help="Options: None/DetermPolicy/FiniteHorizonPolicy/StochaPolicy",
     )
     parser.add_argument(
@@ -69,7 +70,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--policy_act_distribution",
         type=str,
-        default="TanhGaussDistribution",
+        default="default",
         help="Options: default/TanhGaussDistribution/GaussDistribution",
     )
     policy_func_type = parser.parse_known_args()[0].policy_func_type
@@ -78,21 +79,11 @@ if __name__ == "__main__":
         "--policy_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
     )
     parser.add_argument("--policy_output_activation", type=str, default="linear", help="Options: linear/tanh")
-    parser.add_argument("--policy_min_log_std", type=int, default=-20)
-    parser.add_argument("--policy_max_log_std", type=int, default=0.5)
 
     ################################################
     # 3. Parameters for RL algorithm
     parser.add_argument("--value_learning_rate", type=float, default=1e-3)
     parser.add_argument("--policy_learning_rate", type=float, default=1e-3)
-    parser.add_argument("--alpha_learning_rate", type=float, default=3e-4)
-    # special parameter
-    parser.add_argument("--gamma", type=float, default=0.99)
-    parser.add_argument("--tau", type=float, default=0.005)
-    parser.add_argument("--auto_alpha", type=bool, default=True)
-    parser.add_argument("--delay_update", type=int, default=2)
-    parser.add_argument("--TD_bound", type=float, default=10)
-    parser.add_argument("--bound", default=True)
 
     ################################################
     # 4. Parameters for trainer
@@ -111,7 +102,6 @@ if __name__ == "__main__":
     )
     trainer_type = parser.parse_known_args()[0].trainer
 
-    # 4.1. Parameters for off_serial_trainer
     parser.add_argument(
         "--buffer_name", type=str, default="replay_buffer", help="Options:replay_buffer/prioritized_replay_buffer"
     )
@@ -130,7 +120,12 @@ if __name__ == "__main__":
     # Batch size of sampler for buffer store
     parser.add_argument("--sample_batch_size", type=int, default=400)
     # Add noise to action for better exploration
-    parser.add_argument("--noise_params", type=dict, default=None)
+    parser.add_argument(
+        "--noise_params",
+        type=dict,
+        default={"mean": np.array([0], dtype=np.float32), "std": np.array([0.1], dtype=np.float32),},
+        help="used for continuous action space",
+    )
 
     ################################################
     # 6. Parameters for evaluator
@@ -156,6 +151,7 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
+    alg.set_parameters({"gamma": 0.99, "tau": 0.005, "delay_update": 2})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

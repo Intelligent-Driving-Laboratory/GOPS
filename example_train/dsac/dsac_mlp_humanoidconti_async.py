@@ -10,8 +10,6 @@
 #  Update Date: 2021-03-05, Wenxuan Wang: create example
 
 import argparse
-import os
-import numpy as np
 
 from gops.create_pkg.create_alg import create_alg
 from gops.create_pkg.create_buffer import create_buffer
@@ -35,7 +33,7 @@ if __name__ == "__main__":
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--reward_scale", type=float, default=0.2, help="reward scale factor")
+    parser.add_argument("--reward_scale", type=float, default=1, help="reward scale factor")
     parser.add_argument("--action_type", type=str, default="continu", help="Options: continu/discret")
     parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
     parser.add_argument("--is_adversary", type=bool, default=False, help="Adversary training")
@@ -80,19 +78,18 @@ if __name__ == "__main__":
         "--policy_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
     )
     parser.add_argument("--policy_output_activation", type=str, default="linear", help="Options: linear/tanh")
-    parser.add_argument("--policy_min_log_std", type=int, default=-5)
-    parser.add_argument("--policy_max_log_std", type=int, default=1)
+    parser.add_argument("--policy_min_log_std", type=int, default=-20)
+    parser.add_argument("--policy_max_log_std", type=int, default=0.5)
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument("--value_learning_rate", type=float, default=8e-5)
-    parser.add_argument("--policy_learning_rate", type=float, default=3e-5)
-    parser.add_argument("--alpha_learning_rate", type=float, default=2e-5)
+    parser.add_argument("--value_learning_rate", type=float, default=1e-3)
+    parser.add_argument("--policy_learning_rate", type=float, default=1e-3)
+    parser.add_argument("--alpha_learning_rate", type=float, default=3e-4)
     # special parameter
     parser.add_argument("--gamma", type=float, default=0.99)
-    parser.add_argument("--tau", type=float, default=0.001)
+    parser.add_argument("--tau", type=float, default=0.005)
     parser.add_argument("--auto_alpha", type=bool, default=True)
-    parser.add_argument("--alpha", type=bool, default=0.2)
     parser.add_argument("--delay_update", type=int, default=2)
     parser.add_argument("--TD_bound", type=float, default=10)
     parser.add_argument("--bound", default=True)
@@ -106,7 +103,7 @@ if __name__ == "__main__":
         help="Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer",
     )
     # Maximum iteration number
-    parser.add_argument("--max_iteration", type=int, default=10000000)
+    parser.add_argument("--max_iteration", type=int, default=1_000_000)
     parser.add_argument(
         "--ini_network_dir",
         type=str,
@@ -125,9 +122,9 @@ if __name__ == "__main__":
         "--buffer_name", type=str, default="replay_buffer", help="Options:replay_buffer/prioritized_replay_buffer"
     )
     # Size of collected samples before training
-    parser.add_argument("--buffer_warm_size", type=int, default=6000)
+    parser.add_argument("--buffer_warm_size", type=int, default=10000)
     # Max size of reply buffer
-    parser.add_argument("--buffer_max_size", type=int, default=3*500000)
+    parser.add_argument("--buffer_max_size", type=int, default=1_000_000)
     # Batch size of replay samples from buffer
     parser.add_argument("--replay_batch_size", type=int, default=256)
     # Period of sampling
@@ -144,8 +141,8 @@ if __name__ == "__main__":
     ################################################
     # 6. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=5)
-    parser.add_argument("--eval_interval", type=int, default=10000)
+    parser.add_argument("--num_eval_episode", type=int, default=10)
+    parser.add_argument("--eval_interval", type=int, default=1000)
     parser.add_argument("--eval_save", type=str, default=False, help="save evaluation data")
 
     ################################################
@@ -154,7 +151,7 @@ if __name__ == "__main__":
     # Save value/policy every N updates
     parser.add_argument("--apprfunc_save_interval", type=int, default=50000)
     # Save key info every N updates
-    parser.add_argument("--log_save_interval", type=int, default=10000)
+    parser.add_argument("--log_save_interval", type=int, default=1000)
 
     ################################################
     # Get parameter dictionary
