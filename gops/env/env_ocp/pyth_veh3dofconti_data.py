@@ -283,12 +283,11 @@ class SimuVeh3dofconti(PythBaseEnv):
     def render(self, mode="human"):
         import matplotlib.pyplot as plt
 
-        plt.clf()  
+        fig = plt.figure(num=0, figsize=(6.4, 3.2))
+        plt.clf()
         ego_x, ego_y = self.state[:2]
-        ax = plt.axes(xlim=(ego_x - 20, ego_x + 20), ylim=(ego_y - 10, ego_y + 10))
+        ax = plt.axes(xlim=(ego_x - 5, ego_x + 30), ylim=(ego_y - 10, ego_y + 10))
         ax.set_aspect('equal')
-        plt.axis('off')
-        fig = plt.gcf()
         
         self._render(ax)
 
@@ -311,14 +310,22 @@ class SimuVeh3dofconti(PythBaseEnv):
 
         # draw ego vehicle
         ego_x, ego_y, phi = self.state[:3]
+        x_offset = veh_length / 2 * np.cos(phi) - veh_width / 2 * np.sin(phi)
+        y_offset = veh_length / 2 * np.sin(phi) + veh_width / 2 * np.cos(phi)
         ax.add_patch(pc.Rectangle(
-            (ego_x - veh_length / 2, ego_y - veh_width / 2), veh_length, veh_width, phi * 180 / np.pi,
-            facecolor='w', edgecolor='r', zorder=1))
+            (ego_x - x_offset, ego_y - y_offset), 
+            veh_length, 
+            veh_width, 
+            np.rad2deg(phi),
+            facecolor='w', 
+            edgecolor='r', 
+            zorder=1
+        ))
 
         # draw reference paths
         ref_x = []
         ref_y = []
-        for i in range(1, 50):
+        for i in np.arange(1, 60):
             ref_x.append(self.ref_traj.compute_x(
                 self.t + i * self.dt, self.path_num, self.u_num
             ))
@@ -327,14 +334,8 @@ class SimuVeh3dofconti(PythBaseEnv):
             ))
         ax.plot(ref_x, ref_y, 'b--', lw=1, zorder=2)
 
-        # draw road
-        road_len = self.max_episode_steps * self.action_space.high[1]
-        ax.plot([-10, road_len], [7.5, 7.5], 'k-', lw=1, zorder=0)
-        ax.plot([-10, road_len], [-7.5, -7.5], 'k-', lw=1, zorder=0)
-        ax.plot([-10, road_len], [0, 0], 'k-.', lw=1, zorder=0)
-
         # draw texts
-        left_x = ego_x - 20
+        left_x = ego_x - 5
         top_y = ego_y + 15
         delta_y = 2
         ego_speed = self.state[3] * 3.6  # [km/h]

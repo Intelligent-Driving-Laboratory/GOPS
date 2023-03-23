@@ -250,6 +250,67 @@ class SimuVeh2dofconti(PythBaseEnv):
             "ref_time": self.t,
             "ref": self.ref_points[0].copy(),
         }
+    
+    def render(self, mode="human"):
+        import matplotlib.pyplot as plt
+
+        fig = plt.figure(num=0, figsize=(6.4, 3.2))
+        plt.clf() 
+        ego_x = self.ref_traj.compute_x(self.t, self.path_num, self.u_num)
+        ego_y = self.state[0]
+        ax = plt.axes(xlim=(ego_x - 5, ego_x + 30), ylim=(ego_y - 10, ego_y + 10))
+        ax.set_aspect('equal')
+        
+        self._render(ax)
+
+        plt.tight_layout()
+
+        if mode == "rgb_array":
+            fig.canvas.draw()
+            image_from_plot = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+            image_from_plot = image_from_plot.reshape(
+                fig.canvas.get_width_height()[::-1] + (3,)
+            )
+            plt.pause(0.01)
+            return image_from_plot
+        elif mode == "human":
+            plt.pause(0.01)
+            plt.show()
+
+    def _render(self, ax, veh_length=4.8, veh_width=2.0):
+        import matplotlib.patches as pc
+
+        # draw ego vehicle
+        ego_x = self.ref_traj.compute_x(self.t, self.path_num, self.u_num)
+        ego_y, phi = self.state[:2]
+        x_offset = veh_length / 2 * np.cos(phi) - veh_width / 2 * np.sin(phi)
+        y_offset = veh_length / 2 * np.sin(phi) + veh_width / 2 * np.cos(phi)
+        ax.add_patch(pc.Rectangle(
+            (ego_x - x_offset, ego_y - y_offset), 
+            veh_length, 
+            veh_width, 
+            np.rad2deg(phi),
+            facecolor='w', 
+            edgecolor='r', 
+            zorder=1
+        ))
+
+        # draw reference paths
+        ref_x = []
+        ref_y = []
+        for i in range(1, 60):
+            ref_x.append(self.ref_traj.compute_x(
+                self.t + i * self.dt, self.path_num, self.u_num
+            ))
+            ref_y .append(self.ref_traj.compute_y(
+                self.t + i * self.dt, self.path_num, self.u_num
+            ))
+        ax.plot(ref_x, ref_y, 'b--', lw=1, zorder=2)
+
+        # draw texts
+        left_x = ego_x - 5
+        top_y = ego_y + 11
+        ax.text(left_x, top_y, f'time: {self.t:.1f}s')
 
 
 def angle_normalize(x):
