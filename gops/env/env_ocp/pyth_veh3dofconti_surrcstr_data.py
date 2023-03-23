@@ -198,9 +198,17 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         # draw surrounding vehicles
         for i in range(self.surr_veh_num):
             surr_x, surr_y, surr_phi = self.surr_state[i, :3]
+            x_offset = self.veh_length / 2 * np.cos(surr_phi) - self.veh_width / 2 * np.sin(surr_phi)
+            y_offset = self.veh_length / 2 * np.sin(surr_phi) + self.veh_width / 2 * np.cos(surr_phi)
             ax.add_patch(pc.Rectangle(
-                (surr_x - self.veh_length / 2, surr_y - self.veh_width / 2), self.veh_length, self.veh_width, surr_phi * 180 / np.pi,
-                facecolor='w', edgecolor='k', zorder=1))
+                (surr_x - x_offset, surr_y - y_offset), 
+                self.veh_length, 
+                self.veh_width, 
+                np.rad2deg(surr_phi),
+                facecolor='w', 
+                edgecolor='k', 
+                zorder=1
+            ))
 
 def env_creator(**kwargs):
     return SimuVeh3dofcontiSurrCstr(**kwargs)
