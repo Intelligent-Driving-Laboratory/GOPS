@@ -10,6 +10,7 @@
 #  Update: 2022-12-05, Zhilong Zheng: create OptController
 
 
+import time
 from typing import Callable, Optional, Tuple, Union
 import warnings
 from gops.env.env_ocp.pyth_base_model import PythBaseModel
@@ -242,6 +243,7 @@ class OptController:
         """
         Rollout furture states and rewards using environment model
         """
+        st = time.time()
         self.system_simulations += 1
         inputs_repeated = inputs.reshape(
             (self.num_ctrl_points, self.optimize_dim)
@@ -257,10 +259,9 @@ class OptController:
                 next_x = x.unsqueeze(0)
                 batched_info = {}
                 if info:
-                    for (key, value) in info.items():
-                        batched_info[key] = value.unsqueeze(0)
-                        infos[key] = [value.unsqueeze(0)]
-                for i in range(self.num_pred_step):
+                    batched_info = {key: value.unsqueeze(0) for key, value in info.items()}
+                    infos = {key: [value.unsqueeze(0)] for key, value in info.items()}
+                for i in np.arange(0, self.num_pred_step):
                     u = inputs_repeated[i, : self.action_dim].unsqueeze(0)
                     next_x, reward, done, batched_info = self.model.forward(
                         next_x, u, done=done, info=batched_info
@@ -296,7 +297,8 @@ class OptController:
                 except (KeyError):
                     # model requires additional info to forward, can't use batch rollout mode
                     self.rollout_mode = "loop"
-
+        et = time.time()
+        self.system_simulation_time += et - st
         return states, rewards, infos
 
     def _compute_cost(
@@ -308,7 +310,7 @@ class OptController:
         # rollout states and rewards
         states, rewards, _ = self._rollout(inputs, x, info)
 
-        # sum up intergral costs from timestep 0 to T-1
+        # sum up integral costs from timestep 0 to T-1
         cost = torch.sum(rewards)
 
         # Terminal cost for timestep T
@@ -323,6 +325,7 @@ class OptController:
         """
         self.constraint_evaluations = 0
         self.system_simulations = 0
+        self.system_simulation_time = 0
 
     def _print_statistics(self, res: opt.OptimizeResult, reset=True):
         """
@@ -335,6 +338,7 @@ class OptController:
         if self.constraint_evaluations:
             print("* Constraint calls:", self.constraint_evaluations)
         print("* System simulations:", self.system_simulations)
+        print("* System simulation time:", self.system_simulation_time)
         print("* Final cost:", res.fun, "\n")
         if reset:
             self._reset_statistics()
