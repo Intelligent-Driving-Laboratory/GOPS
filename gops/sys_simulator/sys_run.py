@@ -62,7 +62,7 @@ class PolicyRunner:
     :param list legend_list: legends of figures.
     :param bool use_opt: use optimal solution for comparison or not.
     :param dict opt_args: arguments of optimal solution solver.
-    :param bool constrained_env: constraint environment or not.
+    :param bool constrained_env: constrained environment or not.
     :param bool is_tracking: tracking problem or not.
     :param bool use_dist: use adversarial action or not.
     :param float dt: time interval between steps.
