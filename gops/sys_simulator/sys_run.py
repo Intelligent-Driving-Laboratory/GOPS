@@ -786,9 +786,11 @@ class PolicyRunner:
             env = create_env(**env_args)
         if self.save_render:
             video_path = os.path.join(self.save_path, "videos")
-            env = wrappers.RecordVideo(
-                env, video_path, name_prefix="{}_video".format(self.args["algorithm"])
-            )
+            if use_opt:
+                name_prefix = "{}_video".format(self.opt_args["opt_controller_type"])
+            else:
+                name_prefix = "{}_video".format(self.args["algorithm"])
+            env = wrappers.RecordVideo(env, video_path, name_prefix=name_prefix)
         self.args["action_high_limit"] = env.action_space.high
         self.args["action_low_limit"] = env.action_space.low
         return env
