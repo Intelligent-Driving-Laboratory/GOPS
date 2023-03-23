@@ -11,6 +11,7 @@
 #             Trust region policy optimization. 
 #             ICML, Lille, France.
 #  Update: 2021-03-05, Yuxuan Jiang: create TRPO algorithm
+#  Update: 2023-03-01, Xujie Song: add advantage normalization
 
 
 __all__ = ["TRPO"]
@@ -59,6 +60,7 @@ class TRPO(AlgorithmBase):
         self,
         *,
         delta: float,
+        norm_adv: bool,
         rtol: float,
         atol: float,
         damping_factor: float,
@@ -74,6 +76,7 @@ class TRPO(AlgorithmBase):
 
         Args:
             delta: KL constraint
+            norm_adv: whether to normalize advantage
             rtol: CG's relative tolerance
             atol: CG's absolute tolerance
             damping_factor: Add $\lambda I$ damping to Hessian to improve CG solution.
@@ -85,6 +88,7 @@ class TRPO(AlgorithmBase):
         """
         super().__init__(index, **kwargs)
         self.delta = delta
+        self.norm_adv = norm_adv
         self.rtol = rtol
         self.atol = atol
         self.damping_factor = damping_factor
@@ -101,6 +105,7 @@ class TRPO(AlgorithmBase):
     def adjustable_parameters(self):
         return (
             "delta",
+            "norm_adv",
             "train_v_iters",
             "value_learning_rate",
             "rtol",
@@ -115,6 +120,10 @@ class TRPO(AlgorithmBase):
         start_time = time.time()
         obs, act = data["obs"], data["act"]
         adv, ret = data["adv"], data["ret"]
+
+        # advantage normalization
+        if self.norm_adv:
+            adv = (adv - adv.mean()) / (adv.std() + EPSILON)
 
         # pi
         with torch.no_grad():
@@ -254,6 +263,6 @@ class TRPO(AlgorithmBase):
             if torch.allclose(r, zero, rtol=rtol, atol=atol):
                 return x, r
             r_dot, r_dot_old = torch.dot(r, r), r_dot
-            beta = r_dot / r_dot_old
+            beta = r_dot / (r_dot_old + EPSILON)
             p = r.add(p, alpha=beta)
         return x, r
