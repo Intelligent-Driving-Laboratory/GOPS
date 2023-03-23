@@ -112,13 +112,13 @@ if __name__ == "__main__":
     # Batch size of replay samples from buffer
     parser.add_argument("--replay_batch_size", type=int, default=256)
     # Period of sampling
-    parser.add_argument("--sample_interval", type=int, default=20)
+    parser.add_argument("--sample_interval", type=int, default=1)
 
     ################################################
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="off_sampler", help="Options: on_sampler/off_sampler")
     # Batch size of sampler for buffer store
-    parser.add_argument("--sample_batch_size", type=int, default=400)
+    parser.add_argument("--sample_batch_size", type=int, default=20)
     # Add noise to action for better exploration
     parser.add_argument(
         "--noise_params",
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     # 6. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
     parser.add_argument("--num_eval_episode", type=int, default=10)
-    parser.add_argument("--eval_interval", type=int, default=2000)
+    parser.add_argument("--eval_interval", type=int, default=2500)
     parser.add_argument("--eval_save", type=str, default=False, help="save evaluation data")
 
     ################################################
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     # Save value/policy every N updates
     parser.add_argument("--apprfunc_save_interval", type=int, default=50000)
     # Save key info every N updates
-    parser.add_argument("--log_save_interval", type=int, default=2000)
+    parser.add_argument("--log_save_interval", type=int, default=2500)
 
     ################################################
     # Get parameter dictionary

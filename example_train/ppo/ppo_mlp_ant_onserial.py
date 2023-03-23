@@ -144,7 +144,7 @@ if __name__ == "__main__":
     # 7. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
     parser.add_argument("--num_eval_episode", type=int, default=10)
-    parser.add_argument("--eval_interval", type=int, default=1)
+    parser.add_argument("--eval_interval", type=int, default=25)
     parser.add_argument("--eval_save", type=str, default=False, help="save evaluation data")
 
     ################################################
@@ -152,13 +152,13 @@ if __name__ == "__main__":
     parser.add_argument("--save_folder", type=str, default=None)
     # Save value/policy every N updates
     parser.add_argument(
-        "--apprfunc_save_interval", type=int, default=25,
+        "--apprfunc_save_interval", type=int, default=500,
     )
     # Save key info every N updates
     parser.add_argument(
         "--log_save_interval",
         type=int,
-        default=1,
+        default=25,
         help="Save gradient time/critic loss/actor loss/average value every N updates",
     )
 
