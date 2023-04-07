@@ -6,22 +6,20 @@
 #  Lab Leader: Prof. Shengbo Eben Li
 #  Email: lisb04@gmail.com
 #
-#  Description: Oscillator Model
+#  Description: Aircraft Model
 #  Update Date: 2022-08-12, Jie Li: create environment
 #  Update Date: 2022-10-24, Yujie Yang: add wrapper
 
 from typing import Tuple, Union
 
-import torch
 import numpy as np
+import torch
 
-from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.env.env_ocp.env_model.pyth_base_model import PythBaseModel
 from gops.utils.gops_typing import InfoDict
 
-pi = torch.tensor(np.pi, dtype=torch.float32)
 
-
-class PythOscillatorcontiModel(PythBaseModel):
+class PythAircraftcontiModel(PythBaseModel):
     def __init__(self, device: Union[torch.device, str, None] = None, **kwargs):
         """
         you need to define parameters here
@@ -29,10 +27,27 @@ class PythOscillatorcontiModel(PythBaseModel):
         # define common parameters here
         self.is_adversary = kwargs["is_adversary"]
         self.sample_batch_size = kwargs["sample_batch_size"]
-        self.state_dim = 2
+        self.state_dim = 3
         self.action_dim = 1
         self.adversary_dim = 1
-        self.dt = 1 / 200
+        self.dt = 1 / 200  # seconds between state updates
+
+        # define your custom parameters here
+        self.A = torch.tensor(
+            [[-1.01887, 0.90506, -0.00215], [0.82225, -1.07741, -0.17555], [0, 0, -1]],
+            dtype=torch.float32,
+        )
+        self.A_attack_ang = torch.tensor(
+            [-1.01887, 0.90506, -0.00215], dtype=torch.float32
+        ).reshape((3, 1))
+        self.A_rate = torch.tensor(
+            [0.82225, -1.07741, -0.17555], dtype=torch.float32
+        ).reshape((3, 1))
+        self.A_elevator_ang = torch.tensor([0, 0, -1], dtype=torch.float32).reshape(
+            (3, 1)
+        )
+        self.B = torch.tensor([0.0, 0.0, 1.0]).reshape((3, 1))
+        self.D = torch.tensor([1.0, 0.0, 0.0]).reshape((3, 1))
 
         # utility information
         self.Q = torch.eye(self.state_dim)
@@ -43,21 +58,33 @@ class PythOscillatorcontiModel(PythBaseModel):
         # state & action space
         self.fixed_initial_state = kwargs["fixed_initial_state"]
         self.initial_state_range = kwargs["initial_state_range"]
-        self.battery_a_initial = self.initial_state_range[0]
-        self.battery_b_initial = self.initial_state_range[1]
+        self.attack_ang_initial = self.initial_state_range[0]
+        self.rate_initial = self.initial_state_range[1]
+        self.elevator_ang_initial = self.initial_state_range[2]
         self.state_threshold = kwargs["state_threshold"]
-        self.battery_a_threshold = self.state_threshold[0]
-        self.battery_b_threshold = self.state_threshold[1]
-        self.min_action = [-5.0]
-        self.max_action = [5.0]
-        self.min_adv_action = [-1.0 / self.gamma_atte]
+        self.attack_ang_threshold = self.state_threshold[0]
+        self.rate_threshold = self.state_threshold[1]
+        self.elevator_ang_threshold = self.state_threshold[2]
+        self.max_action = [1.0]
+        self.min_action = [-1.0]
         self.max_adv_action = [1.0 / self.gamma_atte]
+        self.min_adv_action = [-1.0 / self.gamma_atte]
 
         self.lb_state = torch.tensor(
-            [-self.battery_a_threshold, -self.battery_b_threshold], dtype=torch.float32
+            [
+                -self.attack_ang_threshold,
+                -self.rate_threshold,
+                -self.elevator_ang_threshold,
+            ],
+            dtype=torch.float32,
         )
         self.hb_state = torch.tensor(
-            [self.battery_a_threshold, self.battery_b_threshold], dtype=torch.float32
+            [
+                self.attack_ang_threshold,
+                self.rate_threshold,
+                self.elevator_ang_threshold,
+            ],
+            dtype=torch.float32,
         )
         if self.is_adversary:
             self.lb_action = torch.tensor(
@@ -105,53 +132,65 @@ class PythOscillatorcontiModel(PythBaseModel):
 
     def reset(self):
 
-        battery_a = np.random.uniform(
-            -self.battery_a_initial, self.battery_a_initial, [self.sample_batch_size, 1]
+        attack_ang = np.random.normal(
+            0, self.attack_ang_initial, [self.sample_batch_size, 1]
         )
-        battery_b = np.random.uniform(
-            -self.battery_b_initial, self.battery_b_initial, [self.sample_batch_size, 1]
+        rate = np.random.normal(0, self.rate_initial, [self.sample_batch_size, 1])
+        elevator_ang = np.random.normal(
+            0, self.elevator_ang_initial, [self.sample_batch_size, 1]
         )
 
-        state = np.concatenate([battery_a, battery_b], axis=1)
+        state = np.concatenate([attack_ang, rate, elevator_ang], axis=1)
 
         return torch.from_numpy(state).float()
 
     def step(self, action: torch.Tensor):
         dt = self.dt
-        battery_a, battery_b = self.parallel_state[:, 0], self.parallel_state[:, 1]
-        # memristor
-        memristor = action[:, 0]
-        # noise
-        noise = action[:, 1]
-
-        deri_battery_a = -0.25 * battery_a
-        deri_battery_b = (
-            0.5 * torch.mul(battery_a ** 2, battery_b)
-            - 1 / (2 * self.gamma_atte ** 2) * battery_b ** 3
-            - 0.5 * battery_b
-            + torch.mul(battery_a, memristor)
-            + torch.mul(battery_b, noise)
+        A_attack_ang = self.A_attack_ang
+        A_rate = self.A_rate
+        A_elevator_ang = self.A_elevator_ang
+        state = self.parallel_state
+        attack_ang, rate, elevator_ang = (
+            self.parallel_state[:, 0],
+            self.parallel_state[:, 1],
+            self.parallel_state[:, 2],
         )
+        # the elevator actuator voltage
+        elevator_vol = action[:, 0]
+        # wind gusts on angle of attack
+        wind_attack_angle = action[:, 1]
 
-        delta_state = torch.stack([deri_battery_a, deri_battery_b], dim=-1)
+        deri_attack_ang = torch.mm(state, A_attack_ang).squeeze(-1) + wind_attack_angle
+        deri_rate = torch.mm(state, A_rate).squeeze(-1)
+        deri_elevator_ang = torch.mm(state, A_elevator_ang).squeeze(-1) + elevator_vol
+
+        delta_state = torch.stack(
+            [deri_attack_ang, deri_rate, deri_elevator_ang], dim=-1
+        )
         self.parallel_state = self.parallel_state + delta_state * dt
 
         reward = (
-            self.Q[0][0] * battery_a ** 2
-            + self.Q[1][1] * battery_b ** 2
-            + self.R[0][0] * (memristor ** 2).squeeze(-1)
-            - self.gamma_atte ** 2 * (noise ** 2).squeeze(-1)
+            self.Q[0][0] * attack_ang ** 2
+            + self.Q[1][1] * rate ** 2
+            + self.Q[2][2] * elevator_ang ** 2
+            + self.R[0][0] * (elevator_vol ** 2).squeeze(-1)
+            - self.gamma_atte ** 2 * (wind_attack_angle ** 2).squeeze(-1)
         )
 
         # define the ending condation here the format is just like isdone = l(next_state)
         done = (
             torch.where(
-                abs(self.parallel_state[:, 0]) > self.battery_a_threshold,
+                abs(self.parallel_state[:, 0]) > self.attack_ang_threshold,
                 self.ones_,
                 self.zeros_,
             ).bool()
             | torch.where(
-                abs(self.parallel_state[:, 1]) > self.battery_b_threshold,
+                abs(self.parallel_state[:, 1]) > self.rate_threshold,
+                self.ones_,
+                self.zeros_,
+            ).bool()
+            | torch.where(
+                abs(self.parallel_state[:, 2]) > self.elevator_ang_threshold,
                 self.ones_,
                 self.zeros_,
             ).bool()
@@ -194,31 +233,32 @@ class PythOscillatorcontiModel(PythBaseModel):
         state = obs
 
         dt = self.dt
-        battery_a, battery_b = state[:, 0], state[:, 1]
-        # memristor
-        memristor = action[:, 0]
+        A_attack_ang = self.A_attack_ang
+        A_rate = self.A_rate
+        A_elevator_ang = self.A_elevator_ang
+        attack_ang, rate, elevator_ang = state[:, 0], state[:, 1], state[:, 2]
+        # the elevator actuator voltage
+        elevator_vol = action[:, 0]
         if self.is_adversary:
-            # noise
-            noise = action[:, 1]
+            # wind gusts on angle of attack
+            wind_attack_angle = action[:, 1]
         else:
-            noise = torch.zeros_like(memristor)
+            wind_attack_angle = torch.zeros_like(elevator_vol)
 
-        deri_battery_a = -0.25 * battery_a
-        deri_battery_b = (
-            0.5 * torch.mul(battery_a ** 2, battery_b)
-            - 1 / (2 * self.gamma_atte ** 2) * battery_b ** 3
-            - 0.5 * battery_b
-            + torch.mul(battery_a, memristor)
-            + torch.mul(battery_b, noise)
+        deri_attack_ang = torch.mm(state, A_attack_ang).squeeze(-1) + wind_attack_angle
+        deri_rate = torch.mm(state, A_rate).squeeze(-1)
+        deri_elevator_ang = torch.mm(state, A_elevator_ang).squeeze(-1) + elevator_vol
+
+        delta_state = torch.stack(
+            [deri_attack_ang, deri_rate, deri_elevator_ang], dim=-1
         )
-
-        delta_state = torch.stack([deri_battery_a, deri_battery_b], dim=-1)
         state_next = state + delta_state * dt
         cost = (
-            self.Q[0][0] * battery_a ** 2
-            + self.Q[1][1] * battery_b ** 2
-            + self.R[0][0] * (memristor ** 2).squeeze(-1)
-            - self.gamma_atte ** 2 * (noise ** 2).squeeze(-1)
+            self.Q[0][0] * attack_ang ** 2
+            + self.Q[1][1] * rate ** 2
+            + self.Q[2][2] * elevator_ang ** 2
+            + self.R[0][0] * (elevator_vol ** 2).squeeze(-1)
+            - self.gamma_atte ** 2 * (wind_attack_angle ** 2).squeeze(-1)
         )
         reward = -cost
         ############################################################################################
@@ -226,44 +266,26 @@ class PythOscillatorcontiModel(PythBaseModel):
         # define the ending condation here the format is just like isdone = l(next_state)
         isdone = state[:, 0].new_zeros(size=[state.size()[0]], dtype=torch.bool)
 
-        ############################################################################################
-        # beyond_done = beyond_done.bool()
-        # mask = isdone * beyond_done
-        # mask = torch.unsqueeze(mask, -1)
-        # state_next = ~mask * state_next + mask * state
         return state_next, reward, isdone, {"delta_state": delta_state}
 
-    def f_x(self, state, batch_size):
+    def f_x(self, state):
+        batch_size = state.size()[0]
 
         if batch_size > 1:
-            fx = torch.zeros((batch_size, self.state_dim))
-            fx[:, 0] = -0.25 * state[:, 0]
-            fx[:, 1] = (
-                0.5 * torch.mul(state[:, 0] ** 2, state[:, 1])
-                - 1 / (2 * self.gamma_atte ** 2) * state[:, 1] ** 3
-                - 0.5 * state[:, 1]
-            )
+            fx = torch.mm(state, self.A.t())
         else:
-            fx = torch.zeros((self.state_dim, 1))
-            fx[0, 0] = -0.25 * state[0, 0]
-            fx[1, 0] = (
-                0.5 * torch.mul(state[0, 0] ** 2, state[0, 1])
-                - 1 / (2 * self.gamma_atte ** 2) * state[0, 1] ** 3
-                - 0.5 * state[0, 1]
-            )
+            fx = torch.mm(self.A, state.t())
 
         return fx
 
-    def g_x(self, state, batch_size):
+    def g_x(self, state, batch_size=1):
 
         if batch_size > 1:
             gx = torch.zeros((batch_size, self.state_dim, self.action_dim))
-            gx[:, 0, 0] = torch.zeros((batch_size,))
-            gx[:, 1, 0] = state[:, 0]
+            for i in range(batch_size):
+                gx[i, :, :] = self.B
         else:
-            gx = torch.zeros((self.state_dim, self.action_dim))
-            gx[0, 0] = 0
-            gx[1, 0] = state[0, 0]
+            gx = self.B
 
         return gx
 
@@ -277,21 +299,19 @@ class PythOscillatorcontiModel(PythBaseModel):
                 self.R.inverse(), torch.bmm(gx.transpose(1, 2), delta_value)
             ).squeeze(-1)
         else:
-            gx = self.g_x(state, batch_size)
+            gx = self.B
             act = -0.5 * torch.mm(self.R.inverse(), torch.mm(gx.t(), delta_value.t()))
 
         return act.detach()
 
-    def k_x(self, state, batch_size):
+    def k_x(self, state, batch_size=1):
 
         if batch_size > 1:
             kx = torch.zeros((batch_size, self.state_dim, self.adversary_dim))
-            kx[:, 0, 0] = torch.zeros((batch_size,))
-            kx[:, 1, 0] = state[:, 1]
+            for i in range(batch_size):
+                kx[i, :, :] = self.D
         else:
-            kx = torch.zeros((self.state_dim, self.adversary_dim))
-            kx[0, 0] = 0
-            kx[1, 0] = state[0, 1]
+            kx = self.D
 
         return kx
 
@@ -307,7 +327,7 @@ class PythOscillatorcontiModel(PythBaseModel):
                 * torch.bmm(kx.transpose(1, 2), delta_value).squeeze(-1)
             )
         else:
-            kx = self.k_x(state, batch_size)
+            kx = self.D
             adv = 0.5 / (self.gamma_atte ** 2) * torch.mm(kx.t(), delta_value.t())
 
         return adv.detach()

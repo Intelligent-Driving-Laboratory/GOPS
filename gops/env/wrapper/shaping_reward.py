@@ -18,7 +18,7 @@ from typing import Tuple, Union
 import gym
 import torch
 
-from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.env.env_ocp.env_model.pyth_base_model import PythBaseModel
 from gops.env.wrapper.base import ModelWrapper
 from gops.utils.gops_typing import InfoDict
 from gym.core import ObsType, ActType

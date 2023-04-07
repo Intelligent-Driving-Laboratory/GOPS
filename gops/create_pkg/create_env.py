@@ -14,9 +14,8 @@ from gops.env.wrapper.wrapping_utils import wrapping_env
 
 def create_env(**kwargs):
     env_name = kwargs["env_id"]
-    env_name_data = env_name + "_data"
     try:
-        file = __import__(env_name_data)
+        file = __import__(env_name)
     except NotImplementedError:
         raise NotImplementedError("This environment does not exist")
 

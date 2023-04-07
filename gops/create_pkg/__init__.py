@@ -22,15 +22,30 @@ sys.path.append(apprunc_path)
 # Add env file to sys path
 env_file = "env"
 env_path = os.path.join(modules_path, env_file)
+
 env_pyth_path = os.path.join(env_path, "env_pyth")
+env_pyth_model_path = os.path.join(env_pyth_path, "env_model")
+
 env_gym_path = os.path.join(env_path, "env_gym")
+env_gym_model_path = os.path.join(env_gym_path, "env_model")
+
 env_matlab_path = os.path.join(env_path, "env_matlab")
+env_matlab_model_path = os.path.join(env_matlab_path, "env_model")
+
 env_ocp_path = os.path.join(env_path, "env_ocp")
+env_ocp_model_path = os.path.join(env_ocp_path, "env_model")
+
 sys.path.append(env_path)
+
 sys.path.append(env_pyth_path)
 sys.path.append(env_gym_path)
 sys.path.append(env_matlab_path)
 sys.path.append(env_ocp_path)
+
+sys.path.append(env_pyth_model_path)
+sys.path.append(env_gym_model_path)
+sys.path.append(env_matlab_model_path)
+sys.path.append(env_ocp_model_path)
 
 # Add algorithm file to sys path
 alg_file = "algorithm"

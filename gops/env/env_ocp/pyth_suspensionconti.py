@@ -15,7 +15,7 @@ from math import sin, cos, sqrt, exp, pi
 import gym
 import numpy as np
 from gym import spaces
-from gops.env.env_ocp.pyth_base_data import PythBaseEnv
+from gops.env.env_ocp.pyth_base_env import PythBaseEnv
 
 gym.logger.setLevel(gym.logger.ERROR)
 

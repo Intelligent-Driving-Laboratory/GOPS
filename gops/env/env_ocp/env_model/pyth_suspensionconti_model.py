@@ -15,7 +15,7 @@ from typing import Tuple, Union
 import torch
 import numpy as np
 
-from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.env.env_ocp.env_model.pyth_base_model import PythBaseModel
 from gops.utils.gops_typing import InfoDict
 
 pi = torch.tensor(np.pi, dtype=torch.float32)

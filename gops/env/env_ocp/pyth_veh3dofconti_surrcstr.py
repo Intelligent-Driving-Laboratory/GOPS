@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 import gym
 import numpy as np
 
-from gops.env.env_ocp.pyth_veh3dofconti_data import SimuVeh3dofconti, angle_normalize
+from gops.env.env_ocp.pyth_veh3dofconti import SimuVeh3dofconti, angle_normalize
 
 
 @dataclass
