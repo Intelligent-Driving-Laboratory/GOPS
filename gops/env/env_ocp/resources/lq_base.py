@@ -22,8 +22,8 @@ import torch
 from gym.spaces import Box
 from scipy.linalg._solvers import solve_discrete_are
 
-from gops.env.env_ocp.pyth_base_data import PythBaseEnv
-from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.env.env_ocp.pyth_base_env import PythBaseEnv
+from gops.env.env_ocp.env_model.pyth_base_model import PythBaseModel
 from gops.utils.gops_typing import InfoDict
 
 warnings.filterwarnings("ignore")

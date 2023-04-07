@@ -6,90 +6,67 @@
 #  Lab Leader: Prof. Shengbo Eben Li
 #  Email: lisb04@gmail.com
 #
-#  Description: Aircraft Model
+#  Description: Oscillator Model
 #  Update Date: 2022-08-12, Jie Li: create environment
 #  Update Date: 2022-10-24, Yujie Yang: add wrapper
 
-from math import sin, cos
+from math import sin, cos, exp
 
 import gym
 import numpy as np
 from gym import spaces
-from gops.env.env_ocp.pyth_base_data import PythBaseEnv
+from gops.env.env_ocp.pyth_base_env import PythBaseEnv
 
 gym.logger.setLevel(gym.logger.ERROR)
 
 
-class _GymAircraftconti(PythBaseEnv):
+class _GymOscillatorconti(PythBaseEnv):
     def __init__(self, **kwargs):
         """
         you need to define parameters here
         """
         work_space = kwargs.pop("work_space", None)
         if work_space is None:
-            # initial range of [attack_ang, rate, elevator_ang]
-            init_high = np.array([0.3, 0.6, 0.3], dtype=np.float32)
+            # initial range of [battery_a, battery_b]
+            init_high = np.array([1.5, 1.5], dtype=np.float32)
             init_low = -init_high
             work_space = np.stack((init_low, init_high))
-        super(_GymAircraftconti, self).__init__(work_space=work_space, **kwargs)
+        super(_GymOscillatorconti, self).__init__(work_space=work_space, **kwargs)
 
         # define common parameters here
         self.is_adversary = kwargs["is_adversary"]
-        self.state_dim = 3
+        self.state_dim = 2
         self.action_dim = 1
         self.adversary_dim = 1
-        self.tau = 1 / 200  # seconds between state updates
-
-        # define your custom parameters here
-        self.A = np.array(
-            [[-1.01887, 0.90506, -0.00215], [0.82225, -1.07741, -0.17555], [0, 0, -1]],
-            dtype=np.float32,
+        self.tau = 1 / 200
+        self.prob_intensity = (
+            kwargs["prob_intensity"]
+            if kwargs.get("prob_intensity") is not None
+            else 1.0
         )
-        self.A_attack_ang = np.array(
-            [-1.01887, 0.90506, -0.00215], dtype=np.float32
-        ).reshape((3, 1))
-        self.A_rate = np.array([0.82225, -1.07741, -0.17555], dtype=np.float32).reshape(
-            (3, 1)
+        self.base_decline = (
+            kwargs["base_decline"] if kwargs.get("base_decline") is not None else 0.0
         )
-        self.A_elevator_ang = np.array([0, 0, -1], dtype=np.float32).reshape((3, 1))
-        self.B = np.array([0.0, 0.0, 1.0]).reshape((3, 1))
-        self.D = np.array([1.0, 0.0, 0.0]).reshape((3, 1))
 
         # utility information
         self.Q = np.eye(self.state_dim)
         self.R = np.eye(self.action_dim)
         self.gamma = 1
         self.gamma_atte = kwargs["gamma_atte"]
-        self.control_matrix = np.array(
-            [[0.166065, 0.180362, -0.437060]], dtype=np.float32
-        )
 
         # state & action space
         self.state_threshold = kwargs["state_threshold"]
-        self.attack_ang_threshold = self.state_threshold[0]
-        self.rate_threshold = self.state_threshold[1]
-        self.elevator_ang_threshold = self.state_threshold[2]
-        self.max_action = [1.0]
-        self.min_action = [-1.0]
+        self.battery_a_threshold = self.state_threshold[0]
+        self.battery_b_threshold = self.state_threshold[1]
+        self.max_action = [5.0]
+        self.min_action = [-5.0]
         self.max_adv_action = [1.0 / self.gamma_atte]
         self.min_adv_action = [-1.0 / self.gamma_atte]
 
         self.observation_space = spaces.Box(
-            low=np.array(
-                [
-                    -self.attack_ang_threshold,
-                    -self.rate_threshold,
-                    -self.elevator_ang_threshold,
-                ]
-            ),
-            high=np.array(
-                [
-                    self.attack_ang_threshold,
-                    self.rate_threshold,
-                    self.elevator_ang_threshold,
-                ]
-            ),
-            shape=(3,),
+            low=np.array([-self.battery_a_threshold, -self.battery_b_threshold]),
+            high=np.array([self.battery_a_threshold, self.battery_b_threshold]),
+            shape=(2,),
         )
         self.action_space = spaces.Box(
             low=np.array(self.min_action), high=np.array(self.max_action), shape=(1,)
@@ -109,8 +86,7 @@ class _GymAircraftconti(PythBaseEnv):
         return True
 
     def control_policy(self, obs, info):
-        action = self.control_matrix @ obs
-        return action
+        return np.array([-obs[0] * obs[1]], dtype="f")
 
     def reset(self, init_state=None, **kwargs):
         if init_state is None:
@@ -124,31 +100,24 @@ class _GymAircraftconti(PythBaseEnv):
     def stepPhysics(self, action, adv_action):
 
         tau = self.tau
-        A = self.A
-        attack_ang, rate, elevator_ang = self.state
-        # the elevator actuator voltage
-        elevator_vol = action[0]
-        # wind gusts on angle of attack
-        wind_attack_angle = adv_action[0]
+        battery_a, battery_b = self.state
+        # memritor
+        memristor = action[0]
+        # noise
+        noise = adv_action[0]
 
-        attack_ang_dot = (
-            A[0, 0] * attack_ang
-            + A[0, 1] * rate
-            + A[0, 2] * elevator_ang
-            + wind_attack_angle
-        )
-        rate_dot = A[1, 0] * attack_ang + A[1, 1] * rate + A[1, 2] * elevator_ang
-        elevator_ang_dot = (
-            A[2, 0] * attack_ang
-            + A[2, 1] * rate
-            + A[2, 2] * elevator_ang
-            + elevator_vol
+        battery_a_dot = -0.25 * battery_a
+        battery_b_dot = (
+            0.5 * battery_a ** 2 * battery_b
+            - 1 / (2 * self.gamma_atte ** 2) * battery_b ** 3
+            - 0.5 * battery_b
+            + battery_a * memristor
+            + battery_b * noise
         )
 
-        next_attack_ang = attack_ang_dot * tau + attack_ang
-        next_rate = rate_dot * tau + rate
-        next_elevator_angle = elevator_ang_dot * tau + elevator_ang
-        return next_attack_ang, next_rate, next_elevator_angle
+        next_battery_a = battery_a_dot * tau + battery_a
+        next_battery_b = battery_b_dot * tau + battery_b
+        return next_battery_a, next_battery_b
 
     def step(self, inputs):
         action = inputs[: self.action_dim]
@@ -156,16 +125,14 @@ class _GymAircraftconti(PythBaseEnv):
         if not adv_action or adv_action is None:
             adv_action = [0]
 
-        attack_ang, rate, elevator_ang = self.state
+        battery_a, battery_b = self.state
         self.state = self.stepPhysics(action, adv_action)
-        next_attack_ang, next_rate, next_elevator_angle = self.state
+        next_battery_a, next_battery_b = self.state
         done = (
-            next_attack_ang < -self.attack_ang_threshold
-            or next_attack_ang > self.attack_ang_threshold
-            or next_rate < -self.rate_threshold
-            or next_rate > self.rate_threshold
-            or next_elevator_angle < -self.elevator_ang_threshold
-            or next_elevator_angle > self.elevator_ang_threshold
+            next_battery_a < -self.battery_a_threshold
+            or next_battery_a > self.battery_a_threshold
+            or next_battery_b < -self.battery_b_threshold
+            or next_battery_b > self.battery_b_threshold
         )
         done = bool(done)
 
@@ -177,9 +144,8 @@ class _GymAircraftconti(PythBaseEnv):
 
         if not done:
             reward = (
-                self.Q[0][0] * attack_ang ** 2
-                + self.Q[1][1] * rate ** 2
-                + self.Q[2][2] * elevator_ang ** 2
+                self.Q[0][0] * battery_a ** 2
+                + self.Q[1][1] * battery_b ** 2
                 + self.R[0][0] * action[0] ** 2
                 - self.gamma_atte ** 2 * adv_action[0] ** 2
             )
@@ -187,9 +153,8 @@ class _GymAircraftconti(PythBaseEnv):
             # Pole just fell!
             self.steps_beyond_done = 0
             reward = (
-                self.Q[0][0] * attack_ang ** 2
-                + self.Q[1][1] * rate ** 2
-                + self.Q[2][2] * elevator_ang ** 2
+                self.Q[0][0] * battery_a ** 2
+                + self.Q[1][1] * battery_b ** 2
                 + self.R[0][0] * action[0] ** 2
                 - self.gamma_atte ** 2 * adv_action[0] ** 2
             )
@@ -205,10 +170,21 @@ class _GymAircraftconti(PythBaseEnv):
             self.steps_beyond_done += 1
             reward = 0.0
 
-        return np.array(self.state), reward, done, {}
+        reward_positive = (
+            self.Q[0][0] * battery_a ** 2
+            + self.Q[1][1] * battery_b ** 2
+            + self.R[0][0] * action[0] ** 2
+        )
+        reward_negative = adv_action[0] ** 2
 
-    @staticmethod
-    def exploration_noise(time):
+        return (
+            np.array(self.state),
+            reward,
+            done,
+            {"reward_positive": reward_positive, "reward_negative": reward_negative},
+        )
+
+    def exploration_noise(self, time):
         n = (
             sin(time) ** 2 * cos(time)
             + sin(2 * time) ** 2 * cos(0.1 * time)
@@ -217,7 +193,21 @@ class _GymAircraftconti(PythBaseEnv):
             + sin(1.12 * time) ** 2
             + sin(2.4 * time) ** 3 * cos(2.4 * time)
         )
-        return np.array([n, 0])
+        return np.array([self.prob_intensity * exp(self.base_decline * time) * n, 0])
+
+    @staticmethod
+    def init_obs():
+        return np.array([0.4, 0.5], dtype="float32")
+
+    @staticmethod
+    def dist_func(time):
+        t0 = 3.0  # 3.0
+        dist = (
+            [3.0 * exp(-1.0 * (time - t0)) * cos(1.0 * (time - t0))]
+            if time > t0
+            else [0.0]
+        )
+        return dist
 
     def render(self, mode="human"):
         pass
@@ -228,4 +218,4 @@ class _GymAircraftconti(PythBaseEnv):
 
 
 def env_creator(**kwargs):
-    return _GymAircraftconti(**kwargs)
+    return _GymOscillatorconti(**kwargs)

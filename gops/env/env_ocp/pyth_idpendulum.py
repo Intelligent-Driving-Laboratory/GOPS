@@ -16,8 +16,8 @@ import torch
 from gym import spaces
 from gym.wrappers.time_limit import TimeLimit
 
-from gops.env.env_ocp.pyth_base_data import PythBaseEnv
-from gops.env.env_ocp.pyth_idpendulum_model import Dynamics
+from gops.env.env_ocp.pyth_base_env import PythBaseEnv
+from gops.env.env_ocp.env_model.pyth_idpendulum_model import Dynamics
 
 gym.logger.setLevel(gym.logger.ERROR)
 plt.rcParams["toolbar"] = "None"

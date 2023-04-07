@@ -13,7 +13,7 @@ from typing import Any, Tuple, Union
 
 import numpy as np
 import torch
-from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.env.env_ocp.env_model.pyth_base_model import PythBaseModel
 from gops.utils.gops_typing import InfoDict
 
 

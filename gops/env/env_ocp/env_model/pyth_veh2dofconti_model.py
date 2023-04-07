@@ -14,8 +14,8 @@ from typing import Dict, Optional, Tuple, Union
 import numpy as np
 import torch
 
-from gops.env.env_ocp.pyth_base_model import PythBaseModel
-from gops.env.env_ocp.pyth_veh2dofconti_data import angle_normalize, VehicleDynamicsData
+from gops.env.env_ocp.env_model.pyth_base_model import PythBaseModel
+from gops.env.env_ocp.pyth_veh2dofconti import angle_normalize, VehicleDynamicsData
 from gops.env.env_ocp.resources.ref_traj_model import MultiRefTrajModel
 from gops.utils.gops_typing import InfoDict
 

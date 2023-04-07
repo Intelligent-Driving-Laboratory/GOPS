@@ -15,7 +15,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 import numpy as np
 import torch
 
-from gops.env.env_ocp.pyth_veh3dofconti_model import (
+from gops.env.env_ocp.env_model.pyth_veh3dofconti_model import (
     VehicleDynamicsModel,
     Veh3dofcontiModel,
     angle_normalize,

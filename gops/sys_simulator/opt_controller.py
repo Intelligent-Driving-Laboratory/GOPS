@@ -13,7 +13,7 @@
 import time
 from typing import Callable, Optional, Tuple, Union
 import warnings
-from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.env.env_ocp.env_model.pyth_base_model import PythBaseModel
 from gops.utils.gops_typing import InfoDict
 import torch
 from functorch import jacrev
