@@ -52,6 +52,7 @@ def wrapping_env(
 ):
     """Automatically wrap data type environment according to input arguments. Wrapper will not be used
         if all corresponding parameters are set to None.
+
     :param env: original data type environment.
     :param Optional[int] max_episode_steps: parameter for gym.wrappers.time_limit.TimeLimit wrapper.
         if it is set to None but environment has 'max_episode_steps' attribute, it will be filled in
@@ -106,6 +107,7 @@ def wrapping_model(
 ):
     """Automatically wrap model type environment according to input arguments. Wrapper will not be used
         if all corresponding parameters are set to None.
+        
     :param model: original data type environment.
     :param Optional[float] reward_shift: parameter for reward shaping wrapper.
     :param Optional[float] reward_scale: parameter for reward shaping wrapper.
