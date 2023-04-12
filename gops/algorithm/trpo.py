@@ -54,7 +54,20 @@ class ApproxContainer(ApprBase):
 
 
 class TRPO(AlgorithmBase):
-    """TRPO algorithm"""
+    """TRPO algorithm
+    Paper: https://arxiv.org/abs/1502.05477
+
+    :param delta: KL constraint
+    :param norm_adv: whether to normalize advantage
+    :param rtol: CG's relative tolerance
+    :param atol: CG's absolute tolerance
+    :param damping_factor: Add $\lambda I$ damping to Hessian to improve CG solution.
+    :param max_cg: CG's maximum iterations if failing to converge.
+    :param alpha: Backtrack search factor.
+    :param max_search: Backtrack search maximum iterations.
+    :param train_v_iters: State value training iterations each policy update.
+    :param value_learning_rate: State value learning rate
+    """
 
     def __init__(
         self,
@@ -72,20 +85,6 @@ class TRPO(AlgorithmBase):
         index=0,
         **kwargs,
     ):
-        """TRPO algorithm
-
-        Args:
-            delta: KL constraint
-            norm_adv: whether to normalize advantage
-            rtol: CG's relative tolerance
-            atol: CG's absolute tolerance
-            damping_factor: Add $\lambda I$ damping to Hessian to improve CG solution.
-            max_cg: CG's maximum iterations if failing to converge.
-            alpha: Backtrack search factor.
-            max_search: Backtrack search maximum iterations.
-            train_v_iters: State value training iterations each policy update.
-            value_learning_rate: State value learning rate.
-        """
         super().__init__(index, **kwargs)
         self.delta = delta
         self.norm_adv = norm_adv
