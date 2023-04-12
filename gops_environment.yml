@@ -1,5 +1,10 @@
 name: gops
 
+channels:
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/pytorch
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge
+  - defaults
+
 dependencies:
   - python=3.8
   - pytorch>=1.13.0

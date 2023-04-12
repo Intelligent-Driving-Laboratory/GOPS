@@ -49,7 +49,7 @@ class ApproxContainer(ApprBase):
 class FHADP(AlgorithmBase):
     """Approximate Dynamic Program Algorithm for Finity Horizon
 
-    Paper: https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=4124940
+    Paper: https://link.springer.com/book/10.1007/978-981-19-7784-8
 
     :param int forward_step: envmodel forward step.
     :param float gamma: discount factor.
