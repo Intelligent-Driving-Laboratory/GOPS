@@ -11,7 +11,6 @@
 
 import argparse
 import os
-import numpy as np
 
 from gops.create_pkg.create_alg import create_alg
 from gops.create_pkg.create_buffer import create_buffer
@@ -24,7 +23,6 @@ from gops.utils.plot_evaluation import plot_all
 from gops.utils.tensorboard_setup import start_tensorboard, save_tb_to_csv
 
 os.environ["OMP_NUM_THREADS"] = "4"
-
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -51,7 +49,6 @@ if __name__ == "__main__":
         help="Options: StateValue/ActionValue/ActionValueDis/ActionValueDistri",
     )
     parser.add_argument("--value_func_type", type=str, default="MLP", help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS")
-    value_func_type = parser.parse_known_args()[0].value_func_type
     parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
     parser.add_argument(
         "--value_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
@@ -93,8 +90,8 @@ if __name__ == "__main__":
     # special parameter
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument("--tau", type=float, default=0.2)
+    parser.add_argument("--alpha", type=float, default=0.2)
     parser.add_argument("--auto_alpha", type=bool, default=True)
-    parser.add_argument("--alpha", type=bool, default=0.2)
     parser.add_argument("--delay_update", type=int, default=2)
     parser.add_argument("--TD_bound", type=float, default=10)
     parser.add_argument("--bound", default=True)
@@ -133,14 +130,14 @@ if __name__ == "__main__":
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="off_sampler", help="Options: on_sampler/off_sampler")
     # Batch size of sampler for buffer store
-    parser.add_argument("--sample_batch_size", type=int, default=8)
+    parser.add_argument("--sample_batch_size", type=int, default=4)
     # Add noise to action for better exploration
     parser.add_argument("--noise_params", type=dict, default=None)
 
     ################################################
     # 6. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
-    parser.add_argument("--num_eval_episode", type=int, default=5)
+    parser.add_argument("--num_eval_episode", type=int, default=10)
     parser.add_argument("--eval_interval", type=int, default=100)
     parser.add_argument("--eval_save", type=str, default=False, help="save evaluation data")
 

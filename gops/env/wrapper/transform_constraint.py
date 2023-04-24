@@ -16,7 +16,7 @@ import gym
 import numpy as np
 import torch
 
-from gops.env.env_ocp.pyth_base_model import PythBaseModel
+from gops.env.env_ocp.env_model.pyth_base_model import PythBaseModel
 from gops.env.wrapper.base import ModelWrapper
 from gym.core import ActType, ObsType
 from gops.utils.gops_typing import InfoDict

@@ -81,12 +81,15 @@ if __name__ == "__main__":
         "--policy_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
     )
     parser.add_argument("--policy_output_activation", type=str, default="linear", help="Options: linear/tanh")
+    parser.add_argument("--policy_std_type", type=str, default="parameter")
+    parser.add_argument("--policy_min_log_std", type=int, default=-20)
+    parser.add_argument("--policy_max_log_std", type=int, default=1)
 
     ################################################
     # 3. Parameters for RL algorithm
     parser.add_argument("--value_learning_rate", type=float, default=4e-3)
-
-    parser.add_argument("--delta", type=float, default=0.02)
+    
+    parser.add_argument("--delta", type=float, default=0.01)
     parser.add_argument("--gamma", type=float, default=0.95)
     parser.add_argument("--lamda", type=float, default=0.97)
     parser.add_argument("--rtol", type=float, default=1e-5)

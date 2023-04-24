@@ -62,7 +62,7 @@ class PolicyRunner:
     :param list legend_list: legends of figures.
     :param bool use_opt: use optimal solution for comparison or not.
     :param dict opt_args: arguments of optimal solution solver.
-    :param bool constrained_env: constraint environment or not.
+    :param bool constrained_env: constrained environment or not.
     :param bool is_tracking: tracking problem or not.
     :param bool use_dist: use adversarial action or not.
     :param float dt: time interval between steps.
@@ -181,6 +181,27 @@ class PolicyRunner:
                 action = self.__action_noise(action)
             if self.use_dist:
                 action = np.hstack((action, env.dist_func(step * env.tau)))
+            if self.constrained_env:
+                constrain_list.append(info["constraint"])
+            if self.is_tracking:
+                state_num = len(info["ref"])
+                self.ref_state_num = sum(x is not None for x in info["ref"])
+                if step == 0:
+                    for i in range(state_num):
+                        if info["ref"][i] is not None:
+                            state_with_ref_error["state-{}".format(i)] = []
+                            state_with_ref_error["ref-{}".format(i)] = []
+                            state_with_ref_error["state-{}-error".format(i)] = []
+
+                for i in range(state_num):
+                    if info["ref"][i] is not None:
+                        state_with_ref_error["state-{}".format(i)].append(
+                            info["state"][i]
+                        )
+                        state_with_ref_error["ref-{}".format(i)].append(info["ref"][i])
+                        state_with_ref_error["state-{}-error".format(i)].append(
+                            info["ref"][i] - info["state"][i]
+                        )
             next_obs, reward, done, info = env.step(action)
 
             action_list.append(action)
@@ -198,28 +219,6 @@ class PolicyRunner:
             # Draw environment animation
             if render:
                 env.render()
-
-            if self.constrained_env:
-                constrain_list.append(info["constraint"])
-            if self.is_tracking:
-                state_num = len(info["ref"])
-                self.ref_state_num = sum(x is not None for x in info["ref"])
-                if step == 1:
-                    for i in range(state_num):
-                        if info["ref"][i] is not None:
-                            state_with_ref_error["state-{}".format(i)] = []
-                            state_with_ref_error["ref-{}".format(i)] = []
-                            state_with_ref_error["state-{}-error".format(i)] = []
-
-                for i in range(state_num):
-                    if info["ref"][i] is not None:
-                        state_with_ref_error["state-{}".format(i)].append(
-                            info["state"][i]
-                        )
-                        state_with_ref_error["ref-{}".format(i)].append(info["ref"][i])
-                        state_with_ref_error["state-{}-error".format(i)].append(
-                            info["ref"][i] - info["state"][i]
-                        )
 
         eval_dict = {
             "reward_list": reward_list,
@@ -787,9 +786,11 @@ class PolicyRunner:
             env = create_env(**env_args)
         if self.save_render:
             video_path = os.path.join(self.save_path, "videos")
-            env = wrappers.RecordVideo(
-                env, video_path, name_prefix="{}_video".format(self.args["algorithm"])
-            )
+            if use_opt:
+                name_prefix = "{}_video".format(self.opt_args["opt_controller_type"])
+            else:
+                name_prefix = "{}_video".format(self.args["algorithm"])
+            env = wrappers.RecordVideo(env, video_path, name_prefix=name_prefix)
         self.args["action_high_limit"] = env.action_space.high
         self.args["action_low_limit"] = env.action_space.low
         return env

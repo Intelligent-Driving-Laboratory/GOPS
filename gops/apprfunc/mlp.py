@@ -119,10 +119,10 @@ class StochaPolicy(nn.Module, Action_Distribution):
         obs_dim = kwargs["obs_dim"]
         act_dim = kwargs["act_dim"]
         hidden_sizes = kwargs["hidden_sizes"]
-        self.std_sype = kwargs["std_sype"]
+        self.std_type = kwargs["std_type"]
 
         # mean and log_std are calculated by different MLP
-        if self.std_sype == "mlp_separated":
+        if self.std_type == "mlp_separated":
             pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim]
             self.mean = mlp(
                 pi_sizes,
@@ -135,7 +135,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
                 get_activation_func(kwargs["output_activation"]),
             )
         # mean and log_std are calculated by same MLP
-        elif self.std_sype == "mlp_shared":
+        elif self.std_type == "mlp_shared":
             pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim * 2]
             self.policy = mlp(
                 pi_sizes,
@@ -143,14 +143,14 @@ class StochaPolicy(nn.Module, Action_Distribution):
                 get_activation_func(kwargs["output_activation"]),
             )
         # mean is calculated by MLP, and log_std is learnable parameter
-        elif self.std_sype == "parameter":
+        elif self.std_type == "parameter":
             pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim]
             self.mean = mlp(
                 pi_sizes,
                 get_activation_func(kwargs["hidden_activation"]),
                 get_activation_func(kwargs["output_activation"]),
             )
-            self.log_std = nn.Parameter(torch.zeros(1, act_dim))
+            self.log_std = nn.Parameter(-0.5*torch.ones(1, act_dim))
 
         self.min_log_std = kwargs["min_log_std"]
         self.max_log_std = kwargs["max_log_std"]
@@ -159,12 +159,12 @@ class StochaPolicy(nn.Module, Action_Distribution):
         self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
-        if self.std_sype == "mlp_separated":
+        if self.std_type == "mlp_separated":
             action_mean = self.mean(obs)
             action_std = torch.clamp(
                 self.log_std(obs), self.min_log_std, self.max_log_std
             ).exp()
-        elif self.std_sype == "mlp_shared":
+        elif self.std_type == "mlp_shared":
             logits = self.policy(obs)
             action_mean, action_log_std = torch.chunk(
                 logits, chunks=2, dim=-1
@@ -172,7 +172,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
             action_std = torch.clamp(
                 action_log_std, self.min_log_std, self.max_log_std
             ).exp()
-        elif self.std_sype == "parameter":
+        elif self.std_type == "parameter":
             action_mean = self.mean(obs)
             action_log_std = self.log_std + torch.zeros_like(action_mean)
             action_std = torch.clamp(
@@ -241,8 +241,8 @@ class ActionValueDistri(nn.Module):
         obs_dim = kwargs["obs_dim"]
         act_dim = kwargs["act_dim"]
         hidden_sizes = kwargs["hidden_sizes"]
-        self.mean = mlp(
-            [obs_dim + act_dim] + list(hidden_sizes) + [1],
+        self.q = mlp(
+            [obs_dim + act_dim] + list(hidden_sizes) + [2],
             get_activation_func(kwargs["hidden_activation"]),
             get_activation_func(kwargs["output_activation"]),
         )
@@ -250,15 +250,9 @@ class ActionValueDistri(nn.Module):
         self.max_log_std = kwargs["max_log_std"]
         self.denominator = max(abs(self.min_log_std), self.max_log_std)
 
-        self.log_std = mlp(
-            [obs_dim + act_dim] + list(hidden_sizes) + [1],
-            get_activation_func(kwargs["hidden_activation"]),
-            get_activation_func(kwargs["output_activation"]),
-        )
-
     def forward(self, obs, act, min=False):
-        value_mean = self.mean(torch.cat([obs, act], dim=-1))
-        log_std = self.log_std(torch.cat([obs, act], dim=-1))
+        logits = self.q(torch.cat([obs, act], dim=-1))
+        value_mean, log_std = torch.chunk(logits, chunks=2, dim=-1)
 
         value_log_std = torch.clamp_min(
             self.max_log_std * torch.tanh(log_std / self.denominator), 0

@@ -21,7 +21,7 @@ def terminal_cost(obs):
     return -value_net(obs).squeeze(-1)
 
 runner = PolicyRunner(
-    # Parameters for policies to be runned
+    # Parameters for policies to be run
     log_policy_dir_list=["../results/INFADP/lqs4a2_mlp",
                          "../results/INFADP/lqs4a2_mlp",
                          "../results/INFADP/lqs4a2_mlp",

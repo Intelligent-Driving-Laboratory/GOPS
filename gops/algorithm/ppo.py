@@ -49,7 +49,15 @@ class ApproxContainer(ApprBase):
 
 
 class PPO(AlgorithmBase):
-    """PPO algorithm"""
+    """PPO algorithm
+    Paper: https://arxiv.org/abs/1707.06347
+
+    :param max_iteration: Maximum iterations for learning rate schedule.
+    :param num_repeat: Number of repeats (to reuse sample batch).
+    :param num_mini_batch: Number of minibatches to divide sample batch.
+    :param mini_batch_size: Minibatch size.
+    :param sample_batch_size: Sample batch size.
+    """
 
     def __init__(
         self,
@@ -62,15 +70,6 @@ class PPO(AlgorithmBase):
         index=0,
         **kwargs
     ):
-        """PPO algorithm
-
-        Args:
-            max_iteration: Maximum iterations for learning rate schedule.
-            num_repeat: Number of repeats (to reuse sample batch).
-            num_mini_batch: Number of minibatches to divide sample batch.
-            mini_batch_size: Minibatch size.
-            sample_batch_size: Sample batch size.
-        """
         super().__init__(index, **kwargs)
         self.max_iteration = max_iteration
         self.num_repeat = num_repeat
