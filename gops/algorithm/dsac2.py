@@ -256,7 +256,6 @@ class DSAC2(AlgorithmBase):
 
 
         beta1 = min(1/torch.sqrt(torch.mean(torch.pow(q1.detach() - target_q1_bound, 2))),1)
-        # beta1 =1
 
         q1_loss = torch.mean(
             torch.pow(q1 - target_q1, 2) / (2 * torch.pow(q1_std.detach(), 2))
@@ -266,7 +265,6 @@ class DSAC2(AlgorithmBase):
 
 
         beta2 = min(1 / torch.sqrt(torch.mean(torch.pow(q2.detach() - target_q2_bound, 2))), 1)
-        # beta2 =1
 
         q2_loss = torch.mean(
             torch.pow(q2 - target_q2, 2) / (2 * torch.pow(q2_std.detach(), 2))
@@ -286,8 +284,6 @@ class DSAC2(AlgorithmBase):
         )
         td_bound = 3*q_std
         difference = torch.clamp(target_q_sample - q, -td_bound, td_bound)
-        # if torch.any(torch.abs(target_q_sample - q) > td_bound):
-        #     print("clipping")
         target_q_bound = q + difference
         return target_q.detach(), target_q_bound.detach()
 

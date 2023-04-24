@@ -241,8 +241,8 @@ class ActionValueDistri(nn.Module):
         obs_dim = kwargs["obs_dim"]
         act_dim = kwargs["act_dim"]
         hidden_sizes = kwargs["hidden_sizes"]
-        self.q = mlp(
-            [obs_dim + act_dim] + list(hidden_sizes) + [2],
+        self.mean = mlp(
+            [obs_dim + act_dim] + list(hidden_sizes) + [1],
             get_activation_func(kwargs["hidden_activation"]),
             get_activation_func(kwargs["output_activation"]),
         )
@@ -250,9 +250,15 @@ class ActionValueDistri(nn.Module):
         self.max_log_std = kwargs["max_log_std"]
         self.denominator = max(abs(self.min_log_std), self.max_log_std)
 
+        self.log_std = mlp(
+            [obs_dim + act_dim] + list(hidden_sizes) + [1],
+            get_activation_func(kwargs["hidden_activation"]),
+            get_activation_func(kwargs["output_activation"]),
+        )
+
     def forward(self, obs, act, min=False):
-        logits = self.q(torch.cat([obs, act], dim=-1))
-        value_mean, log_std = torch.chunk(logits, chunks=2, dim=-1)
+        value_mean = self.mean(torch.cat([obs, act], dim=-1))
+        log_std = self.log_std(torch.cat([obs, act], dim=-1))
 
         value_log_std = torch.clamp_min(
             self.max_log_std * torch.tanh(log_std / self.denominator), 0
