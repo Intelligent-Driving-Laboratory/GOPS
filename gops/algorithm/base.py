@@ -34,7 +34,12 @@ class ApprBase(ABC, torch.nn.Module):
 
 
 class AlgorithmBase(metaclass=ABCMeta):
-    """Base Class of Algorithm"""
+    """Base Class of Algorithm
+
+    Args:
+        int     index       : used for calculating offset of random seed for subprocess.
+    """
+    
 
     def __init__(self, index, **kwargs):
         self.networks = None
