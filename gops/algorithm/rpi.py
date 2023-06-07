@@ -126,7 +126,6 @@ class RPI(AlgorithmBase):
     ) -> None:
         """
         Relaxed Policy Iteration (RPI) algorithm.
-            :param: int index: for calculating offset of random seed for subprocess. Default to 0.
             :param: int max_newton_iteration: max iteration in Newton's method.
             :param: int max_step_update_value: max gradient step in policy evaluation.
             :param: int print_interval: print interval.

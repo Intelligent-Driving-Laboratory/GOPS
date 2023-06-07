@@ -73,6 +73,8 @@ class INFADP(AlgorithmBase):
     :param int forward_step: envmodel forward step.
     :param float gamma: discount factor.
     :param float tau: param for soft update of target network.
+    :param int pev_step: number of steps for policy evaluation.
+    :param int pim_step: number of steps for policy improvement.
     """
 
     def __init__(self, index=0, **kwargs):

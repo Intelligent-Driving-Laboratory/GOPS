@@ -76,7 +76,6 @@ class SAC(AlgorithmBase):
 
     Paper: https://arxiv.org/abs/1801.01290
 
-    :param int index: algorithm index.
     :param float gamma: discount factor.
     :param float tau: param for soft update of target network.
     :param bool auto_alpha: whether to adjust temperature automatically.
