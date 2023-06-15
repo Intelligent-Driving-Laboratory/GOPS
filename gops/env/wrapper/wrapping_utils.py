@@ -20,6 +20,7 @@ from gops.env.wrapper.convert_type import ConvertType
 from gops.env.wrapper.mask_at_done import MaskAtDoneModel
 from gops.env.wrapper.noise_observation import NoiseData
 from gops.env.wrapper.reset_info import ResetInfoData
+from gops.env.wrapper.scale_action import ScaleActionData, ScaleActionModel
 from gops.env.wrapper.scale_observation import (
     ScaleObservationData,
     ScaleObservationModel,
@@ -48,7 +49,10 @@ def wrapping_env(
     obs_noise_type: Optional[str] = None,
     obs_noise_data: Optional[list] = None,
     repeat_num: Optional[int] = None,
-    sum_reward: Optional[bool] = True,
+    sum_reward: bool = True,
+    action_scale: bool = True,
+    min_action: Union[float, int, np.ndarray, list] = -1.0,
+    max_action: Union[float, int, np.ndarray, list] = 1.0,
 ):
     """Automatically wrap data type environment according to input arguments. Wrapper will not be used
         if all corresponding parameters are set to None.
@@ -64,7 +68,10 @@ def wrapping_env(
     :param Optional[str] obs_noise_type: parameter for observation noise wrapper.
     :param Optional[list] obs_noise_data: parameter for observation noise wrapper.
     :param Optional[int] repeat_num: parameter for action repeat wrapper.
-    :param Optional[bool] sum_reward: parameter for action repeat wrapper.
+    :param bool sum_reward: parameter for action repeat wrapper.
+    :param bool action_scale: parameter for scale action wrapper, default to True.
+    :param Union[float, int, np.ndarray, list] min_action: minimum action after scaling.
+    :param Union[float, int, np.ndarray, list] max_action: maximum action after scaling.
     :return: wrapped data type environment.
     """
     env = ResetInfoData(env)
@@ -90,6 +97,9 @@ def wrapping_env(
         obs_shift = 0.0 if obs_shift is None else obs_shift
         env = ScaleObservationData(env, obs_shift, obs_scale)
 
+    if action_scale:
+        env = ScaleActionData(env, min_action, max_action)
+
     return env
 
 
@@ -102,12 +112,15 @@ def wrapping_model(
     clip_obs: bool = True,
     clip_action: bool = True,
     mask_at_done: bool = True,
-    repeat_num: int = None,
+    repeat_num: Optional[int] = None,
     sum_reward: bool = True,
+    action_scale: bool = True,
+    min_action: Union[float, int, np.ndarray, list] = -1.0,
+    max_action: Union[float, int, np.ndarray, list] = 1.0,
 ):
     """Automatically wrap model type environment according to input arguments. Wrapper will not be used
         if all corresponding parameters are set to None.
-        
+
     :param model: original data type environment.
     :param Optional[float] reward_shift: parameter for reward shaping wrapper.
     :param Optional[float] reward_scale: parameter for reward shaping wrapper.
@@ -116,8 +129,11 @@ def wrapping_model(
     :param bool clip_obs: parameter for clip observation wrapper, default to True.
     :param bool clip_action: parameter for clip action wrapper, default to True.
     :param bool mask_at_done: parameter for mask at done wrapper, default to True.
-    :param int repeat_num: parameter for action repeat wrapper.
+    :param Optional[int] repeat_num: parameter for action repeat wrapper.
     :param bool sum_reward: parameter for action repeat wrapper.
+    :param bool action_scale: parameter for scale action wrapper, default to True.
+    :param Union[float, int, np.ndarray, list] min_action: minimum action after scaling.
+    :param Union[float, int, np.ndarray, list] max_action: maximum action after scaling.
     :return: wrapped model type environment.
     """
     if mask_at_done:
@@ -140,5 +156,8 @@ def wrapping_model(
 
     if clip_action:
         model = ClipActionModel(model)
+
+    if action_scale:
+        model = ScaleActionModel(model, min_action, max_action)
 
     return model

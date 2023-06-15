@@ -13,6 +13,7 @@
 
 from typing import Tuple
 
+import gym
 import torch
 
 from gops.env.env_ocp.env_model.pyth_base_model import PythBaseModel
@@ -43,3 +44,26 @@ class ModelWrapper:
     @property
     def unwrapped(self):
         return self.model.unwrapped
+
+
+class ActionWrapper(gym.ActionWrapper):
+    def step(self, action):
+        raw_action = self.action(action)
+        next_obs, reward, done, info = self.env.step(raw_action)
+        info["raw_action"] = raw_action
+        return next_obs, reward, done, info
+
+
+class ActionModelWrapper(ModelWrapper):
+    def forward(
+        self,
+        obs: torch.Tensor,
+        action: torch.Tensor,
+        done: torch.Tensor,
+        info: InfoDict
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, InfoDict]:
+        action = self.action(action)
+        return super().forward(obs, action, done, info)
+
+    def action(self, action: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
