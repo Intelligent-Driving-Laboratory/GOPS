@@ -4,6 +4,7 @@ from gops.env.env_gen_ocp.pyth_idSim import idSimState, idSimContextState
 
 import numpy as np
 import torch
+import copy
 
 from idsim_model.predict_model import ego_predict_model
 from idsim_model.model import ModelContext, Parameter, IdSimModel
@@ -17,7 +18,11 @@ class idSimRobotModel(RobotModel):
 
 class idSimContextModel(ContextModel):
     def get_next_state(self, context_state: idSimContextState, action: torch.Tensor) -> idSimContextState:
-        return context_state._replace(t=context_state.t + 1, last_last_action=context_state.last_action, last_action=action)
+        next_context_state = copy.copy(context_state)
+        next_context_state.t = context_state.real_t + 1
+        next_context_state.last_last_action = context_state.last_action
+        next_context_state.last_action = action
+        return next_context_state
 
 
 class idSimEnvModel(EnvModel):
@@ -34,7 +39,7 @@ class idSimEnvModel(EnvModel):
     def get_obs(self, state: idSimState) -> torch.Tensor:
         return self.idsim_model.observe(self._get_idsimcontext(state))
         
-    # TODO: 区别state reward和action reward
+    # TODO: Distinguish between state reward and action reward
     def get_reward(self, state: idSimState, action: torch.Tensor) -> torch.Tensor:
         reward = self.idsim_model.reward(
             self._get_idsimcontext(state), 
