@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABCMeta
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import Generic, Optional, Tuple, Sequence, TypeVar
 
 
@@ -19,48 +19,58 @@ class ContextState(Generic[stateType]):
     @staticmethod
     def array2tensor(context_state: 'ContextState[np.ndarray]') -> 'ContextState[torch.Tensor]':
         assert isinstance(context_state.reference, np.ndarray)
-        for i in range(len(context_state._fields)):
-            context_state[i] = torch.tensor(context_state[i], dtype=torch.float32)
+        for field in fields(context_state):
+            setattr(context_state, field.name, torch.tensor(getattr(context_state, field.name)))
         return context_state
     
     @staticmethod
     def tensor2array(context_state: 'ContextState[torch.Tensor]') -> 'ContextState[np.ndarray]':
         assert isinstance(context_state.reference, torch.Tensor)
-        for i in range(len(context_state._fields)):
-            context_state[i] = context_state[i].numpy()
+        for field in fields(context_state):
+            setattr(context_state, field.name, getattr(context_state, field.name).numpy())
         return context_state
     
-    @staticmethod
-    def stack(context_states: Sequence['ContextState[stateType]']) -> 'ContextState[stateType]':
+    @classmethod
+    def stack(cls, context_states: Sequence['ContextState[stateType]']) -> 'ContextState[stateType]':
         values = []
-        for i in range(len(context_states[0]._fields)):
-            values.append(np.stack([context_state[i] for context_state in context_states]))
-        return ContextState(*values)
-
+        for field in fields(context_states[0]):
+            if isinstance(getattr(context_states[0], field.name), np.ndarray):
+                values.append(np.stack([getattr(context_state, field.name) for context_state in context_states]))
+            elif isinstance(getattr(context_states[0], field.name), torch.Tensor):
+                values.append(torch.stack([getattr(context_state, field.name) for context_state in context_states]))
+            else:
+                values.append(getattr(context_states[0], field.name))
+        return cls(*values)
+    
 
 @dataclass
 class State(Generic[stateType]):
     robot_state: stateType
     context_state: ContextState[stateType]
+    CONTEXT_STATE_TYPE = ContextState
 
-    @staticmethod
-    def array2tensor(state: 'State[np.ndarray]') -> 'State[torch.Tensor]':
+    @classmethod
+    def array2tensor(cls, state: 'State[np.ndarray]') -> 'State[torch.Tensor]':
         assert isinstance(state.robot_state, np.ndarray)
-        state.robot_state = torch.tensor(state.robot_state, dtype=torch.float32)
-        state.context_state = ContextState.array2tensor(state.context_state)
+        state.robot_state = torch.tensor(state.robot_state)
+        state.context_state = cls.CONTEXT_STATE_TYPE.array2tensor(state.context_state)
         return state
     
-    @staticmethod
-    def tensor2array(state: 'State[torch.Tensor]') -> 'State[np.ndarray]':
+    @classmethod
+    def tensor2array(cls, state: 'State[torch.Tensor]') -> 'State[np.ndarray]':
         assert isinstance(state.robot_state, torch.Tensor)
         state.robot_state = state.robot_state.numpy()
-        state.context_state = ContextState.tensor2array(state.context_state)
+        state.context_state = cls.CONTEXT_STATE_TYPE.tensor2array(state.context_state)
         return state
     
-    @staticmethod
-    def stack(states: Sequence['State[stateType]']) -> 'State[stateType]':
-        robot_states = np.stack([state.robot_state for state in states])
-        context_states = ContextState.stack([state.context_state for state in states])
+    @classmethod
+    def stack(cls, states: Sequence['State[stateType]']) -> 'State[stateType]':
+        if isinstance(states[0].robot_state, np.ndarray):
+            stack = np.stack
+        elif isinstance(states[0].robot_state, torch.Tensor):
+            stack = torch.stack
+        robot_states = stack([state.robot_state for state in states])
+        context_states = cls.CONTEXT_STATE_TYPE.stack([state.context_state for state in states])
         return State(robot_states, context_states)
 
 
@@ -83,7 +93,7 @@ class Robot(metaclass=ABCMeta):
     def step(self, action: np.ndarray) -> None:
         ...
     
-# TODO: 静态约束值
+# TODO: Static constraint value
 class Context(metaclass=ABCMeta):
     def __init__(
             self, 
@@ -91,7 +101,6 @@ class Context(metaclass=ABCMeta):
             termination_penalty: float
         ):
         self.context_state_space = gym.spaces.Box(low=context_space[0], high=context_space[1], dtype=np.float32)
-        self.termination_penalty = termination_penalty # env
         self.context_state = None
     
     @abstractmethod
