@@ -12,8 +12,15 @@ from idsim_model.model import State as ModelState
 
 
 class idSimRobotModel(RobotModel):
+    def __init__(self,
+        Ts: float = 0.1,
+        vehicle_spec: Tuple[float, float, float, float, float, float, float, float] = (1880.0, 1536.7, 1.13, 1.52, -128915.5, -85943.6, 20.0, 0.0)
+    ):
+        self.Ts = Ts
+        self.vehicle_spec = vehicle_spec
+
     def get_next_state(self, robot_state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
-        return ego_predict_model(robot_state, action)
+        return ego_predict_model(robot_state, action, self.Ts, self.vehicle_spec)
 
 
 class idSimContextModel(ContextModel):
@@ -30,7 +37,7 @@ class idSimEnvModel(EnvModel):
             self,
             env: idSimEnv
     ):
-        self.robot_model = idSimRobotModel()
+        self.robot_model = idSimRobotModel(Ts = env.config.dt, vehicle_spec = env.config.vehicle_spec)
         self.context_model = idSimContextModel()
         self.idsim_model = IdSimModel(env)
     
@@ -42,7 +49,7 @@ class idSimEnvModel(EnvModel):
         
     # TODO: Distinguish state reward and action reward
     def get_reward(self, state: idSimState, action: torch.Tensor) -> torch.Tensor:
-        # TODO: normalize action & transform increment action
+        # TODO: normalize action & transform to increment action
         reward = self.idsim_model.reward(
             self._get_idsimcontext(state),
             action
@@ -50,6 +57,7 @@ class idSimEnvModel(EnvModel):
         return reward
 
     def get_terminated(self, state: idSimState) -> torch.bool:
+        raise NotImplementedError
         return self.idsim_model.done(self._get_idsimcontext(state))
     
     def _get_idsimcontext(self, state: idSimState) -> ModelContext:

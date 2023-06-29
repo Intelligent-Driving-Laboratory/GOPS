@@ -50,8 +50,8 @@ class EnvModel(Model, metaclass=ABCMeta):
 
     def get_next_state(self, state: State, action: torch.Tensor) -> State:
         return State(
-            robot_state = state.robot_state,
-            context_state = state.context_state,
+            robot_state = self.robot_model.get_next_state(state.robot_state, action),
+            context_state = self.context_model.get_next_state(state.context_state, action)
         )
 
     @abstractmethod

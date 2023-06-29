@@ -23,6 +23,7 @@ class idSimContextState(ContextState):
 @dataclass
 class idSimState(State):
     context_state: idSimContextState
+    CONTEXT_STATE_TYPE = idSimContextState
 
 
 class idSimEnv(CrossRoad, Env):
@@ -35,6 +36,7 @@ class idSimEnv(CrossRoad, Env):
         return obs, self._get_info()
     
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
+        # TODO: normalize action & transform to increment action?
         obs, reward, terminated, truncated, info = super(idSimEnv, self).step(action)
         self._get_state_from_idsim()
         return obs, reward, terminated, self._get_info()
@@ -74,38 +76,25 @@ def env_creator(**kwargs):
     """
     return idSimEnv(kwargs["env_config"])
 
-MAP_ROOT = pathlib.Path('/home/taoletian/set-new/idsim-scenarios-train')
+
 
 if __name__ == "__main__":
     arg = {}
-    arg["env_config"] = Config(
-        use_render=False,
-        seed=None,
-        actuator="ExternalActuator",
-        scenario_reuse=10,
-        choose_vehicle_retries=10,
-        num_scenarios=20,
-        scenario_selector=None,
-        scenario_root=MAP_ROOT,
-        extra_sumo_args=("--start", "--delay", "200"),
-        warmup_time=5.0,
-        max_steps=500,
-        ignore_traffic_lights=False,
-        skip_waiting=False,
-        detect_range=40,
-        no_done_at_collision=False,
-        penalize_collision=True,
-        ref_v = 8.0,
-        singleton_mode="raise",
-        direction_selector=None,
-        action_lower_bound=(-3.5, -0.4),
-        action_upper_bound=(1.5, 0.4),
+    vehicle_spec = (1880.0, 1536.7, 1.13, 1.52, -128915.5, -85943.6, 20.0, 0.0)
+    arg["env_config"] = Config(use_render=False, seed=1, actuator="ExternalActuator", \
+        scenario_reuse=10, num_scenarios=1, scenario_root=TEMP_ROOT / "set-multi-lane-diff-vel" / "idsim-scenarios-train", \
+        extra_sumo_args=("--start", "--delay", "200"), \
+        warmup_time=5.0, ignore_traffic_lights=False, \
+        incremental_action=True, \
+        action_lower_bound= (-0.3, -0.01), \
+        action_upper_bound= ( 0.2, 0.01), \
         obs_num_surrounding_vehicles={
-            'passenger': 4,
-            'bicycle': 0,
-            'pedestrian': 0,
+        "passenger": 5,
+        "bicycle": 2,
+        "pedestrian": 0,
         },
-    )
+        obs_num_ref_points=61, obs_ref_interval=0.8,
+        vehicle_spec=vehicle_spec)
     env = env_creator(**arg)
     env.reset()
     print("observation_space: ", env.observation_space)
