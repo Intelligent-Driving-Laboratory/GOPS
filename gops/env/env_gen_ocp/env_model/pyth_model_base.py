@@ -49,13 +49,10 @@ class EnvModel(Model, metaclass=ABCMeta):
     get_terminal_cost: Callable[[State], torch.Tensor] = None
 
     def get_next_state(self, state: State, action: torch.Tensor) -> State:
-        _state = State()
-        _state.robot_state = self.robot_model.get_next_state(state.robot_state, action)
-        if self.context_model is not None:
-            _state.context = self.context_model.get_next_state(state.context, action)
-        else:
-            _state.context = state.context
-        return _state
+        return State(
+            robot_state = state.robot_state,
+            context_state = state.context_state,
+        )
 
     @abstractmethod
     def get_obs(self, state: State) -> torch.Tensor:

@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABCMeta
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import Generic, Optional, Tuple, Sequence, TypeVar
 
 
@@ -19,24 +19,24 @@ class ContextState(Generic[stateType]):
     @staticmethod
     def array2tensor(context_state: 'ContextState[np.ndarray]') -> 'ContextState[torch.Tensor]':
         assert isinstance(context_state.reference, np.ndarray)
-        for i in range(len(context_state._fields)):
-            context_state[i] = torch.tensor(context_state[i], dtype=torch.float32)
+        for field in fields(context_state):
+            setattr(context_state, field.name, torch.tensor(getattr(context_state, field.name), dtype=torch.float32))
         return context_state
     
     @staticmethod
     def tensor2array(context_state: 'ContextState[torch.Tensor]') -> 'ContextState[np.ndarray]':
         assert isinstance(context_state.reference, torch.Tensor)
-        for i in range(len(context_state._fields)):
-            context_state[i] = context_state[i].numpy()
+        for field in fields(context_state):
+            setattr(context_state, field.name, getattr(context_state, field.name).numpy())
         return context_state
     
     @staticmethod
     def stack(context_states: Sequence['ContextState[stateType]']) -> 'ContextState[stateType]':
         values = []
-        for i in range(len(context_states[0]._fields)):
-            values.append(np.stack([context_state[i] for context_state in context_states]))
+        for field in fields(context_states[0]):
+            values.append(np.stack([getattr(context_state, field.name) for context_state in context_states]))
         return ContextState(*values)
-
+    
 
 @dataclass
 class State(Generic[stateType]):
@@ -83,7 +83,7 @@ class Robot(metaclass=ABCMeta):
     def step(self, action: np.ndarray) -> None:
         ...
     
-# TODO: 静态约束值
+# TODO: Static constraint value
 class Context(metaclass=ABCMeta):
     def __init__(
             self, 
@@ -91,7 +91,6 @@ class Context(metaclass=ABCMeta):
             termination_penalty: float
         ):
         self.context_state_space = gym.spaces.Box(low=context_space[0], high=context_space[1], dtype=np.float32)
-        self.termination_penalty = termination_penalty # env
         self.context_state = None
     
     @abstractmethod

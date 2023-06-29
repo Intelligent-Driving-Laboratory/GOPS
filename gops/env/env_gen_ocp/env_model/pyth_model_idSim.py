@@ -1,6 +1,6 @@
 from typing import Optional, TypeVar, Callable, Tuple
 from gops.env.env_gen_ocp.env_model.pyth_model_base import RobotModel, ContextModel, EnvModel, S
-from gops.env.env_gen_ocp.pyth_idSim import idSimState, idSimContextState
+from gops.env.env_gen_ocp.pyth_idSim import idSimState, idSimContextState, idSimEnv
 
 import numpy as np
 import torch
@@ -19,7 +19,7 @@ class idSimRobotModel(RobotModel):
 class idSimContextModel(ContextModel):
     def get_next_state(self, context_state: idSimContextState, action: torch.Tensor) -> idSimContextState:
         next_context_state = copy.copy(context_state)
-        next_context_state.t = context_state.real_t + 1
+        next_context_state.t = context_state.t + 1
         next_context_state.last_last_action = context_state.last_action
         next_context_state.last_action = action
         return next_context_state
@@ -27,11 +27,12 @@ class idSimContextModel(ContextModel):
 
 class idSimEnvModel(EnvModel):
     def __init__(
-            self
+            self,
+            env: idSimEnv
     ):
         self.robot_model = idSimRobotModel()
         self.context_model = idSimContextModel()
-        self.idsim_model = IdSimModel()
+        self.idsim_model = IdSimModel(env)
     
     # def get_constraint(state: idSimState) -> torch.Tensor:
     #     ...
@@ -39,15 +40,14 @@ class idSimEnvModel(EnvModel):
     def get_obs(self, state: idSimState) -> torch.Tensor:
         return self.idsim_model.observe(self._get_idsimcontext(state))
         
-    # TODO: Distinguish between state reward and action reward
+    # TODO: Distinguish state reward and action reward
     def get_reward(self, state: idSimState, action: torch.Tensor) -> torch.Tensor:
+        # TODO: normalize action & transform increment action
         reward = self.idsim_model.reward(
-            self._get_idsimcontext(state), 
-            0,
-            state.context_state.last_last_action,
+            self._get_idsimcontext(state),
             action
             )
-        return reward[0]
+        return reward
 
     def get_terminated(self, state: idSimState) -> torch.bool:
         return self.idsim_model.done(self._get_idsimcontext(state))

@@ -19,6 +19,7 @@ class idSimContextState(ContextState):
     ref_index_param: stateType
     real_t: int
 
+
 @dataclass
 class idSimState(State):
     context_state: idSimContextState
@@ -45,7 +46,7 @@ class idSimEnv(CrossRoad, Env):
     def _get_reward(self, action: np.ndarray) -> float:
         """abandon this function, use reward from idsim instead"""
         ...
-
+    
     def _get_terminated(self) -> bool:
         """abandon this function, use terminated from idsim instead"""
         ...
@@ -107,8 +108,11 @@ if __name__ == "__main__":
     )
     env = env_creator(**arg)
     env.reset()
-    print(env.observation_space)
-    print(env.action_space)
+    print("observation_space: ", env.observation_space)
+    print("action_space: ", env.action_space)
     for i in range(5):
-        env.step(np.array([0.0, 0.0]))
-        print(env._state)
+        obs, reward, done, info = env.step(env.action_space.sample())
+        print("robot state", env._state.robot_state.tolist())
+        print("obs shape: ", obs.shape)
+        print("constraint shape",env._state.context_state.constraint.shape)
+        print("reference", env._state.context_state.reference.shape)
