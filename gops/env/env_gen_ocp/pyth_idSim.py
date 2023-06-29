@@ -36,8 +36,9 @@ class idSimEnv(CrossRoad, Env):
         return obs, self._get_info()
     
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
-        # TODO: normalize action & transform to increment action?
-        obs, reward, terminated, truncated, info = super(idSimEnv, self).step(action)
+        action_increment = action - self._state.context_state.last_action.numpy() # increment action
+        action_increment = (action - self.action_center) / self.action_half_range # normalize
+        obs, reward, terminated, truncated, info = super(idSimEnv, self).step(action_increment)
         self._get_state_from_idsim()
         return obs, reward, terminated, self._get_info()
 
@@ -68,6 +69,7 @@ class idSimEnv(CrossRoad, Env):
                 t = idsim_context.i
             )
         )
+        self._state = idSimState.tensor2array(self._state)
 
 
 def env_creator(**kwargs):
@@ -76,13 +78,13 @@ def env_creator(**kwargs):
     """
     return idSimEnv(kwargs["env_config"])
 
-
+MAP_ROOT = pathlib.Path('/home/taoletian/set-new/idsim-scenarios-train')
 
 if __name__ == "__main__":
     arg = {}
     vehicle_spec = (1880.0, 1536.7, 1.13, 1.52, -128915.5, -85943.6, 20.0, 0.0)
     arg["env_config"] = Config(use_render=False, seed=1, actuator="ExternalActuator", \
-        scenario_reuse=10, num_scenarios=1, scenario_root=TEMP_ROOT / "set-multi-lane-diff-vel" / "idsim-scenarios-train", \
+        scenario_reuse=10, num_scenarios=1, scenario_root=MAP_ROOT,
         extra_sumo_args=("--start", "--delay", "200"), \
         warmup_time=5.0, ignore_traffic_lights=False, \
         incremental_action=True, \

@@ -18,16 +18,16 @@ class ContextState(Generic[stateType]):
 
     @staticmethod
     def array2tensor(context_state: 'ContextState[np.ndarray]') -> 'ContextState[torch.Tensor]':
-        assert isinstance(context_state.reference, np.ndarray)
         for field in fields(context_state):
-            setattr(context_state, field.name, torch.tensor(getattr(context_state, field.name)))
+            if isinstance(getattr(context_state, field.name), np.ndarray):
+                setattr(context_state, field.name, torch.tensor(getattr(context_state, field.name)))
         return context_state
     
     @staticmethod
     def tensor2array(context_state: 'ContextState[torch.Tensor]') -> 'ContextState[np.ndarray]':
-        assert isinstance(context_state.reference, torch.Tensor)
         for field in fields(context_state):
-            setattr(context_state, field.name, getattr(context_state, field.name).numpy())
+            if isinstance(getattr(context_state, field.name), torch.Tensor):
+                setattr(context_state, field.name, getattr(context_state, field.name).numpy())
         return context_state
     
     @classmethod
@@ -42,6 +42,18 @@ class ContextState(Generic[stateType]):
                 values.append(getattr(context_states[0], field.name))
         return cls(*values)
     
+    @classmethod
+    def concat(cls, context_states: Sequence['ContextState[stateType]'], dim: int = 0) -> 'ContextState[stateType]':
+        values = []
+        for field in fields(context_states[0]):
+            if isinstance(getattr(context_states[0], field.name), np.ndarray):
+                values.append(np.concatenate([getattr(context_state, field.name) for context_state in context_states], dim=dim))
+            elif isinstance(getattr(context_states[0], field.name), torch.Tensor):
+                values.append(torch.concat([getattr(context_state, field.name) for context_state in context_states], dim=dim))
+            else:
+                values.append(getattr(context_states[0], field.name))
+        return cls(*values)
+    
 
 @dataclass
 class State(Generic[stateType]):
@@ -51,16 +63,16 @@ class State(Generic[stateType]):
 
     @classmethod
     def array2tensor(cls, state: 'State[np.ndarray]') -> 'State[torch.Tensor]':
-        assert isinstance(state.robot_state, np.ndarray)
-        state.robot_state = torch.tensor(state.robot_state)
-        state.context_state = cls.CONTEXT_STATE_TYPE.array2tensor(state.context_state)
+        if isinstance(state.robot_state, np.ndarray):
+            state.robot_state = torch.tensor(state.robot_state)
+            state.context_state = cls.CONTEXT_STATE_TYPE.array2tensor(state.context_state)
         return state
     
     @classmethod
     def tensor2array(cls, state: 'State[torch.Tensor]') -> 'State[np.ndarray]':
-        assert isinstance(state.robot_state, torch.Tensor)
-        state.robot_state = state.robot_state.numpy()
-        state.context_state = cls.CONTEXT_STATE_TYPE.tensor2array(state.context_state)
+        if isinstance(state.robot_state, torch.Tensor):
+            state.robot_state = state.robot_state.numpy()
+            state.context_state = cls.CONTEXT_STATE_TYPE.tensor2array(state.context_state)
         return state
     
     @classmethod
@@ -71,8 +83,17 @@ class State(Generic[stateType]):
             stack = torch.stack
         robot_states = stack([state.robot_state for state in states])
         context_states = cls.CONTEXT_STATE_TYPE.stack([state.context_state for state in states])
-        return State(robot_states, context_states)
-
+        return cls(robot_states, context_states)
+    
+    @classmethod
+    def concat(cls, states: Sequence['State[stateType]'], dim: int = 0) -> 'State[stateType]':
+        if isinstance(states[0].robot_state, np.ndarray):
+            concat = np.concatenate
+        elif isinstance(states[0].robot_state, torch.Tensor):
+            concat = torch.concat
+        robot_states = concat([state.robot_state for state in states], dim=dim)
+        context_states = cls.CONTEXT_STATE_TYPE.concat([state.context_state for state in states], dim=dim)
+        return cls(robot_states, context_states)
 
 
 class Robot(metaclass=ABCMeta):

@@ -40,6 +40,13 @@ class idSimEnvModel(EnvModel):
         self.robot_model = idSimRobotModel(Ts = env.config.dt, vehicle_spec = env.config.vehicle_spec)
         self.context_model = idSimContextModel()
         self.idsim_model = IdSimModel(env)
+        self.StateClass = idSimState
+
+        self.dt = env.config.dt
+        self.action_dim = env.action_space.shape[0]
+        self.state_dim = env.observation_space.shape[0]
+        self.action_lower_bound = torch.tensor(env.action_space.low, dtype=torch.float32)
+        self.action_upper_bound = torch.tensor(env.action_space.high, dtype=torch.float32)
     
     # def get_constraint(state: idSimState) -> torch.Tensor:
     #     ...
@@ -49,10 +56,11 @@ class idSimEnvModel(EnvModel):
         
     # TODO: Distinguish state reward and action reward
     def get_reward(self, state: idSimState, action: torch.Tensor) -> torch.Tensor:
-        # TODO: normalize action & transform to increment action
+        increment_action = action - state.context_state.last_action # increment action
+        increment_action = (increment_action - self.idsim_model.action_center) / self.idsim_model.action_half_range # normalize
         reward = self.idsim_model.reward(
             self._get_idsimcontext(state),
-            action
+            increment_action
             )
         return reward
 

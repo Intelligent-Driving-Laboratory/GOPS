@@ -28,12 +28,18 @@ class ContextModel(Model):
 
 
 class EnvModel(Model, metaclass=ABCMeta):
+    dt: float
+    action_dim: int
+    state_dim: int
+    action_lower_bound: torch.Tensor
+    action_upper_bound: torch.Tensor
+
     def __init__(
             self,
     ):
         self.robot_model = RobotModel()
         self.context_model = ContextModel()
-        
+
     # Define get_constraint as Callable
     # Trick for faster constraint evaluations
     # Subclass can realize it like:
