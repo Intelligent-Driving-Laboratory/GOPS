@@ -62,7 +62,7 @@ class OptController:
 
         self.model = model
         self.sim_dt = model.dt
-        self.state_dim = model.state_dim
+        self.state_dim = model.robot_model.robot_state_dim
         self.action_dim = model.action_dim
         self.StateClass = model.StateClass
 
@@ -104,10 +104,10 @@ class OptController:
             self.optimize_dim = self.action_dim
         elif self.mode == "collocation":
             lower_bound = torch.cat(
-                (self.model.action_lower_bound, self.model.obs_lower_bound)
+                (self.model.action_lower_bound, self.model.robot_model.robot_state_lower_bound)
             )
             upper_bound = torch.cat(
-                (self.model.action_upper_bound, self.model.obs_upper_bound)
+                (self.model.action_upper_bound, self.model.robot_model.robot_state_upper_bound)
             )
             self.optimize_dim = self.action_dim + self.state_dim
         self.initial_guess = np.zeros(self.optimize_dim * self.num_ctrl_points)
@@ -224,6 +224,7 @@ class OptController:
             if isinstance(inputs, np.ndarray):
                 inputs = torch.tensor(inputs, dtype=torch.float32)
             true_states = self._rollout(inputs, x)
+            true_states = self.StateClass.concat(true_states).robot_state
             true_states = true_states[1 :: self.ctrl_interval, :].reshape(-1)
             input_states = inputs.reshape((-1, self.optimize_dim))[
                 :, -self.state_dim :
@@ -239,7 +240,7 @@ class OptController:
         inputs = torch.tensor(inputs, dtype=torch.float32)
         jac = jacrev(self._trans_constraint_fcn)(inputs, x)
         return jac.numpy().astype("d")
-
+    
     def _rollout(
         self, inputs: torch.Tensor, x: State[torch.Tensor]
     ) -> List[State[torch.Tensor]]:
@@ -274,7 +275,7 @@ class OptController:
             robot_states[0, :] = x.robot_state
             xs = torch.cat(
                 (
-                    x.robot_state.unsqueeze(0),
+                    x.robot_state,
                     inputs_repeated[
                         : -self.ctrl_interval : self.ctrl_interval,
                         -self.state_dim :,
@@ -291,9 +292,9 @@ class OptController:
             for i in np.arange(0, self.num_pred_step):
                 context_state = self.model.context_model.get_next_state(
                     context_state, 
-                    inputs_repeated[i, : self.action_dim]
+                    inputs_repeated[i:i + 1, : self.action_dim]
                 )
-                states.append(self.StateClass(robot_states[i + 1, :], context_state))
+                states.append(self.StateClass(robot_states[i + 1:i + 2, :], context_state))
             
 
             # rewards = -rewards * torch.logspace(

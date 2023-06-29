@@ -6,6 +6,7 @@ from typing import Tuple
 from idsim_model.model import ModelContext
 from idsim.utils.fs import TEMP_ROOT
 from dataclasses import dataclass
+import torch
 
 import numpy as np
 import gym
@@ -13,8 +14,6 @@ import gym
 
 @dataclass
 class idSimContextState(ContextState):
-    last_last_action: stateType
-    last_action: stateType
     light_param: stateType
     ref_index_param: stateType
     real_t: int
@@ -36,9 +35,7 @@ class idSimEnv(CrossRoad, Env):
         return obs, self._get_info()
     
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
-        action_increment = action - self._state.context_state.last_action.numpy() # increment action
-        action_increment = (action - self.action_center) / self.action_half_range # normalize
-        obs, reward, terminated, truncated, info = super(idSimEnv, self).step(action_increment)
+        obs, reward, terminated, truncated, info = super(idSimEnv, self).step(action)
         self._get_state_from_idsim()
         return obs, reward, terminated, self._get_info()
 
@@ -57,12 +54,14 @@ class idSimEnv(CrossRoad, Env):
     def _get_state_from_idsim(self) -> State:
         idsim_context = ModelContext.from_env(self)
         self._state = idSimState(
-            robot_state=idsim_context.x.ego_state,
+            robot_state=torch.concat([
+                idsim_context.x.ego_state, 
+                idsim_context.x.last_last_action, 
+                idsim_context.x.last_action],
+            dim=-1),
             context_state=idSimContextState(
                 reference=idsim_context.p.ref_param, 
                 constraint=idsim_context.p.sur_param,
-                last_last_action=idsim_context.x.last_last_action,
-                last_action=idsim_context.x.last_action,
                 light_param=idsim_context.p.light_param, 
                 ref_index_param=idsim_context.p.ref_index_param,
                 real_t = idsim_context.t,
