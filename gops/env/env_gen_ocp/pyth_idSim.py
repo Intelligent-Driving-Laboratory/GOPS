@@ -6,6 +6,7 @@ from typing import Tuple
 from idsim_model.model import ModelContext
 from idsim.utils.fs import TEMP_ROOT
 from dataclasses import dataclass
+import torch
 
 import numpy as np
 import gym
@@ -13,8 +14,6 @@ import gym
 
 @dataclass
 class idSimContextState(ContextState):
-    last_last_action: stateType
-    last_action: stateType
     light_param: stateType
     ref_index_param: stateType
     real_t: int
@@ -36,7 +35,6 @@ class idSimEnv(CrossRoad, Env):
         return obs, self._get_info()
     
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
-        # TODO: normalize action & transform to increment action?
         obs, reward, terminated, truncated, info = super(idSimEnv, self).step(action)
         self._get_state_from_idsim()
         return obs, reward, terminated, self._get_info()
@@ -56,18 +54,21 @@ class idSimEnv(CrossRoad, Env):
     def _get_state_from_idsim(self) -> State:
         idsim_context = ModelContext.from_env(self)
         self._state = idSimState(
-            robot_state=idsim_context.x.ego_state,
+            robot_state=torch.concat([
+                idsim_context.x.ego_state, 
+                idsim_context.x.last_last_action, 
+                idsim_context.x.last_action],
+            dim=-1),
             context_state=idSimContextState(
                 reference=idsim_context.p.ref_param, 
                 constraint=idsim_context.p.sur_param,
-                last_last_action=idsim_context.x.last_last_action,
-                last_action=idsim_context.x.last_action,
                 light_param=idsim_context.p.light_param, 
                 ref_index_param=idsim_context.p.ref_index_param,
                 real_t = idsim_context.t,
                 t = idsim_context.i
             )
         )
+        self._state = idSimState.tensor2array(self._state)
 
 
 def env_creator(**kwargs):
@@ -75,33 +76,3 @@ def env_creator(**kwargs):
     make env `pyth_veh2dofconti`
     """
     return idSimEnv(kwargs["env_config"])
-
-
-
-if __name__ == "__main__":
-    arg = {}
-    vehicle_spec = (1880.0, 1536.7, 1.13, 1.52, -128915.5, -85943.6, 20.0, 0.0)
-    arg["env_config"] = Config(use_render=False, seed=1, actuator="ExternalActuator", \
-        scenario_reuse=10, num_scenarios=1, scenario_root=TEMP_ROOT / "set-multi-lane-diff-vel" / "idsim-scenarios-train", \
-        extra_sumo_args=("--start", "--delay", "200"), \
-        warmup_time=5.0, ignore_traffic_lights=False, \
-        incremental_action=True, \
-        action_lower_bound= (-0.3, -0.01), \
-        action_upper_bound= ( 0.2, 0.01), \
-        obs_num_surrounding_vehicles={
-        "passenger": 5,
-        "bicycle": 2,
-        "pedestrian": 0,
-        },
-        obs_num_ref_points=61, obs_ref_interval=0.8,
-        vehicle_spec=vehicle_spec)
-    env = env_creator(**arg)
-    env.reset()
-    print("observation_space: ", env.observation_space)
-    print("action_space: ", env.action_space)
-    for i in range(5):
-        obs, reward, done, info = env.step(env.action_space.sample())
-        print("robot state", env._state.robot_state.tolist())
-        print("obs shape: ", obs.shape)
-        print("constraint shape",env._state.context_state.constraint.shape)
-        print("reference", env._state.context_state.reference.shape)
