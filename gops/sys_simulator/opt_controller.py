@@ -218,13 +218,10 @@ class OptController:
         self.constraint_evaluations += 1
 
         inputs = self._preprocess_inputs(inputs)
-        true_states = self._rollout(inputs, x)
-        true_states = self.StateClass.concat(true_states).robot_state
-        true_states = true_states[1 :: self.ctrl_interval, :].reshape(-1)
-        input_states = inputs.reshape((-1, self.optimize_dim))[
-            :, -self.state_dim :
-        ].reshape(-1)
-        return true_states - input_states
+        true_states = self._rollout(inputs, x, robot_state_only=True)
+        true_states = true_states[1 :: self.ctrl_interval, :]
+        input_states = inputs[:, -self.state_dim :]
+        return (true_states - input_states).reshape(-1)
 
     def _trans_constraint_jac(
         self, inputs: np.ndarray, x: State[torch.Tensor]
@@ -237,29 +234,22 @@ class OptController:
         return jac.numpy().astype("d")
 
     def _rollout(
-        self, inputs: torch.Tensor, x: State[torch.Tensor]
-    ) -> List[State[torch.Tensor]]:
+        self, inputs: torch.Tensor, x: State[torch.Tensor], robot_state_only=False
+    ) -> Union[List[State[torch.Tensor]], torch.Tensor]:
         """
         Rollout furture states using environment model
         """
         st = time.time()
         self.system_simulations += 1
-        states = [x]
+        states = [x.robot_state] if robot_state_only else [x]
 
         if self.rollout_mode == "loop":
-            # next_x = x.unsqueeze(0)
-            # batched_info = {}
-            # if info:
-            #     batched_info = {key: value.unsqueeze(0) for key, value in info.items()}
-            #     infos = {key: [value.unsqueeze(0)] for key, value in info.items()}
             for i in np.arange(0, self.num_pred_step):
                 u = inputs[i, : self.action_dim].unsqueeze(0)
-                states.append(self.model.get_next_state(states[-1], u))
-                # rewards[i] = -reward * (self.gamma ** i)
-                
-                # if info:
-                #     for key in info.keys():
-                #         infos[key].append(batched_info[key])
+                if robot_state_only:
+                    states.append(self.model.robot_model.get_next_state(states[-1], u))
+                else:
+                    states.append(self.model.get_next_state(states[-1], u))
             
         elif self.rollout_mode == "batch":
             with Timeit("main_rollout", mute=True):
@@ -281,19 +271,20 @@ class OptController:
                         xs = self.model.robot_model.get_next_state(xs, us)
                         robot_states[i + 1 :: self.ctrl_interval, :] = xs
                 
-                with Timeit("context_rollout", mute=True):
-                    # rollout context states
-                    context_state = x.context_state
-                    for i in np.arange(0, self.num_pred_step):
-                        context_state = self.model.context_model.get_next_state(
-                            context_state, 
-                            inputs[i:i + 1, : self.action_dim]
-                        )
-                        states.append(self.StateClass(robot_states[i + 1:i + 2, :], context_state))
+                if not robot_state_only:
+                    with Timeit("context_rollout", mute=True):
+                        # rollout context states
+                        context_state = x.context_state
+                        for i in np.arange(0, self.num_pred_step):
+                            context_state = self.model.context_model.get_next_state(
+                                context_state, 
+                                inputs[i:i + 1, : self.action_dim]
+                            )
+                            states.append(self.StateClass(robot_states[i + 1:i + 2, :], context_state))
         
         et = time.time()
         self.system_simulation_time += et - st
-        return states
+        return robot_states if robot_state_only else states
 
     def _compute_cost(
         self, inputs: torch.Tensor, x: State[torch.Tensor]
