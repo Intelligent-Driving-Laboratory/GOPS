@@ -20,7 +20,10 @@ from functorch import jacrev
 import numpy as np
 from cyipopt import minimize_ipopt
 import scipy.optimize as opt
+from mytimeit import timeit, Timeit
 
+
+MUTE = False
 
 class OptController:
     """Implementation of optimal controller based on MPC.
@@ -137,7 +140,7 @@ class OptController:
         res = minimize_ipopt(
             fun=self._cost_fcn_and_jac,
             x0=self.initial_guess,
-            args=(x, ),
+            args=(x,),
             jac=True,
             bounds=opt._constraints.new_bounds_to_old(
                 self.bounds.lb, self.bounds.ub, self.num_ctrl_points * self.optimize_dim
@@ -147,13 +150,13 @@ class OptController:
                     "type": "ineq",
                     "fun": self._constraint_fcn,
                     "jac": self._constraint_jac,
-                    "args": (x, ),
+                    "args": (x,),
                 },
                 {
                     "type": "eq",
                     "fun": self._trans_constraint_fcn,
                     "jac": self._trans_constraint_jac,
-                    "args": (x, ),
+                    "args": (x,),
                 },
             ],
             options=self.minimize_options,
@@ -173,7 +176,7 @@ class OptController:
         """
         Compute value and jacobian of cost function
         """
-        inputs = torch.tensor(inputs, dtype=torch.float32, requires_grad=True)
+        inputs = self._preprocess_inputs(inputs, requires_grad=True)
         cost = self._compute_cost(inputs, x)
         jac = torch.autograd.grad(cost, inputs)[0]
         return cost.detach().item(), jac.numpy().astype("d")
@@ -186,18 +189,13 @@ class OptController:
             return torch.tensor([0.0])
         else:
             self.constraint_evaluations += 1
-
-            if isinstance(inputs, np.ndarray):
-                inputs = torch.tensor(inputs, dtype=torch.float32)
+            inputs = self._preprocess_inputs(inputs)
             states = self._rollout(inputs, x)
-            # if info:
-            #     for key in info.keys():
-            #         infos[key] = torch.cat(infos[key])
 
             # model.get_constraint() returns Tensor, each element of which
             # should be required to be lower than or equal to 0
             # minimize_ipopt() takes inequality constraints that should be greater than or equal to 0
-            cstr_vector = -self.model.get_constraint(states).reshape(-1)
+            cstr_vector = -self.model.get_constraint(self.StateClass.concat(states)).reshape(-1)
             return cstr_vector
 
     def _constraint_jac(
@@ -221,8 +219,7 @@ class OptController:
         elif self.mode == "collocation":
             self.constraint_evaluations += 1
 
-            if isinstance(inputs, np.ndarray):
-                inputs = torch.tensor(inputs, dtype=torch.float32)
+            inputs = self._preprocess_inputs(inputs)
             true_states = self._rollout(inputs, x)
             true_states = self.StateClass.concat(true_states).robot_state
             true_states = true_states[1 :: self.ctrl_interval, :].reshape(-1)
@@ -241,6 +238,7 @@ class OptController:
         jac = jacrev(self._trans_constraint_fcn)(inputs, x)
         return jac.numpy().astype("d")
     
+    @timeit(mute=True)
     def _rollout(
         self, inputs: torch.Tensor, x: State[torch.Tensor]
     ) -> List[State[torch.Tensor]]:
@@ -249,9 +247,6 @@ class OptController:
         """
         st = time.time()
         self.system_simulations += 1
-        inputs_repeated = inputs.reshape(
-            (self.num_ctrl_points, self.optimize_dim)
-        ).repeat_interleave(self.ctrl_interval, dim=0)
         states = [x]
 
         if self.rollout_mode == "loop":
@@ -261,7 +256,7 @@ class OptController:
             #     batched_info = {key: value.unsqueeze(0) for key, value in info.items()}
             #     infos = {key: [value.unsqueeze(0)] for key, value in info.items()}
             for i in np.arange(0, self.num_pred_step):
-                u = inputs_repeated[i, : self.action_dim].unsqueeze(0)
+                u = inputs[i, : self.action_dim].unsqueeze(0)
                 states.append(self.model.get_next_state(states[-1], u))
                 # rewards[i] = -reward * (self.gamma ** i)
                 
@@ -270,40 +265,40 @@ class OptController:
                 #         infos[key].append(batched_info[key])
             
         elif self.rollout_mode == "batch":
-            # rollout robot states batch-wise
-            robot_states = torch.zeros((self.num_pred_step + 1, self.state_dim))
-            robot_states[0, :] = x.robot_state
-            xs = torch.cat(
-                (
-                    x.robot_state,
-                    inputs_repeated[
-                        : -self.ctrl_interval : self.ctrl_interval,
-                        -self.state_dim :,
-                    ],
-                )
-            )
-            us = inputs_repeated[:: self.ctrl_interval, : self.action_dim]
-            for i in range(self.ctrl_interval):
-                xs = self.model.robot_model.get_next_state(xs, us)
-                robot_states[i + 1 :: self.ctrl_interval, :] = xs
-            
-            # rollout context states
-            context_state = x.context_state
-            for i in np.arange(0, self.num_pred_step):
-                context_state = self.model.context_model.get_next_state(
-                    context_state, 
-                    inputs_repeated[i:i + 1, : self.action_dim]
-                )
-                states.append(self.StateClass(robot_states[i + 1:i + 2, :], context_state))
-            
-
-            # rewards = -rewards * torch.logspace(
-            #     0, self.num_pred_step - 1, self.num_pred_step, base=self.gamma
-            # )
+            with Timeit("main_rollout", mute=True):
+                with Timeit("robot state rollout", mute=False):
+                    # rollout robot states batch-wise
+                    robot_states = torch.zeros((self.num_pred_step + 1, self.state_dim))
+                    robot_states[0, :] = x.robot_state
+                    xs = torch.cat(
+                        (
+                            x.robot_state,
+                            inputs[
+                                : -self.ctrl_interval : self.ctrl_interval,
+                                -self.state_dim :,
+                            ],
+                        )
+                    )
+                    us = inputs[:: self.ctrl_interval, : self.action_dim]
+                    for i in range(self.ctrl_interval):
+                        xs = self.model.robot_model.get_next_state(xs, us)
+                        robot_states[i + 1 :: self.ctrl_interval, :] = xs
+                
+                with Timeit("context_rollout", mute=False):
+                    # rollout context states
+                    context_state = x.context_state
+                    for i in np.arange(0, self.num_pred_step):
+                        context_state = self.model.context_model.get_next_state(
+                            context_state, 
+                            inputs[i:i + 1, : self.action_dim]
+                        )
+                        states.append(self.StateClass(robot_states[i + 1:i + 2, :], context_state))
+        
         et = time.time()
         self.system_simulation_time += et - st
         return states
 
+    # @timeit(mute=MUTE)
     def _compute_cost(
         self, inputs: torch.Tensor, x: State[torch.Tensor]
     ) -> torch.Tensor:
@@ -312,21 +307,32 @@ class OptController:
         """
         # rollout states and rewards
         states = self._rollout(inputs, x)
-        inputs_repeated = inputs.reshape(
-            (self.num_ctrl_points, self.optimize_dim)
-        ).repeat_interleave(self.ctrl_interval, dim=0)
-        rewards = self.model.get_reward(self.StateClass.concat(states[:-1]), inputs_repeated[:, : self.action_dim])
-        rewards = -rewards * torch.logspace(
+        rewards = self.model.get_reward(self.StateClass.concat(states[:-1]), inputs[:, : self.action_dim])
+        # sum up integral costs from timestep 0 to T-1
+        cost = -rewards @ torch.logspace(
             0, self.num_pred_step - 1, self.num_pred_step, base=self.gamma
         )
-        # sum up integral costs from timestep 0 to T-1
-        cost = torch.sum(rewards)
 
         # Terminal cost for timestep T
         if self.terminal_cost is not None:
             terminal_cost = self.terminal_cost(states[-1, :])
             cost += terminal_cost * (self.gamma ** self.num_pred_step)
         return cost
+
+    def _preprocess_inputs(
+        self, 
+        inputs: Union[np.ndarray, torch.Tensor], 
+        requires_grad=False
+    ) -> torch.Tensor:
+        """
+        Preprocess inputs to fit into environment model
+        """
+        if isinstance(inputs, np.ndarray):
+            inputs = torch.tensor(inputs, dtype=torch.float32, requires_grad=requires_grad)
+        inputs = inputs.reshape((self.num_ctrl_points, self.optimize_dim))
+        if self.ctrl_interval > 1:
+            inputs = inputs.repeat_interleave(self.ctrl_interval, dim=0)  #TODO: speed up this
+        return inputs
 
     def _reset_statistics(self):
         """
