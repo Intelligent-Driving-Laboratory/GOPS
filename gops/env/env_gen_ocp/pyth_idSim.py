@@ -76,33 +76,3 @@ def env_creator(**kwargs):
     make env `pyth_veh2dofconti`
     """
     return idSimEnv(kwargs["env_config"])
-
-MAP_ROOT = pathlib.Path('/home/taoletian/set-new/idsim-scenarios-train')
-
-if __name__ == "__main__":
-    arg = {}
-    vehicle_spec = (1880.0, 1536.7, 1.13, 1.52, -128915.5, -85943.6, 20.0, 0.0)
-    arg["env_config"] = Config(use_render=False, seed=1, actuator="ExternalActuator", \
-        scenario_reuse=10, num_scenarios=1, scenario_root=MAP_ROOT,
-        extra_sumo_args=("--start", "--delay", "200"), \
-        warmup_time=5.0, ignore_traffic_lights=False, \
-        incremental_action=True, \
-        action_lower_bound= (-0.3, -0.01), \
-        action_upper_bound= ( 0.2, 0.01), \
-        obs_num_surrounding_vehicles={
-        "passenger": 5,
-        "bicycle": 2,
-        "pedestrian": 0,
-        },
-        obs_num_ref_points=61, obs_ref_interval=0.8,
-        vehicle_spec=vehicle_spec)
-    env = env_creator(**arg)
-    env.reset()
-    print("observation_space: ", env.observation_space)
-    print("action_space: ", env.action_space)
-    for i in range(5):
-        obs, reward, done, info = env.step(env.action_space.sample())
-        print("robot state", env._state.robot_state.tolist())
-        print("obs shape: ", obs.shape)
-        print("constraint shape",env._state.context_state.constraint.shape)
-        print("reference", env._state.context_state.reference.shape)

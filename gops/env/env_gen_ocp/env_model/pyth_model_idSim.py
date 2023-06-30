@@ -70,15 +70,15 @@ class idSimEnvModel(EnvModel):
         
     # TODO: Distinguish state reward and action reward
     def get_reward(self, state: idSimState, action: torch.Tensor) -> torch.Tensor:
+        next_state = self.get_next_state(state, action)
         reward = self.idsim_model.reward(
-            self._get_idsimcontext(state),
+            self._get_idsimcontext(next_state),
             action
             )
         return reward
 
     def get_terminated(self, state: idSimState) -> torch.bool:
         raise NotImplementedError
-        return self.idsim_model.done(self._get_idsimcontext(state))
     
     def _get_idsimcontext(self, state: idSimState) -> ModelContext:
         context = ModelContext(
