@@ -47,7 +47,7 @@ class ContextState(Generic[stateType]):
         values = []
         for field in fields(context_states[0]):
             if isinstance(getattr(context_states[0], field.name), np.ndarray):
-                values.append(np.concatenate([getattr(context_state, field.name) for context_state in context_states], dim=dim))
+                values.append(np.concatenate([getattr(context_state, field.name) for context_state in context_states], axis=dim))
             elif isinstance(getattr(context_states[0], field.name), torch.Tensor):
                 values.append(torch.concat([getattr(context_state, field.name) for context_state in context_states], dim=dim))
             else:
@@ -88,10 +88,9 @@ class State(Generic[stateType]):
     @classmethod
     def concat(cls, states: Sequence['State[stateType]'], dim: int = 0) -> 'State[stateType]':
         if isinstance(states[0].robot_state, np.ndarray):
-            concat = np.concatenate
+            robot_states = np.concatenate([state.robot_state for state in states], axis=dim)
         elif isinstance(states[0].robot_state, torch.Tensor):
-            concat = torch.concat
-        robot_states = concat([state.robot_state for state in states], dim=dim)
+            robot_states = torch.concat([state.robot_state for state in states], dim=dim)
         context_states = cls.CONTEXT_STATE_TYPE.concat([state.context_state for state in states], dim=dim)
         return cls(robot_states, context_states)
 
