@@ -133,10 +133,27 @@ class OptController:
         
         x = self.StateClass.array2tensor(x)
         x = self.StateClass.stack([x])
-        # if info:
-        #     info = info.copy()
-        #     for (key, value) in info.items():
-        #         info[key] = torch.tensor(value, dtype=torch.float32)
+
+        constraints = []
+        if self.model.get_constraint is not None:
+            constraints.append(
+                {
+                    "type": "ineq",
+                    "fun": self._constraint_fcn,
+                    "jac": self._constraint_jac,
+                    "args": (x,),
+                }
+            )
+        if self.mode == "collocation":
+            constraints.append(
+                {
+                    "type": "eq",
+                    "fun": self._trans_constraint_fcn,
+                    "jac": self._trans_constraint_jac,
+                    "args": (x,),
+                }
+            )
+        
         res = minimize_ipopt(
             fun=self._cost_fcn_and_jac,
             x0=self.initial_guess,
@@ -145,20 +162,7 @@ class OptController:
             bounds=opt._constraints.new_bounds_to_old(
                 self.bounds.lb, self.bounds.ub, self.num_ctrl_points * self.optimize_dim
             ),
-            constraints=[
-                {
-                    "type": "ineq",
-                    "fun": self._constraint_fcn,
-                    "jac": self._constraint_jac,
-                    "args": (x,),
-                },
-                {
-                    "type": "eq",
-                    "fun": self._trans_constraint_fcn,
-                    "jac": self._trans_constraint_jac,
-                    "args": (x,),
-                },
-            ],
+            constraints=constraints,
             options=self.minimize_options,
         )
         self.initial_guess = np.concatenate(
@@ -184,19 +188,16 @@ class OptController:
     def _constraint_fcn(
         self, inputs: Union[np.ndarray, torch.Tensor], x: State[torch.Tensor]
     ) -> torch.Tensor:
+        self.constraint_evaluations += 1
 
-        if self.model.get_constraint is None:
-            return torch.tensor([0.0])
-        else:
-            self.constraint_evaluations += 1
-            inputs = self._preprocess_inputs(inputs)
-            states = self._rollout(inputs, x)
+        inputs = self._preprocess_inputs(inputs)
+        states = self._rollout(inputs, x)
 
-            # model.get_constraint() returns Tensor, each element of which
-            # should be required to be lower than or equal to 0
-            # minimize_ipopt() takes inequality constraints that should be greater than or equal to 0
-            cstr_vector = -self.model.get_constraint(self.StateClass.concat(states)).reshape(-1)
-            return cstr_vector
+        # model.get_constraint() returns Tensor, each element of which
+        # should be required to be lower than or equal to 0
+        # minimize_ipopt() takes inequality constraints that should be greater than or equal to 0
+        cstr_vector = -self.model.get_constraint(self.StateClass.concat(states)).reshape(-1)
+        return cstr_vector
 
     def _constraint_jac(
         self, inputs: np.ndarray, x: State[torch.Tensor]
@@ -214,19 +215,16 @@ class OptController:
         """
         Transition constraint function (collocation only)
         """
-        if self.mode == "shooting":
-            return torch.tensor([0.0])
-        elif self.mode == "collocation":
-            self.constraint_evaluations += 1
+        self.constraint_evaluations += 1
 
-            inputs = self._preprocess_inputs(inputs)
-            true_states = self._rollout(inputs, x)
-            true_states = self.StateClass.concat(true_states).robot_state
-            true_states = true_states[1 :: self.ctrl_interval, :].reshape(-1)
-            input_states = inputs.reshape((-1, self.optimize_dim))[
-                :, -self.state_dim :
-            ].reshape(-1)
-            return true_states - input_states
+        inputs = self._preprocess_inputs(inputs)
+        true_states = self._rollout(inputs, x)
+        true_states = self.StateClass.concat(true_states).robot_state
+        true_states = true_states[1 :: self.ctrl_interval, :].reshape(-1)
+        input_states = inputs.reshape((-1, self.optimize_dim))[
+            :, -self.state_dim :
+        ].reshape(-1)
+        return true_states - input_states
 
     def _trans_constraint_jac(
         self, inputs: np.ndarray, x: State[torch.Tensor]
@@ -237,8 +235,7 @@ class OptController:
         inputs = torch.tensor(inputs, dtype=torch.float32)
         jac = jacrev(self._trans_constraint_fcn)(inputs, x)
         return jac.numpy().astype("d")
-    
-    @timeit(mute=True)
+
     def _rollout(
         self, inputs: torch.Tensor, x: State[torch.Tensor]
     ) -> List[State[torch.Tensor]]:
@@ -266,7 +263,7 @@ class OptController:
             
         elif self.rollout_mode == "batch":
             with Timeit("main_rollout", mute=True):
-                with Timeit("robot state rollout", mute=False):
+                with Timeit("robot state rollout", mute=True):
                     # rollout robot states batch-wise
                     robot_states = torch.zeros((self.num_pred_step + 1, self.state_dim))
                     robot_states[0, :] = x.robot_state
@@ -284,7 +281,7 @@ class OptController:
                         xs = self.model.robot_model.get_next_state(xs, us)
                         robot_states[i + 1 :: self.ctrl_interval, :] = xs
                 
-                with Timeit("context_rollout", mute=False):
+                with Timeit("context_rollout", mute=True):
                     # rollout context states
                     context_state = x.context_state
                     for i in np.arange(0, self.num_pred_step):
@@ -298,7 +295,6 @@ class OptController:
         self.system_simulation_time += et - st
         return states
 
-    # @timeit(mute=MUTE)
     def _compute_cost(
         self, inputs: torch.Tensor, x: State[torch.Tensor]
     ) -> torch.Tensor:
