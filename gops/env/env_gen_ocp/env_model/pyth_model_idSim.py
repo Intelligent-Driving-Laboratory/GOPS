@@ -1,13 +1,12 @@
 from dataclasses import dataclass
-from typing import Optional, TypeVar, Callable, Tuple
-from gops.env.env_gen_ocp.env_model.pyth_model_base import RobotModel, ContextModel, EnvModel, S
+from typing import Optional
+from gops.env.env_gen_ocp.env_model.pyth_model_base import RobotModel, ContextModel, EnvModel
 from gops.env.env_gen_ocp.pyth_idSim import idSimState, idSimContextState, idSimEnv
 
 import numpy as np
 import torch
 import copy
 
-from idsim_model.predict_model import ego_predict_model
 from idsim_model.model import ModelContext, Parameter, IdSimModel
 from idsim_model.model import State as ModelState
 
@@ -22,6 +21,7 @@ class idSimRobotModel(RobotModel):
         idsim_model: IdSimModel,
     ):
         self.robot_state_dim = 6 + 2 * 2
+        #TODO: move action bound to here and add it into state bound? 
         self.robot_state_lower_bound = torch.tensor([-np.inf] * self.robot_state_dim, dtype=torch.float32)
         self.robot_state_upper_bound = torch.tensor([np.inf] * self.robot_state_dim, dtype=torch.float32)
         self.idsim_model = idsim_model
@@ -31,10 +31,10 @@ class idSimRobotModel(RobotModel):
 
     def get_next_state(self, robot_state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         self.fake_model_context.x = ModelState(
-                ego_state = robot_state[..., :-4],
-                last_last_action = robot_state[..., -4:-2],
-                last_action = robot_state[..., -2:]
-            )
+            ego_state = robot_state[..., :-4],
+            last_last_action = robot_state[..., -4:-2],
+            last_action = robot_state[..., -2:]
+        )
         model_state = self.idsim_model.dynamics(self.fake_model_context, action)
         robot_state = torch.concat([model_state.ego_state, model_state.last_last_action, model_state.last_action], dim=-1)
         return robot_state
@@ -74,7 +74,7 @@ class idSimEnvModel(EnvModel):
         reward = self.idsim_model.reward(
             self._get_idsimcontext(next_state),
             action
-            )
+        )
         return reward
 
     def get_terminated(self, state: idSimState) -> torch.bool:
