@@ -20,10 +20,7 @@ from functorch import jacrev
 import numpy as np
 from cyipopt import minimize_ipopt
 import scipy.optimize as opt
-from mytimeit import timeit, Timeit
 
-
-MUTE = False
 
 class OptController:
     """Implementation of optimal controller based on MPC.
@@ -252,35 +249,32 @@ class OptController:
                     states.append(self.model.get_next_state(states[-1], u))
             
         elif self.rollout_mode == "batch":
-            with Timeit("main_rollout", mute=True):
-                with Timeit("robot state rollout", mute=True):
-                    # rollout robot states batch-wise
-                    robot_states = torch.zeros((self.num_pred_step + 1, self.state_dim))
-                    robot_states[0, :] = x.robot_state
-                    xs = torch.cat(
-                        (
-                            x.robot_state,
-                            inputs[
-                                : -self.ctrl_interval : self.ctrl_interval,
-                                -self.state_dim :,
-                            ],
-                        )
+            # rollout robot states batch-wise
+            robot_states = torch.zeros((self.num_pred_step + 1, self.state_dim))
+            robot_states[0, :] = x.robot_state
+            xs = torch.cat(
+                (
+                    x.robot_state,
+                    inputs[
+                        : -self.ctrl_interval : self.ctrl_interval,
+                        -self.state_dim :,
+                    ],
+                )
+            )
+            us = inputs[:: self.ctrl_interval, : self.action_dim]
+            for i in range(self.ctrl_interval):
+                xs = self.model.robot_model.get_next_state(xs, us)
+                robot_states[i + 1 :: self.ctrl_interval, :] = xs
+            
+            if not robot_state_only:
+                # rollout context states
+                context_state = x.context_state
+                for i in np.arange(0, self.num_pred_step):
+                    context_state = self.model.context_model.get_next_state(
+                        context_state, 
+                        inputs[i : i + 1, : self.action_dim]
                     )
-                    us = inputs[:: self.ctrl_interval, : self.action_dim]
-                    for i in range(self.ctrl_interval):
-                        xs = self.model.robot_model.get_next_state(xs, us)
-                        robot_states[i + 1 :: self.ctrl_interval, :] = xs
-                
-                if not robot_state_only:
-                    with Timeit("context_rollout", mute=True):
-                        # rollout context states
-                        context_state = x.context_state
-                        for i in np.arange(0, self.num_pred_step):
-                            context_state = self.model.context_model.get_next_state(
-                                context_state, 
-                                inputs[i:i + 1, : self.action_dim]
-                            )
-                            states.append(self.StateClass(robot_states[i + 1:i + 2, :], context_state))
+                    states.append(self.StateClass(robot_states[i + 1 : i + 2, :], context_state))
         
         et = time.time()
         self.system_simulation_time += et - st
@@ -344,274 +338,3 @@ class OptController:
         print("* Final cost:", res.fun, "\n")
         if reset:
             self._reset_statistics()
-
-
-
-if __name__ == "__main__":
-    import argparse
-    import time
-    from gops.create_pkg.create_env import create_env
-    from gops.create_pkg.create_env_model import create_env_model
-    import matplotlib.pyplot as plt
-    import imageio
-    import os
-    # Parameters Setup
-    parser = argparse.ArgumentParser()
-    env_id = "pyth_veh2dofconti_errcstr"
-    parser.add_argument("--env_id", type=str, default=env_id)
-    parser.add_argument("--lq_config", type=str, default="s6a3")
-    parser.add_argument('--clip_action', type=bool, default=True)
-    parser.add_argument('--clip_obs', type=bool, default=False)
-    parser.add_argument('--mask_at_done', type=bool, default=False)
-    parser.add_argument(
-        "--is_adversary", type=bool, default=False, help="Adversary training"
-    )
-    parser.add_argument('--sample_batch_size', type=int, default=64, help='Batch size of sampler for buffer store = 64')
-
-    if env_id == "pyth_aircraftconti":
-        parser.add_argument('--max_episode_steps', type=int, default=200)
-        parser.add_argument('--gamma_atte', type=float, default=5)
-        parser.add_argument('--fixed_initial_state', type=list, default=[1.0, 1.5, 1.0], help='for env_data')
-        parser.add_argument('--initial_state_range', type=list, default=[0.1, 0.2, 0.1], help='for env_model')
-        parser.add_argument('--state_threshold', type=list, default=[2.0, 2.0, 2.0])
-        parser.add_argument('--lower_step', type=int, default=200, help='for env_model')
-        parser.add_argument('--upper_step', type=int, default=700, help='for env_model')
-    
-    if env_id == "pyth_oscillatorconti":
-        parser.add_argument('--max_episode_steps', type=int, default=200)
-        parser.add_argument('--gamma_atte', type=float, default=2)
-        parser.add_argument('--fixed_initial_state', type=list, default=[0.5, -0.5], help='for env_data [0.5, -0.5]')
-        parser.add_argument('--initial_state_range', type=list, default=[1.5, 1.5], help='for env_model')
-        parser.add_argument('--state_threshold', type=list, default=[5.0, 5.0])
-        parser.add_argument('--lower_step', type=int, default=200, help='for env_model')
-        parser.add_argument('--upper_step', type=int, default=700, help='for env_model')
-
-    if env_id == "pyth_suspensionconti":
-        parser.add_argument('--gamma_atte', type=float, default=30)
-        parser.add_argument('--state_weight', type=list, default=[1000.0, 3.0, 100.0, 0.1])
-        parser.add_argument('--control_weight', type=list, default=[1.0])
-        parser.add_argument('--fixed_initial_state', type=list, default=[0, 0, 0, 0], help='for env_data')
-        parser.add_argument('--initial_state_range', type=list, default=[0.05, 0.5, 0.05, 1.0], help='for env_model')
-        # State threshold
-        parser.add_argument('--state_threshold', type=list, default=[0.08, 0.8, 0.1, 1.6])
-        parser.add_argument('--lower_step', type=int, default=200, help='for env_model')
-        parser.add_argument('--upper_step', type=int, default=500, help='for env_model')  # shorter, faster but more error
-        parser.add_argument('--max_episode_steps', type=int, default=1500, help='for env_data')
-        parser.add_argument('--max_newton_iteration', type=int, default=50)
-        parser.add_argument('--max_iteration', type=int, default=parser.parse_args().max_newton_iteration)
-    
-    if env_id == "pyth_veh2dofconti_errcstr" or env_id == "pyth_veh3dofconti_errcstr":
-        parser.add_argument("--pre_horizon", type=int, default=5)
-    
-    if env_id == "pyth_veh3dofconti_surrcstr":
-        parser.add_argument("--pre_horizon", type=int, default=10)
-        parser.add_argument("--surr_veh_num", type=int, default=4)
-
-    args = vars(parser.parse_args())
-    env_model = create_env_model(**args)
-    state_dim = env_model.state_dim
-    if env_id == "pyth_veh2dofconti_errcstr":
-        state_dim -= args["pre_horizon"]
-    elif env_id == "pyth_veh3dofconti_errcstr":
-        state_dim -= 2 * args["pre_horizon"]
-    elif env_id == "pyth_veh3dofconti_surrcstr":
-        state_dim = env_model.state_dim
-    action_dim = env_model.action_dim
-
-    if args["env_id"] == "pyth_lq":
-        max_state_errs = []
-        mean_state_errs = []
-        max_action_errs = []
-        mean_action_errs = []
-        K = env_model.dynamics.K
-    
-    times = []
-    seed = 3
-    # num_pred_steps = range(10, 110, 20)
-    num_pred_steps = (5,)
-    ctrl_interval = 1
-    sim_num = 50
-    sim_horizon = np.arange(sim_num)
-    for num_pred_step in num_pred_steps:
-        controller = OptController(
-            env_model, 
-            ctrl_interval=ctrl_interval, 
-            num_pred_step=num_pred_step, 
-            gamma=0.99,
-            verbose=1,
-            minimize_options={
-                "max_iter": 200, 
-                "tol": 1e-3,
-                "acceptable_tol": 1e-1,
-                "acceptable_iter": 10,
-                # "print_level": 3,
-                # "print_timing_statistics": "yes",
-            },
-            # use_terminal_cost=True,
-            mode="shooting",
-        )
-
-        env = create_env(**args)
-        env.seed(seed)
-        x, info = env.reset()
-        # env.render()
-        filenames = []
-        xs = []
-        us= []
-        rs = []
-        ts = []
-        for i in sim_horizon:
-            print(f"step: {i + 1}")
-            if (i % ctrl_interval) == 0:
-                t1 = time.time()
-                u = controller(x.astype(np.float32), info)
-                t2 = time.time()
-                print(f"total time: {t2 - t1}")
-            xs.append(x)
-            us.append(u)
-            ts.append(t2 - t1)
-            x, r, _, info = env.step(u)
-            rs.append(r)
-            # env.render("rgb_array")
-            # filename = f'{i}.png'
-            # filenames.append(filename)
-            # plt.savefig(filename)
-            # print(f"x:{x[:6]}")
-            # print(f"u:{u}\n")
-        xs = np.stack(xs)
-        us = np.stack(us)
-        rs = np.stack(rs)
-        times.append(ts)
-
-        if args["env_id"] == "pyth_lq":
-            env.seed(seed)
-            x, _ = env.reset()
-            xs_lqr = []
-            us_lqr= []
-            for i in sim_horizon:
-                u = -K @ x
-                xs_lqr.append(x)
-                us_lqr.append(u)
-                x, _, _, _ = env.step(u)
-            xs_lqr = np.stack(xs_lqr)
-            us_lqr = np.stack(us_lqr)
-
-            max_state_err = np.max(np.abs(xs - xs_lqr), axis=0) / (np.max(xs_lqr, axis=0) - np.min(xs_lqr, axis=0)) * 100
-            mean_state_err = np.mean(np.abs(xs - xs_lqr), axis=0) / (np.max(xs_lqr, axis=0) - np.min(xs_lqr, axis=0)) * 100
-            max_action_err = np.max(np.abs(us - us_lqr), axis=0) / (np.max(us_lqr, axis=0) - np.min(us_lqr, axis=0)) * 100
-            mean_action_err = np.mean(np.abs(us - us_lqr), axis=0) / (np.max(us_lqr, axis=0) - np.min(us_lqr, axis=0)) * 100
-            max_state_errs.append(max_state_err)
-            mean_state_errs.append(mean_state_err)
-            max_action_errs.append(max_action_err)
-            mean_action_errs.append(mean_action_err)
-
-    if args["env_id"] == "pyth_lq":
-        max_state_errs = np.stack(max_state_errs)
-        mean_state_errs = np.stack(mean_state_errs)
-        max_action_errs = np.stack(max_action_errs)
-        mean_action_errs = np.stack(mean_action_errs)
-
-    #=======state-timestep=======#
-    plt.figure()
-    for i in range(state_dim):
-        plt.subplot(state_dim, 1, i + 1)
-        plt.plot(sim_horizon, xs[:, i], label="mpc")
-        if args["env_id"] == "pyth_lq":
-            plt.plot(sim_horizon, xs_lqr[:, i], label="lqr")
-            print(f"State-{i+1} Max error: {round(max_state_err[i], 3)}%, Mean error: {round(mean_state_err[i], 3)}%")
-        plt.ylabel(f"State-{i+1}")
-    plt.legend()
-    plt.xlabel("Time Step")
-    if args["env_id"] == "pyth_lq":
-        plt.savefig(f"State-{args['env_id']}-{args['lq_config']}.png")
-    else:
-        plt.savefig(f"State-{args['env_id']}.png")
-
-    #=======action-timestep=======#
-    plt.figure()
-    for i in range(action_dim):
-        plt.subplot(action_dim, 1, i + 1)
-        plt.plot(sim_horizon[::ctrl_interval], us[::ctrl_interval, i], label="mpc")
-        if args["env_id"] == "pyth_lq":
-            plt.plot(sim_horizon, us_lqr[:, i], label="lqr")
-            print(f"Action-{i+1} Max error: {round(max_action_err[i], 3)}%, Mean error: {round(mean_action_err[i], 3)}%")
-        plt.ylabel(f"Action-{i+1}")
-    plt.legend()
-    plt.xlabel("Time Step")
-    if args["env_id"] == "pyth_lq":
-        plt.savefig(f"Action-{args['env_id']}-{args['lq_config']}.png")
-    else:
-        plt.savefig(f"Action-{args['env_id']}.png")
-
-    #=======reward-timestep=======#
-    plt.figure()
-    plt.plot(sim_horizon, rs, label="mpc")
-    plt.ylabel(f"Reward")
-    plt.legend()
-    plt.xlabel("Time Step")
-    if args["env_id"] == "pyth_lq":
-        plt.savefig(f"Reward-{args['env_id']}-{args['lq_config']}.png")
-    else:
-        plt.savefig(f"Reward-{args['env_id']}.png")
-    plt.close()
-
-    #=======MPC solving times=======#
-    plt.figure()
-    plt.boxplot(times, labels=num_pred_steps, showfliers=False)
-    plt.xlabel("num pred step")
-    plt.ylabel(f"Time (s)")
-    if args["env_id"] == "pyth_lq":
-        plt.savefig(f"MPC-solving-time-{args['env_id']}-{args['lq_config']}.png")
-    else:
-        plt.savefig(f"MPC-solving-time-{args['env_id']}.png")
-    plt.close()
-
-    #=======error-predstep=======#
-    if args["env_id"] == "pyth_lq":
-        plt.figure()
-        for i in range(state_dim):
-            plt.plot(num_pred_steps, max_state_errs[:, i], label=f"State-{i+1}")
-        plt.legend()
-        plt.xlabel("num pred step")
-        plt.ylabel(f"State Max error (%)")
-        plt.yscale ('log')
-        plt.savefig(f"State-max-err-{args['env_id']}-{args['lq_config']}.png")
-        plt.close()
-
-        plt.figure()
-        for i in range(action_dim):
-            plt.plot(num_pred_steps, max_action_errs[:, i], label=f"Action-{i+1}")
-        plt.legend()
-        plt.xlabel("num pred step")
-        plt.ylabel(f"Action Max error (%)")
-        plt.yscale ('log')
-        plt.savefig(f"Action-max-err-{args['env_id']}-{args['lq_config']}.png")
-        plt.close()
-
-        plt.figure()
-        for i in range(state_dim):
-            plt.plot(num_pred_steps, mean_state_errs[:, i], label=f"State-{i+1}")
-        plt.legend()
-        plt.xlabel("num pred step")
-        plt.ylabel(f"State Mean error (%)")
-        plt.yscale ('log')
-        plt.savefig(f"State-mean-err-{args['env_id']}-{args['lq_config']}.png")
-        plt.close()
-
-        plt.figure()
-        for i in range(action_dim):
-            plt.plot(num_pred_steps, mean_action_errs[:, i], label=f"Action-{i+1}")
-        plt.legend()
-        plt.xlabel("num pred step")
-        plt.ylabel(f"Action Mean error (%)")
-        plt.yscale ('log')
-        plt.savefig(f"Action-mean-err-{args['env_id']}-{args['lq_config']}.png")
-        plt.close()
-
-    with imageio.get_writer('mygif.gif', mode='I') as writer:
-        for filename in filenames:
-            image = imageio.imread(filename)
-            writer.append_data(image)
-    
-    for filename in set(filenames):
-        os.remove(filename)
