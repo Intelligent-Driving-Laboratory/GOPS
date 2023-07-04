@@ -16,7 +16,7 @@ import gym
 class idSimContextState(ContextState):
     light_param: stateType
     ref_index_param: stateType
-    real_t: int
+    real_t: torch.Tensor
 
 
 @dataclass
@@ -64,8 +64,8 @@ class idSimEnv(CrossRoad, Env):
                 constraint=idsim_context.p.sur_param,
                 light_param=idsim_context.p.light_param, 
                 ref_index_param=idsim_context.p.ref_index_param,
-                real_t = idsim_context.t,
-                t = idsim_context.i
+                real_t = torch.tensor(idsim_context.t).int(),
+                t = torch.tensor(idsim_context.i).int()
             )
         )
         self._state = idSimState.tensor2array(self._state)
@@ -73,6 +73,6 @@ class idSimEnv(CrossRoad, Env):
 
 def env_creator(**kwargs):
     """
-    make env `pyth_veh2dofconti`
+    make env `pyth_idsim`
     """
     return idSimEnv(kwargs["env_config"])

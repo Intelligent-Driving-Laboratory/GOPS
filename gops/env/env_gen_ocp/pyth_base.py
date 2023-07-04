@@ -14,7 +14,7 @@ stateType = TypeVar('stateType', np.ndarray, torch.Tensor)
 class ContextState(Generic[stateType]):
     reference: stateType
     constraint: stateType
-    t: int
+    t: torch.Tensor
 
     @staticmethod
     def array2tensor(context_state: 'ContextState[np.ndarray]') -> 'ContextState[torch.Tensor]':

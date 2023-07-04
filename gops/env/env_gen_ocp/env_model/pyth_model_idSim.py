@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 from gops.env.env_gen_ocp.env_model.pyth_model_base import RobotModel, ContextModel, EnvModel
 from gops.env.env_gen_ocp.pyth_idSim import idSimState, idSimContextState, idSimEnv
+from gops.env.env_gen_ocp.pyth_base import State
 
 import numpy as np
 import torch
@@ -71,16 +72,34 @@ class idSimEnvModel(EnvModel):
     # TODO: Distinguish state reward and action reward
     def get_reward(self, state: idSimState, action: torch.Tensor) -> torch.Tensor:
         next_state = self.get_next_state(state, action)
-        reward = self.idsim_model.reward(
-            self._get_idsimcontext(next_state),
-            action
-        )
-        return reward
+        rewards = []
+        for step in range(next_state.robot_state.shape[0]):
+            rewards.append(
+                self.idsim_model.reward(
+                    self._get_idsimcontext(
+                        State(
+                            robot_state = next_state.robot_state[step:step+1],
+                            context_state = idSimContextState(
+                                reference = next_state.context_state.reference[step:step+1],
+                                constraint = next_state.context_state.constraint[step:step+1],
+                                light_param = next_state.context_state.light_param[step:step+1],
+                                ref_index_param = next_state.context_state.ref_index_param[step:step+1],
+                                real_t = next_state.context_state.real_t[step:step+1],
+                                t = next_state.context_state.t[step:step+1],
+                            )
+                        )
+                    ),
+                    action[step:step+1]
+                )
+            )
+        return torch.concat(rewards, dim=0)
 
     def get_terminated(self, state: idSimState) -> torch.bool:
         raise NotImplementedError
     
     def _get_idsimcontext(self, state: idSimState) -> ModelContext:
+        if state.robot_state.shape[0] != 1:
+            raise ValueError("_get_idsimcontext only support batch size 1")
         context = ModelContext(
             x = ModelState(
                 ego_state = state.robot_state[..., :-4],
@@ -93,7 +112,7 @@ class idSimEnvModel(EnvModel):
                 light_param = state.context_state.light_param,
                 ref_index_param = state.context_state.ref_index_param
             ),
-            t = state.context_state.real_t, #
-            i = state.context_state.t #
+            t = int(state.context_state.real_t),
+            i = int(state.context_state.t)
         )
         return context
