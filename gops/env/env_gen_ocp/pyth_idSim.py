@@ -37,7 +37,8 @@ class idSimEnv(CrossRoad, Env):
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         obs, reward, terminated, truncated, info = super(idSimEnv, self).step(action)
         self._get_state_from_idsim()
-        return obs, reward, terminated, self._get_info()
+        done = terminated or truncated
+        return obs, reward, done, self._get_info()
 
     def _get_obs(self) -> np.ndarray:
         """abandon this function, use obs from idsim instead"""
