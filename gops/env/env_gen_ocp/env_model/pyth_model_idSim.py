@@ -8,9 +8,10 @@ import numpy as np
 import torch
 import copy
 
-from idsim_model.model import ModelContext, Parameter, IdSimModel
-from idsim_model.model import State as ModelState
-
+from idsim_model.model_context import ModelContext, Parameter
+from idsim_model.model_context import State as ModelState
+from idsim_model.model import IdSimModel
+from idsim_model.params import model_config
 
 @dataclass
 class FakeModelContext:
@@ -53,7 +54,8 @@ class idSimEnvModel(EnvModel):
             self,
             env: idSimEnv
     ):
-        self.idsim_model = IdSimModel(env)
+        model_config["ref_v_lane"] = env.config.ref_v
+        self.idsim_model = IdSimModel(env, model_config)
         self.robot_model = idSimRobotModel(idsim_model = self.idsim_model)
         self.context_model = idSimContextModel()
         self.StateClass = idSimState
@@ -63,56 +65,36 @@ class idSimEnvModel(EnvModel):
         self.action_lower_bound = torch.tensor(env.action_space.low, dtype=torch.float32)
         self.action_upper_bound = torch.tensor(env.action_space.high, dtype=torch.float32)
     
-    # def get_constraint(state: idSimState) -> torch.Tensor:
-    #     ...
-
     def get_obs(self, state: idSimState) -> torch.Tensor:
         return self.idsim_model.observe(self._get_idsimcontext(state))
         
-    # TODO: Distinguish state reward and action reward
     def get_reward(self, state: idSimState, action: torch.Tensor) -> torch.Tensor:
         next_state = self.get_next_state(state, action)
-        rewards = []
-        for step in range(next_state.robot_state.shape[0]):
-            rewards.append(
-                self.idsim_model.reward(
-                    self._get_idsimcontext(
-                        State(
-                            robot_state = next_state.robot_state[step:step+1],
-                            context_state = idSimContextState(
-                                reference = next_state.context_state.reference[step:step+1],
-                                constraint = next_state.context_state.constraint[step:step+1],
-                                light_param = next_state.context_state.light_param[step:step+1],
-                                ref_index_param = next_state.context_state.ref_index_param[step:step+1],
-                                real_t = next_state.context_state.real_t[step:step+1],
-                                t = next_state.context_state.t[step:step+1],
-                            )
-                        )
-                    ),
-                    action[step:step+1]
-                )
-            )
-        return torch.concat(rewards, dim=0)
+        rewards = self.idsim_model.reward_full_horizon(
+                    context_full = self._get_idsimcontext(next_state),
+                    last_last_action_full = next_state.robot_state[..., -4:-2], # absolute action
+                    last_action_full = next_state.robot_state[..., -2:], # absolute action
+                    action_full = action # incremental action
+                  )
+        return rewards[0]
 
     def get_terminated(self, state: idSimState) -> torch.bool:
         raise NotImplementedError
     
     def _get_idsimcontext(self, state: idSimState) -> ModelContext:
-        if state.robot_state.shape[0] != 1:
-            raise ValueError("_get_idsimcontext only support batch size 1")
         context = ModelContext(
             x = ModelState(
-                ego_state = state.robot_state[..., :-4],
-                last_last_action = state.robot_state[..., -4:-2],
-                last_action = state.robot_state[..., -2:]
+                ego_state = state.robot_state[..., :-4].unsqueeze(0),
+                last_last_action = state.robot_state[..., -4:-2].unsqueeze(0),
+                last_action = state.robot_state[..., -2:].unsqueeze(0)
             ),
             p = Parameter(
-                ref_param = state.context_state.reference,
-                sur_param = state.context_state.constraint,
-                light_param = state.context_state.light_param,
-                ref_index_param = state.context_state.ref_index_param
+                ref_param = state.context_state.reference.unsqueeze(0),
+                sur_param = state.context_state.constraint.unsqueeze(0),
+                light_param = state.context_state.light_param.unsqueeze(0),
+                ref_index_param = state.context_state.ref_index_param.unsqueeze(0)
             ),
-            t = int(state.context_state.real_t),
-            i = int(state.context_state.t)
+            t = state.context_state.real_t.unsqueeze(0),
+            i = state.context_state.t
         )
         return context
