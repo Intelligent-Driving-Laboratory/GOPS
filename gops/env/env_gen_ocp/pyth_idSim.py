@@ -1,22 +1,25 @@
 import pathlib
-from gops.env.env_gen_ocp.pyth_base import ContextState, State, Robot, Context, Env, stateType
-from idsim.envs.env import CrossRoad
-from idsim.config import Config
-from typing import Tuple
-from idsim_model.model import ModelContext
-from idsim.utils.fs import TEMP_ROOT
 from dataclasses import dataclass
-import torch
+from typing import Tuple
 
-import numpy as np
 import gym
+import numpy as np
+import torch
+from idsim.config import Config
+from idsim.envs.env import CrossRoad
+from idsim.utils.fs import TEMP_ROOT
+from idsim_model.model_context import ModelContext
+from idsim_model.params import model_config
+
+from gops.env.env_gen_ocp.pyth_base import (Context, ContextState, Env, Robot,
+                                            State, stateType)
 
 
 @dataclass
 class idSimContextState(ContextState):
     light_param: stateType
     ref_index_param: stateType
-    real_t: torch.Tensor
+    real_t: stateType
 
 
 @dataclass
@@ -53,7 +56,7 @@ class idSimEnv(CrossRoad, Env):
         ...
     
     def _get_state_from_idsim(self) -> State:
-        idsim_context = ModelContext.from_env(self)
+        idsim_context = ModelContext.from_env(self, model_config)
         self._state = idSimState(
             robot_state=torch.concat([
                 idsim_context.x.ego_state, 
