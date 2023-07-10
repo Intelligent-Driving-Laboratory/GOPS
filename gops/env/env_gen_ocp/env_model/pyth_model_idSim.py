@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Dict, Any
 from gops.env.env_gen_ocp.env_model.pyth_model_base import RobotModel, ContextModel, EnvModel
 from gops.env.env_gen_ocp.pyth_idSim import idSimState, idSimContextState, idSimEnv
 from gops.env.env_gen_ocp.pyth_base import State
@@ -11,7 +11,7 @@ import copy
 from idsim_model.model_context import ModelContext, Parameter
 from idsim_model.model_context import State as ModelState
 from idsim_model.model import IdSimModel
-from idsim_model.params import model_config
+
 
 @dataclass
 class FakeModelContext:
@@ -52,9 +52,9 @@ class idSimContextModel(ContextModel):
 class idSimEnvModel(EnvModel):
     def __init__(
             self,
-            env: idSimEnv
+            env: idSimEnv,
+            model_config: Dict[str, Any]
     ):
-        model_config["ref_v_lane"] = env.config.ref_v
         self.idsim_model = IdSimModel(env, model_config)
         self.robot_model = idSimRobotModel(idsim_model = self.idsim_model)
         self.context_model = idSimContextModel()
