@@ -72,8 +72,8 @@ class idSimEnvModel(EnvModel):
         next_state = self.get_next_state(state, action)
         rewards = self.idsim_model.reward_full_horizon(
                     context_full = self._get_idsimcontext(next_state),
-                    last_last_action_full = next_state.robot_state[..., -4:-2], # absolute action
-                    last_action_full = next_state.robot_state[..., -2:], # absolute action
+                    last_last_action_full = state.robot_state[..., -4:-2], # absolute action
+                    last_action_full = state.robot_state[..., -2:], # absolute action
                     action_full = action # incremental action
                   )
         return rewards[0]
