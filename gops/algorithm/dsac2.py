@@ -79,12 +79,11 @@ class DSAC2(AlgorithmBase):
 
     Paper: https://arxiv.org/pdf/2001.02811
 
-    :param int index: algorithm index.
     :param float gamma: discount factor.
     :param float tau: param for soft update of target network.
     :param bool auto_alpha: whether to adjust temperature automatically.
     :param float alpha: initial temperature.
-    :param float delay_update: the update delay of the policy network.
+    :param float delay_update: delay update steps for actor.
     :param Optional[float] target_entropy: target entropy for automatic
         temperature adjustment.
     """

@@ -75,13 +75,11 @@ class SPIL(AlgorithmBase):
 
     Paper: https://ieeexplore.ieee.org/document/9785377
 
-    :param int index: algorithm index.
     :param float gamma: discount factor.
     :param float tau: param for soft update of target network.
     :param int pev_step: initial policy evaluation step.
     :param int pim_step: initial policy improvement step.
     :param int forward_step: predictive step in virtual horizon.
-    :param float reward_scale: param for reward scale.
     """
 
     def __init__(
@@ -92,7 +90,6 @@ class SPIL(AlgorithmBase):
         pev_step: int = 1,
         pim_step: int = 1,
         forward_step: int = 25,
-        reward_scale: float = 0.02,
         **kwargs: Any,
     ):
         super().__init__(index, **kwargs)
@@ -103,7 +100,7 @@ class SPIL(AlgorithmBase):
         self.pev_step = pev_step
         self.pim_step = pim_step
         self.forward_step = forward_step
-        self.reward_scale = reward_scale
+        self.reward_scale = 1.0
 
         self.n_constraint = kwargs["constraint_dim"]
         self.delta_i = np.array([0.0] * kwargs["constraint_dim"])

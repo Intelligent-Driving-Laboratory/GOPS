@@ -68,11 +68,9 @@ class DQN(AlgorithmBase):
 
     Paper: https://doi.org/10.1038/nature14236
 
-    :param int index: algorithm index.
     Args:
-        learning_rate (float, optional): Q network learning rate. Defaults to 0.001.
-        gamma (float, optional): Discount factor. Defaults to 0.995.
-        tau (float, optional): Average factor. Defaults to 0.005.
+        gamma (float, optional): discount factor. Defaults to 0.99.
+        tau (float, optional): target network update rate. Defaults to 0.005.
     """
 
     def __init__(self, index=0, **kwargs):
@@ -85,7 +83,7 @@ class DQN(AlgorithmBase):
 
     @property
     def adjustable_parameters(self):
-        return ("gamma", "tau", "reward_scale")
+        return ("gamma", "tau")
 
     def set_parameters(self, param_dict):
         for key in param_dict:

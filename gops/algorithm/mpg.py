@@ -117,21 +117,18 @@ class MPG(AlgorithmBase):
         kappa: float = 0.5,
         gamma: float = 0.99,
         tau: float = 0.1,
-        reward_scale: float = 0.1,
         delay_update: int = 1,
         forward_step: int = 10,
         **kwargs,
     ) -> None:
         """
         Mixed Policy Gradient (MPG) algorithm.
-            :param: int index: for calculating offset of random seed for subprocess. Default to 0.
             :param: str pge_method: policy gradient estimation method, 'mixed_weight' or 'mixed_state'.
             :param: int terminal_iter: terminal iteration for change of lambda.
             :param: float eta: lambda increases from (1 - eta) to (1 + eta) balances data-driven PG and model-driven PG.
             :param: float kappa: threshold to distinguish between data backup and model backup.
             :param: float gamma: discount factor in reinforcement learning.
             :param: float tau: target update.
-            :param: float reward_scale: scale reward.
             :param: int delay_update: delay update of policy network.
             :param: int forward_step: forward step in calculating model return.
         """
@@ -147,7 +144,7 @@ class MPG(AlgorithmBase):
         self.gamma = gamma
         self.tau = tau
 
-        self.reward_scale = reward_scale
+        self.reward_scale = 1.0
         self.delay_update = delay_update
         self.forward_step = forward_step
 
@@ -157,7 +154,6 @@ class MPG(AlgorithmBase):
             "gamma",
             "tau",
             "delay_update",
-            "reward_scale",
             "terminal_iter",
             "eta",
         )

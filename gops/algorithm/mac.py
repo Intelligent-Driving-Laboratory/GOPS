@@ -89,6 +89,12 @@ class MAC(AlgorithmBase):
     """Mixed Actor Critic Algorithm (MAC) algorithm
 
     Paper:https://ieeexplore.ieee.org/document/9268413
+
+    :param float gamma: discount factor.
+    :param float tau: param for soft update of target network.
+    :param int pev_step: number of steps for policy evaluation.
+    :param int pim_step: number of steps for policy improvement.
+    :param int forward_step: envmodel forward step.
     """
 
     def __init__(self, index=0, **kwargs):
@@ -103,7 +109,7 @@ class MAC(AlgorithmBase):
         self.pev_step = 1
         self.pim_step = 1
         self.forward_step = 10
-        self.reward_scale = 0.1
+        self.reward_scale = 1
         self.tb_info = dict()
         self.delta = None
 
@@ -115,7 +121,6 @@ class MAC(AlgorithmBase):
             "pev_step",
             "pim_step",
             "forward_step",
-            "reward_scale",
         )
         return para_tuple
 

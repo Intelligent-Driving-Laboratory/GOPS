@@ -72,8 +72,10 @@ class DDPG(AlgorithmBase):
     Paper: https://arxiv.org/pdf/1509.02971.pdf
 
     Args:
-        int     index       : for calculating offset of random seed for subprocess. Default to 0.
         string  buffer_name : buffer type. Default to 'replay_buffer'.
+        float   gamma       : discount factor. Default to 0.99.
+        float   tau         : param for soft update of target network. Default to 0.005.
+        int     delay_update: delay update steps for actor. Default to 1.
     """
 
     def __init__(self, index=0, buffer_name="replay_buffer", **kwargs):
