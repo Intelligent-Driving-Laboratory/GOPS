@@ -1,4 +1,7 @@
 # GOPS (General Optimal control Problem Solver)
+
+[![Read the Docs](https://img.shields.io/readthedocs/gops)](https://gops.readthedocs.io/en/latest/)
+
 Copyright © 2022 Intelligent Driving Laboratory (iDLab). All rights reserved.
 
 ## Description
@@ -41,6 +44,9 @@ conda activate gops
 # install GOPS
 pip install -e .
 ```
+
+## Documentation
+The tutorials and API documentation are hosted on [gops.readthedocs.io](https://gops.readthedocs.io/en/latest/).
 
 ## Quick Start
 This is an example of running finite-horizon Approximate Dynamic Programming (FHADP) on inverted double pendulum environment. 
