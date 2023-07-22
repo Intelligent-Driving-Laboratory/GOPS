@@ -16,8 +16,13 @@ import json
 import os
 import torch
 import warnings
+from gym.spaces import Box, Discrete
+from gymnasium.vector import VectorEnv
+from gymnasium.spaces import Box as GymnasiumBox
+from gymnasium.spaces import Discrete as GymnasiumDiscrete
 
 from gops.utils.common_utils import change_type, seed_everything
+from gops.create_pkg.create_env import create_env
 
 
 def init_args(env, **args):
@@ -36,6 +41,11 @@ def init_args(env, **args):
         args["use_gpu"] = False
 
     # sampler
+    if isinstance(env, VectorEnv):
+        assert args["sample_batch_size"] % env.num_envs == 0, (
+            "sample_batch_size must be divisible by the number of environments"
+        )
+        env = create_env(**args)  # create a temporary single env for getting some attributes
     if args["trainer"] == "on_sync_trainer":
         args["batch_size_per_sampler"] = (
             args["sample_batch_size"] // args["num_samplers"]
@@ -57,8 +67,9 @@ def init_args(env, **args):
     else:
         args["obsv_dim"] = env.observation_space.shape
 
-    if args["action_type"] == "continu":
+    if isinstance(env.action_space, (Box, GymnasiumBox)):
         # get dimension of continuous action or num of discrete action
+        args["action_type"] = "continu"
         args["action_dim"] = (
             env.action_space.shape[0]
             if len(env.action_space.shape) == 1
@@ -66,7 +77,8 @@ def init_args(env, **args):
         )
         args["action_high_limit"] = env.action_space.high.astype("float32")
         args["action_low_limit"] = env.action_space.low.astype("float32")
-    else:
+    elif isinstance(env.action_space, (Discrete, GymnasiumDiscrete)):
+        args["action_type"] = "discret"
         args["action_dim"] = 1
         args["action_num"] = env.action_space.n
         args["noise_params"]["action_num"] = args["action_num"]
