@@ -10,198 +10,168 @@
 #  Update Date: 2022-10-20, Yuheng Lei: Revise Codes
 #  Update Date: 2021-03-10, Wenhan CAO: Revise Codes
 #  Update Date: 2021-03-05, Wenxuan Wang: add action clip
+#  Update Date: 2023-07-22, Zhilong Zheng: inherit from BaseSampler
 
 
-import time
+from typing import List
 
 import numpy as np
 import torch
 
-from gops.create_pkg.create_env import create_env
-from gops.utils.common_utils import set_seed
-from gops.utils.explore_noise import GaussNoise, EpsilonGreedy
-from gops.utils.tensorboard_setup import tb_tags
+from gops.trainer.sampler.base import BaseSampler, Experience
 
 
-class OnSampler:
-    def __init__(self, index=0, **kwargs):
-        # initialize necessary hyperparameters
-        self.env = create_env(**kwargs)
-        _, self.env = set_seed(kwargs["trainer"], kwargs["seed"], index + 200, self.env)
-        alg_name = kwargs["algorithm"]
-        alg_file_name = alg_name.lower()
-        file = __import__(alg_file_name)
-        ApproxContainer = getattr(file, "ApproxContainer")
-        self.networks = ApproxContainer(**kwargs)
-        self.noise_params = kwargs["noise_params"]
-        self.sample_batch_size = kwargs["batch_size_per_sampler"]
-        self.obs, self.info = self.env.reset()
-        self.has_render = hasattr(self.env, "render")
-        self.policy_func_name = kwargs["policy_func_name"]
-        self.action_type = kwargs["action_type"]
-        self.total_sample_number = 0
-        self.obs_dim = kwargs["obsv_dim"]
-        self.act_dim = kwargs["action_dim"]
-        self.gamma = 0.99
-        self.reward_scale = 1.0
-        if isinstance(self.obs_dim, int):
-            self.obs_dim = (self.obs_dim,)
-        self.mb_obs = np.zeros(
-            (self.sample_batch_size,) + self.obs_dim, dtype=np.float32
+class OnSampler(BaseSampler):
+    def __init__(
+        self, 
+        sample_batch_size,
+        index=0, 
+        action_type="continu",
+        noise_params=None,
+        **kwargs
+    ):
+        super().__init__(
+            sample_batch_size,
+            index, 
+            action_type,
+            noise_params,
+            **kwargs
         )
-        self.mb_act = np.zeros((self.sample_batch_size, self.act_dim), dtype=np.float32)
-        self.mb_rew = np.zeros(self.sample_batch_size, dtype=np.float32)
-        self.mb_done = np.zeros(self.sample_batch_size, dtype=np.bool_)
-        self.mb_tlim = np.zeros(self.sample_batch_size, dtype=np.bool_)
-        self.mb_logp = np.zeros(self.sample_batch_size, dtype=np.float32)
+        
+        alg_name = kwargs["algorithm"]
+        self.gamma = 0.99  #? why hard-coded?
+        if self._is_vector:
+            self.obs_dim = env.single_observation_space.shape
+            self.act_dim = env.single_action_space.shape
+        else:
+            self.obs_dim = env.observation_space.shape
+            self.act_dim = env.action_space.shape
+
+        self.mb_obs = np.zeros(
+            (self.num_envs, self.horizon, *self.obs_dim), dtype=np.float32
+        )
+        self.mb_act = np.zeros(
+            (self.num_envs, self.horizon, *self.act_dim), dtype=np.float32
+        )
+        self.mb_rew = np.zeros((self.num_envs, self.horizon), dtype=np.float32)
+        self.mb_done = np.zeros((self.num_envs, self.horizon), dtype=np.bool_)
+        self.mb_tlim = np.zeros((self.num_envs, self.horizon), dtype=np.bool_)
+        self.mb_logp = np.zeros((self.num_envs, self.horizon), dtype=np.float32)
         self.need_value_flag = not (alg_name == "FHADP" or alg_name == "INFADP")
         if self.need_value_flag:
             self.gae_lambda = 0.95
-            self.mb_val = np.zeros(self.sample_batch_size, dtype=np.float32)
-            self.mb_adv = np.zeros(self.sample_batch_size, dtype=np.float32)
-            self.mb_ret = np.zeros(self.sample_batch_size, dtype=np.float32)
+            self.mb_val = np.zeros((self.num_envs, self.horizon), dtype=np.float32)
+            self.mb_adv = np.zeros((self.num_envs, self.horizon), dtype=np.float32)
+            self.mb_ret = np.zeros((self.num_envs, self.horizon), dtype=np.float32)
         self.mb_info = {}
         self.info_keys = kwargs["additional_info"].keys()
         for k, v in kwargs["additional_info"].items():
             self.mb_info[k] = np.zeros(
-                (self.sample_batch_size, *v["shape"]), dtype=v["dtype"]
+                (self.num_envs, self.horizon, *v["shape"]), dtype=v["dtype"]
             )
             self.mb_info["next_" + k] = np.zeros(
-                (self.sample_batch_size, *v["shape"]), dtype=v["dtype"]
+                (self.num_envs, self.horizon, *v["shape"]), dtype=v["dtype"]
             )
-        if self.noise_params is not None:
-            if self.action_type == "continu":
-                self.noise_processor = GaussNoise(**self.noise_params)
-            elif self.action_type == "discret":
-                self.noise_processor = EpsilonGreedy(**self.noise_params)
 
-    def load_state_dict(self, state_dict):
-        self.networks.load_state_dict(state_dict)
+    def _sample(self) -> dict:
+        self.ptr = np.zeros(self.num_envs, dtype=np.int32)
+        self.last_ptr = np.zeros(self.num_envs, dtype=np.int32)
+        for t in range(self.horizon):
+            # batch_obs has shape (num_envs, obs_dim)
+            if not self._is_vector:
+                batch_obs = torch.from_numpy(
+                    np.expand_dims(self.obs, axis=0).astype("float32")
+                )
+            else:
+                batch_obs = torch.from_numpy(self.obs.astype("float32"))
+            # interact with environment
+            experiences = self._step()
+            self._process_experiences(experiences, batch_obs, t)
+
+        # wrap collected data into replay format
+        mb_data = {
+            "obs": torch.from_numpy(self.mb_obs.reshape(-1, *self.obs_dim)),
+            "act": torch.from_numpy(self.mb_act.reshape(-1, *self.act_dim)),
+            "rew": torch.from_numpy(self.mb_rew.reshape(-1)),
+            "done": torch.from_numpy(self.mb_done.reshape(-1)),
+            "logp": torch.from_numpy(self.mb_logp.reshape(-1)),
+            "time_limited": torch.from_numpy(self.mb_tlim.reshape(-1)),
+        }
+        if self.need_value_flag:
+            mb_data.update({
+                "ret": torch.from_numpy(self.mb_ret.reshape(-1)),   
+                "adv": torch.from_numpy(self.mb_adv.reshape(-1)),
+            })
+        for k, v in self.mb_info.items():
+            mb_data[k] = torch.from_numpy(v.reshape(-1, *v.shape[2:]))
+        return mb_data
 
     def sample_with_replay_format(self):
-        self.total_sample_number += self.sample_batch_size
-        tb_info = dict()
-        start_time = time.perf_counter()
-        last_ptr, ptr = 0, 0
-        for t in range(self.sample_batch_size):
-            # output action using behavior policy
-            obs_expand = torch.from_numpy(
-                np.expand_dims(self.obs, axis=0).astype("float32")
+        return self.sample()
+
+    def _process_experiences(
+        self, 
+        experiences: List[Experience],
+        batch_obs: np.ndarray, 
+        t: int
+    ):
+        if self.need_value_flag:
+            value = self.networks.value(batch_obs).detach()
+            self.mb_val[:, t] = value
+        
+        for i in np.arange(self.num_envs):
+            (
+                obs, 
+                action, 
+                reward, 
+                done, 
+                info, 
+                next_obs, 
+                next_info, 
+                logp,
+            ) = experiences[i]
+
+            (
+                self.mb_obs[i, t, ...],
+                self.mb_act[i, t, ...],
+                self.mb_rew[i, t],
+                self.mb_done[i, t],
+                self.mb_tlim[i, t],
+                self.mb_logp[i, t],
+            ) = (
+                obs,
+                action,
+                reward,
+                done,
+                next_info["TimeLimit.truncated"],
+                logp,
             )
-            logits = self.networks.policy(obs_expand)
-            action_distribution = self.networks.create_action_distributions(logits)
-            action, logp = action_distribution.sample()
-            action = action.detach()[0].numpy()
-            logp = logp.detach()[0].numpy()
-            if self.noise_params is not None:
-                action = self.noise_processor.sample(action)
-            # ensure action is array
-            action = np.array(action)
-            if self.action_type == "continu":
-                action_clip = action.clip(
-                    self.env.action_space.low, self.env.action_space.high
-                )
-            else:
-                action_clip = action
-            # interact with environment
-            next_obs, reward, self.done, next_info = self.env.step(action_clip)
-            if "TimeLimit.truncated" not in next_info.keys():
-                next_info["TimeLimit.truncated"] = False
-            if next_info["TimeLimit.truncated"]:
-                self.done = False
-            reward *= self.reward_scale
-            if self.need_value_flag:
-                value = self.networks.value(obs_expand).detach().item()
-                (
-                    self.mb_obs[t],
-                    self.mb_act[t],
-                    self.mb_rew[t],
-                    self.mb_done[t],
-                    self.mb_tlim[t],
-                    self.mb_logp[t],
-                    self.mb_val[t],
-                ) = (
-                    self.obs.copy(),
-                    action,
-                    reward,
-                    self.done,
-                    next_info["TimeLimit.truncated"],
-                    logp,
-                    value,
-                )
-            else:
-                (
-                    self.mb_obs[t],
-                    self.mb_act[t],
-                    self.mb_rew[t],
-                    self.mb_done[t],
-                    self.mb_tlim[t],
-                    self.mb_logp[t],
-                ) = (
-                    self.obs.copy(),
-                    action,
-                    reward,
-                    self.done,
-                    next_info["TimeLimit.truncated"],
-                    logp,
-                )
-            for k in self.info_keys:
-                self.mb_info[k][t] = self.info[k]
-                self.mb_info["next_" + k][t] = next_info[k]
-            self.obs = next_obs
-            self.info = next_info
-            if self.done or next_info["TimeLimit.truncated"]:
-                self.obs, self.info = self.env.reset()
+
+            for key in self.info_keys:
+                self.mb_info[key][i, t] = info[key]
+                self.mb_info["next_" + key][i, t] = next_info[key]
+
             # calculate value target (mb_ret) & gae (mb_adv)
             if (
-                self.done
+                done
                 or next_info["TimeLimit.truncated"]
-                or t == self.sample_batch_size - 1
+                or t == self.horizon - 1
             ) and self.need_value_flag:
                 last_obs_expand = torch.from_numpy(
                     np.expand_dims(next_obs, axis=0).astype("float32")
                 )
                 est_last_value = self.networks.value(
                     last_obs_expand
-                ).detach().item() * (1 - self.done)
-                ptr = t
-                self._finish_trajs(est_last_value, last_ptr, ptr)
-                last_ptr = t
-        end_time = time.perf_counter()
-        tb_info[tb_tags["sampler_time"]] = (end_time - start_time) * 1000
-        # wrap collected data into replay format
-        if self.need_value_flag:
-            mb_data = {
-                "obs": torch.from_numpy(self.mb_obs),
-                "act": torch.from_numpy(self.mb_act),
-                "rew": torch.from_numpy(self.mb_rew),
-                "done": torch.from_numpy(self.mb_done),
-                "logp": torch.from_numpy(self.mb_logp),
-                "time_limited": torch.from_numpy(self.mb_tlim),
-                "ret": torch.from_numpy(self.mb_ret),
-                "adv": torch.from_numpy(self.mb_adv),
-            }
-        else:
-            mb_data = {
-                "obs": torch.from_numpy(self.mb_obs),
-                "act": torch.from_numpy(self.mb_act),
-                "rew": torch.from_numpy(self.mb_rew),
-                "done": torch.from_numpy(self.mb_done),
-                "logp": torch.from_numpy(self.mb_logp),
-                "time_limited": torch.from_numpy(self.mb_tlim),
-            }
-        for k, v in self.mb_info.items():
-            mb_data[k] = torch.from_numpy(v)
-        return mb_data, tb_info
+                ).detach().item() * (1 - done)
+                self.ptr[i] = t
+                self._finish_trajs(i, est_last_value)
+                self.last_ptr[i] = self.ptr[i]
 
-    def get_total_sample_number(self):
-        return self.total_sample_number
-
-    def _finish_trajs(self, est_last_val: float, last_ptr: int, ptr: int):
+    def _finish_trajs(self, env_index: int, est_last_val: float):
         # calculate value target (mb_ret) & gae (mb_adv) whenever episode is finished
-        path_slice = slice(last_ptr, ptr + 1)
-        value_preds_slice = np.append(self.mb_val[path_slice], est_last_val)
-        rews_slice = self.mb_rew[path_slice]
+        path_slice = slice(self.last_ptr[env_index], self.ptr[env_index] + 1)
+        value_preds_slice = np.append(self.mb_val[env_index, path_slice], est_last_val)
+        rews_slice = self.mb_rew[env_index, path_slice]
         length = len(rews_slice)
         ret = np.zeros(length)
         adv = np.zeros(length)
@@ -215,5 +185,5 @@ class OnSampler:
             gae = delta + self.gamma * self.gae_lambda * gae
             ret[i] = gae + value_preds_slice[i]
             adv[i] = gae
-        self.mb_ret[path_slice] = ret
-        self.mb_adv[path_slice] = adv
+        self.mb_ret[env_index, path_slice] = ret
+        self.mb_adv[env_index, path_slice] = adv
