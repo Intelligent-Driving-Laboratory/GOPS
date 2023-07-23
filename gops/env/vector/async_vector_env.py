@@ -1,3 +1,15 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+
+#  Description: Create environments
+#  Update Date: 2023-07-23, Zheng Zhilong: add seed methods
+
+
 """An async vector environment."""
 import multiprocessing as mp
 import sys
@@ -28,7 +40,7 @@ from gymnasium.vector.utils import (
     read_from_shared_memory,
     write_to_shared_memory,
 )
-from gymnasium.vector.vector_env import VectorEnv
+from gops.env.vector.vector_env import VectorEnv
 
 
 __all__ = ["AsyncVectorEnv"]
@@ -39,6 +51,7 @@ class AsyncState(Enum):
     WAITING_RESET = "reset"
     WAITING_STEP = "step"
     WAITING_CALL = "call"
+    WAITING_SEED = "seed"
 
 
 class AsyncVectorEnv(VectorEnv):
@@ -168,6 +181,55 @@ class AsyncVectorEnv(VectorEnv):
 
         self._state = AsyncState.DEFAULT
         self._check_spaces()
+
+    def seed_async(self, seed: Optional[Union[int, Sequence[int]]] = None):
+        """Send calls to the :obj:`seed` methods of the sub-environments.
+
+        Args:
+            seed: The seed
+        """
+        if seed is None:
+            seed = [None for _ in range(self.num_envs)]
+        if isinstance(seed, int):
+            seed = [seed + i for i in range(self.num_envs)]
+        assert len(seed) == self.num_envs
+
+        if self._state != AsyncState.DEFAULT:
+            raise AlreadyPendingCallError(
+                f"Calling `seed_async` while waiting for a pending call to `{self._state.value}` to complete",
+                self._state.value,
+            )
+
+        for pipe, single_seed in zip(self.parent_pipes, seed):
+            pipe.send(("seed", single_seed))
+        self._state = AsyncState.WAITING_SEED
+
+    def seed_wait(self, timeout: Optional[float] = None):
+        """Wait for the calls to :obj:`seed` in each sub-environment to finish.
+
+        Args:
+            seed: The seed
+        """
+        self._assert_is_running()
+        if self._state != AsyncState.WAITING_SEED:
+            raise NoAsyncCallError(
+                "Calling `seed_wait` without any prior call " "to `seed_async`.",
+                AsyncState.WAITING_SEED.value,
+            )
+
+        if not self._poll(timeout):
+            self._state = AsyncState.DEFAULT
+            raise mp.TimeoutError(
+                f"The call to `seed_wait` has timed out after {timeout} second(s)."
+            )
+
+        successes = []
+        for pipe in self.parent_pipes:
+            _, success = pipe.recv()
+            successes.append(success)
+
+        self._raise_if_errors(successes)
+        self._state = AsyncState.DEFAULT
 
     def reset_async(
         self,

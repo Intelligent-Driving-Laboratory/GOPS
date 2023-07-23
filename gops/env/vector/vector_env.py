@@ -1,5 +1,17 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+
+#  Description: Create environments
+#  Update Date: 2023-07-23, Zheng Zhilong: add seed methods
+
+
 """Base class for vectorized environments."""
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -73,6 +85,31 @@ class VectorEnv(gym.Env):
         # kept in separate properties
         self.single_observation_space = observation_space
         self.single_action_space = action_space
+
+    def seed_async(self, seed: Optional[Union[int, Sequence[int]]] = None):
+        """Send calls to the :obj:`seed` methods of the sub-environments.
+
+        Args:
+            seed: The seed
+        """
+        pass
+
+    def seed_wait(self, **kwargs):
+        """Wait for the calls to :obj:`seed` in each sub-environment to finish.
+
+        Args:
+            seed: The seed
+        """
+        raise NotImplementedError()
+    
+    def seed(self, seed: Optional[Union[int, Sequence[int]]] = None):
+        """Set the seed for each sub-environment.
+
+        Args:
+            seed: The seed
+        """
+        self.seed_async(seed)
+        self.seed_wait()
 
     def reset_async(
         self,

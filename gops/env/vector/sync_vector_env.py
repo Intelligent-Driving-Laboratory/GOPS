@@ -1,3 +1,15 @@
+#  Copyright (c). All Rights Reserved.
+#  General Optimal control Problem Solver (GOPS)
+#  Intelligent Driving Lab(iDLab), Tsinghua University
+
+#  Creator: iDLab
+#  Lab Leader: Prof. Shengbo Eben Li
+#  Email: lisb04@gmail.com
+
+#  Description: Create environments
+#  Update Date: 2023-07-23, Yang Yujie: fix seed method
+
+
 """A synchronous vector environment."""
 from copy import deepcopy
 from typing import Any, Callable, Iterable, List, Optional, Sequence, Tuple, Union
@@ -8,7 +20,7 @@ from numpy.typing import NDArray
 from gymnasium import Env
 from gymnasium.spaces import Space
 from gymnasium.vector.utils import concatenate, create_empty_array, iterate
-from gymnasium.vector.vector_env import VectorEnv
+from gops.env.vector.vector_env import VectorEnv
 
 
 __all__ = ["SyncVectorEnv"]
@@ -78,7 +90,6 @@ class SyncVectorEnv(VectorEnv):
         Args:
             seed: The seed
         """
-        super().seed(seed=seed)
         if seed is None:
             seed = [None for _ in range(self.num_envs)]
         if isinstance(seed, int):
