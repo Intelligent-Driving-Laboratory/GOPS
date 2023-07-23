@@ -40,7 +40,6 @@ class BaseSampler(metaclass=ABCMeta):
         self, 
         sample_batch_size,
         index=0, 
-        action_type="continu",
         noise_params=None,
         **kwargs
     ):
@@ -62,7 +61,7 @@ class BaseSampler(metaclass=ABCMeta):
             self._is_vector = False
             self.num_envs = 1
             self.horizon = self.sample_batch_size
-        self.action_type = action_type
+        self.action_type = kwargs["action_type"]
         self.reward_scale = 1.0  #? why hard-coded?
         if self.noise_params is not None:
             if self.action_type == "continu":

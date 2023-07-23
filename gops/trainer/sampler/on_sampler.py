@@ -26,14 +26,12 @@ class OnSampler(BaseSampler):
         self, 
         sample_batch_size,
         index=0, 
-        action_type="continu",
         noise_params=None,
         **kwargs
     ):
         super().__init__(
             sample_batch_size,
             index, 
-            action_type,
             noise_params,
             **kwargs
         )
@@ -41,11 +39,11 @@ class OnSampler(BaseSampler):
         alg_name = kwargs["algorithm"]
         self.gamma = 0.99  #? why hard-coded?
         if self._is_vector:
-            self.obs_dim = env.single_observation_space.shape
-            self.act_dim = env.single_action_space.shape
+            self.obs_dim = self.env.single_observation_space.shape
+            self.act_dim = self.env.single_action_space.shape
         else:
-            self.obs_dim = env.observation_space.shape
-            self.act_dim = env.action_space.shape
+            self.obs_dim = self.env.observation_space.shape
+            self.act_dim = self.env.action_space.shape
 
         self.mb_obs = np.zeros(
             (self.num_envs, self.horizon, *self.obs_dim), dtype=np.float32

@@ -22,14 +22,12 @@ class OffSampler(BaseSampler):
         self, 
         sample_batch_size,
         index=0, 
-        action_type="continu",
         noise_params=None,
         **kwargs
     ):
         super().__init__(
             sample_batch_size,
             index, 
-            action_type,
             noise_params,
             **kwargs
         )
