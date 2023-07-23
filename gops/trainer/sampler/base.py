@@ -17,10 +17,10 @@ import time
 import numpy as np
 import torch
 
-from gymnasium.vector import VectorEnv
+from gops.create_pkg.create_env import create_env
+from gops.env.vector.vector_env import VectorEnv
 from gops.utils.common_utils import set_seed
 from gops.utils.explore_noise import GaussNoise, EpsilonGreedy
-from gops.create_pkg.create_env import create_env
 from gops.utils.tensorboard_setup import tb_tags
 
 
