@@ -17,10 +17,10 @@ import time
 import numpy as np
 import torch
 
-from gymnasium.vector import VectorEnv
+from gops.create_pkg.create_env import create_env
+from gops.env.vector.vector_env import VectorEnv
 from gops.utils.common_utils import set_seed
 from gops.utils.explore_noise import GaussNoise, EpsilonGreedy
-from gops.create_pkg.create_env import create_env
 from gops.utils.tensorboard_setup import tb_tags
 
 
@@ -40,7 +40,6 @@ class BaseSampler(metaclass=ABCMeta):
         self, 
         sample_batch_size,
         index=0, 
-        action_type="continu",
         noise_params=None,
         **kwargs
     ):
@@ -62,7 +61,7 @@ class BaseSampler(metaclass=ABCMeta):
             self._is_vector = False
             self.num_envs = 1
             self.horizon = self.sample_batch_size
-        self.action_type = action_type
+        self.action_type = kwargs["action_type"]
         self.reward_scale = 1.0  #? why hard-coded?
         if self.noise_params is not None:
             if self.action_type == "continu":

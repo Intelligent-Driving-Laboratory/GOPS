@@ -17,12 +17,10 @@ import os
 import torch
 import warnings
 from gym.spaces import Box, Discrete
-from gymnasium.vector import VectorEnv
 from gymnasium.spaces import Box as GymnasiumBox
 from gymnasium.spaces import Discrete as GymnasiumDiscrete
-
 from gops.utils.common_utils import change_type, seed_everything
-from gops.create_pkg.create_env import create_env
+
 
 
 def init_args(env, **args):
@@ -41,11 +39,6 @@ def init_args(env, **args):
         args["use_gpu"] = False
 
     # sampler
-    if isinstance(env, VectorEnv):
-        assert args["sample_batch_size"] % env.num_envs == 0, (
-            "sample_batch_size must be divisible by the number of environments"
-        )
-        env = create_env(**args)  # create a temporary single env for getting some attributes
     if args["trainer"] == "on_sync_trainer":
         args["batch_size_per_sampler"] = (
             args["sample_batch_size"] // args["num_samplers"]

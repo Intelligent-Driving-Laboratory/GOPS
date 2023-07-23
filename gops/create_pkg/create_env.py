@@ -9,10 +9,18 @@
 #  Description: Create environments
 #  Update Date: 2020-11-10, Yuhang Zhang: add create environments code
 
+from typing import Optional
+
+from gops.env.vector.sync_vector_env import SyncVectorEnv
+from gops.env.vector.async_vector_env import AsyncVectorEnv
 from gops.env.wrapper.wrapping_utils import wrapping_env
 
 
-def create_env(**kwargs):
+def create_env(
+    vector_env_num: Optional[int] = None,
+    vector_env_type: Optional[str] = None,
+    **kwargs,
+):
     env_name = kwargs["env_id"]
     try:
         file = __import__(env_name)
@@ -23,10 +31,8 @@ def create_env(**kwargs):
 
     if hasattr(file, "env_creator"):
         env_class = getattr(file, "env_creator")
-        env = env_class(**kwargs)
     elif hasattr(file, env_name_camel):
         env_class = getattr(file, env_name_camel)
-        env = env_class(**kwargs)
     else:
         print("Env name: ", env_name_camel)
         raise NotImplementedError("This environment is not properly defined")
@@ -40,17 +46,32 @@ def create_env(**kwargs):
     obs_noise_type = kwargs.get("obs_noise_type", None)
     obs_noise_data = kwargs.get("obs_noise_data", None)
     gym2gymnasium = kwargs.get("gym2gymnasium", False)
-    env = wrapping_env(
-        env=env,
-        max_episode_steps=max_episode_steps,
-        reward_shift=reward_shift,
-        reward_scale=reward_scale,
-        obs_shift=obs_shift,
-        obs_scale=obs_scale,
-        obs_noise_type=obs_noise_type,
-        obs_noise_data=obs_noise_data,
-        gym2gymnasium=gym2gymnasium,
-    )
+
+    def env_fn():
+        env = env_class(**kwargs)
+        env = wrapping_env(
+            env=env,
+            max_episode_steps=max_episode_steps,
+            reward_shift=reward_shift,
+            reward_scale=reward_scale,
+            obs_shift=obs_shift,
+            obs_scale=obs_scale,
+            obs_noise_type=obs_noise_type,
+            obs_noise_data=obs_noise_data,
+            gym2gymnasium=gym2gymnasium,
+        )
+        return env
+
+    if vector_env_num is None:
+        env = env_fn()
+    else:
+        env_fns = [env_fn] * vector_env_num
+        if vector_env_type == "sync":
+            env = SyncVectorEnv(env_fns)
+        elif vector_env_type == "async":
+            env = AsyncVectorEnv(env_fns)
+        else:
+            raise ValueError(f"Invalid vector_env_type {vector_env_type}!")
 
     print("Create environment successfully!")
     return env
