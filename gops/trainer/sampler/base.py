@@ -56,6 +56,9 @@ class BaseSampler(metaclass=ABCMeta):
         if isinstance(self.env, VectorEnv):
             self._is_vector = True
             self.num_envs = self.env.num_envs
+            assert self.sample_batch_size % self.num_envs == 0, (
+                "sample_batch_size must be divisible by the number of environments"
+            )
             self.horizon = self.sample_batch_size // self.num_envs
         else:
             self._is_vector = False
@@ -163,7 +166,7 @@ class BaseSampler(metaclass=ABCMeta):
         else:
             next_obs, reward, done, next_info = self.env.step(action_clip)
 
-            # TODO: deprecate this after change to gymnasium
+            # TODO: deprecate this after changing to gymnasium
             if "TimeLimit.truncated" not in next_info.keys():
                 next_info["TimeLimit.truncated"] = False
             if next_info["TimeLimit.truncated"]:
