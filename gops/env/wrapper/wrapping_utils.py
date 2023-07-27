@@ -10,6 +10,7 @@
 #  Update: 2022-10-27, Yujie Yang: create wrapping utils
 
 
+from gops.env.wrapper.gym2gymnasium import Gym2Gymnasium
 import numpy as np
 
 from gym.wrappers.time_limit import TimeLimit
@@ -53,6 +54,7 @@ def wrapping_env(
     action_scale: bool = True,
     min_action: Union[float, int, np.ndarray, list] = -1.0,
     max_action: Union[float, int, np.ndarray, list] = 1.0,
+    gym2gymnasium: bool = False,
 ):
     """Automatically wrap data type environment according to input arguments. Wrapper will not be used
         if all corresponding parameters are set to None.
@@ -99,6 +101,9 @@ def wrapping_env(
 
     if action_scale:
         env = ScaleActionData(env, min_action, max_action)
+    
+    if gym2gymnasium:
+        env = Gym2Gymnasium(env)
 
     return env
 

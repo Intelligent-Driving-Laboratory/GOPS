@@ -70,13 +70,13 @@ class ReplayBuffer:
     def store(
         self,
         obs: np.ndarray,
-        info: dict,
         act: np.ndarray,
         rew: float,
-        next_obs: np.ndarray,
         done: bool,
-        logp: np.ndarray,
+        info: dict,
+        next_obs: np.ndarray,
         next_info: dict,
+        logp: np.ndarray,
     ):
         self.buf["obs"][self.ptr] = obs
         self.buf["obs2"][self.ptr] = next_obs
