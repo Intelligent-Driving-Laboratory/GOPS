@@ -117,13 +117,12 @@ class FiniteHorizonFullPolicy(nn.Module, Action_Distribution):
 
     def __init__(self, **kwargs):
         super().__init__()
-        obs_dim = kwargs["obs_dim"] + 1
+        obs_dim = kwargs["obs_dim"]
         self.act_dim = kwargs["act_dim"]
         hidden_sizes = kwargs["hidden_sizes"]
         self.pre_horizon = kwargs["pre_horizon"]
         pi_sizes = [obs_dim] + list(hidden_sizes) + [self.act_dim * self.pre_horizon]
 
-        # pi_sizes = [obs_dim] + list(hidden_sizes) + [act_dim]
         self.pi = mlp(
             pi_sizes,
             get_activation_func(kwargs["hidden_activation"]),
@@ -133,28 +132,11 @@ class FiniteHorizonFullPolicy(nn.Module, Action_Distribution):
         self.register_buffer("act_low_lim", torch.from_numpy(kwargs["act_low_lim"]).float())
         self.action_distribution_cls = kwargs["action_distribution_cls"]
 
-    def forward(self, obs, virtual_t=1):
-        virtual_t = virtual_t * torch.ones(
-            size=[obs.shape[0], 1], dtype=torch.float32, device=obs.device
-        )
-        expand_obs = torch.cat((obs, virtual_t), 1)
+    def forward(self, obs):
+        return self.forward_all_policy(obs)[0, :]
 
-        actions = self.pi(expand_obs).reshape(obs.shape[0], self.pre_horizon, self.act_dim)
-
-        action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(
-            actions
-        ) + (self.act_high_lim + self.act_low_lim) / 2
-
-        return action[0, :]
-
-    def forward_all_policy(self, obs, virtual_t=1):
-        virtual_t = virtual_t * torch.ones(
-            size=[obs.shape[0], 1], dtype=torch.float32, device=obs.device
-        )
-        expand_obs = torch.cat((obs, virtual_t), 1)
-
-        actions = self.pi(expand_obs).reshape(obs.shape[0], self.pre_horizon, self.act_dim)
-
+    def forward_all_policy(self, obs):
+        actions = self.pi(obs).reshape(obs.shape[0], self.pre_horizon, self.act_dim)
         action = (self.act_high_lim - self.act_low_lim) / 2 * torch.tanh(actions) \
                  + (self.act_high_lim + self.act_low_lim) / 2
         return action
