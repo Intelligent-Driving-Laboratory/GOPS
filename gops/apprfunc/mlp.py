@@ -8,6 +8,7 @@
 #
 #  Description: Multilayer Perceptron (MLP)
 #  Update: 2021-03-05, Wenjun Zou: create MLP function
+#  Update: 2023-07-28, Jiaxin Gao: add FiniteHorizonFullPolicy function
 
 
 __all__ = [
