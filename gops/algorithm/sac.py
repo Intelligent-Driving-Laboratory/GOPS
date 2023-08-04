@@ -104,6 +104,9 @@ class SAC(AlgorithmBase):
             target_entropy = -kwargs["action_dim"]
         self.target_entropy = target_entropy
 
+    def get_approx_contrainer(self, **kwargs):
+        return ApproxContainer(**kwargs)
+    
     @property
     def adjustable_parameters(self):
         return ("gamma", "tau", "auto_alpha", "alpha", "target_entropy")

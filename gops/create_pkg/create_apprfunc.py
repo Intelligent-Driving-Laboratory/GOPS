@@ -9,31 +9,44 @@
 #  Description: Create approximate function module
 #  Update Date: 2020-12-26, Hao Sun: add create approximate function
 
+from dataclasses import dataclass, field
+from typing import Callable
 
-def create_apprfunc(**kwargs):
-    apprfunc_name = kwargs["apprfunc"]
-    apprfunc_file_name = apprfunc_name.lower()
-    try:
-        file = __import__(apprfunc_file_name)
-    except NotImplementedError:
-        raise NotImplementedError("This apprfunc does not exist")
 
-    name = formatter(kwargs["name"])
+from gops.create_pkg.base import Spec
 
-    if hasattr(file, name):
-        apprfunc_cls = getattr(file, name)
-        apprfunc = apprfunc_cls(**kwargs)
+
+def register(
+    id: str, entry_point: Callable, **kwargs,
+):
+    global registry
+
+    new_spec = Spec(id=id, entry_point=entry_point, **kwargs,)
+
+    if new_spec.id in registry:
+        print(f"Overriding apprfunc {new_spec.id} already in registry.")
+    registry[new_spec.id] = new_spec
+
+
+def create_alg(id: str, **kwargs,) -> object:
+    spec_ = registry.get(id)
+
+    if spec_ is None:
+        raise KeyError(f"No registered apprfunc with id: {id}")
+
+    _kwargs = spec_.kwargs.copy()
+    _kwargs.update(kwargs)
+
+    if callable(spec_.entry_point):
+        apprfunc_creator = spec_.entry_point
     else:
-        raise NotImplementedError("This apprfunc is not properly defined")
+        raise RuntimeError(f"{spec_.id} registered but entry_point is not specified")
+
+    if "seed" not in _kwargs or _kwargs["seed"] is None:
+        _kwargs["seed"] = 0
+    if "cnn_shared" not in _kwargs or _kwargs["cnn_shared"] is None:
+        _kwargs["cnn_shared"] = False
+
+    apprfunc = apprfunc_creator(**_kwargs)
+
     return apprfunc
-
-
-def formatter(src: str, firstUpper: bool = True):
-    arr = src.split("_")
-    res = ""
-    for i in arr:
-        res = res + i[0].upper() + i[1:]
-
-    if not firstUpper:
-        res = res[0].lower() + res[1:]
-    return res

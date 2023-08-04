@@ -9,39 +9,43 @@
 #  Description: Create trainers
 #  Update: 2021-03-05, Jiaxin Gao: create trainer module
 
+from typing import Callable, Dict, Union
 
-def create_trainer(alg, sampler, buffer, evaluator, **kwargs):
-    trainer_name = kwargs["trainer"]
-    try:
-        file = __import__(trainer_name)
-    except NotImplementedError:
-        raise NotImplementedError("This trainer does not exist")
 
-    trainer_name_camel = formatter(trainer_name)
+from gops.create_pkg.base import Spec
 
-    if hasattr(file, trainer_name_camel):
-        trainer_cls = getattr(file, trainer_name_camel)
-        if (
-            trainer_name == "off_serial_trainer"
-            or trainer_name == "off_async_trainer"
-            or trainer_name == "off_sync_trainer"
-            or trainer_name == "off_async_trainermix"
-        ):
-            trainer = trainer_cls(alg, sampler, buffer, evaluator, **kwargs)
-        elif trainer_name == "on_serial_trainer" or trainer_name == "on_sync_trainer":
-            trainer = trainer_cls(alg, sampler, evaluator, **kwargs)
+
+registry: Dict[str, Spec] = {}
+
+
+def register(
+    id: str, entry_point: Union[Callable, str], **kwargs,
+):
+    global registry
+
+    new_spec = Spec(id=id, entry_point=entry_point, **kwargs,)
+
+    if new_spec.id in registry:
+        print(f"Overriding trainer {new_spec.id} already in registry.")
+    registry[new_spec.id] = new_spec
+
+
+def create_trainer(id: str, algorithm_obj, sampler_obj, buffer_obj, evaluator_obj, **kwargs,) -> object:
+    spec_ = registry.get(id)
+
+    if spec_ is None:
+        raise KeyError(f"No registered trainer with id: {id}")
+
+    if callable(spec_.entry_point):
+        trainer_creator = spec_.entry_point
     else:
-        raise NotImplementedError("This trainer is not properly defined")
-    print("Create trainer successfully!")
+        raise RuntimeError(f"{spec_.id} registered but entry_point is not specified")
+
+    if spec_.id.startswith("off"):
+        trainer = trainer_creator(algorithm_obj, sampler_obj, buffer_obj, evaluator_obj, **kwargs)
+    elif spec_.id.startswith("on"):
+        trainer = trainer_creator(algorithm_obj, sampler_obj, evaluator_obj, **kwargs)
+    else:
+        raise RuntimeError(f"trainer {spec_.id} not recognized")
+
     return trainer
-
-
-def formatter(src: str, firstUpper: bool = True):
-    arr = src.split("_")
-    res = ""
-    for i in arr:
-        res = res + i[0].upper() + i[1:]
-
-    if not firstUpper:
-        res = res[0].lower() + res[1:]
-    return res

@@ -10,31 +10,39 @@
 #  Update Date: 2020-11-10, Yuhang Zhang: add create environments code
 
 from gops.env.wrapper.wrapping_utils import wrapping_model
+from gops.create_pkg.base import Spec
+from typing import Callable, Dict, Union
+
+registry: Dict[str, Spec] = {}
 
 
-def create_env_model(**kwargs):
-    env_model_name = kwargs["env_id"] + "_model"
-    try:
-        file = __import__(env_model_name)
-    except NotImplementedError:
-        raise NotImplementedError("This environment does not have differential model")
+def register(
+    id: str, entry_point: Union[Callable, str], max_episode_steps: Optional[int] = None, **kwargs,
+):
+    global registry
 
-    if "device" not in kwargs.keys():
-        if kwargs.get("use_gpu", False):
-            kwargs["device"] = "cuda"
-        else:
-            kwargs["device"] = "cpu"
+    new_spec = Spec(id=id, entry_point=entry_point, max_episode_steps=max_episode_steps, **kwargs,)
 
-    env_name_camel = formatter(env_model_name)
+    if new_spec.id in registry:
+        print(f"Overriding environment {new_spec.id} already in registry.")
+    registry[new_spec.id] = new_spec
 
-    if hasattr(file, "env_model_creator"):
-        env_model_class = getattr(file, "env_model_creator")
-        env_model = env_model_class(**kwargs)
-    elif hasattr(file, env_name_camel):
-        env_model_class = getattr(file, env_name_camel)
-        env_model = env_model_class(**kwargs)
+
+def create_env_model(id: str, **kwargs,) -> object:
+    spec_ = registry.get(id)
+
+    if spec_ is None:
+        raise KeyError(f"No registered env with id: {id}")
+
+    _kwargs = spec_.kwargs.copy()
+    _kwargs.update(kwargs)
+
+    if callable(spec_.entry_point):
+        env_creator = spec_.entry_point
     else:
-        raise NotImplementedError("This environment model is not properly defined")
+        raise RuntimeError(f"{spec_.id} registered but entry_point is not specified")
+
+    env_model = env_creator(**_kwargs)
 
     reward_scale = kwargs.get("reward_scale", None)
     reward_shift = kwargs.get("reward_shift", None)
@@ -53,17 +61,4 @@ def create_env_model(**kwargs):
         clip_action=clip_action,
         mask_at_done=mask_at_done,
     )
-    # Print("wrap_model with", reward_shift, reward_scale, obs_shift, obs_scale)
-    print("Create environment model successfully!")
     return env_model
-
-
-def formatter(src: str, firstUpper: bool = True):
-    arr = src.split("_")
-    res = ""
-    for i in arr:
-        res = res + i[0].upper() + i[1:]
-
-    if not firstUpper:
-        res = res[0].lower() + res[1:]
-    return res

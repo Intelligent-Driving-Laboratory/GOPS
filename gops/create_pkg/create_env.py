@@ -14,28 +14,43 @@ from typing import Optional
 from gops.env.vector.sync_vector_env import SyncVectorEnv
 from gops.env.vector.async_vector_env import AsyncVectorEnv
 from gops.env.wrapper.wrapping_utils import wrapping_env
+from typing import Callable, Dict, Union
+
+
+from gops.create_pkg.base import Spec
+
+
+registry: Dict[str, Spec] = {}
+
+
+def register(
+    id: str, entry_point: Union[Callable, str], max_episode_steps: Optional[int] = None, **kwargs,
+):
+    global registry
+
+    new_spec = Spec(id=id, entry_point=entry_point, max_episode_steps=max_episode_steps, **kwargs,)
+
+    if new_spec.id in registry:
+        print(f"Overriding environment {new_spec.id} already in registry.")
+    registry[new_spec.id] = new_spec
 
 
 def create_env(
-    vector_env_num: Optional[int] = None,
-    vector_env_type: Optional[str] = None,
-    **kwargs,
-):
-    env_name = kwargs["env_id"]
-    try:
-        file = __import__(env_name)
-    except NotImplementedError:
-        raise NotImplementedError("This environment does not exist")
+    id: str, vector_env_num: Optional[int] = None, vector_env_type: Optional[str] = None, **kwargs
+) -> object:
+    spec_ = registry.get(id)
 
-    env_name_camel = formatter(env_name)
+    if spec_ is None:
+        raise KeyError(f"No registered env with id: {id}")
 
-    if hasattr(file, "env_creator"):
-        env_class = getattr(file, "env_creator")
-    elif hasattr(file, env_name_camel):
-        env_class = getattr(file, env_name_camel)
+    _kwargs = spec_.kwargs.copy()
+    _kwargs.update(kwargs)
+
+    if callable(spec_.entry_point):
+        env_creator = spec_.entry_point
+
     else:
-        print("Env name: ", env_name_camel)
-        raise NotImplementedError("This environment is not properly defined")
+        raise RuntimeError(f"{spec_.id} registered but entry_point is not specified")
 
     # Wrapping the env
     max_episode_steps = kwargs.get("max_episode_steps", None)
@@ -48,7 +63,7 @@ def create_env(
     gym2gymnasium = kwargs.get("gym2gymnasium", False)
 
     def env_fn():
-        env = env_class(**kwargs)
+        env = env_creator(**kwargs)
         env = wrapping_env(
             env=env,
             max_episode_steps=max_episode_steps,
@@ -75,14 +90,3 @@ def create_env(
 
     print("Create environment successfully!")
     return env
-
-
-def formatter(src: str, firstUpper: bool = True):
-    arr = src.split("_")
-    res = ""
-    for i in arr:
-        res = res + i[0].upper() + i[1:]
-
-    if not firstUpper:
-        res = res[0].lower() + res[1:]
-    return res

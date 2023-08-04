@@ -12,47 +12,56 @@
 
 import importlib
 
+from typing import Callable, Dict, Union
 
-def create_sampler(**kwargs):
-    sampler_file_name = kwargs["sampler_name"].lower()
-    trainer = kwargs["trainer"]
-    try:
-        module = importlib.import_module("gops.trainer.sampler." + sampler_file_name)
-    except NotImplementedError:
-        raise NotImplementedError("This sampler does not exist")
-    sampler_name = formatter(sampler_file_name)
 
-    if hasattr(module, sampler_name):
-        sampler_cls = getattr(module, sampler_name)
-        if trainer == "off_serial_trainer" or trainer == "on_serial_trainer":
-            sampler = sampler_cls(**kwargs)
-        elif (
-            trainer == "off_async_trainer"
-            or trainer == "on_sync_trainer"
-            or trainer == "off_async_trainermix"
-            or trainer == "off_sync_trainer"
-        ):
-            import ray
+from gops.create_pkg.base import Spec
 
-            sampler = [
-                ray.remote(num_cpus=1)(sampler_cls).remote(index=idx, **kwargs)
-                for idx in range(kwargs["num_samplers"])
-            ]
-        else:
-            raise NotImplementedError("This trainer is not properly defined")
+
+registry: Dict[str, Spec] = {}
+
+
+def register(
+    id: str, entry_point: Union[Callable, str], **kwargs,
+):
+    global registry
+
+    new_spec = Spec(id=id, entry_point=entry_point, **kwargs,)
+
+    if new_spec.id in registry:
+        print(f"Overriding sampler {new_spec.id} already in registry.")
+    registry[new_spec.id] = new_spec
+
+
+def create_sampler(id: str, **kwargs,) -> object:
+    spec_ = registry.get(id)
+
+    if spec_ is None:
+        raise KeyError(f"No registered sampler with id: {id}")
+
+    _kwargs = spec_.kwargs.copy()
+    _kwargs.update(kwargs)
+
+    if callable(spec_.entry_point):
+        sampler_creator = spec_.entry_point
     else:
-        raise NotImplementedError("This sampler is not properly defined")
+        raise RuntimeError(f"{spec_.id} registered but entry_point is not specified")
 
-    print("Create sampler successfully!")
-    return sampler
+    trainer_name = _kwargs.get("trainer", None)
+    if trainer_name is None or trainer_name.startswith("off_serial") or trainer_name.startswith("on_serial"):
+        sam = sampler_creator(**_kwargs)
+    elif (
+        trainer_name.startswith("off_async")
+        or trainer_name.startswith("off_sync")
+        or trainer_name.startswith("on_sync")
+    ):
+        import ray
 
+        sam = [
+            ray.remote(num_cpus=1)(sampler_creator).remote(index=idx, **_kwargs)
+            for idx in range(_kwargs["num_samplers"])
+        ]
+    else:
+        raise RuntimeError(f"trainer {trainer_name} not recognized")
 
-def formatter(src: str, firstUpper: bool = True):
-    arr = src.split("_")
-    res = ""
-    for i in arr:
-        res = res + i[0].upper() + i[1:]
-
-    if not firstUpper:
-        res = res[0].lower() + res[1:]
-    return res
+    return sam
