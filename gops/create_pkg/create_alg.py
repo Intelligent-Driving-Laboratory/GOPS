@@ -14,29 +14,37 @@ from typing import Callable, Optional, Union, Dict
 import importlib
 import copy
 
-from gops.create_pkg.base import Spec
+
+@dataclass
+class Spec:
+    algorithm: str
+    entry_point: Callable
+
+    # Environment arguments
+    kwargs: dict = field(default_factory=dict)
 
 
 registry: Dict[str, Spec] = {}
 
 
 def register(
-    id: str, entry_point: Callable, **kwargs,
+    algorithm: str, entry_point: Callable, **kwargs,
 ):
     global registry
 
-    new_spec = Spec(id=id, entry_point=entry_point, **kwargs,)
+    new_spec = Spec(algorithm=algorithm, entry_point=entry_point, **kwargs,)
 
-    if new_spec.id in registry:
-        print(f"Overriding algorithm {new_spec.id} already in registry.")
-    registry[new_spec.id] = new_spec
+    # if new_spec.algorithm in registry:
+    #     print(f"Overriding algorithm {new_spec.algorithm} already in registry.")
+    registry[new_spec.algorithm] = new_spec
 
 
-def create_alg(id: str, **kwargs,) -> object:
-    spec_ = registry.get(id)
+def create_alg(**kwargs) -> object:
+    algorithm = kwargs["algorithm"]
+    spec_ = registry.get(algorithm)
 
     if spec_ is None:
-        raise KeyError(f"No registered algorithm with id: {id}")
+        raise KeyError(f"No registered algorithm with id: {algorithm}")
 
     _kwargs = spec_.kwargs.copy()
     _kwargs.update(kwargs)
@@ -44,7 +52,7 @@ def create_alg(id: str, **kwargs,) -> object:
     if callable(spec_.entry_point):
         algorithm_creator = spec_.entry_point
     else:
-        raise RuntimeError(f"{spec_.id} registered but entry_point is not specified")
+        raise RuntimeError(f"{spec_.algorithm} registered but entry_point is not specified")
 
     if "seed" not in _kwargs or _kwargs["seed"] is None:
         _kwargs["seed"] = 0
@@ -71,11 +79,11 @@ def create_alg(id: str, **kwargs,) -> object:
     return algo
 
 
-def create_approx_contrainer(id: str, **kwargs,) -> object:
-    spec_ = registry.get(id)
+def create_approx_contrainer(algorithm: str, **kwargs,) -> object:
+    spec_ = registry.get(algorithm)
 
     if spec_ is None:
-        raise KeyError(f"No registered algorithm with id: {id}")
+        raise KeyError(f"No registered algorithm with id: {algorithm}")
 
     _kwargs = spec_.kwargs.copy()
     _kwargs.update(kwargs)
@@ -83,7 +91,7 @@ def create_approx_contrainer(id: str, **kwargs,) -> object:
     if callable(spec_.entry_point):
         algorithm_creator = spec_.entry_point
     else:
-        raise RuntimeError(f"{spec_.id} registered but entry_point is not specified")
+        raise RuntimeError(f"{spec_.algorithm} registered but entry_point is not specified")
 
     if "seed" not in _kwargs or _kwargs["seed"] is None:
         _kwargs["seed"] = 0
@@ -94,6 +102,6 @@ def create_approx_contrainer(id: str, **kwargs,) -> object:
     if hasattr(algo, "approximator"):
         approx_contrainer = algo.get_approx_contrainer(**_kwargs)
     else:
-        raise RuntimeError(f"Algorithm `{id}` must have attr `get_approx_contrainer`")
+        raise RuntimeError(f"Algorithm `{algorithm}` must have attr `get_approx_contrainer`")
 
     return approx_contrainer

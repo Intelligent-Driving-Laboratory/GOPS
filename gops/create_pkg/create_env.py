@@ -15,33 +15,44 @@ from gops.env.vector.sync_vector_env import SyncVectorEnv
 from gops.env.vector.async_vector_env import AsyncVectorEnv
 from gops.env.wrapper.wrapping_utils import wrapping_env
 from typing import Callable, Dict, Union
+from dataclasses import dataclass, field
 
 
-from gops.create_pkg.base import Spec
+@dataclass
+class Spec:
+    env_id: str
+    entry_point: Callable
+
+    # Environment arguments
+    kwargs: dict = field(default_factory=dict)
 
 
 registry: Dict[str, Spec] = {}
 
 
+
 def register(
-    id: str, entry_point: Union[Callable, str], max_episode_steps: Optional[int] = None, **kwargs,
+    env_id: str, entry_point: Union[Callable, str], **kwargs,
 ):
     global registry
 
-    new_spec = Spec(id=id, entry_point=entry_point, max_episode_steps=max_episode_steps, **kwargs,)
+    new_spec = Spec(env_id=env_id, entry_point=entry_point, **kwargs,)
 
-    if new_spec.id in registry:
-        print(f"Overriding environment {new_spec.id} already in registry.")
-    registry[new_spec.id] = new_spec
+    # print(registry.keys())
+    # if new_spec.env_id in registry:
+    #     print(f"Overriding environment {new_spec.env_id} already in registry.")
+    
+    registry[new_spec.env_id] = new_spec
 
 
 def create_env(
-    id: str, vector_env_num: Optional[int] = None, vector_env_type: Optional[str] = None, **kwargs
+    vector_env_num: Optional[int] = None, vector_env_type: Optional[str] = None, **kwargs
 ) -> object:
-    spec_ = registry.get(id)
+    env_name = kwargs["env_id"]
+    spec_ = registry.get(env_name)
 
     if spec_ is None:
-        raise KeyError(f"No registered env with id: {id}")
+        raise KeyError(f"No registered env with id: {env_name}")
 
     _kwargs = spec_.kwargs.copy()
     _kwargs.update(kwargs)
@@ -50,7 +61,7 @@ def create_env(
         env_creator = spec_.entry_point
 
     else:
-        raise RuntimeError(f"{spec_.id} registered but entry_point is not specified")
+        raise RuntimeError(f"{spec_.env_id} registered but entry_point is not specified")
 
     # Wrapping the env
     max_episode_steps = kwargs.get("max_episode_steps", None)

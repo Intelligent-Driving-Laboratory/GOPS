@@ -13,31 +13,37 @@
 import importlib
 
 from typing import Callable, Dict, Union
+from dataclasses import dataclass, field
 
 
-from gops.create_pkg.base import Spec
+@dataclass
+class Spec:
+    sampler_name: str
+    entry_point: Callable
+
+    # Environment arguments
+    kwargs: dict = field(default_factory=dict)
 
 
 registry: Dict[str, Spec] = {}
 
 
 def register(
-    id: str, entry_point: Union[Callable, str], **kwargs,
+    sampler_name: str, entry_point: Union[Callable, str], **kwargs,
 ):
     global registry
 
-    new_spec = Spec(id=id, entry_point=entry_point, **kwargs,)
+    new_spec = Spec(sampler_name=sampler_name, entry_point=entry_point, **kwargs,)
 
-    if new_spec.id in registry:
-        print(f"Overriding sampler {new_spec.id} already in registry.")
-    registry[new_spec.id] = new_spec
+    registry[new_spec.sampler_name] = new_spec
 
 
-def create_sampler(id: str, **kwargs,) -> object:
-    spec_ = registry.get(id)
+def create_sampler(**kwargs,) -> object:
+    sampler_name = kwargs["sampler"]
+    spec_ = registry.get(sampler_name)
 
     if spec_ is None:
-        raise KeyError(f"No registered sampler with id: {id}")
+        raise KeyError(f"No registered sampler with id: {sampler_name}")
 
     _kwargs = spec_.kwargs.copy()
     _kwargs.update(kwargs)
@@ -45,7 +51,7 @@ def create_sampler(id: str, **kwargs,) -> object:
     if callable(spec_.entry_point):
         sampler_creator = spec_.entry_point
     else:
-        raise RuntimeError(f"{spec_.id} registered but entry_point is not specified")
+        raise RuntimeError(f"{spec_.sampler_name} registered but entry_point is not specified")
 
     trainer_name = _kwargs.get("trainer", None)
     if trainer_name is None or trainer_name.startswith("off_serial") or trainer_name.startswith("on_serial"):

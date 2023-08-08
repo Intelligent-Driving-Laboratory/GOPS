@@ -10,29 +10,39 @@
 #  Update Date: 2020-12-26, Hao Sun: add create approximate function
 
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import Callable, Dict
 
 
-from gops.create_pkg.base import Spec
+@dataclass
+class Spec:
+    apprfunc: str
+    name: str
+    entry_point: Callable
 
+    # Environment arguments
+    kwargs: dict = field(default_factory=dict)
+
+registry: Dict[str, Spec] = {}
 
 def register(
-    id: str, entry_point: Callable, **kwargs,
+    apprfunc: str, name: str, entry_point: Callable, **kwargs,
 ):
     global registry
 
-    new_spec = Spec(id=id, entry_point=entry_point, **kwargs,)
+    new_spec = Spec(apprfunc=apprfunc, entry_point=entry_point, name=name, **kwargs,)
 
-    if new_spec.id in registry:
-        print(f"Overriding apprfunc {new_spec.id} already in registry.")
-    registry[new_spec.id] = new_spec
+    # if new_spec.apprfunc in registry:
+    #     print(f"Overriding apprfunc {new_spec.apprfunc} - {new_spec.name} already in registry.")
+    registry[new_spec.apprfunc + "_" + new_spec.name] = new_spec
 
 
-def create_alg(id: str, **kwargs,) -> object:
-    spec_ = registry.get(id)
+def create_apprfunc(**kwargs) -> object:
+    apprfunc = kwargs["apprfunc"]
+    name = kwargs["name"]
+    spec_ = registry.get(apprfunc + "_" + name)
 
     if spec_ is None:
-        raise KeyError(f"No registered apprfunc with id: {id}")
+        raise KeyError(f"No registered apprfunc with id: {apprfunc}_{name}")
 
     _kwargs = spec_.kwargs.copy()
     _kwargs.update(kwargs)
@@ -40,12 +50,7 @@ def create_alg(id: str, **kwargs,) -> object:
     if callable(spec_.entry_point):
         apprfunc_creator = spec_.entry_point
     else:
-        raise RuntimeError(f"{spec_.id} registered but entry_point is not specified")
-
-    if "seed" not in _kwargs or _kwargs["seed"] is None:
-        _kwargs["seed"] = 0
-    if "cnn_shared" not in _kwargs or _kwargs["cnn_shared"] is None:
-        _kwargs["cnn_shared"] = False
+        raise RuntimeError(f"{spec_.apprfunc}-{spec_.name} registered but entry_point is not specified")
 
     apprfunc = apprfunc_creator(**_kwargs)
 

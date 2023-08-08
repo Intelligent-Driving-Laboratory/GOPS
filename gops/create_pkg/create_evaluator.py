@@ -10,34 +10,41 @@
 #  Update Date: 2020-11-10, Yang Guan: create evaluator module
 
 
-from ..trainer.evaluator import Evaluator
+from gops.trainer.evaluator import Evaluator
 
 from typing import Callable, Dict, Union
+from dataclasses import dataclass, field
 
 
-from gops.create_pkg.base import Spec
+@dataclass
+class Spec:
+    evaluator_name: str
+    entry_point: Callable
 
+    # Environment arguments
+    kwargs: dict = field(default_factory=dict)
 
 registry: Dict[str, Spec] = {}
 
 
 def register(
-    id: str, entry_point: Union[Callable, str], **kwargs,
+    evaluator_name: str, entry_point: Union[Callable, str], **kwargs,
 ):
     global registry
 
-    new_spec = Spec(id=id, entry_point=entry_point, **kwargs,)
+    new_spec = Spec(evaluator_name=evaluator_name, entry_point=entry_point, **kwargs,)
 
-    if new_spec.id in registry:
-        print(f"Overriding evaluator {new_spec.id} already in registry.")
-    registry[new_spec.id] = new_spec
+    # if new_spec.evaluator_name in registry:
+    #     print(f"Overriding evaluator {new_spec.evaluator_name} already in registry.")
+    registry[new_spec.evaluator_name] = new_spec
 
 
-def create_evaluator(id: str, **kwargs,) -> object:
-    spec_ = registry.get(id)
+def create_evaluator(**kwargs) -> object:
+    evaluator_name = kwargs["evaluator_name"]
+    spec_ = registry.get(evaluator_name)
 
     if spec_ is None:
-        raise KeyError(f"No registered evaluator with id: {id}")
+        raise KeyError(f"No registered evaluator with id: {evaluator_name}")
 
     _kwargs = spec_.kwargs.copy()
     _kwargs.update(kwargs)
@@ -45,7 +52,7 @@ def create_evaluator(id: str, **kwargs,) -> object:
     if callable(spec_.entry_point):
         evaluator_creator = spec_.entry_point
     else:
-        raise RuntimeError(f"{spec_.id} registered but entry_point is not specified")
+        raise RuntimeError(f"{spec_.evaluator_name} registered but entry_point is not specified")
 
     trainer_name = _kwargs.get("trainer", None)
     if trainer_name is None or trainer_name.startswith("on_serial") or trainer_name.startswith("off_serial"):

@@ -12,29 +12,36 @@
 from dataclasses import dataclass, field
 from typing import Callable, Dict, Union
 
+@dataclass
+class Spec:
+    buffer_name: str
+    entry_point: Callable
 
-from gops.create_pkg.base import Spec
+    # Environment arguments
+    kwargs: dict = field(default_factory=dict)
+
 
 registry: Dict[str, Spec] = {}
 
 
 def register(
-    id: str, entry_point: Callable, **kwargs,
+    buffer_name: str, entry_point: Callable, **kwargs,
 ):
     global registry
 
-    new_spec = Spec(id=id, entry_point=entry_point, **kwargs,)
+    new_spec = Spec(buffer_name=buffer_name, entry_point=entry_point, **kwargs,)
 
-    if new_spec.id in registry:
-        print(f"Overriding buffer {new_spec.id} already in registry.")
-    registry[new_spec.id] = new_spec
+    # if new_spec.buffer_name in registry:
+    #     print(f"Overriding buffer {new_spec.buffer_name} already in registry.")
+    registry[new_spec.buffer_name] = new_spec
 
 
-def create_buffer(id: str, **kwargs) -> object:
-    spec_ = registry.get(id)
+def create_buffer(**kwargs) -> object:
+    buffer_name = kwargs["buffer_name"]
+    spec_ = registry.get(buffer_name)
 
     if spec_ is None:
-        raise KeyError(f"No registered buffer with id: {id}")
+        raise KeyError(f"No registered buffer with id: {buffer_name}")
 
     _kwargs = spec_.kwargs.copy()
     _kwargs.update(kwargs)
@@ -43,10 +50,8 @@ def create_buffer(id: str, **kwargs) -> object:
         buffer_creator = spec_.entry_point
 
     else:
-        raise RuntimeError(f"{spec_.id} registered but entry_point is not specified")
+        raise RuntimeError(f"{spec_.buffer_name} registered but entry_point is not specified")
 
-    if "seed" not in _kwargs or _kwargs["seed"] is None:
-        _kwargs["seed"] = 0
     trainer_name = _kwargs.get("trainer", None)
     if trainer_name is None or trainer_name.startswith("on"):
         buf = None
