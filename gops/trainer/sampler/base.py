@@ -44,7 +44,7 @@ class BaseSampler(metaclass=ABCMeta):
         noise_params=None,
         **kwargs
     ):
-        self.env = create_env(kwargs["env_id"], **kwargs)
+        self.env = create_env(**kwargs)
         _, self.env = set_seed(kwargs["trainer"], kwargs["seed"], index + 200, self.env)  #? seed here?
         alg_name = kwargs["algorithm"]
         networks = create_approx_contrainer(id=alg_name, **kwargs)

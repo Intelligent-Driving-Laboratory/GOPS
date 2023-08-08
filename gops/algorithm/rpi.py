@@ -161,7 +161,7 @@ class RPI(AlgorithmBase):
             weight_decay=0,
         )
 
-    def get_approx_contrainer(self, **kwargs):
+    def get_approx_container(self, **kwargs):
         return ApproxContainer(**kwargs)
     
     # terminal condition for policy evaluation

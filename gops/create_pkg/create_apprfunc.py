@@ -37,7 +37,7 @@ def register(
 
 
 def create_apprfunc(**kwargs) -> object:
-    apprfunc = kwargs["apprfunc"]
+    apprfunc = kwargs["apprfunc"].lower()
     name = kwargs["name"]
     spec_ = registry.get(apprfunc + "_" + name)
 

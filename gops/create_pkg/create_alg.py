@@ -99,9 +99,9 @@ def create_approx_contrainer(algorithm: str, **kwargs,) -> object:
         _kwargs["cnn_shared"] = False
 
     algo = algorithm_creator(**_kwargs)
-    if hasattr(algo, "approximator"):
-        approx_contrainer = algo.get_approx_contrainer(**_kwargs)
+    if hasattr(algo, "get_approx_container"):
+        approx_contrainer = algo.get_approx_container(**_kwargs)
     else:
-        raise RuntimeError(f"Algorithm `{algorithm}` must have attr `get_approx_contrainer`")
+        raise RuntimeError(f"Algorithm `{algorithm}` must have attr `get_approx_container`")
 
     return approx_contrainer

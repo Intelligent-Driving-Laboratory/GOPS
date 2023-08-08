@@ -148,7 +148,7 @@ class MPG(AlgorithmBase):
         self.delay_update = delay_update
         self.forward_step = forward_step
 
-    def get_approx_contrainer(self, **kwargs):
+    def get_approx_container(self, **kwargs):
         return ApproxContainer(**kwargs)
     
     @property

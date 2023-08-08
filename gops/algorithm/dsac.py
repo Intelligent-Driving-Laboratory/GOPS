@@ -98,7 +98,7 @@ class DSAC(AlgorithmBase):
         self.bound = kwargs["bound"]
         self.delay_update = kwargs["delay_update"]
 
-    def get_approx_contrainer(self, **kwargs):
+    def get_approx_container(self, **kwargs):
         return ApproxContainer(**kwargs)
     
     @property

@@ -62,7 +62,7 @@ class FHADP2(AlgorithmBase):
         self.gamma = 1.0
         self.tb_info = dict()
 
-    def get_approx_contrainer(self, **kwargs):
+    def get_approx_container(self, **kwargs):
         return ApproxContainer(**kwargs)
     
     @property

@@ -46,7 +46,7 @@ def register(
 
 
 def create_env(
-    vector_env_num: Optional[int] = None, vector_env_type: Optional[str] = None, **kwargs
+    *, vector_env_num: Optional[int] = None, vector_env_type: Optional[str] = None, **kwargs
 ) -> object:
     env_name = kwargs["env_id"]
     spec_ = registry.get(env_name)

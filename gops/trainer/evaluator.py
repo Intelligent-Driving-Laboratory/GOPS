@@ -23,7 +23,7 @@ class Evaluator:
             "gym2gymnasium": False,
             "vector_env_num": None,
         })
-        self.env = create_env(kwargs["env_id"], **kwargs)
+        self.env = create_env(**kwargs)
 
         _, self.env = set_seed(kwargs["trainer"], kwargs["seed"], index + 400, self.env)
 

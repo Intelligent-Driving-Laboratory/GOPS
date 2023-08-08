@@ -39,7 +39,7 @@ def register(
 
 
 def create_sampler(**kwargs,) -> object:
-    sampler_name = kwargs["sampler"]
+    sampler_name = kwargs["sampler_name"]
     spec_ = registry.get(sampler_name)
 
     if spec_ is None:
