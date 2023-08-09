@@ -54,10 +54,9 @@ class idSimEnv(CrossRoad, Env):
         super(idSimEnv, self).__init__(env_config)
         self.model_config = model_config
         self._state = None
-        #  TODO: add info dict
-        # self.info_dict = {
-        #     "state": self.get_zero_state,
-        # }
+        self.info_dict = {
+            "state": self.get_zero_state,
+        }
     
     def reset(self) -> Tuple[np.ndarray, dict]:
         obs, info = super(idSimEnv, self).reset()

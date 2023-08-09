@@ -50,12 +50,16 @@ class ReplayBuffer:
         }
         self.additional_info = kwargs["additional_info"]
         for k, v in self.additional_info.items():
-            self.buf[k] = np.zeros(
-                combined_shape(self.max_size, v["shape"]), dtype=v["dtype"]
-            )
-            self.buf["next_" + k] = np.zeros(
-                combined_shape(self.max_size, v["shape"]), dtype=v["dtype"]
-            )
+            if isinstance(v, dict):
+                self.buf[k] = np.zeros(
+                    combined_shape(self.max_size, v["shape"]), dtype=v["dtype"]
+                )
+                self.buf["next_" + k] = np.zeros(
+                    combined_shape(self.max_size, v["shape"]), dtype=v["dtype"]
+                )
+            else:
+                self.buf[k] = v.get_zero_state(self.max_size)
+                self.buf[k] = v.get_zero_state(self.max_size)
         self.ptr, self.size, = (
             0,
             0,
