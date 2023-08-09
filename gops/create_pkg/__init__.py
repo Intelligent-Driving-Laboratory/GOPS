@@ -35,17 +35,22 @@ env_matlab_model_path = os.path.join(env_matlab_path, "env_model")
 env_ocp_path = os.path.join(env_path, "env_ocp")
 env_ocp_model_path = os.path.join(env_ocp_path, "env_model")
 
+env_genocp_path = os.path.join(env_path, "env_gen_ocp")
+env_genocp_model_path = os.path.join(env_genocp_path, "env_model")
+
 sys.path.append(env_path)
 
 sys.path.append(env_pyth_path)
 sys.path.append(env_gym_path)
 sys.path.append(env_matlab_path)
 sys.path.append(env_ocp_path)
+sys.path.append(env_genocp_path)
 
 sys.path.append(env_pyth_model_path)
 sys.path.append(env_gym_model_path)
 sys.path.append(env_matlab_model_path)
 sys.path.append(env_ocp_model_path)
+sys.path.append(env_genocp_model_path)
 
 # Add algorithm file to sys path
 alg_file = "algorithm"

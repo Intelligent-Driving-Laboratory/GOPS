@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
-from gops.env.env_gen_ocp.env_model.pyth_model_base import RobotModel, ContextModel, EnvModel
-from gops.env.env_gen_ocp.pyth_idSim import idSimState, idSimContextState, idSimEnv
+from gops.env.env_gen_ocp.env_model.pyth_base_model import RobotModel, ContextModel, EnvModel
+from gops.env.env_gen_ocp.pyth_idsim import idSimState, idSimContextState, idSimEnv
 from gops.env.env_gen_ocp.pyth_base import State
 
 import numpy as np
@@ -52,9 +52,10 @@ class idSimContextModel(ContextModel):
 class idSimEnvModel(EnvModel):
     def __init__(
             self,
-            env: idSimEnv,
-            model_config: Dict[str, Any]
+            **kwargs: Any,
     ):
+        env = kwargs["env"]
+        model_config = env.model_config
         self.idsim_model = IdSimModel(env, model_config)
         self.robot_model = idSimRobotModel(idsim_model = self.idsim_model)
         self.context_model = idSimContextModel()
@@ -98,3 +99,10 @@ class idSimEnvModel(EnvModel):
             i = state.context_state.t
         )
         return context
+
+
+def env_model_creator(**kwargs):
+    """
+    make env model `pyth_idsim_model`
+    """
+    return idSimEnvModel(**kwargs)
