@@ -4,7 +4,6 @@ from typing import Tuple, Dict, Any, Type
 from copy import deepcopy
 from pathlib import Path
 
-import gym
 import numpy as np
 import torch
 from idsim.config import Config
@@ -127,8 +126,7 @@ def env_creator(**kwargs):
     """
     env_config = deepcopy(kwargs["env_config"])
     if 'scenario_root' in env_config:
-        env_config['scenario_root'] = Path('/home/taoletian/set-multi-lane-diff-vel/idsim-scenarios-train')
-        # env_config['scenario_root'] = Path(env_config['scenario_root'])
+        env_config['scenario_root'] = Path(env_config['scenario_root'])
     env_config = Config.from_partial_dict(env_config)
     if "env_model_config" in kwargs.keys():
         model_config = kwargs["env_model_config"]

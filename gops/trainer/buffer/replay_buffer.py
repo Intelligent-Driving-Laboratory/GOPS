@@ -102,5 +102,8 @@ class ReplayBuffer:
         idxs = np.random.randint(0, self.size, size=batch_size)
         batch = {}
         for k, v in self.buf.items():
-            batch[k] = v[idxs]
-        return {k: torch.as_tensor(v, dtype=torch.float32) for k, v in batch.items()}
+            if k in self.additional_info.keys() and (not isinstance(self.additional_info[k], dict)):
+                batch[k] = self.additional_info[k].array2tensor(v[idxs])
+            else:
+                batch[k] = torch.as_tensor(v[idxs], dtype=torch.float32)
+        return batch
