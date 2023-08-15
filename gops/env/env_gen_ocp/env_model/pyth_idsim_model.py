@@ -1,14 +1,13 @@
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
+from typing import Optional, Any, Union
 from gops.env.env_gen_ocp.env_model.pyth_base_model import RobotModel, ContextModel, EnvModel
-from gops.env.env_gen_ocp.pyth_idsim import idSimState, idSimContextState, idSimEnv
+from gops.env.env_gen_ocp.pyth_idsim import idSimState, idSimContextState, idSimEnv, get_idsimcontext
 from gops.env.env_gen_ocp.pyth_base import State
 
 import numpy as np
 import torch
 import copy
 
-from idsim_model.model_context import ModelContext, Parameter
 from idsim_model.model_context import State as ModelState
 from idsim_model.model import IdSimModel
 
@@ -52,53 +51,59 @@ class idSimContextModel(ContextModel):
 class idSimEnvModel(EnvModel):
     def __init__(
             self,
+            env: idSimEnv,
+            device: Union[torch.device, str, None] = None,
             **kwargs: Any,
     ):
-        env = kwargs["env"]
+        super().__init__(
+            obs_dim = env.observation_space.shape[0],
+            action_dim = env.action_space.shape[0],
+            action_lower_bound = env.action_space.low,
+            action_upper_bound = env.action_space.high,
+            device = device,
+            dt = env.config.dt,
+        )
         model_config = env.model_config
         self.idsim_model = IdSimModel(env, model_config)
         self.robot_model = idSimRobotModel(idsim_model = self.idsim_model)
         self.context_model = idSimContextModel()
         self.StateClass = idSimState
 
-        self.dt = env.config.dt
-        self.action_dim = env.action_space.shape[0]
-        self.action_lower_bound = torch.tensor(env.action_space.low, dtype=torch.float32)
-        self.action_upper_bound = torch.tensor(env.action_space.high, dtype=torch.float32)
-    
     def get_obs(self, state: idSimState) -> torch.Tensor:
-        return self.idsim_model.observe(self._get_idsimcontext(state))
+        return self.idsim_model.observe(get_idsimcontext(state, mode = 'batch'))
         
-    def get_reward(self, state: idSimState, action: torch.Tensor) -> torch.Tensor:
+    def get_reward(self, state: idSimState, action: torch.Tensor, mode: str = "full_horizon") -> torch.Tensor:
         next_state = self.get_next_state(state, action)
-        rewards = self.idsim_model.reward_full_horizon(
-                    context_full = self._get_idsimcontext(next_state),
-                    last_last_action_full = state.robot_state[..., -4:-2], # absolute action
-                    last_action_full = state.robot_state[..., -2:], # absolute action
-                    action_full = action # incremental action
-                  )
+        if mode == "full_horizon":
+            rewards = self.idsim_model.reward_full_horizon(
+                context_full = get_idsimcontext(next_state, mode = mode),
+                last_last_action_full = state.robot_state[..., -4:-2], # absolute action
+                last_action_full = state.robot_state[..., -2:], # absolute action
+                action_full = action # incremental action
+            )
+        else:
+            rewards = self.idsim_model.reward_nn_state(
+                context = get_idsimcontext(next_state, mode = mode),
+                last_last_action = state.robot_state[..., -4:-2], # absolute action
+                last_action = state.robot_state[..., -2:], # absolute action
+                action = action # incremental action
+            )
         return rewards[0]
 
     def get_terminated(self, state: idSimState) -> torch.bool:
-        raise NotImplementedError
+        # TODO: temporary implementation
+        # only support batched state
+        return torch.ones(state.robot_state.shape[0], dtype=torch.bool)
     
-    def _get_idsimcontext(self, state: idSimState) -> ModelContext:
-        context = ModelContext(
-            x = ModelState(
-                ego_state = state.robot_state[..., :-4].unsqueeze(0),
-                last_last_action = state.robot_state[..., -4:-2].unsqueeze(0),
-                last_action = state.robot_state[..., -2:].unsqueeze(0)
-            ),
-            p = Parameter(
-                ref_param = state.context_state.reference.unsqueeze(0),
-                sur_param = state.context_state.constraint.unsqueeze(0),
-                light_param = state.context_state.light_param.unsqueeze(0),
-                ref_index_param = state.context_state.ref_index_param.unsqueeze(0)
-            ),
-            t = state.context_state.real_t.unsqueeze(0),
-            i = state.context_state.t
-        )
-        return context
+    def forward(self, obs, action, done, info):
+        state = info["state"]
+        next_state = self.get_next_state(state, action)
+        next_obs = self.get_obs(next_state)
+        reward = self.get_reward(state, action, mode = "batch")
+        terminated = self.get_terminated(state)
+        next_info = {}
+        next_info["state"] = next_state
+        return next_obs, reward, terminated, info
 
 
 def env_model_creator(**kwargs):
