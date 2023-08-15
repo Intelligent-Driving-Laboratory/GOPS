@@ -767,6 +767,8 @@ class PolicyRunner:
         for i in range(self.policy_num):
             log_policy_dir = self.log_policy_dir_list[i]
             args = self.__load_args(log_policy_dir)
+            args['vector_env_num'] = None
+            args['gym2gymnasium'] = False
             self.args_list.append(args)
             env_id = args["env_id"]
             self.env_id_list.append(env_id)

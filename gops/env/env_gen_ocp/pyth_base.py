@@ -38,8 +38,8 @@ class ContextState(Generic[stateType]):
                 values.append(np.stack([getattr(context_state, field.name) for context_state in context_states]))
             elif isinstance(getattr(context_states[0], field.name), torch.Tensor):
                 values.append(torch.stack([getattr(context_state, field.name) for context_state in context_states]))
-            else:
-                values.append(getattr(context_states[0], field.name))
+            # else:
+            #     values.append(getattr(context_states[0], field.name))
         return cls(*values)
     
     @classmethod
@@ -50,9 +50,23 @@ class ContextState(Generic[stateType]):
                 values.append(np.concatenate([getattr(context_state, field.name) for context_state in context_states], axis=dim))
             elif isinstance(getattr(context_states[0], field.name), torch.Tensor):
                 values.append(torch.concat([getattr(context_state, field.name) for context_state in context_states], dim=dim))
-            else:
-                values.append(getattr(context_states[0], field.name))
+            # else:
+            #     values.append(getattr(context_states[0], field.name))
         return cls(*values)
+    
+    def  __getitem__(self, index):
+        try:
+            value = []
+            for field in fields(self):
+                value.append(getattr(self, field.name)[index])
+            return self.__class__(*value)
+        except IndexError: "ContextState cannot be indexed or index out of range!"
+
+    def __setitem__(self, index, value):
+        try:
+            for field in fields(self):
+                getattr(self, field.name)[index] = getattr(value, field.name)
+        except IndexError: "ContextState cannot be indexed or index out of range!"
     
 
 @dataclass
@@ -93,7 +107,26 @@ class State(Generic[stateType]):
             robot_states = torch.concat([state.robot_state for state in states], dim=dim)
         context_states = cls.CONTEXT_STATE_TYPE.concat([state.context_state for state in states], dim=dim)
         return cls(robot_states, context_states)
+    
+    def __getitem__(self, index):
+        try:
+            return State(
+                robot_state=self.robot_state[index],
+                context_state=self.context_state[index]
+            )
+        except IndexError: "State cannot be indexed or index out of range!"
 
+    def __setitem__(self, index, value):
+        try:
+            self.robot_state[index] = value.robot_state
+            self.context_state[index] = value.context_state
+        except IndexError: "State cannot be indexed or index out of range!"
+
+    def __len__(self):
+        if self.robot_state.ndim == 1:
+            return 1
+        else:
+            return self.robot_state.shape[0]
 
 class Robot(metaclass=ABCMeta):
     def __init__(
@@ -112,7 +145,11 @@ class Robot(metaclass=ABCMeta):
     @abstractmethod
     def step(self, action: np.ndarray) -> None:
         ...
+
+    def get_zero_state(self, batch_size) -> np.ndarray:
+        return self.robot_state_space.sample((batch_size,))
     
+
 # TODO: Static constraint value
 class Context(metaclass=ABCMeta):
     def __init__(
@@ -130,6 +167,9 @@ class Context(metaclass=ABCMeta):
     @abstractmethod
     def step(self, action: np.ndarray) -> None:
         ...
+
+    def get_zero_state(self, batch_size) -> np.ndarray:
+        return self.context_state_space.sample((batch_size,))
 
 
 class Env(gym.Env, metaclass=ABCMeta):
@@ -215,3 +255,9 @@ class Env(gym.Env, metaclass=ABCMeta):
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
+    
+    def get_zero_state(self, batch_size) -> State[np.ndarray]:
+        return State(
+            robot_state=self.robot.get_zero_state(batch_size),
+            context_state=self.context.get_zero_state(batch_size)
+        )

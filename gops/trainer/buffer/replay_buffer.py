@@ -50,12 +50,16 @@ class ReplayBuffer:
         }
         self.additional_info = kwargs["additional_info"]
         for k, v in self.additional_info.items():
-            self.buf[k] = np.zeros(
-                combined_shape(self.max_size, v["shape"]), dtype=v["dtype"]
-            )
-            self.buf["next_" + k] = np.zeros(
-                combined_shape(self.max_size, v["shape"]), dtype=v["dtype"]
-            )
+            if isinstance(v, dict):
+                self.buf[k] = np.zeros(
+                    combined_shape(self.max_size, v["shape"]), dtype=v["dtype"]
+                )
+                self.buf["next_" + k] = np.zeros(
+                    combined_shape(self.max_size, v["shape"]), dtype=v["dtype"]
+                )
+            else:
+                self.buf[k] = v.get_zero_state(self.max_size)
+                self.buf["next_" + k] = v.get_zero_state(self.max_size)
         self.ptr, self.size, = (
             0,
             0,
@@ -70,13 +74,13 @@ class ReplayBuffer:
     def store(
         self,
         obs: np.ndarray,
-        info: dict,
         act: np.ndarray,
         rew: float,
-        next_obs: np.ndarray,
         done: bool,
-        logp: np.ndarray,
+        info: dict,
+        next_obs: np.ndarray,
         next_info: dict,
+        logp: np.ndarray,
     ):
         self.buf["obs"][self.ptr] = obs
         self.buf["obs2"][self.ptr] = next_obs
@@ -98,5 +102,8 @@ class ReplayBuffer:
         idxs = np.random.randint(0, self.size, size=batch_size)
         batch = {}
         for k, v in self.buf.items():
-            batch[k] = v[idxs]
-        return {k: torch.as_tensor(v, dtype=torch.float32) for k, v in batch.items()}
+            if isinstance(v, np.ndarray):
+                batch[k] = torch.as_tensor(v[idxs], dtype=torch.float32)
+            else:
+                batch[k] = v.array2tensor(v[idxs])
+        return batch

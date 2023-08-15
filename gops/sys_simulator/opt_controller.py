@@ -14,7 +14,7 @@ import time
 from typing import Callable, List, Optional, Tuple, Union
 import warnings
 from gops.env.env_gen_ocp.pyth_base import State
-from gops.env.env_gen_ocp.env_model.pyth_model_base import EnvModel
+from gops.env.env_gen_ocp.env_model.pyth_base_model import EnvModel
 import torch
 from functorch import jacrev
 import numpy as np
