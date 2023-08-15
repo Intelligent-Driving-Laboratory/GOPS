@@ -61,6 +61,12 @@ class ContextState(Generic[stateType]):
                 value.append(getattr(self, field.name)[index])
             return self.__class__(*value)
         except IndexError: "ContextState cannot be indexed or index out of range!"
+
+    def __setitem__(self, index, value):
+        try:
+            for field in fields(self):
+                getattr(self, field.name)[index] = getattr(value, field.name)
+        except IndexError: "ContextState cannot be indexed or index out of range!"
     
 
 @dataclass
@@ -102,7 +108,7 @@ class State(Generic[stateType]):
         context_states = cls.CONTEXT_STATE_TYPE.concat([state.context_state for state in states], dim=dim)
         return cls(robot_states, context_states)
     
-    def __getittem__(self, index):
+    def __getitem__(self, index):
         try:
             return State(
                 robot_state=self.robot_state[index],
@@ -110,6 +116,17 @@ class State(Generic[stateType]):
             )
         except IndexError: "State cannot be indexed or index out of range!"
 
+    def __setitem__(self, index, value):
+        try:
+            self.robot_state[index] = value.robot_state
+            self.context_state[index] = value.context_state
+        except IndexError: "State cannot be indexed or index out of range!"
+
+    def __len__(self):
+        if self.robot_state.ndim == 1:
+            return 1
+        else:
+            return self.robot_state.shape[0]
 
 class Robot(metaclass=ABCMeta):
     def __init__(
