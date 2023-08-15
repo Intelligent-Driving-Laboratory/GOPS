@@ -6,7 +6,7 @@
 #  Lab Leader: Prof. Shengbo Eben Li
 #  Email: lisb04@gmail.com
 #
-#  Description: example for sac + veh3dofconti + mlp + off_serial
+#  Description: example for sac + idsim + mlp + off_serial
 #  Update Date: 2021-06-11, Yang Yujie: create example
 
 
@@ -75,39 +75,17 @@ if __name__ == "__main__":
     }
     parser.add_argument("--env_config", type=dict, default=env_config_param)
     parser.add_argument("--env_model_config", type=dict, default=ModelConfig)
-    
+
     parser.add_argument("--algorithm", type=str, default="SAC", help="RL algorithm")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
-    parser.add_argument("--seed", default=2099945076, help="Disable CUDA")
+    parser.add_argument("--seed", default=2099945076, help="seed")
 
     ################################################
     # 1. Parameters for environment
     parser.add_argument("--action_type", type=str, default="continu", help="Options: continu/discret")
     parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
     parser.add_argument("--is_adversary", type=bool, default=False, help="Adversary training")
-
-    parser.add_argument("--ref_A", type=list, default=[0.3, 0.8, 1.5], help="dim(State)")
-    parser.add_argument("--ref_T", type=list, default=[100.0, 200.0, 400.0], help="dim(State)")
-    parser.add_argument("--ref_fai", type=list, default=[0, np.pi / 6, np.pi / 3], help="dim(State)")
-    parser.add_argument("--ref_V", type=float, default=20.0, help="dim(Action)")
-    parser.add_argument("--ref_info", type=str, default="Pos", help="dim(State)")
-    parser.add_argument("--ref_horizon", type=int, default=20, help="dim(Action)")
-    parser.add_argument("--Max_step", type=int, default=2000, help="dim(Action)")
-    parser.add_argument("--act_repeat", type=int, default=5)
-    parser.add_argument("--obs_scaling", type=list, default=[0.001, 1, 1, 1, 2.4, 2])
-    parser.add_argument("--act_scaling", type=list, default=[10, 1 / 1000, 1 / 1000])
-    parser.add_argument("--act_max", type=list, default=[10 * np.pi / 180, 3000, 3000])
-    parser.add_argument("--punish_done", type=float, default=0.0)
-    parser.add_argument("--rew_bias", type=float, default=2.5)
-    parser.add_argument("--rew_bound", type=float, default=5)
-    parser.add_argument("--punish_Q", type=list, default=[0.5, 0.5, 5, 0.25])
-    parser.add_argument("--punish_R", type=list, default=[2.5, 5e-7, 5e-7])
-    parser.add_argument(
-        "--rand_bias", type=list, default=[200, 1.5, 1.5, 0.1, np.pi / 18, 0.01]
-    )  ##[200, 2, 4, 0.1, np.pi / 18, 0.01]
-    parser.add_argument("--rand_center", type=list, default=[0, 0, 20.0, 0, 0, 0])
-    parser.add_argument("--done_range", type=list, default=[6.0, 6.0, np.pi / 6])
-
+    parser.add_argument("--is_constrained", type=bool, default=False, help="Adversary training")
     ################################################
     # 2.1 Parameters of value approximate function
     # 2.1 Parameters of value approximate function
@@ -195,14 +173,14 @@ if __name__ == "__main__":
     # 6. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
     parser.add_argument("--num_eval_episode", type=int, default=10)
-    parser.add_argument("--eval_interval", type=int, default=200)
+    parser.add_argument("--eval_interval", type=int, default=100)
     parser.add_argument("--eval_save", type=str, default=False, help="save evaluation data")
 
     ################################################
     # 7. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument("--apprfunc_save_interval", type=int, default=5000)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=1000)
     # Save key info every N updates
     parser.add_argument("--log_save_interval", type=int, default=200)
 
