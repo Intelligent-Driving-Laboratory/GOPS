@@ -81,13 +81,15 @@ class idSimEnvModel(EnvModel):
                 last_action_full = state.robot_state[..., -2:], # absolute action
                 action_full = action # incremental action
             )
-        else:
+        elif mode == "batch":
             rewards = self.idsim_model.reward_nn_state(
                 context = get_idsimcontext(next_state, mode = mode),
                 last_last_action = state.robot_state[..., -4:-2], # absolute action
                 last_action = state.robot_state[..., -2:], # absolute action
                 action = action # incremental action
             )
+        else:
+            raise NotImplementedError
         return rewards[0]
 
     def get_terminated(self, state: idSimState) -> torch.bool:
