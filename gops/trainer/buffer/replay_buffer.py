@@ -59,7 +59,7 @@ class ReplayBuffer:
                 )
             else:
                 self.buf[k] = v.get_zero_state(self.max_size)
-                self.buf[k] = v.get_zero_state(self.max_size)
+                self.buf["next_" + k] = v.get_zero_state(self.max_size)
         self.ptr, self.size, = (
             0,
             0,
@@ -102,8 +102,8 @@ class ReplayBuffer:
         idxs = np.random.randint(0, self.size, size=batch_size)
         batch = {}
         for k, v in self.buf.items():
-            if k in self.additional_info.keys() and (not isinstance(self.additional_info[k], dict)):
-                batch[k] = self.additional_info[k].array2tensor(v[idxs])
-            else:
+            if isinstance(v, np.ndarray):
                 batch[k] = torch.as_tensor(v[idxs], dtype=torch.float32)
+            else:
+                batch[k] = v.array2tensor(v[idxs])
         return batch
