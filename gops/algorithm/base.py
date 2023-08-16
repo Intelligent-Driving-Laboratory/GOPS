@@ -32,9 +32,6 @@ class ApprBase(ABC, torch.nn.Module):
             )
             kwargs["feature_net"] = create_apprfunc(**feature_args)
     
-    def get_approx_container(self, **kwargs):
-        raise NotImplementedError
-
 
 class AlgorithmBase(metaclass=ABCMeta):
     """Base Class of Algorithm
