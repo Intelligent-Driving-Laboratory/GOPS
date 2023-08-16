@@ -111,9 +111,6 @@ class SPIL(AlgorithmBase):
         self.safe_prob_pre = np.array([0.0] * kwargs["constraint_dim"])
         self.chance_thre = np.array([0.97] * kwargs["constraint_dim"])
 
-    def get_approx_container(self, **kwargs):
-        return ApproxContainer(**kwargs)
-    
     @property
     def adjustable_parameters(self):
         para_tuple = (

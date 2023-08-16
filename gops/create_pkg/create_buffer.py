@@ -37,7 +37,9 @@ def register(
 
 
 def create_buffer(**kwargs) -> object:
-    buffer_name = kwargs["buffer_name"]
+    buffer_name = kwargs.get("buffer_name", None)
+    if buffer_name is None:
+        return None
     spec_ = registry.get(buffer_name)
 
     if spec_ is None:

@@ -8,7 +8,6 @@
 
 
 import os
-import sys
 import importlib
 
 gops_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -24,7 +23,8 @@ for alg_file in alg_file_list:
     if alg_file[-3:] == ".py" and alg_file[0] != "_" and alg_file != "base.py":
         alg_name = alg_file[:-3]
         mdl = importlib.import_module("gops.algorithm." + alg_name)
-        register_alg(algorithm=alg_name.upper(), entry_point=getattr(mdl, alg_name.upper()))
+        register_alg(algorithm=alg_name.upper(), entry_point=getattr(mdl, alg_name.upper()), 
+                     approx_container_cls=getattr(mdl, "ApproxContainer"))
 
 # regist apprfunc
 from gops.create_pkg.create_apprfunc import register as register_apprfunc

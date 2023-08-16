@@ -86,9 +86,6 @@ class DDPG(AlgorithmBase):
         self.delay_update = 1
         self.per_flag = buffer_name == "prioritized_replay_buffer"
 
-    def get_approx_container(self, **kwargs):
-        return ApproxContainer(**kwargs)
-
     @property
     def adjustable_parameters(self):
         return (
