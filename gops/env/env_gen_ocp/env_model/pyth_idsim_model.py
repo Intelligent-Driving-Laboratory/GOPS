@@ -93,9 +93,8 @@ class idSimEnvModel(EnvModel):
         return rewards[0]
 
     def get_terminated(self, state: idSimState) -> torch.bool:
-        # TODO: temporary implementation
         # only support batched state
-        return torch.ones(state.robot_state.shape[0], dtype=torch.bool)
+        return torch.zeros(state.robot_state.shape[0], dtype=torch.bool)
     
     def forward(self, obs, action, done, info):
         state = info["state"]
@@ -105,7 +104,7 @@ class idSimEnvModel(EnvModel):
         terminated = self.get_terminated(state)
         next_info = {}
         next_info["state"] = next_state
-        return next_obs, reward, terminated, info
+        return next_obs, reward, terminated, next_info
 
 
 def env_model_creator(**kwargs):
