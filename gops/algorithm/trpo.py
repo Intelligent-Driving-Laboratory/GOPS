@@ -100,6 +100,9 @@ class TRPO(AlgorithmBase):
             self.networks.value.parameters(), lr=value_learning_rate
         )
 
+    def get_approx_container(self, **kwargs):
+        return ApproxContainer(**kwargs)
+    
     @property
     def adjustable_parameters(self):
         return (

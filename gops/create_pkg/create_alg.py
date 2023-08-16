@@ -9,42 +9,99 @@
 #  Description: Create algorithm module
 #  Update Date: 2020-12-01, Hao Sun: create algorithm package code
 
+from dataclasses import dataclass, field
+from typing import Callable, Optional, Union, Dict
 import importlib
+import copy
 
 
-def create_alg(**kwargs):
-    alg_name = kwargs["algorithm"]
-    trainer = kwargs["trainer"]
-    alg_file_name = alg_name.lower()
-    try:
-        module = importlib.import_module("gops.algorithm." + alg_file_name)
-    except NotImplementedError:
-        raise NotImplementedError("This algorithm does not exist")
+@dataclass
+class Spec:
+    algorithm: str
+    entry_point: Callable
 
-    # Serial
-    if hasattr(module, alg_name):
-        alg_cls = getattr(module, alg_name)
-        if (
-            trainer == "off_serial_trainer"
-            or trainer == "on_serial_trainer"
-            or trainer == "on_sync_trainer"
-        ):
-            alg = alg_cls(**kwargs)
-        elif (
-            trainer == "off_async_trainer"
-            or trainer == "off_async_trainermix"
-            or trainer == "off_sync_trainer"
-        ):
-            import ray
+    # Environment arguments
+    kwargs: dict = field(default_factory=dict)
 
-            alg = [
-                ray.remote(num_cpus=1)(alg_cls).remote(index=idx, **kwargs)
-                for idx in range(kwargs["num_algs"])
-            ]
-        else:
-            raise NotImplementedError("This trainer is not properly defined")
+
+registry: Dict[str, Spec] = {}
+
+
+def register(
+    algorithm: str, entry_point: Callable, **kwargs,
+):
+    global registry
+
+    new_spec = Spec(algorithm=algorithm, entry_point=entry_point, **kwargs,)
+
+    # if new_spec.algorithm in registry:
+    #     print(f"Overriding algorithm {new_spec.algorithm} already in registry.")
+    registry[new_spec.algorithm] = new_spec
+
+
+def create_alg(**kwargs) -> object:
+    algorithm = kwargs["algorithm"]
+    spec_ = registry.get(algorithm)
+
+    if spec_ is None:
+        raise KeyError(f"No registered algorithm with id: {algorithm}")
+
+    _kwargs = spec_.kwargs.copy()
+    _kwargs.update(kwargs)
+
+    if callable(spec_.entry_point):
+        algorithm_creator = spec_.entry_point
     else:
-        raise NotImplementedError("This algorithm is not properly defined")
+        raise RuntimeError(f"{spec_.algorithm} registered but entry_point is not specified")
 
-    print("Create algorithm successfully!")
-    return alg
+    if "seed" not in _kwargs or _kwargs["seed"] is None:
+        _kwargs["seed"] = 0
+    if "cnn_shared" not in _kwargs or _kwargs["cnn_shared"] is None:
+        _kwargs["cnn_shared"] = False
+
+    trainer_name = _kwargs.get("trainer", None)
+    if (
+        trainer_name is None
+        or trainer_name.startswith("off_serial")
+        or trainer_name.startswith("on_serial")
+        or trainer_name.startswith("on_sync")
+    ):
+        algo = algorithm_creator(**_kwargs)
+    elif trainer_name.startswith("off_async") or trainer_name.startswith("off_sync"):
+        import ray
+
+        algo = [
+            ray.remote(num_cpus=1)(algorithm_creator).remote(index=idx, **_kwargs) for idx in range(_kwargs["num_algs"])
+        ]
+    else:
+        raise RuntimeError(f"trainer {trainer_name} not recognized")
+
+    return algo
+
+
+def create_approx_contrainer(algorithm: str, **kwargs,) -> object:
+    spec_ = registry.get(algorithm)
+
+    if spec_ is None:
+        raise KeyError(f"No registered algorithm with id: {algorithm}")
+
+    _kwargs = spec_.kwargs.copy()
+    _kwargs.update(kwargs)
+
+    if callable(spec_.entry_point):
+        algorithm_creator = spec_.entry_point
+    else:
+        raise RuntimeError(f"{spec_.algorithm} registered but entry_point is not specified")
+
+    if "seed" not in _kwargs or _kwargs["seed"] is None:
+        _kwargs["seed"] = 0
+    if "cnn_shared" not in _kwargs or _kwargs["cnn_shared"] is None:
+        _kwargs["cnn_shared"] = False
+
+    algo = algorithm_creator(**_kwargs)
+    if hasattr(algo, "get_approx_container"):
+        approx_contrainer = algo.get_approx_container(**_kwargs)
+    else:
+        raise RuntimeError(f"Algorithm `{algorithm}` must have attr `get_approx_container`")
+
+    return approx_contrainer

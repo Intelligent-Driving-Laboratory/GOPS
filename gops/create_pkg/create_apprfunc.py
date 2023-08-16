@@ -9,31 +9,49 @@
 #  Description: Create approximate function module
 #  Update Date: 2020-12-26, Hao Sun: add create approximate function
 
+from dataclasses import dataclass, field
+from typing import Callable, Dict
 
-def create_apprfunc(**kwargs):
-    apprfunc_name = kwargs["apprfunc"]
-    apprfunc_file_name = apprfunc_name.lower()
-    try:
-        file = __import__(apprfunc_file_name)
-    except NotImplementedError:
-        raise NotImplementedError("This apprfunc does not exist")
 
-    name = formatter(kwargs["name"])
+@dataclass
+class Spec:
+    apprfunc: str
+    name: str
+    entry_point: Callable
 
-    if hasattr(file, name):
-        apprfunc_cls = getattr(file, name)
-        apprfunc = apprfunc_cls(**kwargs)
+    # Environment arguments
+    kwargs: dict = field(default_factory=dict)
+
+registry: Dict[str, Spec] = {}
+
+def register(
+    apprfunc: str, name: str, entry_point: Callable, **kwargs,
+):
+    global registry
+
+    new_spec = Spec(apprfunc=apprfunc, entry_point=entry_point, name=name, **kwargs,)
+
+    # if new_spec.apprfunc in registry:
+    #     print(f"Overriding apprfunc {new_spec.apprfunc} - {new_spec.name} already in registry.")
+    registry[new_spec.apprfunc + "_" + new_spec.name] = new_spec
+
+
+def create_apprfunc(**kwargs) -> object:
+    apprfunc = kwargs["apprfunc"].lower()
+    name = kwargs["name"]
+    spec_ = registry.get(apprfunc + "_" + name)
+
+    if spec_ is None:
+        raise KeyError(f"No registered apprfunc with id: {apprfunc}_{name}")
+
+    _kwargs = spec_.kwargs.copy()
+    _kwargs.update(kwargs)
+
+    if callable(spec_.entry_point):
+        apprfunc_creator = spec_.entry_point
     else:
-        raise NotImplementedError("This apprfunc is not properly defined")
+        raise RuntimeError(f"{spec_.apprfunc}-{spec_.name} registered but entry_point is not specified")
+
+    apprfunc = apprfunc_creator(**_kwargs)
+
     return apprfunc
-
-
-def formatter(src: str, firstUpper: bool = True):
-    arr = src.split("_")
-    res = ""
-    for i in arr:
-        res = res + i[0].upper() + i[1:]
-
-    if not firstUpper:
-        res = res[0].lower() + res[1:]
-    return res

@@ -101,6 +101,9 @@ class PPO(AlgorithmBase):
             self.networks.parameters(), lr=self.learning_rate
         )
 
+    def get_approx_container(self, **kwargs):
+        return ApproxContainer(**kwargs)
+    
     @property
     def adjustable_parameters(self):
         return (
