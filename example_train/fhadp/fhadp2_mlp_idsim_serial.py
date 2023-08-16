@@ -33,7 +33,7 @@ if __name__ == "__main__":
     ################################################
     # Key Parameters for users
     parser.add_argument("--env_id", type=str, default="pyth_idsim", help="id of environment")
-        MAP_ROOT = 'YOUR_MAP_ROOT'
+    MAP_ROOT = 'YOUR_MAP_ROOT'
     pre_horizon = 30
     env_config_param = {
         "use_render": False,
