@@ -91,9 +91,9 @@ class FHADP2(AlgorithmBase):
         start_time = time.time()
         self.networks.policy.zero_grad()
         loss_policy = self.__compute_loss_policy(deepcopy(data))
-        # print('loss_policy = ', loss_policy)
+
         loss_policy.backward()
-        nn.utils.clip_grad_norm_(self.networks.policy.parameters(), max_norm=20, norm_type=2)
+
         self.tb_info[tb_tags["loss_actor"]] = loss_policy.item()
 
         end_time = time.time()
@@ -115,12 +115,10 @@ class FHADP2(AlgorithmBase):
         a = self.networks.policy.forward_all_policy(o)
         for step in range(self.forward_step):
             if step == 0:
-                # a = self.networks.policy(o, step + 1)
                 o2, r, d, info = self.envmodel.forward(o, a[:, 0, :], d, info_init)
                 v_pi = r
             else:
                 o = o2
-                # a = self.networks.policy(o, step + 1)
                 o2, r, d, info = self.envmodel.forward(o, a[:, step, :], d, info)
                 v_pi += r * (self.gamma**step)
 
