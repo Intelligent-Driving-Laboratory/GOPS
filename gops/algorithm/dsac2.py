@@ -98,9 +98,6 @@ class DSAC2(AlgorithmBase):
         self.alpha = kwargs.get("alpha", 0.2)
         self.delay_update = kwargs["delay_update"]
 
-    def get_approx_container(self, **kwargs):
-        return ApproxContainer(**kwargs)
-    
     @property
     def adjustable_parameters(self):
         return (

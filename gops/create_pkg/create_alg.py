@@ -10,15 +10,14 @@
 #  Update Date: 2020-12-01, Hao Sun: create algorithm package code
 
 from dataclasses import dataclass, field
-from typing import Callable, Optional, Union, Dict
-import importlib
-import copy
+from typing import Callable, Dict
 
 
 @dataclass
 class Spec:
     algorithm: str
     entry_point: Callable
+    approx_container_cls: Callable
 
     # Environment arguments
     kwargs: dict = field(default_factory=dict)
@@ -28,11 +27,12 @@ registry: Dict[str, Spec] = {}
 
 
 def register(
-    algorithm: str, entry_point: Callable, **kwargs,
+    algorithm: str, entry_point: Callable, approx_container_cls: Callable, **kwargs,
 ):
     global registry
 
-    new_spec = Spec(algorithm=algorithm, entry_point=entry_point, **kwargs,)
+    new_spec = Spec(algorithm=algorithm, entry_point=entry_point, 
+                    approx_container_cls=approx_container_cls, **kwargs)
 
     # if new_spec.algorithm in registry:
     #     print(f"Overriding algorithm {new_spec.algorithm} already in registry.")
@@ -88,20 +88,14 @@ def create_approx_contrainer(algorithm: str, **kwargs,) -> object:
     _kwargs = spec_.kwargs.copy()
     _kwargs.update(kwargs)
 
-    if callable(spec_.entry_point):
-        algorithm_creator = spec_.entry_point
-    else:
-        raise RuntimeError(f"{spec_.algorithm} registered but entry_point is not specified")
-
     if "seed" not in _kwargs or _kwargs["seed"] is None:
         _kwargs["seed"] = 0
     if "cnn_shared" not in _kwargs or _kwargs["cnn_shared"] is None:
         _kwargs["cnn_shared"] = False
 
-    algo = algorithm_creator(**_kwargs)
-    if hasattr(algo, "get_approx_container"):
-        approx_contrainer = algo.get_approx_container(**_kwargs)
+    if callable(spec_.approx_container_cls):
+        approx_contrainer = spec_.approx_container_cls(**_kwargs)
     else:
-        raise RuntimeError(f"Algorithm `{algorithm}` must have attr `get_approx_container`")
+        raise RuntimeError(f"{spec_.algorithm} registered but approx_container_cls is not specified")
 
     return approx_contrainer

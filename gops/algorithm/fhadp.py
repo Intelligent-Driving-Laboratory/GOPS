@@ -63,9 +63,6 @@ class FHADP(AlgorithmBase):
         self.gamma = 1.0
         self.tb_info = dict()
 
-    def get_approx_container(self, **kwargs):
-        return ApproxContainer(**kwargs)
-    
     @property
     def adjustable_parameters(self):
         para_tuple = ("forward_step", "gamma")

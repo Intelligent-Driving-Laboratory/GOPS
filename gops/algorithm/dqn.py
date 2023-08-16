@@ -81,9 +81,6 @@ class DQN(AlgorithmBase):
         self.networks = ApproxContainer(**kwargs)
         self.per_flag = kwargs["buffer_name"] == "prioritized_replay_buffer"
 
-    def get_approx_container(self, **kwargs):
-        return ApproxContainer(**kwargs)
-    
     @property
     def adjustable_parameters(self):
         return ("gamma", "tau")
