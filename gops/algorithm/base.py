@@ -31,7 +31,7 @@ class ApprBase(ABC, torch.nn.Module):
                 "feature", kwargs["value_func_type"], **kwargs
             )
             kwargs["feature_net"] = create_apprfunc(**feature_args)
-    
+
 
 class AlgorithmBase(metaclass=ABCMeta):
     """Base Class of Algorithm
