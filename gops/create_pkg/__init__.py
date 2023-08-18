@@ -29,13 +29,16 @@ for alg_file in alg_file_list:
 # regist apprfunc
 from gops.create_pkg.create_apprfunc import register as register_apprfunc
 
-apprfunc_list = ["cnn", "cnn_shared", "mlp", "gauss", "poly", "rnn"]
-name_list = ["DetermPolicy", "FiniteHorizonPolicy", "StochaPolicy", "ActionValue", "ActionValueDis", "StateValue"]
+apprfunc_path = os.path.join(gops_path, "apprfunc")
+apprfunc_list = os.listdir(apprfunc_path)
 
 for apprfunc in apprfunc_list:
-    for name in name_list:
+    if apprfunc[-3:] == ".py" and apprfunc[0] != "_":
+        apprfunc = apprfunc[:-3]
+        print(apprfunc)
         mdl = importlib.import_module("gops.apprfunc." + apprfunc)
-        register_apprfunc(apprfunc=apprfunc, name=name, entry_point=getattr(mdl, name))
+        for name in mdl.__all__:
+            register_apprfunc(apprfunc=apprfunc, name=name, entry_point=getattr(mdl, name))
 
 
 # regist buffer
@@ -63,7 +66,6 @@ from gops.create_pkg.create_env_model import register as register_env_model
 from gops.create_pkg.create_env import register as register_env
 
 env_dir_list = ["env_gym", "env_matlab", "env_ocp", "env_pyth"]
-# env_dir_list = ["env_gym"]
 
 for env_dir_name in env_dir_list:
     env_dir_abs_path = os.path.join(gops_path, "env", env_dir_name)
