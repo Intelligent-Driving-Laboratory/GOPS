@@ -8,61 +8,125 @@
 
 
 import os
-import sys
+import importlib
 
-py_file_path = os.path.abspath(__file__)
-create_pkg_path = os.path.dirname(py_file_path)
-modules_path = os.path.dirname(create_pkg_path)
+gops_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Add apprfunc file to sys path
-apprunc_file = "apprfunc"
-apprunc_path = os.path.join(modules_path, apprunc_file)
-sys.path.append(apprunc_path)
+# regist algorithm
+from gops.create_pkg.create_alg import register as register_alg
 
-# Add env file to sys path
-env_file = "env"
-env_path = os.path.join(modules_path, env_file)
 
-env_pyth_path = os.path.join(env_path, "env_pyth")
-env_pyth_model_path = os.path.join(env_pyth_path, "env_model")
+alg_path = os.path.join(gops_path, "algorithm")
+alg_file_list = os.listdir(alg_path)
 
-env_gym_path = os.path.join(env_path, "env_gym")
-env_gym_model_path = os.path.join(env_gym_path, "env_model")
+for alg_file in alg_file_list:
+    if alg_file[-3:] == ".py" and alg_file[0] != "_" and alg_file != "base.py":
+        alg_name = alg_file[:-3]
+        mdl = importlib.import_module("gops.algorithm." + alg_name)
+        register_alg(algorithm=alg_name.upper(), entry_point=getattr(mdl, alg_name.upper()), 
+                     approx_container_cls=getattr(mdl, "ApproxContainer"))
 
-env_matlab_path = os.path.join(env_path, "env_matlab")
-env_matlab_model_path = os.path.join(env_matlab_path, "env_model")
+# regist apprfunc
+from gops.create_pkg.create_apprfunc import register as register_apprfunc
 
-env_ocp_path = os.path.join(env_path, "env_ocp")
-env_ocp_model_path = os.path.join(env_ocp_path, "env_model")
+apprfunc_path = os.path.join(gops_path, "apprfunc")
+apprfunc_list = os.listdir(apprfunc_path)
 
-sys.path.append(env_path)
+for apprfunc in apprfunc_list:
+    if apprfunc[-3:] == ".py" and apprfunc[0] != "_":
+        apprfunc = apprfunc[:-3]
+        mdl = importlib.import_module("gops.apprfunc." + apprfunc)
+        for name in mdl.__all__:
+            register_apprfunc(apprfunc=apprfunc, name=name, entry_point=getattr(mdl, name))
 
-sys.path.append(env_pyth_path)
-sys.path.append(env_gym_path)
-sys.path.append(env_matlab_path)
-sys.path.append(env_ocp_path)
 
-sys.path.append(env_pyth_model_path)
-sys.path.append(env_gym_model_path)
-sys.path.append(env_matlab_model_path)
-sys.path.append(env_ocp_model_path)
+# regist buffer
 
-# Add algorithm file to sys path
-alg_file = "algorithm"
-alg_path = os.path.join(modules_path, alg_file)
-sys.path.append(alg_path)
+from gops.create_pkg.create_buffer import register as register_buffer
+from gops.trainer.buffer.prioritized_replay_buffer import PrioritizedReplayBuffer
+from gops.trainer.buffer.replay_buffer import ReplayBuffer
 
-# Add trainer file to sys path
-trainer_file = "trainer"
-trainer_path = os.path.join(modules_path, trainer_file)
-sys.path.append(trainer_path)
+register_buffer(buffer_name="prioritized_replay_buffer", entry_point=PrioritizedReplayBuffer)
+register_buffer(buffer_name="replay_buffer", entry_point=ReplayBuffer)
 
-# Add buffer file to sys path
-buffer_file = "buffer"
-buffer_path = os.path.join(modules_path, trainer_file, buffer_file)
-sys.path.append(buffer_path)
+# regist env and env model
 
-# Add sampler file to sys path
-sampler_file = "sampler"
-sampler_path = os.path.join(modules_path, trainer_file, sampler_file)
-sys.path.append(sampler_path)
+def env_formatter(src: str, firstUpper: bool = True):
+    arr = src.split("_")
+    res = ""
+    for i in arr:
+        res = res + i[0].upper() + i[1:]
+
+    if not firstUpper:
+        res = res[0].lower() + res[1:]
+    return res
+
+from gops.create_pkg.create_env_model import register as register_env_model
+from gops.create_pkg.create_env import register as register_env
+
+env_dir_path = os.path.join(gops_path, "env")
+env_dir_list = [e for e in os.listdir(env_dir_path) if e.startswith("env_")]
+
+for env_dir_name in env_dir_list:
+    env_dir_abs_path = os.path.join(gops_path, "env", env_dir_name)
+    file_list = os.listdir(env_dir_abs_path)
+    for file in file_list:
+        if file.endswith(".py") and file[0] != "_":
+            try:
+                env_id = file[:-3]
+                mdl = importlib.import_module(f"gops.env.{env_dir_name}.{env_id}")
+                env_id_camel = env_formatter(env_id)
+            
+                if hasattr(mdl, "env_creator"):
+                    register_env(env_id=env_id, entry_point=getattr(mdl, "env_creator"))
+                elif hasattr(mdl, env_id_camel):
+                    register_env(env_id=env_id, entry_point=getattr(mdl, env_id_camel))
+                else:
+                    print(f"env {env_id} has no env_creator or {env_id_camel} in {env_dir_name}")
+            except:
+                RuntimeError(f"Register env {env_id} failed")
+
+    env_model_path = os.path.join(gops_path, "env", env_dir_name, "env_model")
+    if not os.path.exists(env_model_path):
+        continue
+    file_list = os.listdir(env_model_path)
+    for file in file_list:
+        if file.endswith(".py") and file[0] != "_":
+            env_id = file[:-3]
+            mdl = importlib.import_module(f"gops.env.{env_dir_name}.env_model.{env_id}")
+            env_id_camel = env_formatter(env_id)
+            if hasattr(mdl, "env_model_creator"):
+                register_env_model(env_id=env_id, entry_point=getattr(mdl, "env_model_creator"))
+            elif hasattr(mdl, env_id_camel):
+                register_env_model(env_id=env_id, entry_point=getattr(mdl, env_id_camel))
+            else:
+                print(f"env {env_id} has no env_model_creator or {env_id_camel} in {env_dir_name}")
+
+
+# regist evaluator
+from gops.create_pkg.create_evaluator import register as register_evaluator
+from gops.trainer.evaluator import Evaluator
+register_evaluator(evaluator_name="evaluator", entry_point=Evaluator)
+
+# regist sampler
+from gops.create_pkg.create_sampler import register as register_sampler
+from gops.trainer.sampler.off_sampler import OffSampler
+from gops.trainer.sampler.on_sampler import OnSampler
+register_sampler(sampler_name="off_sampler", entry_point=OffSampler)
+register_sampler(sampler_name="on_sampler", entry_point=OnSampler)
+
+# regist trainer
+
+from gops.create_pkg.create_trainer import register as register_trainer
+from gops.trainer.off_async_trainer import OffAsyncTrainer
+from gops.trainer.off_sync_trainer import OffSyncTrainer
+from gops.trainer.on_serial_trainer import OnSerialTrainer
+from gops.trainer.on_sync_trainer import OnSyncTrainer
+from gops.trainer.off_serial_trainer import OffSerialTrainer
+register_trainer(trainer="off_async_trainer", entry_point=OffAsyncTrainer)
+register_trainer(trainer="off_sync_trainer", entry_point=OffSyncTrainer)
+register_trainer(trainer="on_serial_trainer", entry_point=OnSerialTrainer)
+register_trainer(trainer="on_sync_trainer", entry_point=OnSyncTrainer)
+register_trainer(trainer="off_serial_trainer", entry_point=OffSerialTrainer)
+
+
