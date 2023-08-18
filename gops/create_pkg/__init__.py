@@ -35,7 +35,6 @@ apprfunc_list = os.listdir(apprfunc_path)
 for apprfunc in apprfunc_list:
     if apprfunc[-3:] == ".py" and apprfunc[0] != "_":
         apprfunc = apprfunc[:-3]
-        print(apprfunc)
         mdl = importlib.import_module("gops.apprfunc." + apprfunc)
         for name in mdl.__all__:
             register_apprfunc(apprfunc=apprfunc, name=name, entry_point=getattr(mdl, name))
@@ -65,7 +64,8 @@ def env_formatter(src: str, firstUpper: bool = True):
 from gops.create_pkg.create_env_model import register as register_env_model
 from gops.create_pkg.create_env import register as register_env
 
-env_dir_list = ["env_gym", "env_matlab", "env_ocp", "env_pyth"]
+env_dir_path = os.path.join(gops_path, "env")
+env_dir_list = [e for e in os.listdir(env_dir_path) if e.startswith("env_")]
 
 for env_dir_name in env_dir_list:
     env_dir_abs_path = os.path.join(gops_path, "env", env_dir_name)
@@ -86,8 +86,10 @@ for env_dir_name in env_dir_list:
             except:
                 RuntimeError(f"Register env {env_id} failed")
 
-    env_dir_abs_path = os.path.join(gops_path, "env", env_dir_name, "env_model")
-    file_list = os.listdir(env_dir_abs_path)
+    env_model_path = os.path.join(gops_path, "env", env_dir_name, "env_model")
+    if not os.path.exists(env_model_path):
+        continue
+    file_list = os.listdir(env_model_path)
     for file in file_list:
         if file.endswith(".py") and file[0] != "_":
             env_id = file[:-3]
