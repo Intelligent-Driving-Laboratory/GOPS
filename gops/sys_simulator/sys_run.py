@@ -23,6 +23,7 @@ import pandas as pd
 from gym import wrappers
 from copy import copy
 
+from gops.create_pkg.create_alg import create_approx_contrainer
 from gops.create_pkg.create_env_model import create_env_model
 from gops.create_pkg.create_env import create_env
 from gops.utils.plot_evaluation import cm2inch
@@ -799,11 +800,7 @@ class PolicyRunner:
 
     def __load_policy(self, log_policy_dir: str, trained_policy_iteration: str):
         # Create policy
-        alg_name = self.args["algorithm"]
-        alg_file_name = alg_name.lower()
-        file = __import__(alg_file_name)
-        ApproxContainer = getattr(file, "ApproxContainer")
-        networks = ApproxContainer(**self.args)
+        networks = create_approx_contrainer(**self.args)
 
         # Load trained policy
         log_path = log_policy_dir + "/apprfunc/apprfunc_{}.pkl".format(
