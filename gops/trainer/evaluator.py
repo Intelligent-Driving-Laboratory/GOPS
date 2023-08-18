@@ -27,9 +27,7 @@ class Evaluator:
 
         _, self.env = set_seed(kwargs["trainer"], kwargs["seed"], index + 400, self.env)
 
-        alg_name = kwargs["algorithm"]
- 
-        self.networks = networks = create_approx_contrainer(id=alg_name, **kwargs)
+        self.networks = create_approx_contrainer(**kwargs)
         self.render = kwargs["is_render"]
 
         self.num_eval_episode = kwargs["num_eval_episode"]
