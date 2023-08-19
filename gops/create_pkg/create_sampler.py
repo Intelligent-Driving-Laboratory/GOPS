@@ -11,9 +11,11 @@
 
 
 import importlib
-
-from typing import Callable, Dict, Union
+import os
 from dataclasses import dataclass, field
+from typing import Callable, Dict, Union
+
+from gops.utils.gops_path import sampler_path, underline2camel
 
 
 @dataclass
@@ -36,6 +38,16 @@ def register(
     new_spec = Spec(sampler_name=sampler_name, entry_point=entry_point, **kwargs,)
 
     registry[new_spec.sampler_name] = new_spec
+
+
+# register sampler
+sampler_file_list = os.listdir(sampler_path)
+
+for sampler_file in sampler_file_list:
+    if sampler_file[-3:] == ".py" and sampler_file[0] != "_" and sampler_file != "base.py":
+        sampler_name = sampler_file[:-3]
+        mdl = importlib.import_module("gops.trainer.sampler." + sampler_name)
+        register(sampler_name=sampler_name, entry_point=getattr(mdl, underline2camel(sampler_name)))
 
 
 def create_sampler(**kwargs,) -> object:

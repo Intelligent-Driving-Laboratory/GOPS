@@ -9,8 +9,12 @@
 #  Description: Create trainers
 #  Update: 2021-03-05, Jiaxin Gao: create trainer module
 
-from typing import Callable, Dict, Union
+import importlib
+import os
 from dataclasses import dataclass, field
+from typing import Callable, Dict, Union
+
+from gops.utils.gops_path import trainer_path, underline2camel
 
 
 @dataclass
@@ -20,7 +24,6 @@ class Spec:
 
     # Environment arguments
     kwargs: dict = field(default_factory=dict)
-
 
 
 registry: Dict[str, Spec] = {}
@@ -36,6 +39,16 @@ def register(
     # if new_spec.trainer in registry:
     #     print(f"Overriding trainer {new_spec.trainer} already in registry.")
     registry[new_spec.trainer] = new_spec
+
+
+# register trainer
+trainer_file_list = os.listdir(trainer_path)
+
+for trainer_file in trainer_file_list:
+    if trainer_file.endswith("trainer.py"):
+        trainer_name = trainer_file[:-3]
+        mdl = importlib.import_module("gops.trainer." + trainer_name)
+        register(trainer=trainer_name, entry_point=getattr(mdl, underline2camel(trainer_name)))
 
 
 def create_trainer(alg, sampler, buffer, evaluator, **kwargs,) -> object:

@@ -9,8 +9,13 @@
 #  Description: Create approximate function module
 #  Update Date: 2020-12-13, Hao Sun: add create buffer function
 
+import importlib
+import os
 from dataclasses import dataclass, field
-from typing import Callable, Dict, Union
+from typing import Callable, Dict
+
+from gops.utils.gops_path import buffer_path, underline2camel
+
 
 @dataclass
 class Spec:
@@ -34,6 +39,16 @@ def register(
     # if new_spec.buffer_name in registry:
     #     print(f"Overriding buffer {new_spec.buffer_name} already in registry.")
     registry[new_spec.buffer_name] = new_spec
+
+
+# register buffer
+buffer_file_list = os.listdir(buffer_path)
+
+for buffer_file in buffer_file_list:
+    if buffer_file[-3:] == ".py" and buffer_file[0] != "_" and buffer_file != "base.py":
+        buffer_name = buffer_file[:-3]
+        mdl = importlib.import_module("gops.trainer.buffer." + buffer_name)
+        register(buffer_name=buffer_name, entry_point=getattr(mdl, underline2camel(buffer_name)))
 
 
 def create_buffer(**kwargs) -> object:
