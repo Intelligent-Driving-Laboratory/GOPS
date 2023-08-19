@@ -143,7 +143,7 @@ class DiracDistribution:
         self.logits = logits
 
     def sample(self):
-        return self.logits, torch.tensor([0.0])
+        return self.logits, torch.zeros_like(self.logits).sum(-1)
 
     def mode(self):
         return self.logits
