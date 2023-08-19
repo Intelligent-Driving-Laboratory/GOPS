@@ -10,10 +10,8 @@
 #  Update Date: 2020-11-10, Yang Guan: create evaluator module
 
 
-from gops.trainer.evaluator import Evaluator
-
-from typing import Callable, Dict, Union
 from dataclasses import dataclass, field
+from typing import Callable, Dict, Union
 
 
 @dataclass
@@ -37,6 +35,11 @@ def register(
     # if new_spec.evaluator_name in registry:
     #     print(f"Overriding evaluator {new_spec.evaluator_name} already in registry.")
     registry[new_spec.evaluator_name] = new_spec
+
+
+# regist evaluator
+from gops.trainer.evaluator import Evaluator
+register(evaluator_name="evaluator", entry_point=Evaluator)
 
 
 def create_evaluator(**kwargs) -> object:

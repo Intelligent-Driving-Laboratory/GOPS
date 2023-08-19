@@ -9,13 +9,16 @@
 #  Description: Create environments
 #  Update Date: 2020-11-10, Yuhang Zhang: add create environments code
 
-from typing import Optional
+import importlib
+import os
+from dataclasses import dataclass, field
+from typing import Callable, Dict, Optional, Union
 
+from gops.create_pkg.create_env_model import register as register_env_model
 from gops.env.vector.sync_vector_env import SyncVectorEnv
 from gops.env.vector.async_vector_env import AsyncVectorEnv
 from gops.env.wrapper.wrapping_utils import wrapping_env
-from typing import Callable, Dict, Union
-from dataclasses import dataclass, field
+from gops.utils.gops_path import env_path, underline2camel
 
 
 @dataclass
@@ -43,6 +46,45 @@ def register(
     #     print(f"Overriding environment {new_spec.env_id} already in registry.")
     
     registry[new_spec.env_id] = new_spec
+
+
+# regist env and env model
+env_dir_list = [e for e in os.listdir(env_path) if e.startswith("env_")]
+
+for env_dir_name in env_dir_list:
+    env_dir_abs_path = os.path.join(env_path, env_dir_name)
+    file_list = os.listdir(env_dir_abs_path)
+    for file in file_list:
+        if file.endswith(".py") and file[0] != "_":
+            try:
+                env_id = file[:-3]
+                mdl = importlib.import_module(f"gops.env.{env_dir_name}.{env_id}")
+                env_id_camel = underline2camel(env_id)
+            
+                if hasattr(mdl, "env_creator"):
+                    register(env_id=env_id, entry_point=getattr(mdl, "env_creator"))
+                elif hasattr(mdl, env_id_camel):
+                    register(env_id=env_id, entry_point=getattr(mdl, env_id_camel))
+                else:
+                    print(f"env {env_id} has no env_creator or {env_id_camel} in {env_dir_name}")
+            except:
+                RuntimeError(f"Register env {env_id} failed")
+
+    env_model_path = os.path.join(env_path, env_dir_name, "env_model")
+    if not os.path.exists(env_model_path):
+        continue
+    file_list = os.listdir(env_model_path)
+    for file in file_list:
+        if file.endswith(".py") and file[0] != "_":
+            env_id = file[:-3]
+            mdl = importlib.import_module(f"gops.env.{env_dir_name}.env_model.{env_id}")
+            env_id_camel = underline2camel(env_id)
+            if hasattr(mdl, "env_model_creator"):
+                register_env_model(env_id=env_id, entry_point=getattr(mdl, "env_model_creator"))
+            elif hasattr(mdl, env_id_camel):
+                register_env_model(env_id=env_id, entry_point=getattr(mdl, env_id_camel))
+            else:
+                print(f"env {env_id} has no env_model_creator or {env_id_camel} in {env_dir_name}")
 
 
 def create_env(

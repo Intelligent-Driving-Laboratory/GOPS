@@ -9,8 +9,12 @@
 #  Description: Create algorithm module
 #  Update Date: 2020-12-01, Hao Sun: create algorithm package code
 
+import importlib
+import os
 from dataclasses import dataclass, field
 from typing import Callable, Dict
+
+from gops.utils.gops_path import algorithm_path
 
 
 @dataclass
@@ -37,6 +41,17 @@ def register(
     # if new_spec.algorithm in registry:
     #     print(f"Overriding algorithm {new_spec.algorithm} already in registry.")
     registry[new_spec.algorithm] = new_spec
+
+
+# register algorithm
+alg_file_list = os.listdir(algorithm_path)
+
+for alg_file in alg_file_list:
+    if alg_file[-3:] == ".py" and alg_file[0] != "_" and alg_file != "base.py":
+        alg_name = alg_file[:-3]
+        mdl = importlib.import_module("gops.algorithm." + alg_name)
+        register(algorithm=alg_name.upper(), entry_point=getattr(mdl, alg_name.upper()),
+                 approx_container_cls=getattr(mdl, "ApproxContainer"))
 
 
 def create_alg(**kwargs) -> object:

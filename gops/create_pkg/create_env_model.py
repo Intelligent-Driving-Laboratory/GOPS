@@ -10,8 +10,9 @@
 #  Update Date: 2020-11-10, Yuhang Zhang: add create environments code
 
 from gops.env.wrapper.wrapping_utils import wrapping_model
-from typing import Callable, Dict, Union, Optional
 from dataclasses import dataclass, field
+from typing import Callable, Dict, Union
+
 
 @dataclass
 class Spec:

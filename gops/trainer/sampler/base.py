@@ -17,6 +17,8 @@ import time
 import numpy as np
 import torch
 
+from gops.create_pkg.create_env import create_env
+from gops.create_pkg.create_alg import create_approx_contrainer
 from gops.env.vector.vector_env import VectorEnv
 from gops.utils.common_utils import set_seed
 from gops.utils.explore_noise import GaussNoise, EpsilonGreedy
@@ -42,9 +44,6 @@ class BaseSampler(metaclass=ABCMeta):
         noise_params=None,
         **kwargs
     ):
-        from gops.create_pkg.create_env import create_env
-        from gops.create_pkg.create_alg import create_approx_contrainer
-
         self.env = create_env(**kwargs)
         _, self.env = set_seed(kwargs["trainer"], kwargs["seed"], index + 200, self.env)  #? seed here?
         self.networks = create_approx_contrainer(**kwargs)
