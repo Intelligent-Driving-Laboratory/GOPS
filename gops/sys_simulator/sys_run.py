@@ -14,7 +14,7 @@ import datetime
 import glob
 import os
 
-from typing import Any, Tuple
+from typing import Any, Optional, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -62,7 +62,9 @@ class PolicyRunner:
     :param dict init_info: initial information.
     :param list legend_list: legends of figures.
     :param bool use_opt: use optimal solution for comparison or not.
+    :param Optional[str] load_opt_path: path to load optimal controller result.
     :param dict opt_args: arguments of optimal solution solver.
+    :param bool save_opt: save optimal controller result or not.
     :param bool constrained_env: constrained environment or not.
     :param bool is_tracking: tracking problem or not.
     :param bool use_dist: use adversarial action or not.
@@ -87,7 +89,9 @@ class PolicyRunner:
         init_info: dict = None,
         legend_list: list = None,
         use_opt: bool = False,
+        load_opt_path: Optional[str] = None,
         opt_args: dict = None,
+        save_opt: bool = True,
         constrained_env: bool = False,
         is_tracking: bool = False,
         use_dist: bool = False,
@@ -108,7 +112,9 @@ class PolicyRunner:
             self.init_info = {}
         self.legend_list = legend_list
         self.use_opt = use_opt
+        self.load_opt_path = load_opt_path
         self.opt_args = opt_args
+        self.save_opt = save_opt
         self.constrained_env = constrained_env
         self.use_dist = use_dist
         self.is_tracking = is_tracking
@@ -844,51 +850,66 @@ class PolicyRunner:
             self.tracking_list.append(tracking_dict)
 
         if self.use_opt:
-            self.args = self.args_list[self.policy_num - 1]
-            print("GOPS: Use an optimal controller")
-            env = self.__load_env(use_opt=True)
-            print("The environment for opt")
-            if hasattr(env, "set_mode"):
-                env.set_mode("test")
-
-            assert (
-                self.opt_args is not None
-            ), "Choose to use optimal controller, but the opt_args is None."
-
-            if self.opt_args["opt_controller_type"] == "OPT":
-                assert (
-                    env.has_optimal_controller
-                ), "The environment has no theoretical optimal controller."
-                opt_controller = env.control_policy
-                legend = "OPT"
-
-            elif self.opt_args["opt_controller_type"] == "MPC":
-                model = create_env_model(**self.args_list[self.policy_num - 1])
-                opt_args = self.opt_args.copy()
-                opt_args.pop("opt_controller_type")
-                opt_controller = OptController(model, **opt_args,)
-                legend = "MPC-" + str(self.opt_args["num_pred_step"])
-                if (
-                    "use_terminal_cost" not in self.opt_args.keys()
-                    or self.opt_args["use_terminal_cost"] == False
-                ):
-                    legend += " (w/o TC)"
-                else:
-                    legend += " (w/ TC)"
-
+            if self.load_opt_path is not None:
+                eval_dict_opt = np.load(
+                    os.path.join(self.load_opt_path, "eval_dict_opt.npy"), 
+                    allow_pickle=True).item()
+                tracking_dict_opt = np.load(
+                    os.path.join(self.load_opt_path, "tracking_dict_opt.npy"), 
+                    allow_pickle=True).item()
+                print("Successfully load an optimal controller result!")
+                print("===========================================================\n")
             else:
-                raise ValueError(
-                    "The optimal controller type should be either 'OPT' or 'MPC'."
+                self.args = self.args_list[self.policy_num - 1]
+                print("GOPS: Use an optimal controller")
+                env = self.__load_env(use_opt=True)
+                print("The environment for opt")
+                if hasattr(env, "set_mode"):
+                    env.set_mode("test")
+
+                assert (
+                    self.opt_args is not None
+                ), "Choose to use optimal controller, but the opt_args is None."
+
+                if self.opt_args["opt_controller_type"] == "OPT":
+                    assert (
+                        env.has_optimal_controller
+                    ), "The environment has no theoretical optimal controller."
+                    opt_controller = env.control_policy
+                    legend = "OPT"
+
+                elif self.opt_args["opt_controller_type"] == "MPC":
+                    model = create_env_model(**self.args_list[self.policy_num - 1])
+                    opt_args = self.opt_args.copy()
+                    opt_args.pop("opt_controller_type")
+                    opt_controller = OptController(model, **opt_args,)
+                    legend = "MPC-" + str(self.opt_args["num_pred_step"])
+                    if (
+                        "use_terminal_cost" not in self.opt_args.keys()
+                        or self.opt_args["use_terminal_cost"] == False
+                    ):
+                        legend += " (w/o TC)"
+                    else:
+                        legend += " (w/ TC)"
+
+                else:
+                    raise ValueError(
+                        "The optimal controller type should be either 'OPT' or 'MPC'."
+                    )
+
+                self.legend_list.append(legend)
+                self.error_dict = {}
+
+                eval_dict_opt, tracking_dict_opt = self.run_an_episode(
+                    env, opt_controller, self.init_info, is_opt=True, render=False
                 )
+                print("Successfully run an optimal controller!")
+                print("===========================================================\n")
 
-            self.legend_list.append(legend)
-            self.error_dict = {}
+                if self.save_opt:
+                    np.save(os.path.join(self.save_path, "eval_dict_opt.npy"), eval_dict_opt)
+                    np.save(os.path.join(self.save_path, "tracking_dict_opt.npy"), tracking_dict_opt)
 
-            eval_dict_opt, tracking_dict_opt = self.run_an_episode(
-                env, opt_controller, self.init_info, is_opt=True, render=False
-            )
-            print("Successfully run an optimal controller!")
-            print("===========================================================\n")
             self.eval_list.append(eval_dict_opt)
             if self.is_tracking:
                 self.tracking_list.append(tracking_dict_opt)
