@@ -14,10 +14,20 @@ import os
 from dataclasses import dataclass, field
 from typing import Callable, Dict, Optional, Union
 
+import numpy as np
+from gym.wrappers.time_limit import TimeLimit
 from gops.create_pkg.create_env_model import register as register_env_model
 from gops.env.vector.sync_vector_env import SyncVectorEnv
 from gops.env.vector.async_vector_env import AsyncVectorEnv
-from gops.env.wrapper.wrapping_utils import wrapping_env
+from gops.env.wrapper.action_repeat import ActionRepeatData
+from gops.env.wrapper.convert_type import ConvertType
+from gops.env.wrapper.gym2gymnasium import Gym2Gymnasium
+from gops.env.wrapper.noise_observation import NoiseData
+from gops.env.wrapper.reset_info import ResetInfoData
+from gops.env.wrapper.scale_action import ScaleActionData
+from gops.env.wrapper.scale_observation import ScaleObservationData
+from gops.env.wrapper.shaping_reward import ShapingRewardData
+from gops.env.wrapper.unify_state import StateData
 from gops.utils.gops_path import env_path, underline2camel
 
 
@@ -31,7 +41,6 @@ class Spec:
 
 
 registry: Dict[str, Spec] = {}
-
 
 
 def register(
@@ -88,13 +97,49 @@ for env_dir_name in env_dir_list:
 
 
 def create_env(
-    *, vector_env_num: Optional[int] = None, vector_env_type: Optional[str] = None, **kwargs
+    env_id: str,
+    *,
+    vector_env_num: Optional[int] = None,
+    vector_env_type: Optional[str] = None,
+    max_episode_steps: Optional[int] = None,
+    reward_shift: Optional[float] = None,
+    reward_scale: Optional[float] = None,
+    obs_shift: Union[np.ndarray, float, list, None] = None,
+    obs_scale: Union[np.ndarray, float, list, None] = None,
+    obs_noise_type: Optional[str] = None,
+    obs_noise_data: Optional[list] = None,
+    repeat_num: Optional[int] = None,
+    sum_reward: bool = True,
+    action_scale: bool = True,
+    min_action: Union[float, int, np.ndarray, list] = -1.0,
+    max_action: Union[float, int, np.ndarray, list] = 1.0,
+    gym2gymnasium: bool = False,
+    **kwargs,
 ) -> object:
-    env_name = kwargs["env_id"]
-    spec_ = registry.get(env_name)
+    """Automatically wrap data type environment according to input arguments. Wrapper will not be used
+        if all corresponding parameters are set to None.
+
+    :param env: original data type environment.
+    :param Optional[int] max_episode_steps: parameter for gym.wrappers.time_limit.TimeLimit wrapper.
+        if it is set to None but environment has 'max_episode_steps' attribute, it will be filled in
+        TimeLimit wrapper alternatively.
+    :param Optional[float] reward_shift: parameter for reward shaping wrapper.
+    :param Optional[float] reward_scale: parameter for reward shaping wrapper.
+    :param Union[np.ndarray, float, list, None] obs_shift: parameter for observation scale wrapper.
+    :param Union[np.ndarray, float, list, None] obs_scale: parameter for observation scale wrapper.
+    :param Optional[str] obs_noise_type: parameter for observation noise wrapper.
+    :param Optional[list] obs_noise_data: parameter for observation noise wrapper.
+    :param Optional[int] repeat_num: parameter for action repeat wrapper.
+    :param bool sum_reward: parameter for action repeat wrapper.
+    :param bool action_scale: parameter for scale action wrapper, default to True.
+    :param Union[float, int, np.ndarray, list] min_action: minimum action after scaling.
+    :param Union[float, int, np.ndarray, list] max_action: maximum action after scaling.
+    :return: wrapped data type environment.
+    """
+    spec_ = registry.get(env_id)
 
     if spec_ is None:
-        raise KeyError(f"No registered env with id: {env_name}")
+        raise KeyError(f"No registered env with id: {env_id}")
 
     _kwargs = spec_.kwargs.copy()
     _kwargs.update(kwargs)
@@ -105,29 +150,44 @@ def create_env(
     else:
         raise RuntimeError(f"{spec_.env_id} registered but entry_point is not specified")
 
-    # Wrapping the env
-    max_episode_steps = kwargs.get("max_episode_steps", None)
-    reward_scale = kwargs.get("reward_scale", None)
-    reward_shift = kwargs.get("reward_shift", None)
-    obs_scale = kwargs.get("obs_scale", None)
-    obs_shift = kwargs.get("obs_shift", None)
-    obs_noise_type = kwargs.get("obs_noise_type", None)
-    obs_noise_data = kwargs.get("obs_noise_data", None)
-    gym2gymnasium = kwargs.get("gym2gymnasium", False)
-
     def env_fn():
         env = env_creator(**kwargs)
-        env = wrapping_env(
-            env=env,
-            max_episode_steps=max_episode_steps,
-            reward_shift=reward_shift,
-            reward_scale=reward_scale,
-            obs_shift=obs_shift,
-            obs_scale=obs_scale,
-            obs_noise_type=obs_noise_type,
-            obs_noise_data=obs_noise_data,
-            gym2gymnasium=gym2gymnasium,
-        )
+
+        env = ResetInfoData(env)
+
+        if max_episode_steps is not None:
+            _max_episode_steps = max_episode_steps
+        elif hasattr(env, "max_episode_steps"):
+            _max_episode_steps = getattr(env, "max_episode_steps")
+        if _max_episode_steps is not None:
+            env = TimeLimit(env, _max_episode_steps)
+
+        if repeat_num is not None:
+            env = ActionRepeatData(env, repeat_num, sum_reward)
+
+        env = ConvertType(env)
+
+        env = StateData(env)
+
+        if reward_scale is not None or reward_shift is not None:
+            _reward_scale = 1.0 if reward_scale is None else reward_scale
+            _reward_shift = 0.0 if reward_shift is None else reward_shift
+            env = ShapingRewardData(env, _reward_shift, _reward_scale)
+
+        if obs_noise_type is not None:
+            env = NoiseData(env, obs_noise_type, obs_noise_data)
+
+        if obs_shift is not None or obs_scale is not None:
+            _obs_scale = 1.0 if obs_scale is None else obs_scale
+            _obs_shift = 0.0 if obs_shift is None else obs_shift
+            env = ScaleObservationData(env, _obs_shift, _obs_scale)
+
+        if action_scale:
+            env = ScaleActionData(env, min_action, max_action)
+        
+        if gym2gymnasium:
+            env = Gym2Gymnasium(env)
+
         return env
 
     if vector_env_num is None:
