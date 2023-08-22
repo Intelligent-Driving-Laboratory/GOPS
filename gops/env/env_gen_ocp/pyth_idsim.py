@@ -117,7 +117,7 @@ class idSimEnv(CrossRoad, Env):
 
     def get_state_from_idsim(self, ref_index_param=None) -> State:
         self._get_state_from_idsim(ref_index_param=ref_index_param)
-        return self.state
+        return self._state
     
     @property
     def get_zero_state(self) -> np.ndarray:
