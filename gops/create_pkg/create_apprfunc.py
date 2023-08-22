@@ -33,7 +33,7 @@ def register(
 ):
     global registry
 
-    new_spec = Spec(apprfunc=apprfunc, entry_point=entry_point, name=name, **kwargs,)
+    new_spec = Spec(apprfunc=apprfunc, entry_point=entry_point, name=name, kwargs=kwargs)
 
     # if new_spec.apprfunc in registry:
     #     print(f"Overriding apprfunc {new_spec.apprfunc} - {new_spec.name} already in registry.")

@@ -34,7 +34,7 @@ def register(
 ):
     global registry
 
-    new_spec = Spec(trainer=trainer, entry_point=entry_point, **kwargs,)
+    new_spec = Spec(trainer=trainer, entry_point=entry_point, kwargs=kwargs)
 
     # if new_spec.trainer in registry:
     #     print(f"Overriding trainer {new_spec.trainer} already in registry.")

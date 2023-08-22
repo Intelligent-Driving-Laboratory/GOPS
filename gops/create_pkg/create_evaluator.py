@@ -30,7 +30,7 @@ def register(
 ):
     global registry
 
-    new_spec = Spec(evaluator_name=evaluator_name, entry_point=entry_point, **kwargs,)
+    new_spec = Spec(evaluator_name=evaluator_name, entry_point=entry_point, kwargs=kwargs)
 
     # if new_spec.evaluator_name in registry:
     #     print(f"Overriding evaluator {new_spec.evaluator_name} already in registry.")

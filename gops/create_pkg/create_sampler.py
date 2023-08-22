@@ -35,7 +35,7 @@ def register(
 ):
     global registry
 
-    new_spec = Spec(sampler_name=sampler_name, entry_point=entry_point, **kwargs,)
+    new_spec = Spec(sampler_name=sampler_name, entry_point=entry_point, kwargs=kwargs)
 
     registry[new_spec.sampler_name] = new_spec
 
