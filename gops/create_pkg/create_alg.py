@@ -36,7 +36,7 @@ def register(
     global registry
 
     new_spec = Spec(algorithm=algorithm, entry_point=entry_point, 
-                    approx_container_cls=approx_container_cls, **kwargs)
+                    approx_container_cls=approx_container_cls, kwargs=kwargs)
 
     # if new_spec.algorithm in registry:
     #     print(f"Overriding algorithm {new_spec.algorithm} already in registry.")

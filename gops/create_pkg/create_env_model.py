@@ -39,7 +39,7 @@ def register(
 ):
     global registry
 
-    new_spec = Spec(env_id=env_id, entry_point=entry_point, **kwargs,)
+    new_spec = Spec(env_id=env_id, entry_point=entry_point, kwargs=kwargs)
 
     # if new_spec.env_id in registry:
     #     print(f"Overriding environment {new_spec.env_id} already in registry.")

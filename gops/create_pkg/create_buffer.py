@@ -34,7 +34,7 @@ def register(
 ):
     global registry
 
-    new_spec = Spec(buffer_name=buffer_name, entry_point=entry_point, **kwargs,)
+    new_spec = Spec(buffer_name=buffer_name, entry_point=entry_point, kwargs=kwargs)
 
     # if new_spec.buffer_name in registry:
     #     print(f"Overriding buffer {new_spec.buffer_name} already in registry.")

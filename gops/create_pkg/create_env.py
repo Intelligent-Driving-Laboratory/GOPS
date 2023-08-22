@@ -48,7 +48,7 @@ def register(
 ):
     global registry
 
-    new_spec = Spec(env_id=env_id, entry_point=entry_point, **kwargs,)
+    new_spec = Spec(env_id=env_id, entry_point=entry_point, kwargs=kwargs)
 
     # print(registry.keys())
     # if new_spec.env_id in registry:
@@ -151,7 +151,7 @@ def create_env(
         raise RuntimeError(f"{spec_.env_id} registered but entry_point is not specified")
 
     def env_fn():
-        env = env_creator(**kwargs)
+        env = env_creator(**_kwargs)
 
         env = ResetInfoData(env)
 
