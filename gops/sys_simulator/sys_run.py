@@ -295,7 +295,7 @@ class PolicyRunner:
             state_list.append(np.array(self.eval_list[i]["state_list"]))
             step_list.append(np.array(self.eval_list[i]["step_list"]))
             if self.constrained_env:
-                constrain_list.append(self.eval_list[i]["constrain_list"])
+                constrain_list.append(np.stack(self.eval_list[i]["constrain_list"]))
             if self.is_tracking:
                 state_ref_error_list.append(self.tracking_list[i])
 
@@ -906,9 +906,9 @@ class PolicyRunner:
                 print("Successfully run an optimal controller!")
                 print("===========================================================\n")
 
-                if self.save_opt:
-                    np.save(os.path.join(self.save_path, "eval_dict_opt.npy"), eval_dict_opt)
-                    np.save(os.path.join(self.save_path, "tracking_dict_opt.npy"), tracking_dict_opt)
+            if self.save_opt:
+                np.save(os.path.join(self.save_path, "eval_dict_opt.npy"), eval_dict_opt)
+                np.save(os.path.join(self.save_path, "tracking_dict_opt.npy"), tracking_dict_opt)
 
             self.eval_list.append(eval_dict_opt)
             if self.is_tracking:
