@@ -175,7 +175,7 @@ class PolicyRunner:
         obs, info = env.reset(**init_info)
         state = env.state
         print("Initial robot state: ")
-        print(self.__convert_format(state.robot_state.numpy()))
+        print(self.__convert_format(np.asarray(state.robot_state)))
         # plot tracking
         state_with_ref_error = {}
         done = False
