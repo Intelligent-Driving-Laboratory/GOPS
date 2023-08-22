@@ -28,7 +28,7 @@ from gops.create_pkg.create_env_model import create_env_model
 from gops.create_pkg.create_env import create_env
 from gops.utils.plot_evaluation import cm2inch
 from gops.utils.common_utils import get_args_from_json, mp4togif
-from gops.sys_simulator.opt_controller import OptController
+from gops.env.env_gen_ocp.pyth_base import State
 
 default_cfg = dict()
 default_cfg["fig_size"] = (12, 9)
@@ -114,6 +114,8 @@ class PolicyRunner:
         self.use_opt = use_opt
         self.load_opt_path = load_opt_path
         self.opt_args = opt_args
+        if "use_MPC_for_general_env" not in self.opt_args.keys():
+            self.opt_args["use_MPC_for_general_env"] = False
         self.save_opt = save_opt
         self.constrained_env = constrained_env
         self.use_dist = use_dist
@@ -172,17 +174,20 @@ class PolicyRunner:
         info_list = [init_info]
         obs, info = env.reset(**init_info)
         state = env.state
-        print("Initial state: ")
-        print(self.__convert_format(state))
+        print("Initial robot state: ")
+        print(self.__convert_format(state.robot_state.numpy()))
         # plot tracking
         state_with_ref_error = {}
         done = False
         info.update({"TimeLimit.truncated": False})
         while not (done or info["TimeLimit.truncated"]):
-            state_list.append(state)
+            state_list.append(state.robot_state)
             obs_list.append(obs)
             if is_opt:
-                action = controller(obs, info)
+                if isinstance(state, State):
+                    action = controller(state)
+                else:
+                    action = controller(obs, info)
             else:
                 action = self.compute_action(obs, controller)
                 action = self.__action_noise(action)
@@ -879,9 +884,15 @@ class PolicyRunner:
                     legend = "OPT"
 
                 elif self.opt_args["opt_controller_type"] == "MPC":
+                    if self.opt_args["use_MPC_for_general_env"] == True:
+                        self.args_list[self.policy_num - 1]["env"] = env
+                        from gops.sys_simulator.opt_controller_for_gen_env import OptController
+                    else:
+                        from gops.sys_simulator.opt_controller import OptController
                     model = create_env_model(**self.args_list[self.policy_num - 1])
                     opt_args = self.opt_args.copy()
                     opt_args.pop("opt_controller_type")
+                    opt_args.pop("use_MPC_for_general_env")
                     opt_controller = OptController(model, **opt_args,)
                     legend = "MPC-" + str(self.opt_args["num_pred_step"])
                     if (
