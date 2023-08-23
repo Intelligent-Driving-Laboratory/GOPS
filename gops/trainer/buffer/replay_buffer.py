@@ -77,7 +77,7 @@ class ReplayBuffer:
         next_obs: np.ndarray,
         next_info: dict,
         logp: np.ndarray,
-    ):
+    ) -> None:
         self.buf["obs"][self.ptr] = obs
         self.buf["obs2"][self.ptr] = next_obs
         self.buf["act"][self.ptr] = act
@@ -90,13 +90,15 @@ class ReplayBuffer:
         self.ptr = (self.ptr + 1) % self.max_size
         self.size = min(self.size + 1, self.max_size)
 
-    def add_batch(self, samples: list):
-        for sample in samples:
-            self.store(*sample)
+    def add_batch(self, samples: list) -> None:
+        list(map(lambda sample: self.store(*sample), samples))
 
-    def sample_batch(self, batch_size: int):
-        idxs = np.random.randint(0, self.size, size=batch_size)
+    def sample_batch(self, batch_size: int) -> dict:
+        idxes = np.random.randint(0, self.size, size=batch_size)
         batch = {}
         for k, v in self.buf.items():
-            batch[k] = v[idxs]
-        return {k: torch.as_tensor(v, dtype=torch.float32) for k, v in batch.items()}
+            if isinstance(v, np.ndarray):
+                batch[k] = torch.as_tensor(v[idxes], dtype=torch.float32)
+            else:
+                batch[k] = v.array2tensor(v[idxes])
+        return batch
