@@ -155,6 +155,7 @@ def create_env(
 
         env = ResetInfoData(env)
 
+        _max_episode_steps = None
         if max_episode_steps is not None:
             _max_episode_steps = max_episode_steps
         elif hasattr(env, "max_episode_steps"):
