@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import Optional, Any, Union
 from gops.env.env_gen_ocp.env_model.pyth_base_model import RobotModel, ContextModel, EnvModel
 from gops.env.env_gen_ocp.pyth_idsim import idSimState, idSimContextState, idSimEnv, get_idsimcontext
-from gops.env.env_gen_ocp.pyth_base import State
 
 import numpy as np
 import torch
@@ -22,7 +21,6 @@ class idSimRobotModel(RobotModel):
         idsim_model: IdSimModel,
     ):
         self.robot_state_dim = 6 + 2 * 2
-        #TODO: move action bound to here and add it into state bound? 
         self.robot_state_lower_bound = torch.tensor([-np.inf] * self.robot_state_dim, dtype=torch.float32)
         self.robot_state_upper_bound = torch.tensor([np.inf] * self.robot_state_dim, dtype=torch.float32)
         self.idsim_model = idsim_model
@@ -50,10 +48,10 @@ class idSimContextModel(ContextModel):
 
 class idSimEnvModel(EnvModel):
     def __init__(
-            self,
-            env: idSimEnv,
-            device: Union[torch.device, str, None] = None,
-            **kwargs: Any,
+        self,
+        env: idSimEnv,
+        device: Union[torch.device, str, None] = None,
+        **kwargs: Any,
     ):
         super().__init__(
             obs_dim = env.observation_space.shape[0],
@@ -67,7 +65,6 @@ class idSimEnvModel(EnvModel):
         self.idsim_model = IdSimModel(env, model_config)
         self.robot_model = idSimRobotModel(idsim_model = self.idsim_model)
         self.context_model = idSimContextModel()
-        self.StateClass = idSimState
 
     def get_obs(self, state: idSimState) -> torch.Tensor:
         return self.idsim_model.observe(get_idsimcontext(state, mode = 'batch'))
@@ -105,6 +102,10 @@ class idSimEnvModel(EnvModel):
         next_info = {}
         next_info["state"] = next_state
         return next_obs, reward, terminated, next_info
+    
+    @property
+    def StateClass(self) -> type:
+        return idSimState
 
 
 def env_model_creator(**kwargs):
