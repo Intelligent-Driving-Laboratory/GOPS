@@ -1,12 +1,11 @@
 from abc import ABCMeta, abstractmethod
 from typing import Optional, TypeVar, Callable, Sequence, Union
 
-import numpy as np
 import torch
 
-from gops.env.env_gen_ocp.pyth_base import Context, State
+from gops.env.env_gen_ocp.pyth_base import ContextState, State
 
-S=TypeVar('S', State, Context)
+S=TypeVar('S', State, ContextState, torch.Tensor)
 
 
 class Model(metaclass=ABCMeta):
@@ -16,6 +15,10 @@ class Model(metaclass=ABCMeta):
 
 
 class RobotModel(Model):
+    robot_state_dim: int
+    robot_state_lower_bound: torch.Tensor
+    robot_state_upper_bound: torch.Tensor
+
     @abstractmethod
     def get_next_state(self, robot_state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         ...
@@ -23,7 +26,7 @@ class RobotModel(Model):
 
 class ContextModel(Model):
     @abstractmethod
-    def get_next_state(self, context: Context, action: torch.Tensor) -> Context:
+    def get_next_state(self, context_state: ContextState, action: torch.Tensor) -> ContextState:
         ...
 
 
@@ -110,6 +113,11 @@ class EnvModel(Model, metaclass=ABCMeta):
 
     @abstractmethod
     def get_terminated(state: State) -> torch.bool:
+        ...
+
+    @property
+    @abstractmethod
+    def StateClass(self) -> type:
         ...
 
     @property

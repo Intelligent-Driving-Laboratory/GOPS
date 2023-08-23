@@ -75,11 +75,7 @@ class idSimEnv(CrossRoad, Env):
         return self._get_obs(), reward, done, self._get_info(info)
     
     def _get_info(self, info) -> dict:
-        info.update({'state': self._state})
-        try:
-            info['cost'] = self._get_constraint()
-        except NotImplementedError:
-            pass
+        info.update(Env._get_info(self))
         return info
     
     def _get_obs(self) -> np.ndarray:
@@ -146,7 +142,7 @@ def get_idsimcontext(state: idSimState, mode: str) -> ModelContext:
                 ref_index_param = state.context_state.ref_index_param.unsqueeze(0)
             ),
             t = state.context_state.real_t.unsqueeze(0),
-            i = state.context_state.t
+            i = state.context_state.t.long()
         )
     elif mode == "batch":
         assert state.context_state.t.unique().shape[0] == 1, "batch mode only support same t"

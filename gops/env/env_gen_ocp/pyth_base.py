@@ -129,60 +129,39 @@ class State(Generic[stateType]):
             return self.robot_state.shape[0]
 
 class Robot(metaclass=ABCMeta):
-    def __init__(
-            self, 
-            robot_state_space: Sequence, 
-            action_space: Sequence
-    ):
-        self.robot_state_space = gym.spaces.Box(low=robot_state_space[0], high=robot_state_space[1], dtype=np.float32)
-        self.action_space = gym.spaces.Box(low=action_space[0], high=action_space[1], dtype=np.float32)
-        self.robot_state = None
+    robot_state: np.ndarray
+    robot_state_space: gym.spaces.Box
+    action_space: gym.spaces.Box
     
     @abstractmethod
-    def reset(self) -> None:
+    def reset(self) -> np.ndarray:
         ...
 
     @abstractmethod
-    def step(self, action: np.ndarray) -> None:
+    def step(self, action: np.ndarray) -> np.ndarray:
         ...
 
     def get_zero_state(self, batch_size) -> np.ndarray:
         return self.robot_state_space.sample((batch_size,))
-    
+
 
 # TODO: Static constraint value
 class Context(metaclass=ABCMeta):
-    def __init__(
-            self, 
-            context_space: Sequence, 
-            termination_penalty: float
-        ):
-        self.context_state_space = gym.spaces.Box(low=context_space[0], high=context_space[1], dtype=np.float32)
-        self.context_state = None
+    context_state: ContextState[np.ndarray]
     
     @abstractmethod
-    def reset(self) -> None:
+    def reset(self) -> ContextState[np.ndarray]:
         ...
 
     @abstractmethod
-    def step(self, action: np.ndarray) -> None:
+    def step(self) -> ContextState[np.ndarray]:
         ...
-
-    def get_zero_state(self, batch_size) -> np.ndarray:
-        return self.context_state_space.sample((batch_size,))
 
 
 class Env(gym.Env, metaclass=ABCMeta):
-    def __init__(
-            self, 
-            observation_space: Sequence):
-        super(Env, self).__init__()
-        
-        self.robot = Robot()
-        self.context = Context()
-        self._state = None
-        self.observation_space = gym.spaces.Box(low=observation_space[0], high=observation_space[1], dtype=np.float32)
-        self.action_space = self.robot.action_space
+    robot: Robot
+    context: Context
+    _state: State[np.ndarray]
 
     def reset(
         self,
