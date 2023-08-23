@@ -34,12 +34,12 @@ class idSimState(State):
     def get_zero_state(self, batch_size = 1) -> State:
         # only used for batched state
         return idSimState(
-            robot_state=np.zeros((batch_size, *self.robot_state.shape[1:])),
+            robot_state=np.zeros((batch_size, *self.robot_state.shape[1:]), dtype=np.float32),
             context_state=idSimContextState(
-                reference=np.zeros((batch_size, *self.context_state.reference.shape[1:])),
-                constraint=np.zeros((batch_size, *self.context_state.constraint.shape[1:])),
+                reference=np.zeros((batch_size, *self.context_state.reference.shape[1:]), dtype=np.float32),
+                constraint=np.zeros((batch_size, *self.context_state.constraint.shape[1:]), dtype=np.float32),
                 t=np.zeros((batch_size, ), dtype=np.int64),
-                light_param=np.zeros((batch_size, *self.context_state.light_param.shape[1:])),
+                light_param=np.zeros((batch_size, *self.context_state.light_param.shape[1:]), dtype=np.float32),
                 ref_index_param=np.zeros((batch_size, ), dtype=np.int64),
                 real_t=np.zeros((batch_size, ), dtype=np.int64)
             )
@@ -48,7 +48,7 @@ class idSimState(State):
 
 class idSimEnv(CrossRoad, Env):
     def __new__(cls: type[Self], env_config: Config, model_config: Dict[str, Any]) -> Self:
-        print("idSimEnv.__new__")
+
         return super(idSimEnv, cls).__new__(cls, env_config)
     
     def __init__(self, env_config: Config, model_config: Dict[str, Any]):
@@ -117,7 +117,7 @@ class idSimEnv(CrossRoad, Env):
 
     def get_state_from_idsim(self, ref_index_param=None) -> State:
         self._get_state_from_idsim(ref_index_param=ref_index_param)
-        return self.state
+        return self._state
     
     @property
     def get_zero_state(self) -> np.ndarray:
