@@ -16,7 +16,6 @@ import numpy as np
 runner = PolicyRunner(
     log_policy_dir_list=["../results/pyth_idsim/FHADP2_230816-142507",
                          "../results/pyth_idsim/FHADP_230816-202627"],
-    # trained_policy_iteration_list=["54000_opt"],
     trained_policy_iteration_list=["54000_opt","11100_opt"],
     is_init_info=True,
     init_info={}, # ref_num = [0, 1, 2,..., 7]
