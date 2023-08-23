@@ -7,7 +7,7 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: vehicle 3DOF data environment with surrounding vehicles constraint
-#  Update: 2023-01-08, Jiaxin Gao: create environment
+#  Update: 2022-11-20, Yujie Yang: create environment
 
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -37,7 +37,7 @@ class SurrVehicleData:
         self.phi = angle_normalize(self.phi)
 
 
-class SimuVeh3dofcontiSurrCstrPenalty(SimuVeh3dofconti):
+class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
     def __init__(
         self,
         pre_horizon: int = 10,
@@ -48,9 +48,11 @@ class SimuVeh3dofcontiSurrCstrPenalty(SimuVeh3dofconti):
         veh_width: float = 2.0,
         **kwargs: Any,
     ):
-        super().__init__(pre_horizon, path_para, u_para, **kwargs)
+        max_steer = 0.5
+        super().__init__(pre_horizon, path_para, u_para, max_steer, **kwargs)
         ego_obs_dim = 6
         ref_obs_dim = 4
+        self.max_episode_steps = 300
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
             high=np.inf,
@@ -65,7 +67,7 @@ class SimuVeh3dofcontiSurrCstrPenalty(SimuVeh3dofconti):
         self.info_dict.update(
             {
                 "surr_state": {"shape": (surr_veh_num, 5), "dtype": np.float32},
-                "constraint": {"shape": (surr_veh_num,), "dtype": np.float32},
+                "constraint": {"shape": (1,), "dtype": np.float32},
             }
         )
 
@@ -73,29 +75,42 @@ class SimuVeh3dofcontiSurrCstrPenalty(SimuVeh3dofconti):
         self,
         init_state: Optional[Sequence] = None,
         ref_time: Optional[float] = None,
-        ref_num: Optional[int] = None,
+        ref_num: Optional[int] = 9,
+        index: Optional[int] = None,
         **kwargs,
     ) -> Tuple[np.ndarray, dict]:
+        # init_state = np.array([0.0, -1.0, 0.0, 0.0, 0, 0], dtype=np.float32)
         super().reset(init_state, ref_time, ref_num, **kwargs)
 
-        if self.path_num == 3:
+        surr_x0, surr_y0 = self.ref_points[0, :2]
+        if self.path_num == None:
             # circle path
+            surr_phi = self.ref_points[0, 2]
             surr_delta = -np.arctan2(SurrVehicleData.l, self.ref_traj.ref_trajs[3].r)
         else:
+            surr_phi = 0.0
             surr_delta = 0.0
 
         self.surr_vehs = []
         for _ in range(self.surr_veh_num):
             # avoid ego vehicle
-
-            delta_t = self.np_random.uniform(2, 10)
-            surr_phi = self.ref_traj.compute_phi(self.t + delta_t, self.path_num, self.u_num)
-            delta_lon = 1.0 * self.np_random.uniform(-1, 1)
-            delta_lat = 1.0 * self.np_random.uniform(-1, 1)
-            surr_x = self.ref_traj.compute_x(self.t + delta_t, self.path_num, self.u_num) + delta_lon
-            surr_y = self.ref_traj.compute_y(self.t + delta_t, self.path_num, self.u_num) + delta_lat
-
-            surr_u = 0
+            while True:
+                # TODO: sample position according to reference trajectory
+                # delta_lon = 10 * self.np_random.uniform(1.0, 2.0)
+                # delta_lat = 5 * self.np_random.uniform(-1, 1)
+                delta_lon = 10 * self.np_random.uniform(1.0, 2.0)
+                delta_lat = 5 * self.np_random.uniform(-1, 1)
+                if abs(delta_lat) > 1.4:
+                    break
+            surr_x = (
+                surr_x0 + 10.0
+                # surr_x0 + delta_lon * np.cos(surr_phi) - delta_lat * np.sin(surr_phi)
+            )
+            surr_y = (
+                surr_y0 + 0.0
+                # surr_y0 + delta_lon * np.sin(surr_phi) + delta_lat * np.cos(surr_phi)
+            )
+            surr_u = 0.0
             self.surr_vehs.append(
                 SurrVehicleData(
                     x=surr_x,
@@ -111,11 +126,14 @@ class SimuVeh3dofcontiSurrCstrPenalty(SimuVeh3dofconti):
         return self.get_obs(), self.info
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
+        # info = self.info
         _, reward, _, _ = super().step(action)
+        done = self.judge_done()
+
         for surr_veh in self.surr_vehs:
             surr_veh.step()
         self.update_surr_state()
-        done = self.judge_done()
+
         return self.get_obs(), reward, done, self.info
 
     def update_surr_state(self):
@@ -125,74 +143,16 @@ class SimuVeh3dofcontiSurrCstrPenalty(SimuVeh3dofconti):
                 dtype=np.float32,
             )
 
-    def compute_reward(self, action: np.ndarray) -> float:
-        # x, y, phi, u, _, w = self.state
-        # ref_x, ref_y, ref_phi, ref_u = self.ref_points[0]
-        obs = self.get_obs()
-        delta_x, delta_y, delta_phi, delta_u, v, w = obs[0], obs[1], obs[2], obs[3], obs[4], obs[5]
-        steer, a_x = action
-        # dis = circle center distance - 2 * radius
-        dis = - self.get_constraint()[0]
-        collision_bound = 0.5
-        dis_to_tanh = np.maximum(8 - 8 * dis / collision_bound, 0)
-        punish_dis = np.tanh(dis_to_tanh - 4) + 1
-
-        return -(
-                1.0 * delta_x ** 2
-                + 1.0 * delta_y ** 2
-                + 0.1 * delta_phi ** 2
-                + 0.1 * delta_u ** 2
-                + 0.5 * v ** 2
-                + 0.5 * w ** 2
-                + 0.5 * steer ** 2
-                + 0.5 * a_x ** 2
-                + 15.0 * punish_dis
-        )
-        # return -(
-        #         0.5 * delta_x ** 2
-        #         + 0.5 * delta_y ** 2
-        #         + 0.1 * delta_phi ** 2
-        #         + 0.1 * delta_u ** 2
-        #         + 0.5 * v ** 2
-        #         + 0.5 * w ** 2
-        #         + 0.5 * steer ** 2
-        #         + 0.5 * a_x ** 2
-        #         + 15.0 * punish_dis
-        # )
-
-
-
-    def judge_done(self) -> bool:
-        x, y, phi = self.state[:3]
-        ref_x, ref_y, ref_phi = self.ref_points[0, :3]
-        dis = - self.get_constraint()
-        done = (
-                # (np.abs(x - ref_x) > 10)
-                (np.abs(y - ref_y) > 5)
-                | (np.abs(angle_normalize(phi - ref_phi)) > np.pi)
-                | (np.any(dis < 0))
-        )
-        # if done:
-        #     print('x - ref_x = ', np.abs(x - ref_x))
-        #     print('y - ref_y = ', np.abs(y - ref_y))
-        #     print('np.abs(angle_normalize(phi - ref_phi) = ', np.abs(angle_normalize(phi - ref_phi)))
-        #     print('dis = ', dis)
-        #     print('sur_x', self.surr_state)
-
-        return done
-
     def get_obs(self) -> np.ndarray:
         obs = super().get_obs()
-        sur_x_tf, sur_y_tf, sur_phi_tf = \
-            ego_vehicle_coordinate_transform(
-                self.state[0], self.state[1], self.state[2],
-                self.surr_state[:, 0], self.surr_state[:, 1], self.surr_state[:, 2],
-            )
-        sur_u_tf = self.surr_state[:, 3] - self.state[3]
-        surr_obs = np.concatenate(
-            (sur_x_tf, sur_y_tf, sur_phi_tf, sur_u_tf))
-        # surr_obs = np.array(sur_x_tf, sur_y_tf, sur_phi_tf, sur_u_tf)
-        return np.concatenate((obs, surr_obs))
+        surr_x_tf, surr_y_tf, surr_phi_tf = ego_vehicle_coordinate_transform(
+            self.state[0], self.state[1], self.state[2], 
+            self.surr_state[:, 0], self.surr_state[:, 1], self.surr_state[:, 2])
+        surr_obs_rel = np.concatenate(
+            ([surr_x_tf[0], surr_y_tf[0], surr_phi_tf[0],], self.surr_state[:, 3]))  # TODO: 多辆车 , [np.sign(surr_y_tf[0])]
+        # print("surr_obs_rel", surr_obs_rel)
+        surr_obs = self.surr_state[:, :4] - self.state[np.newaxis, :4]
+        return np.concatenate((obs, surr_obs_rel))
 
     def get_constraint(self) -> np.ndarray:
         # collision detection using bicircle model
@@ -213,11 +173,8 @@ class SimuVeh3dofcontiSurrCstrPenalty(SimuVeh3dofconti):
         surr_x = self.surr_state[:, 0]
         surr_y = self.surr_state[:, 1]
         surr_phi = self.surr_state[:, 2]
-        # n * 2 * 2 first 2 is front and rear circle the second 2 is x and y position
         surr_center = np.stack(
             (
-                # front circle
-                # n * 2 n is num of surround 2 is x and y position
                 np.stack(
                     ((surr_x + d * np.cos(surr_phi)), surr_y + d * np.sin(surr_phi)),
                     axis=1,
@@ -230,7 +187,7 @@ class SimuVeh3dofcontiSurrCstrPenalty(SimuVeh3dofconti):
             axis=1,
         )
 
-        min_dist = np.inf * np.ones(self.surr_veh_num, dtype=np.float32)
+        min_dist = np.inf
         for i in range(2):
             # front and rear circle of ego vehicle
             for j in range(2):
@@ -238,11 +195,40 @@ class SimuVeh3dofcontiSurrCstrPenalty(SimuVeh3dofconti):
                 dist = np.linalg.norm(
                     ego_center[np.newaxis, i] - surr_center[:, j], axis=1
                 )
-                min_dist = np.minimum(min_dist, dist)
-        # surr_veh_num dist: between ego_veh and sur_veh min dis
-        return 2 * r - min_dist
+                min_dist = min(min_dist, np.min(dist))
 
+        return np.array([2 * r - min_dist], dtype=np.float32)
 
+    def compute_reward(self, action: np.ndarray) -> float:
+        x, y, phi, u, _, w = self.state
+        ref_x, ref_y, ref_phi, ref_u = self.ref_points[0]
+        steer, a_x = action
+        violation = self.get_constraint()
+        threshold = -0.1
+        punish = np.maximum(violation - threshold, 0)[0]
+        if (punish > 0) :
+            punish += 2.0
+        return - 0.01 * (
+            2.0 * (x - ref_x) ** 2
+            + 2.0 * (y - ref_y) ** 2
+            + 500 * angle_normalize(phi - ref_phi) ** 2
+            + 5.0 * (u - ref_u) ** 2
+            + 1000 * w ** 2
+            + 1000  * steer ** 2
+            + 50  * a_x ** 2
+            + 500.0 * punish
+        ) + 0.5
+
+    def judge_done(self) -> bool:
+        x, y, phi = self.state[:3]
+        ref_x, ref_y, ref_phi = self.ref_points[0, :3]
+        done = (
+            (np.abs(x - ref_x) > 10)
+            | (np.abs(y - ref_y) > 10)
+            | (np.abs(angle_normalize(phi - ref_phi)) > np.pi)
+        )
+        return done
+    
     @property
     def info(self):
         info = super().info
@@ -251,7 +237,6 @@ class SimuVeh3dofcontiSurrCstrPenalty(SimuVeh3dofconti):
         )
         return info
 
-
     def _render(self, ax):
         super()._render(ax, self.veh_length, self.veh_width)
         import matplotlib.patches as pc
@@ -259,10 +244,46 @@ class SimuVeh3dofcontiSurrCstrPenalty(SimuVeh3dofconti):
         # draw surrounding vehicles
         for i in range(self.surr_veh_num):
             surr_x, surr_y, surr_phi = self.surr_state[i, :3]
+            rectan_x = surr_x - self.veh_length / 2 * np.cos(surr_phi) + self.veh_width / 2 * np.sin(surr_phi)
+            rectan_y = surr_y - self.veh_width / 2 * np.cos(surr_phi) - self.veh_length / 2 * np.sin(surr_phi)
             ax.add_patch(pc.Rectangle(
-                (surr_x - self.veh_length / 2, surr_y - self.veh_width / 2), self.veh_length, self.veh_width, surr_phi * 180 / np.pi,
+                (rectan_x, rectan_y), self.veh_length, self.veh_width, surr_phi * 180 / np.pi,
                 facecolor='w', edgecolor='k', zorder=1))
+            
+            # distance from vehicle center to front/rear circle center
+            d = (self.veh_length - self.veh_width) / 2
+            # circle radius
+            r = np.sqrt(2) / 2 * self.veh_width
 
-
+            x, y, phi = self.state[:3]
+            surr_x = self.surr_state[:, 0]
+            surr_y = self.surr_state[:, 1]
+            surr_phi = self.surr_state[:, 2]
+            surr_center = np.stack(
+                (
+                    np.stack(
+                        ((surr_x + d * np.cos(surr_phi)), surr_y + d * np.sin(surr_phi)),
+                        axis=1,
+                    ),
+                    np.stack(
+                        ((surr_x - d * np.cos(surr_phi)), surr_y - d * np.sin(surr_phi)),
+                        axis=1,
+                    ),
+                ),
+                axis=1,
+            )
+            ax.add_patch(pc.Circle(
+                ((x + d * np.cos(phi)), y + d * np.sin(phi)), r,
+                facecolor='w', edgecolor='r', zorder=1))
+            ax.add_patch(pc.Circle(
+                ((x - d * np.cos(phi)), y - d * np.sin(phi)), r,
+                facecolor='w', edgecolor='r', zorder=1))
+            ax.add_patch(pc.Circle(
+                surr_center[0][0], r,
+                facecolor='w', edgecolor='k', zorder=1))
+            ax.add_patch(pc.Circle(
+                surr_center[0][1], r,
+                facecolor='w', edgecolor='k', zorder=1))
+                       
 def env_creator(**kwargs):
-    return SimuVeh3dofcontiSurrCstrPenalty(**kwargs)
+    return SimuVeh3dofcontiSurrCstr(**kwargs)
