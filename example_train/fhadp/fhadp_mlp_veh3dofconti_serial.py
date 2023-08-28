@@ -7,10 +7,11 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: example for fhadp + veh3dofconti + mlp + off_serial
-#  Update Date: 2022-04-20, Jiaxin Gao: create example
+#  Update Date: 2023-08-28, Guojian Zhan: support lr schedule
 
 import os
 import argparse
+import json
 import numpy as np
 
 from gops.create_pkg.create_alg import create_alg
@@ -61,7 +62,15 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument("--policy_learning_rate", type=float, default=3e-5)
+    parser.add_argument("--policy_learning_rate", type=float, default=1e-3)
+    parser.add_argument("--policy_scheduler", type=json.loads, default={
+        "name": "LinearLR",
+        "params": {
+            "start_factor": 1.0,
+            "end_factor": 0.0,
+            "total_iters": 100000,
+            }
+    })
 
     ################################################
     # 4. Parameters for trainer

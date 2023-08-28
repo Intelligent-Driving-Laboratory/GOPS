@@ -11,6 +11,7 @@
 #             Reinforcement Learning for Sequential Decision and Optimal Control. Springer, Singapore.
 #  Update: 2021-03-05, Fawang Zhang: create FHADP algorithm
 #  Update: 2022-12-04, Jiaxin Gao: supplementary comment information
+#  Update: 2023-08-28, Guojian Zhan: support lr schedule
 
 __all__ = ["FHADP"]
 
@@ -40,6 +41,19 @@ class ApproxContainer(ApprBase):
         self.policy_optimizer = Adam(
             self.policy.parameters(), lr=kwargs["policy_learning_rate"]
         )
+        policy_scheduler_args = kwargs.get("policy_scheduler", None)
+        if policy_scheduler_args is not None:
+            policy_scheduler_name = policy_scheduler_args["name"]
+            if policy_scheduler_name == "LinearLR":
+                self.scheculer_dict = {
+                    "policy_scheduler": getattr(
+                        torch.optim.lr_scheduler,
+                        policy_scheduler_name,
+                    )(
+                        self.policy_optimizer,
+                        **policy_scheduler_args["params"],
+                    )
+                }
 
     def create_action_distributions(self, logits):
         """create action distribution"""
@@ -68,7 +82,7 @@ class FHADP(AlgorithmBase):
         para_tuple = ("forward_step", "gamma")
         return para_tuple
 
-    def local_update(self, data, iteration: int):
+    def _local_update(self, data, iteration: int):
         self.__compute_gradient(data)
         self.networks.policy_optimizer.step()
         return self.tb_info
@@ -80,7 +94,7 @@ class FHADP(AlgorithmBase):
         update_info["grad"] = policy_grad
         return self.tb_info, update_info
 
-    def remote_update(self, update_info: dict):
+    def _remote_update(self, update_info: dict):
         for p, grad in zip(self.networks.policy.parameters(), update_info["grad"]):
             p.grad = grad
         self.networks.policy_optimizer.step()
