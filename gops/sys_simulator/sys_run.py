@@ -881,8 +881,6 @@ class PolicyRunner:
                         env.has_optimal_controller
                     ), "The environment has no theoretical optimal controller."
                     opt_controller = env.control_policy
-                    legend = "OPT"
-
                 elif self.opt_args["opt_controller_type"] == "MPC":
                     if self.opt_args["use_MPC_for_general_env"] == True:
                         self.args_list[self.policy_num - 1]["env"] = env
@@ -894,28 +892,29 @@ class PolicyRunner:
                     opt_args.pop("opt_controller_type")
                     opt_args.pop("use_MPC_for_general_env")
                     opt_controller = OptController(model, **opt_args,)
-                    legend = "MPC-" + str(self.opt_args["num_pred_step"])
-                    if (
-                        "use_terminal_cost" not in self.opt_args.keys()
-                        or self.opt_args["use_terminal_cost"] == False
-                    ):
-                        legend += " (w/o TC)"
-                    else:
-                        legend += " (w/ TC)"
-
                 else:
                     raise ValueError(
                         "The optimal controller type should be either 'OPT' or 'MPC'."
                     )
-
-                self.legend_list.append(legend)
-                self.error_dict = {}
 
                 eval_dict_opt, tracking_dict_opt = self.run_an_episode(
                     env, opt_controller, self.init_info, is_opt=True, render=False
                 )
                 print("Successfully run an optimal controller!")
                 print("===========================================================\n")
+
+            if self.opt_args["opt_controller_type"] == "OPT":
+                legend = "OPT"
+            elif self.opt_args["opt_controller_type"] == "MPC":
+                legend = "MPC-" + str(self.opt_args["num_pred_step"])
+                if (
+                    "use_terminal_cost" not in self.opt_args.keys()
+                    or self.opt_args["use_terminal_cost"] == False
+                ):
+                    legend += " (w/o TC)"
+                else:
+                    legend += " (w/ TC)"
+            self.legend_list.append(legend)
 
             if self.save_opt:
                 np.save(os.path.join(self.save_path, "eval_dict_opt.npy"), eval_dict_opt)
