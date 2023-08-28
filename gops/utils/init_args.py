@@ -79,11 +79,6 @@ def init_args(env, **args):
     if hasattr(env, "constraint_dim"):
         args["constraint_dim"] = env.constraint_dim
 
-    if hasattr(env, "additional_info"):
-        args["additional_info"] = env.additional_info
-    else:
-        args["additional_info"] = {}
-
     if hasattr(args, "value_func_type") and args["value_func_type"] == "CNN_SHARED":
         if hasattr(args, "policy_func_type"):
             assert (
@@ -119,4 +114,8 @@ def init_args(env, **args):
     print("Set global seed to {}".format(args["seed"]))
     with open(args["save_folder"] + "/config.json", "w", encoding="utf-8") as f:
         json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
+    if hasattr(env, "additional_info"):
+        args["additional_info"] = env.additional_info
+    else:
+        args["additional_info"] = {}
     return args
