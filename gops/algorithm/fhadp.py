@@ -41,19 +41,10 @@ class ApproxContainer(ApprBase):
         self.policy_optimizer = Adam(
             self.policy.parameters(), lr=kwargs["policy_learning_rate"]
         )
-        policy_scheduler_args = kwargs.get("policy_scheduler", None)
-        if policy_scheduler_args is not None:
-            policy_scheduler_name = policy_scheduler_args["name"]
-            if policy_scheduler_name == "LinearLR":
-                self.scheculer_dict = {
-                    "policy_scheduler": getattr(
-                        torch.optim.lr_scheduler,
-                        policy_scheduler_name,
-                    )(
-                        self.policy_optimizer,
-                        **policy_scheduler_args["params"],
-                    )
-                }
+        self.optimizer_dict = {
+            "policy": self.policy_optimizer,
+        }
+        self.init_scheduler(**kwargs)
 
     def create_action_distributions(self, logits):
         """create action distribution"""
