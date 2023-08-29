@@ -9,9 +9,17 @@
 #  Description: Create environments
 #  Update Date: 2020-11-10, Yuhang Zhang: add create environments code
 
-from gops.env.wrapper.wrapping_utils import wrapping_model
 from dataclasses import dataclass, field
-from typing import Callable, Dict, Union
+from typing import Callable, Dict, Optional, Union
+
+import numpy as np
+from gops.env.wrapper.action_repeat import ActionRepeatModel
+from gops.env.wrapper.clip_action import ClipActionModel
+from gops.env.wrapper.clip_observation import ClipObservationModel
+from gops.env.wrapper.mask_at_done import MaskAtDoneModel
+from gops.env.wrapper.scale_action import ScaleActionModel
+from gops.env.wrapper.scale_observation import ScaleObservationModel
+from gops.env.wrapper.shaping_reward import ShapingRewardModel
 
 
 @dataclass
@@ -31,45 +39,86 @@ def register(
 ):
     global registry
 
-    new_spec = Spec(env_id=env_id, entry_point=entry_point, **kwargs,)
+    new_spec = Spec(env_id=env_id, entry_point=entry_point, kwargs=kwargs)
 
     # if new_spec.env_id in registry:
     #     print(f"Overriding environment {new_spec.env_id} already in registry.")
     registry[new_spec.env_id] = new_spec
 
 
-def create_env_model(**kwargs,) -> object:
-    env_id = kwargs["env_id"] + "_model"
-    spec_ = registry.get(env_id)
+def create_env_model(
+    env_id: str,
+    *,
+    reward_shift: Optional[float] = None,
+    reward_scale: Optional[float] = None,
+    obs_shift: Union[np.ndarray, float, list, None] = None,
+    obs_scale: Union[np.ndarray, float, list, None] = None,
+    clip_obs: bool = True,
+    clip_action: bool = True,
+    mask_at_done: bool = True,
+    repeat_num: Optional[int] = None,
+    sum_reward: bool = True,
+    action_scale: bool = True,
+    min_action: Union[float, int, np.ndarray, list] = -1.0,
+    max_action: Union[float, int, np.ndarray, list] = 1.0,
+    **kwargs,
+) -> object:
+    """Automatically wrap model type environment according to input arguments. Wrapper will not be used
+        if all corresponding parameters are set to None.
+
+    :param model: original data type environment.
+    :param Optional[float] reward_shift: parameter for reward shaping wrapper.
+    :param Optional[float] reward_scale: parameter for reward shaping wrapper.
+    :param Union[np.ndarray, float, list, None] obs_shift: parameter for observation scale wrapper.
+    :param Union[np.ndarray, float, list, None] obs_scale: parameter for observation scale wrapper.
+    :param bool clip_obs: parameter for clip observation wrapper, default to True.
+    :param bool clip_action: parameter for clip action wrapper, default to True.
+    :param bool mask_at_done: parameter for mask at done wrapper, default to True.
+    :param Optional[int] repeat_num: parameter for action repeat wrapper.
+    :param bool sum_reward: parameter for action repeat wrapper.
+    :param bool action_scale: parameter for scale action wrapper, default to True.
+    :param Union[float, int, np.ndarray, list] min_action: minimum action after scaling.
+    :param Union[float, int, np.ndarray, list] max_action: maximum action after scaling.
+    :return: wrapped model type environment.
+    """
+    env_model_id = env_id + "_model"
+    spec_ = registry.get(env_model_id)
 
     if spec_ is None:
-        raise KeyError(f"No registered env with id: {env_id}")
+        raise KeyError(f"No registered env with id: {env_model_id}")
 
     _kwargs = spec_.kwargs.copy()
     _kwargs.update(kwargs)
 
     if callable(spec_.entry_point):
-        env_creator = spec_.entry_point
+        env_model_creator = spec_.entry_point
     else:
         raise RuntimeError(f"{spec_.env_id} registered but entry_point is not specified")
 
-    env_model = env_creator(**_kwargs)
+    env_model = env_model_creator(**_kwargs)
 
-    reward_scale = kwargs.get("reward_scale", None)
-    reward_shift = kwargs.get("reward_shift", None)
-    obs_scale = kwargs.get("obs_scale", None)
-    obs_shift = kwargs.get("obs_shift", None)
-    clip_obs = kwargs.get("clip_obs", True)
-    clip_action = kwargs.get("clip_action", True)
-    mask_at_done = kwargs.get("mask_at_done", True)
-    env_model = wrapping_model(
-        model=env_model,
-        reward_shift=reward_shift,
-        reward_scale=reward_scale,
-        obs_shift=obs_shift,
-        obs_scale=obs_scale,
-        clip_obs=clip_obs,
-        clip_action=clip_action,
-        mask_at_done=mask_at_done,
-    )
+    if mask_at_done:
+        env_model = MaskAtDoneModel(env_model)
+    if repeat_num is not None:
+        env_model = ActionRepeatModel(env_model, repeat_num, sum_reward)
+
+    if reward_scale is not None or reward_shift is not None:
+        reward_scale = 1.0 if reward_scale is None else reward_scale
+        reward_shift = 0.0 if reward_shift is None else reward_shift
+        env_model = ShapingRewardModel(env_model, reward_shift, reward_scale)
+
+    if obs_shift is not None or obs_scale is not None:
+        obs_scale = 1.0 if obs_scale is None else obs_scale
+        obs_shift = 0.0 if obs_shift is None else obs_shift
+        env_model = ScaleObservationModel(env_model, obs_shift, obs_scale)
+
+    if clip_obs:
+        env_model = ClipObservationModel(env_model)
+
+    if clip_action:
+        env_model = ClipActionModel(env_model)
+
+    if action_scale:
+        env_model = ScaleActionModel(env_model, min_action, max_action)
+
     return env_model
