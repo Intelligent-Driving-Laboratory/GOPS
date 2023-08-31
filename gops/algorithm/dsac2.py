@@ -14,7 +14,7 @@
 #  Update: 2021-03-05, Ziqing Gu: create DSAC algorithm
 #  Update: 2021-03-05, Wenxuan Wang: debug DSAC algorithm
 
-__all__=["ApproxContainer","DSAC2W2MEAN"]
+__all__=["ApproxContainer","DSAC2"]
 import time
 from copy import deepcopy
 from typing import Tuple

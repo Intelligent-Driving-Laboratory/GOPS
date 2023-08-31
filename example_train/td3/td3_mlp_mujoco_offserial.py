@@ -34,7 +34,7 @@ if __name__ == "__main__":
     parser.add_argument("--env_id", type=str, default="gym_humanoid", help="id of environment")
     parser.add_argument("--algorithm", type=str, default="TD3", help="RL algorithm")
     parser.add_argument("--enable_cuda", default=False, help="Disable CUDA")
-    parser.add_argument("--seed", default=12345, help="Enable CUDA")
+    parser.add_argument("--seed", default=12345, help="Global seed")
     ################################################
     # 1. Parameters for environment
     parser.add_argument("--reward_scale", type=float, default=1, help="reward scale factor")
