@@ -14,6 +14,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Callable, Dict, Optional, Union
 
+import gym
 import numpy as np
 from gym.wrappers.time_limit import TimeLimit
 from gops.create_pkg.create_env_model import register as register_env_model
@@ -183,7 +184,7 @@ def create_env(
             _obs_shift = 0.0 if obs_shift is None else obs_shift
             env = ScaleObservationData(env, _obs_shift, _obs_scale)
 
-        if action_scale:
+        if action_scale and isinstance(env.action_space, gym.spaces.Box):
             env = ScaleActionData(env, min_action, max_action)
         
         if gym2gymnasium:
