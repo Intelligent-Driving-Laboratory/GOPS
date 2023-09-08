@@ -220,4 +220,4 @@ def env_model_creator(**kwargs):
     """
     make env model `pyth_invertedpendulum`
     """
-    return PythInvertedpendulum(kwargs["device"])
+    return PythInvertedpendulum(kwargs.get("device", None))
