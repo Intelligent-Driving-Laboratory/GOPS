@@ -49,10 +49,6 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         **kwargs: Any,
     ):
         max_steer = 0.5
-        init_high = np.array([1, 0.2, np.pi / 36, 2, 0.1, 0.1], dtype=np.float32)
-        init_low = -np.array([1, 0.8, np.pi / 36, 2, 0.1, 0.1], dtype=np.float32)
-        work_space = np.stack((init_low, init_high))
-        kwargs["work_space"] = work_space
         super().__init__(pre_horizon, path_para, u_para, max_steer, **kwargs)
         ego_obs_dim = 6
         ref_obs_dim = 4
@@ -71,13 +67,9 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         self.info_dict.update(
             {
                 "surr_state": {"shape": (surr_veh_num, 5), "dtype": np.float32},
-                "constraint": {"shape": (3,), "dtype": np.float32},
+                "constraint": {"shape": (1,), "dtype": np.float32},
             }
         )
-
-        self.lane_width = 4.0
-        self.upper_bound = 0.5 * self.lane_width
-        self.lower_bound = -1.5 * self.lane_width
 
     def reset(
         self,
@@ -111,7 +103,7 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
                 if abs(delta_lat) > 1.4:
                     break
             surr_x = (
-                surr_x0 + 20.0
+                surr_x0 + 10.0
                 # surr_x0 + delta_lon * np.cos(surr_phi) - delta_lat * np.sin(surr_phi)
             )
             surr_y = (
@@ -167,7 +159,7 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         # distance from vehicle center to front/rear circle center
         d = (self.veh_length - self.veh_width) / 2
         # circle radius
-        r = 1.2 / 2 * self.veh_width
+        r = np.sqrt(2) / 2 * self.veh_width
 
         x, y, phi = self.state[:3]
         ego_center = np.array(
@@ -204,14 +196,8 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
                     ego_center[np.newaxis, i] - surr_center[:, j], axis=1
                 )
                 min_dist = min(min_dist, np.min(dist))
-        ego_to_veh_violation = 2 * r - min_dist
 
-        # road boundary violation
-        ego_upper_y = max(ego_center[0, 1], ego_center[1, 1]) + r
-        ego_lower_y = min(ego_center[0, 1], ego_center[1, 1]) - r
-        upper_bound_violation = ego_upper_y - self.upper_bound
-        lower_bound_violation = self.lower_bound - ego_lower_y
-        return np.array([ego_to_veh_violation, upper_bound_violation, lower_bound_violation], dtype=np.float32)
+        return np.array([2 * r - min_dist], dtype=np.float32)
 
     def compute_reward(self, action: np.ndarray) -> float:
         x, y, phi, u, _, w = self.state
@@ -219,9 +205,9 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         steer, a_x = action
         violation = self.get_constraint()
         threshold = -0.1
-        punish = np.maximum(violation - threshold, 0).sum()
+        punish = np.maximum(violation - threshold, 0)[0]
         if (punish > 0) :
-            punish += 1.0
+            punish += 2.0
         return - 0.01 * (
             2.0 * (x - ref_x) ** 2
             + 2.0 * (y - ref_y) ** 2
@@ -231,7 +217,7 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
             + 1000  * steer ** 2
             + 50  * a_x ** 2
             + 500.0 * punish
-        ) + 2.0
+        ) + 0.5
 
     def judge_done(self) -> bool:
         x, y, phi = self.state[:3]
@@ -240,7 +226,6 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
             (np.abs(x - ref_x) > 10)
             | (np.abs(y - ref_y) > 10)
             | (np.abs(angle_normalize(phi - ref_phi)) > np.pi)
-            # | (max(self.get_constraint()) > 1.0)
         )
         return done
     
@@ -255,13 +240,6 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
     def _render(self, ax):
         super()._render(ax, self.veh_length, self.veh_width)
         import matplotlib.patches as pc
-        # render self.upper_bound and self.lower_bound with solid line
-        upper_x = np.linspace(-100, 200, 100)
-        lower_x = upper_x
-        upper_y = np.ones_like(upper_x) * self.upper_bound
-        lower_y = np.ones_like(lower_x) * self.lower_bound
-        ax.plot(upper_x, upper_y, "k")
-        ax.plot(lower_x, lower_y, "k")
 
         # draw surrounding vehicles
         for i in range(self.surr_veh_num):
@@ -275,7 +253,7 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
             # distance from vehicle center to front/rear circle center
             d = (self.veh_length - self.veh_width) / 2
             # circle radius
-            r = 1.2 / 2 * self.veh_width
+            r = np.sqrt(2) / 2 * self.veh_width
 
             x, y, phi = self.state[:3]
             surr_x = self.surr_state[:, 0]

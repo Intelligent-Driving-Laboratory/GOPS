@@ -71,6 +71,10 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
         self.veh_length = veh_length
         self.veh_width = veh_width
 
+        self.lane_width = 4.0
+        self.upper_bound = 0.5 * self.lane_width
+        self.lower_bound = -1.5 * self.lane_width
+
     def forward(
         self,
         obs: torch.Tensor,
@@ -143,13 +147,23 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
                 min_dist = torch.minimum(
                     min_dist, torch.min(dist, dim=1, keepdim=True).values
                 )
-        return 2 * r - min_dist
+
+        ego_to_veh_violation = 2 * r - min_dist
+
+        # road boundary violation
+        ego_upper_y = ego_center[:, :, 1] + r
+        ego_lower_y = ego_center[:, :, 1] - r
+        upper_bound_violation = torch.max(ego_upper_y - self.upper_bound, dim=1, keepdim=True).values
+        lower_bound_violation = torch.max(self.lower_bound - ego_lower_y, dim=1, keepdim=True).values
+        constraint = torch.cat(
+            (ego_to_veh_violation, upper_bound_violation, lower_bound_violation), dim=1
+        )
+        return constraint
 
     def compute_reward(
         self,
         obs: torch.Tensor,
         action: torch.Tensor,
-        info: InfoDict,
     ) -> torch.Tensor:
         delta_x, delta_y, delta_phi, delta_u = obs[:, 0], obs[:, 1], obs[:, 2], obs[:, 3]
         w = obs[:, 5]

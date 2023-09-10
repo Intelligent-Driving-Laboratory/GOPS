@@ -33,7 +33,7 @@ if __name__ == "__main__":
     ################################################
     # Key Parameters for users
     parser.add_argument("--env_id", type=str, default="pyth_veh3dofconti_detour", help="id of environment")
-    parser.add_argument("--algorithm", type=str, default="DSAC2W2MEAN", help="RL algorithm")
+    parser.add_argument("--algorithm", type=str, default="DSAC", help="RL algorithm")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     parser.add_argument("--seed", default=3, help="seed")
 
@@ -42,6 +42,7 @@ if __name__ == "__main__":
     parser.add_argument("--action_type", type=str, default="continu", help="Options: continu/discret")
     parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
     parser.add_argument("--is_adversary", type=bool, default=False, help="Adversary training")
+    parser.add_argument("--pre_horizon", type=int, default=20, help="Prediction horizon")
     ################################################
     # 2.1 Parameters of value approximate function
     parser.add_argument(
@@ -107,7 +108,7 @@ if __name__ == "__main__":
         help="Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer",
     )
     # Maximum iteration number
-    parser.add_argument("--max_iteration", type=int, default=32000)
+    parser.add_argument("--max_iteration", type=int, default=40000)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument(
         "--ini_network_dir",
@@ -147,7 +148,7 @@ if __name__ == "__main__":
     # 7. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument("--apprfunc_save_interval", type=int, default=5000)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=2000)
     # Save key info every N updates
     parser.add_argument("--log_save_interval", type=int, default=200)
 
