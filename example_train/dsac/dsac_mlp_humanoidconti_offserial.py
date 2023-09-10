@@ -31,6 +31,7 @@ if __name__ == "__main__":
     parser.add_argument("--env_id", type=str, default="gym_humanoid", help="id of environment")
     parser.add_argument("--algorithm", type=str, default="DSAC", help="RL algorithm")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
+    parser.add_argument("--seed", default=12345, help="Global seed")
     ################################################
     # 1. Parameters for environment
     parser.add_argument("--reward_scale", type=float, default=1, help="reward scale factor")
@@ -48,13 +49,13 @@ if __name__ == "__main__":
     )
     parser.add_argument("--value_func_type", type=str, default="MLP", help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS")
     value_func_type = parser.parse_known_args()[0].value_func_type
-    parser.add_argument("--value_hidden_sizes", type=list, default=[256, 256])
+    parser.add_argument("--value_hidden_sizes", type=list, default=[256,256,256])
     parser.add_argument(
-        "--value_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
+        "--value_hidden_activation", type=str, default="gelu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
     )
     parser.add_argument("--value_output_activation", type=str, default="linear", help="Options: linear/tanh")
     parser.add_argument("--value_min_log_std", type=int, default=-0.1)
-    parser.add_argument("--value_max_log_std", type=int, default=4)
+    parser.add_argument("--value_max_log_std", type=int, default=5)
 
     # 2.2 Parameters of policy approximate function
     parser.add_argument(
@@ -73,9 +74,9 @@ if __name__ == "__main__":
         help="Options: default/TanhGaussDistribution/GaussDistribution",
     )
     policy_func_type = parser.parse_known_args()[0].policy_func_type
-    parser.add_argument("--policy_hidden_sizes", type=list, default=[256, 256])
+    parser.add_argument("--policy_hidden_sizes", type=list, default=[256,256,256])
     parser.add_argument(
-        "--policy_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
+        "--policy_hidden_activation", type=str, default="gelu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
     )
     parser.add_argument("--policy_output_activation", type=str, default="linear", help="Options: linear/tanh")
     parser.add_argument("--policy_min_log_std", type=int, default=-20)
@@ -83,13 +84,14 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument("--value_learning_rate", type=float, default=1e-3)
-    parser.add_argument("--policy_learning_rate", type=float, default=1e-3)
-    parser.add_argument("--alpha_learning_rate", type=float, default=3e-4)
+    parser.add_argument("--value_learning_rate", type=float, default=0.0001)
+    parser.add_argument("--policy_learning_rate", type=float, default=0.0001)
+    parser.add_argument("--alpha_learning_rate", type=float, default=0.0003)
     # special parameter
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument("--tau", type=float, default=0.005)
     parser.add_argument("--auto_alpha", type=bool, default=True)
+    parser.add_argument("--alpha", type=float, default=0.2)
     parser.add_argument("--delay_update", type=int, default=2)
     parser.add_argument("--TD_bound", type=float, default=10)
     parser.add_argument("--bound", default=True)
@@ -103,7 +105,7 @@ if __name__ == "__main__":
         help="Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer",
     )
     # Maximum iteration number
-    parser.add_argument("--max_iteration", type=int, default=1_500_000)
+    parser.add_argument("--max_iteration", type=int, default=1500000)
     parser.add_argument(
         "--ini_network_dir",
         type=str,
@@ -118,7 +120,7 @@ if __name__ == "__main__":
     # Size of collected samples before training
     parser.add_argument("--buffer_warm_size", type=int, default=10000)
     # Max size of reply buffer
-    parser.add_argument("--buffer_max_size", type=int, default=1_000_000)
+    parser.add_argument("--buffer_max_size", type=int, default=2*500000)
     # Batch size of replay samples from buffer
     parser.add_argument("--replay_batch_size", type=int, default=256)
     # Period of sampling
@@ -141,11 +143,11 @@ if __name__ == "__main__":
 
     ################################################
     # 7. Data savings
-    parser.add_argument("--save_folder", type=str, default=None)
+    parser.add_argument("--save_folder", type=str, default= None)
     # Save value/policy every N updates
     parser.add_argument("--apprfunc_save_interval", type=int, default=50000)
     # Save key info every N updates
-    parser.add_argument("--log_save_interval", type=int, default=2500)
+    parser.add_argument("--log_save_interval", type=int, default=10000)
 
     ################################################
     # Get parameter dictionary

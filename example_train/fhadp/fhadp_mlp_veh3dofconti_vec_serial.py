@@ -7,11 +7,10 @@
 #  Email: lisb04@gmail.com
 #
 #  Description: example for fhadp + veh3dofconti + mlp + off_serial
-#  Update Date: 2023-08-28, Guojian Zhan: support lr schedule
+#  Update Date: 2022-04-20, Jiaxin Gao: create example
 
 import os
 import argparse
-import json
 import numpy as np
 
 from gops.create_pkg.create_alg import create_alg
@@ -23,9 +22,7 @@ from gops.create_pkg.create_trainer import create_trainer
 from gops.utils.init_args import init_args
 from gops.utils.plot_evaluation import plot_all
 from gops.utils.tensorboard_setup import start_tensorboard, save_tb_to_csv
-from gops.utils.common_utils import seed_everything
 
-os.environ["OMP_NUM_THREADS"] = "1"
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -39,6 +36,9 @@ if __name__ == "__main__":
     parser.add_argument("--enable_cuda", default=False)
     ################################################
     # 1. Parameters for environment
+    parser.add_argument("--vector_env_num", type=int, default=4, help="Number of vector envs")
+    parser.add_argument("--vector_env_type", type=str, default='async', help="Options: sync/async")
+    parser.add_argument("--gym2gymnasium", type=bool, default=True, help="Convert Gym-style env to Gymnasium-style")
     parser.add_argument("--action_type", type=str, default="continu")
     parser.add_argument("--is_render", type=bool, default=False)
     parser.add_argument("--is_adversary", type=bool, default=False)
@@ -62,15 +62,7 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument("--policy_learning_rate", type=float, default=1e-3)
-    parser.add_argument("--policy_scheduler", type=json.loads, default={
-        "name": "LinearLR",
-        "params": {
-            "start_factor": 1.0,
-            "end_factor": 0.0,
-            "total_iters": 100000,
-            }
-    })
+    parser.add_argument("--policy_learning_rate", type=float, default=3e-5)
 
     ################################################
     # 4. Parameters for trainer
@@ -79,7 +71,7 @@ if __name__ == "__main__":
         type=str,
         default="off_serial_trainer")
     # Maximum iteration number
-    parser.add_argument("--max_iteration", type=int, default=2000)
+    parser.add_argument("--max_iteration", type=int, default=100000)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument(
         "--ini_network_dir",
@@ -113,21 +105,21 @@ if __name__ == "__main__":
     # 6. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
     parser.add_argument("--num_eval_episode", type=int, default=10)
-    parser.add_argument("--eval_interval", type=int, default=100)
+    parser.add_argument("--eval_interval", type=int, default=1000)
     parser.add_argument("--eval_save", type=str, default=True, help="save evaluation data")
 
     ################################################
     # 7. Data savings
     parser.add_argument("--save_folder", type=str, default=None)
     # Save value/policy every N updates
-    parser.add_argument("--apprfunc_save_interval", type=int, default=100)
+    parser.add_argument("--apprfunc_save_interval", type=int, default=1000)
     # Save key info every N updates
-    parser.add_argument("--log_save_interval", type=int, default=100)
+    parser.add_argument("--log_save_interval", type=int, default=1000)
 
     ################################################
     # Get parameter dictionary
     args = vars(parser.parse_args())
-    env = create_env(**args)
+    env = create_env(**{**args, "vector_env_num": None})
     args = init_args(env, **args)
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
