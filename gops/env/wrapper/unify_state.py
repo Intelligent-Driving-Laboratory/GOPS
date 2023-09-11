@@ -49,4 +49,7 @@ class StateData(gym.Wrapper):
                     context_state = None
                 )
         else:
-            return self.current_obs
+            return  State(
+                    robot_state = self.current_obs,
+                    context_state = None
+                )

@@ -184,7 +184,7 @@ class PolicyRunner:
             state_list.append(state.robot_state)
             obs_list.append(obs)
             if is_opt:
-                if isinstance(env, Env):
+                if isinstance(env.unwrapped, Env):
                     action = controller(state)
                 else:
                     action = controller(obs, info)
