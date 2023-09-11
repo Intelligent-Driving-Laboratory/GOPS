@@ -57,7 +57,7 @@ class TanhGaussDistribution:
             / (self.act_high_lim - self.act_low_lim)
         )
         log_prob = self.gauss_distribution.log_prob(action) - torch.log(
-            (self.act_high_lim - self.act_low_lim)
+            (self.act_high_lim - self.act_low_lim) / 2
             * (1 + EPS - torch.pow(torch.tanh(action), 2))
         ).sum(-1)
         return log_prob

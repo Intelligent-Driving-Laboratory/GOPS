@@ -179,8 +179,8 @@ class Veh3dofcontiModel(PythBaseModel):
     def judge_done(self, obs: torch.Tensor) -> torch.Tensor:
         delta_x, delta_y, delta_phi = obs[:, 0], obs[:, 1], obs[:, 2]
         done = (
-            (torch.abs(delta_x) > 5)
-            | (torch.abs(delta_y) > 2)
+            (torch.abs(delta_x) > 10)
+            | (torch.abs(delta_y) > 10)
             | (torch.abs(delta_phi) > np.pi)
         )
         return done
