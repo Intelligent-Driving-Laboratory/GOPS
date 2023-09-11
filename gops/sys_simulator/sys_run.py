@@ -28,7 +28,7 @@ from gops.create_pkg.create_env_model import create_env_model
 from gops.create_pkg.create_env import create_env
 from gops.utils.plot_evaluation import cm2inch
 from gops.utils.common_utils import get_args_from_json, mp4togif
-from gops.env.env_gen_ocp.pyth_base import State
+from gops.env.env_gen_ocp.pyth_base import Env
 
 default_cfg = dict()
 default_cfg["fig_size"] = (12, 9)
@@ -184,7 +184,7 @@ class PolicyRunner:
             state_list.append(state.robot_state)
             obs_list.append(obs)
             if is_opt:
-                if isinstance(state, State):
+                if isinstance(env.unwrapped, Env):
                     action = controller(state)
                 else:
                     action = controller(obs, info)
