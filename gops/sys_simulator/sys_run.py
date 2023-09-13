@@ -90,7 +90,7 @@ class PolicyRunner:
         legend_list: list = None,
         use_opt: bool = False,
         load_opt_path: Optional[str] = None,
-        opt_args: dict = None,
+        opt_args: Optional[dict] = None,
         save_opt: bool = True,
         constrained_env: bool = False,
         is_tracking: bool = False,
@@ -112,11 +112,14 @@ class PolicyRunner:
             self.init_info = {}
         self.legend_list = legend_list
         self.use_opt = use_opt
-        self.load_opt_path = load_opt_path
-        self.opt_args = opt_args
-        if "use_MPC_for_general_env" not in self.opt_args.keys():
-            self.opt_args["use_MPC_for_general_env"] = False
-        self.save_opt = save_opt
+        if use_opt:
+            assert load_opt_path is not None or opt_args is not None
+            self.load_opt_path = load_opt_path
+            self.opt_args = opt_args
+            if isinstance(self.opt_args, dict) and \
+                "use_MPC_for_general_env" not in self.opt_args.keys():
+                self.opt_args["use_MPC_for_general_env"] = False
+            self.save_opt = save_opt
         self.constrained_env = constrained_env
         self.use_dist = use_dist
         self.is_tracking = is_tracking
