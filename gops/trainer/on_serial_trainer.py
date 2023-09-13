@@ -71,9 +71,11 @@ class OnSerialTrainer:
             for k, v in samples_with_replay_format.items():
                 samples_with_replay_format[k] = v.cuda()
         with ModuleOnDevice(self.networks, "cuda" if self.use_gpu else "cpu"):
+            self.networks.train()
             alg_tb_dict = self.alg.local_update(
                 samples_with_replay_format, self.iteration
             )
+            self.networks.eval()
 
         # log
         if self.iteration % self.log_save_interval == 0:

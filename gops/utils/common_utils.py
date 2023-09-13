@@ -89,6 +89,19 @@ def get_apprfunc_dict(key: str, type=None, **kwargs):
         var["add_bias"] = kwargs[key + "_add_bias"]
     elif apprfunc_type == "GAUSS":
         var["num_kernel"] = kwargs[key + "_num_kernel"]
+    elif apprfunc_type == "LipsNet":
+        var["hidden_sizes"] = kwargs[key + "_hidden_sizes"]
+        var["hidden_activation"] = kwargs[key + "_hidden_activation"]
+        var["output_activation"] = kwargs[key + "_output_activation"]
+        var["lips_init_value"] = kwargs[key + "_lips_init_value"]
+        var["lips_auto_adjust"] = kwargs[key + "_lips_auto_adjust"]
+        var["lips_learning_rate"] = kwargs[key + "_lips_learning_rate"]
+        var["lips_hidden_sizes"] = kwargs[key + "_lips_hidden_sizes"]
+        var["eps"] = kwargs[key + "_eps"]
+        var["lambda"] = kwargs[key + "_lambda"]
+        var["local_lips"] = kwargs[key + "_local_lips"]
+        var["squash_action"] = kwargs[key + "_squash_action"]
+        var["learning_rate"] = kwargs[key + "_learning_rate"]
     else:
         raise NotImplementedError
 
