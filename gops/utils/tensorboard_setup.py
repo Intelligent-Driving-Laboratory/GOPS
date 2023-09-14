@@ -164,4 +164,5 @@ tb_tags = {
     "alg_time": "Time/Algorithm time [ms]-RL iter",
     "sampler_time": "Time/Sampler time [ms]-RL iter",
     "critic_avg_value": "Train/Critic avg value-RL iter",
+    "lips_value": "Lipschitz/Lipschitz value - RL iter",
 }

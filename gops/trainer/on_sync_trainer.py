@@ -69,6 +69,7 @@ class OnSyncTrainer:
         self.use_gpu = kwargs["use_gpu"]
         if self.use_gpu:
             self.alg.networks.cuda()
+        self.alg.networks.train()
 
         self.start_time = time.time()
 
