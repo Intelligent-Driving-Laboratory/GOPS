@@ -1,9 +1,9 @@
 from abc import abstractmethod, ABCMeta
 from dataclasses import dataclass, fields
-from typing import Generic, Optional, Tuple, Sequence, TypeVar
-
+from typing import Dict, Generic, Optional, Tuple, Sequence, TypeVar
 
 import gym
+from gym import spaces
 from gym.utils import seeding
 import numpy as np
 import torch
@@ -107,7 +107,11 @@ class State(Generic[stateType]):
             robot_states = torch.concat([state.robot_state for state in states], dim=dim)
         context_states = cls.CONTEXT_STATE_TYPE.concat([state.context_state for state in states], dim=dim)
         return cls(robot_states, context_states)
-    
+
+    @abstractmethod
+    def get_zero_state(self, batch_size: int = 1) -> 'State[stateType]':
+        ...
+
     def __getitem__(self, index):
         try:
             return State(
@@ -128,26 +132,27 @@ class State(Generic[stateType]):
         else:
             return self.robot_state.shape[0]
 
+
 class Robot(metaclass=ABCMeta):
-    robot_state: np.ndarray
-    robot_state_space: gym.spaces.Box
-    action_space: gym.spaces.Box
+    state: np.ndarray
+    state_space: spaces.Box
+    action_space: spaces.Box
     
     @abstractmethod
-    def reset(self) -> np.ndarray:
+    def reset(self, state: Optional[np.ndarray]) -> np.ndarray:
         ...
 
     @abstractmethod
     def step(self, action: np.ndarray) -> np.ndarray:
         ...
 
-    def get_zero_state(self, batch_size) -> np.ndarray:
-        return self.robot_state_space.sample((batch_size,))
+    def get_zero_state(self) -> np.ndarray:
+        return np.zeros_like(self.state_space.low)
 
 
 # TODO: Static constraint value
 class Context(metaclass=ABCMeta):
-    context_state: ContextState[np.ndarray]
+    state: ContextState[np.ndarray]
     
     @abstractmethod
     def reset(self) -> ContextState[np.ndarray]:
@@ -155,6 +160,10 @@ class Context(metaclass=ABCMeta):
 
     @abstractmethod
     def step(self) -> ContextState[np.ndarray]:
+        ...
+
+    @abstractmethod
+    def get_zero_state(self) -> ContextState[np.ndarray]:
         ...
 
 
@@ -204,7 +213,7 @@ class Env(gym.Env, metaclass=ABCMeta):
     def _get_next_state(self, action: np.ndarray) -> State[np.ndarray]:
         return State(
             robot_state=self.robot.step(action),
-            context=self.context.step(action)
+            context_state=self.context.step()
         )
     
     @property
@@ -240,3 +249,9 @@ class Env(gym.Env, metaclass=ABCMeta):
             robot_state=self.robot.get_zero_state(batch_size),
             context_state=self.context.get_zero_state(batch_size)
         )
+
+    @property
+    def additional_info(self) -> Dict[str, State[np.ndarray]]:
+        return {
+            "state": self._state,
+        }
