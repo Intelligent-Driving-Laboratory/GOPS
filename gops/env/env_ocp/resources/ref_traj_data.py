@@ -28,6 +28,7 @@ DEFAULT_PATH_PARAM = {
     },
     "triangle": {"A": 3.0, "T": 10.0,},
     "circle": {"r": 100.0,},
+    "straight_lane": {"A": 0.0, "T": 100.0,}
 }
 
 DEFAULT_SPEED_PARAM = {
@@ -62,6 +63,7 @@ class MultiRefTrajData:
             DoubleLaneRefTrajData(ref_speeds, **self.path_param["double_lane"]),
             TriangleRefTrajData(ref_speeds, **self.path_param["triangle"]),
             CircleRefTrajData(ref_speeds, **self.path_param["circle"]),
+            TriangleRefTrajData(ref_speeds, **self.path_param["straight_lane"]),
         ]
 
     def compute_x(self, t: float, path_num: int, speed_num: int) -> float:

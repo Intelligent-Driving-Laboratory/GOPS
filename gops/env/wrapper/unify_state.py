@@ -15,6 +15,7 @@ import numpy as np
 
 from typing import Tuple
 from gym.core import ObsType, ActType
+from gops.env.env_gen_ocp.pyth_base import State
 
 
 class StateData(gym.Wrapper):
@@ -40,6 +41,15 @@ class StateData(gym.Wrapper):
     @property
     def state(self):
         if hasattr(self.env, "state"):
-            return np.array(self.env.state, dtype=np.float32)
+            if isinstance(self.env.state, State):
+                return self.env.state
+            else:
+                return State(
+                    robot_state = np.array(self.env.state, dtype=np.float32),
+                    context_state = None
+                )
         else:
-            return self.current_obs
+            return  State(
+                    robot_state = self.current_obs,
+                    context_state = None
+                )

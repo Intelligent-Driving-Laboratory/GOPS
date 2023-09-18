@@ -31,4 +31,4 @@ def env_model_creator(**kwargs):
     else:
         raise RuntimeError("lq_config invalid")
 
-    return LqModel(config, kwargs["device"])
+    return LqModel(config, kwargs.get("device", None))
