@@ -60,4 +60,4 @@ python example_run/run_idp_fhadp.py
 ```
 You can record a video by setting `save_render=True` in the test file. Here is a video of running a trained policy on the task:
 
-![Video of FHADP policy on inverted double pendulum environment](https://gitee.com/tsinghua-university-iDLab-GOPS/gops/raw/dev/results/FHADP/idpendulum/videos/idp.mp4)
+https://github.com/Intelligent-Driving-Laboratory/GOPS/assets/113587370/a095e8a2-5732-470e-9116-2d592eb8e3c6
