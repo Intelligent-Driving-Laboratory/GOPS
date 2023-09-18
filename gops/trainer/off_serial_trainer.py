@@ -86,6 +86,7 @@ class OffSerialTrainer:
             for k, v in replay_samples.items():
                 replay_samples[k] = v.cuda()
 
+        self.networks.train()
         if self.per_flag:
             alg_tb_dict, idx, new_priority = self.alg.local_update(
                 replay_samples, self.iteration
@@ -93,6 +94,7 @@ class OffSerialTrainer:
             self.buffer.update_batch(idx, new_priority)
         else:
             alg_tb_dict = self.alg.local_update(replay_samples, self.iteration)
+        self.networks.eval()
 
         # log
         if self.iteration % self.log_save_interval == 0:

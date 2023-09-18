@@ -18,7 +18,7 @@ from gops.utils.gops_typing import InfoDict
 
 
 def env_model_creator(**kwargs):
-    return PythMobilerobotModel(kwargs["device"])
+    return PythMobilerobotModel(kwargs.get("device", None))
 
 
 class PythMobilerobotModel(PythBaseModel):

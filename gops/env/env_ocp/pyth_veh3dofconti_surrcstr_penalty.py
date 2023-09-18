@@ -132,7 +132,7 @@ class SimuVeh3dofcontiSurrCstrPenalty(SimuVeh3dofconti):
         delta_x, delta_y, delta_phi, delta_u, v, w = obs[0], obs[1], obs[2], obs[3], obs[4], obs[5]
         steer, a_x = action
         # dis = circle center distance - 2 * radius
-        dis = - self.get_constraint()
+        dis = - self.get_constraint()[0]
         collision_bound = 0.5
         dis_to_tanh = np.maximum(8 - 8 * dis / collision_bound, 0)
         punish_dis = np.tanh(dis_to_tanh - 4) + 1

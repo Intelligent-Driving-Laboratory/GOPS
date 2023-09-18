@@ -16,8 +16,11 @@ import json
 import os
 import torch
 import warnings
-
+from gym.spaces import Box, Discrete
+from gymnasium.spaces import Box as GymnasiumBox
+from gymnasium.spaces import Discrete as GymnasiumDiscrete
 from gops.utils.common_utils import change_type, seed_everything
+
 
 
 def init_args(env, **args):
@@ -57,8 +60,9 @@ def init_args(env, **args):
     else:
         args["obsv_dim"] = env.observation_space.shape
 
-    if args["action_type"] == "continu":
+    if isinstance(env.action_space, (Box, GymnasiumBox)):
         # get dimension of continuous action or num of discrete action
+        args["action_type"] = "continu"
         args["action_dim"] = (
             env.action_space.shape[0]
             if len(env.action_space.shape) == 1
@@ -66,18 +70,14 @@ def init_args(env, **args):
         )
         args["action_high_limit"] = env.action_space.high.astype("float32")
         args["action_low_limit"] = env.action_space.low.astype("float32")
-    else:
+    elif isinstance(env.action_space, (Discrete, GymnasiumDiscrete)):
+        args["action_type"] = "discret"
         args["action_dim"] = 1
         args["action_num"] = env.action_space.n
         args["noise_params"]["action_num"] = args["action_num"]
 
     if hasattr(env, "constraint_dim"):
         args["constraint_dim"] = env.constraint_dim
-
-    if hasattr(env, "additional_info"):
-        args["additional_info"] = env.additional_info
-    else:
-        args["additional_info"] = {}
 
     if hasattr(args, "value_func_type") and args["value_func_type"] == "CNN_SHARED":
         if hasattr(args, "policy_func_type"):
@@ -114,4 +114,8 @@ def init_args(env, **args):
     print("Set global seed to {}".format(args["seed"]))
     with open(args["save_folder"] + "/config.json", "w", encoding="utf-8") as f:
         json.dump(change_type(copy.deepcopy(args)), f, ensure_ascii=False, indent=4)
+    if hasattr(env, "additional_info"):
+        args["additional_info"] = env.additional_info
+    else:
+        args["additional_info"] = {}
     return args

@@ -9,59 +9,78 @@
 #  Description: Create approximate function module
 #  Update Date: 2020-12-13, Hao Sun: add create buffer function
 
-
 import importlib
+import os
+from dataclasses import dataclass, field
+from typing import Callable, Dict
+
+from gops.utils.gops_path import buffer_path, underline2camel
 
 
-def create_buffer(**kwargs):
-    trainer = kwargs["trainer"]
-    if trainer == "on_serial_trainer" or trainer == "on_sync_trainer":
-        buffer = None
-    elif (
-        trainer == "off_serial_trainer"
-        or trainer == "off_async_trainer"
-        or trainer == "off_async_trainermix"
-        or trainer == "off_sync_trainer"
-    ):
-        buffer_file_name = kwargs["buffer_name"].lower()
-        try:
-            module = importlib.import_module("gops.trainer.buffer." + buffer_file_name)
-        except NotImplementedError:
-            raise NotImplementedError("This buffer does not exist")
+@dataclass
+class Spec:
+    buffer_name: str
+    entry_point: Callable
 
-        buffer_name = formatter(buffer_file_name)
-
-        if hasattr(module, buffer_name):
-            buffer_cls = getattr(module, buffer_name)
-            if trainer == "off_serial_trainer":
-                buffer = buffer_cls(**kwargs)
-            elif (
-                trainer == "off_async_trainer"
-                or trainer == "off_async_trainermix"
-                or trainer == "off_sync_trainer"
-            ):
-                import ray
-
-                buffer = [
-                    ray.remote(num_cpus=1)(buffer_cls).remote(index=idx, **kwargs)
-                    for idx in range(kwargs["num_buffers"])
-                ]
-            else:
-                raise NotImplementedError("This trainer is not properly defined")
-
-        else:
-            raise NotImplementedError("This buffer is not properly defined")
-
-    print("Create buffer successfully!")
-    return buffer
+    # Environment arguments
+    kwargs: dict = field(default_factory=dict)
 
 
-def formatter(src: str, firstUpper: bool = True):
-    arr = src.split("_")
-    res = ""
-    for i in arr:
-        res = res + i[0].upper() + i[1:]
+registry: Dict[str, Spec] = {}
 
-    if not firstUpper:
-        res = res[0].lower() + res[1:]
-    return res
+
+def register(
+    buffer_name: str, entry_point: Callable, **kwargs,
+):
+    global registry
+
+    new_spec = Spec(buffer_name=buffer_name, entry_point=entry_point, kwargs=kwargs)
+
+    # if new_spec.buffer_name in registry:
+    #     print(f"Overriding buffer {new_spec.buffer_name} already in registry.")
+    registry[new_spec.buffer_name] = new_spec
+
+
+# register buffer
+buffer_file_list = os.listdir(buffer_path)
+
+for buffer_file in buffer_file_list:
+    if buffer_file[-3:] == ".py" and buffer_file[0] != "_" and buffer_file != "base.py":
+        buffer_name = buffer_file[:-3]
+        mdl = importlib.import_module("gops.trainer.buffer." + buffer_name)
+        register(buffer_name=buffer_name, entry_point=getattr(mdl, underline2camel(buffer_name)))
+
+
+def create_buffer(**kwargs) -> object:
+    buffer_name = kwargs.get("buffer_name", None)
+    if buffer_name is None:
+        return None
+    spec_ = registry.get(buffer_name)
+
+    if spec_ is None:
+        raise KeyError(f"No registered buffer with id: {buffer_name}")
+
+    _kwargs = spec_.kwargs.copy()
+    _kwargs.update(kwargs)
+
+    if callable(spec_.entry_point):
+        buffer_creator = spec_.entry_point
+
+    else:
+        raise RuntimeError(f"{spec_.buffer_name} registered but entry_point is not specified")
+
+    trainer_name = _kwargs.get("trainer", None)
+    if trainer_name is None or trainer_name.startswith("on"):
+        buf = None
+    elif trainer_name.startswith("off_serial"):
+        buf = buffer_creator(**_kwargs)
+    elif trainer_name.startswith("off_async") or trainer_name.startswith("off_sync"):
+        import ray
+
+        buf = [
+            ray.remote(num_cpus=1)(buffer_creator).remote(index=idx, **_kwargs) for idx in range(_kwargs["num_buffers"])
+        ]
+    else:
+        raise RuntimeError(f"trainer {trainer_name} not recognized")
+
+    return buf

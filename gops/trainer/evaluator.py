@@ -11,23 +11,23 @@ import numpy as np
 import torch
 
 from gops.create_pkg.create_env import create_env
+from gops.create_pkg.create_alg import create_approx_contrainer
 from gops.utils.common_utils import set_seed
 
 
 class Evaluator:
     def __init__(self, index=0, **kwargs):
-        kwargs.update(
-            {"reward_scale": None, "repeat_num": None}
-        )  # evaluation don't need to scale reward
+        kwargs.update({
+            "reward_scale": None,
+            "repeat_num": None,
+            "gym2gymnasium": False,
+            "vector_env_num": None,
+        })
         self.env = create_env(**kwargs)
 
         _, self.env = set_seed(kwargs["trainer"], kwargs["seed"], index + 400, self.env)
 
-        alg_name = kwargs["algorithm"]
-        alg_file_name = alg_name.lower()
-        file = __import__(alg_file_name)
-        ApproxContainer = getattr(file, "ApproxContainer")
-        self.networks = ApproxContainer(**kwargs)
+        self.networks = create_approx_contrainer(**kwargs)
         self.render = kwargs["is_render"]
 
         self.num_eval_episode = kwargs["num_eval_episode"]

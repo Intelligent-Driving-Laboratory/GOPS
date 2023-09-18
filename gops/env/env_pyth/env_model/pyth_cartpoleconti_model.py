@@ -127,3 +127,7 @@ class GymCartpolecontiModel(PythBaseModel):
         reward = 1 - isdone.float()
 
         return state_next, reward, isdone, {"state": state_next}
+
+
+def env_model_creator(**kwargs):
+    return GymCartpolecontiModel(**kwargs)

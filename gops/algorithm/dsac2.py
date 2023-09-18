@@ -97,6 +97,7 @@ class DSAC2(AlgorithmBase):
         self.auto_alpha = kwargs["auto_alpha"]
         self.alpha = kwargs.get("alpha", 0.2)
         self.delay_update = kwargs["delay_update"]
+        self.TD_bound = kwargs["TD_bound"]
 
     @property
     def adjustable_parameters(self):
@@ -105,6 +106,7 @@ class DSAC2(AlgorithmBase):
             "tau",
             "auto_alpha",
             "alpha",
+            "TD_bound"
             "delay_update",
         )
 
@@ -253,21 +255,21 @@ class DSAC2(AlgorithmBase):
             rew, done, q2.detach(), q2_std.detach(),q_next.detach(), q_next_sample.detach(), log_prob_act2.detach(),
         )
 
+        weight = 0.5 * (torch.mean(torch.pow(q1_std.detach(), 2))
+                        + torch.mean(torch.pow(q2_std.detach(), 2)))
 
-        beta1 = min(1/torch.sqrt(torch.mean(torch.pow(q1.detach() - target_q1_bound, 2))),1)
-
-        q1_loss = torch.mean(
+        q1_loss = weight*torch.mean(
             torch.pow(q1 - target_q1, 2) / (2 * torch.pow(q1_std.detach(), 2))
-            +beta1 *(torch.pow(q1.detach() - target_q1_bound, 2) / (2 * torch.pow(q1_std, 2))
+            +(torch.pow(q1.detach() - target_q1_bound, 2) / (2 * torch.pow(q1_std, 2))
             + torch.log(q1_std))
         )
 
 
-        beta2 = min(1 / torch.sqrt(torch.mean(torch.pow(q2.detach() - target_q2_bound, 2))), 1)
 
-        q2_loss = torch.mean(
+
+        q2_loss = weight*torch.mean(
             torch.pow(q2 - target_q2, 2) / (2 * torch.pow(q2_std.detach(), 2))
-            + beta2*(torch.pow(q2.detach() - target_q2_bound, 2) / (2 * torch.pow(q2_std, 2))
+            + (torch.pow(q2.detach() - target_q2_bound, 2) / (2 * torch.pow(q2_std, 2))
             + torch.log(q2_std))
         )
 
@@ -281,7 +283,7 @@ class DSAC2(AlgorithmBase):
         target_q_sample = r + (1 - done) * self.gamma * (
             q_next_sample - self.__get_alpha() * log_prob_a_next
         )
-        td_bound = 3*q_std
+        td_bound = 3 * torch.mean(q_std)
         difference = torch.clamp(target_q_sample - q, -td_bound, td_bound)
         target_q_bound = q + difference
         return target_q.detach(), target_q_bound.detach()
