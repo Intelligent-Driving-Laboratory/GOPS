@@ -60,4 +60,16 @@ python example_run/run_idp_fhadp.py
 ```
 You can record a video by setting `save_render=True` in the test file. Here is a video of running a trained policy on the task:
 
-https://github.com/Intelligent-Driving-Laboratory/GOPS/assets/113587370/a095e8a2-5732-470e-9116-2d592eb8e3c6
+<div align=center>
+<video src=https://github.com/Intelligent-Driving-Laboratory/GOPS/assets/113587370/a095e8a2-5732-470e-9116-2d592eb8e3c6></video>
+</div>
+
+## WeChat Group
+In order to make it easier for everyone to use GOPS and build a good community, we have established a WeChat group for GOPS users and invite interested users to join by scanning the QR code below.
+Developers will answer questions for users in the group when using GOPS, and will fix problems in GOPS based on user feedback. In addition, the release of a new version of GOPS will also be notified in the group.
+
+Thanks to all users for your support of GOPS and to all developers for your contributions to GOPS. Let's work together to make GOPS a valuable, easy-to-use, and popular software!
+
+<div align=center>
+<img src=https://github.com/yangyujie-jack/GOPS/assets/69301887/6f73adbf-9e7a-4205-affa-e0f19ccf0eda width="40%">
+</div>
