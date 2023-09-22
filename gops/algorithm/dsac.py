@@ -94,7 +94,6 @@ class DSAC(AlgorithmBase):
         self.target_entropy = -kwargs["action_dim"]
         self.auto_alpha = kwargs["auto_alpha"]
         self.alpha = kwargs.get("alpha", 0.2)
-        self.TD_bound = kwargs["TD_bound"]
         self.bound = kwargs["bound"]
         self.delay_update = kwargs["delay_update"]
 
@@ -105,7 +104,6 @@ class DSAC(AlgorithmBase):
             "tau",
             "auto_alpha",
             "alpha",
-            "TD_bound",
             "bound",
             "delay_update",
         )
@@ -207,7 +205,7 @@ class DSAC(AlgorithmBase):
             z = -torch.abs(normal.sample())
         else:
             z = normal.sample()
-            z = torch.clamp(z, -2, 2)
+            z = torch.clamp(z, -3, 3)
         q_value = mean + torch.mul(z, std)
         return mean, std, q_value
 
@@ -231,6 +229,7 @@ class DSAC(AlgorithmBase):
             rew,
             done,
             q.detach(),
+            q_std.detach(),
             q_next_sample.detach(),
             log_prob_act2.detach(),
         )
@@ -244,11 +243,11 @@ class DSAC(AlgorithmBase):
             q_loss = -Normal(q, q_std).log_prob(target_q).mean()
         return q_loss, q.detach().mean(), q_std.detach().mean()
 
-    def __compute_target_q(self, r, done, q, q_next, log_prob_a_next):
         target_q = r + (1 - done) * self.gamma * (
             q_next - self.__get_alpha() * log_prob_a_next
         )
-        difference = torch.clamp(target_q - q, -self.TD_bound, self.TD_bound)
+        td_bound = 3 * torch.mean(q_std)
+        difference = torch.clamp(target_q - q, -td_bound, td_bound)
         target_q_bound = q + difference
         return target_q.detach(), target_q_bound.detach()
 
