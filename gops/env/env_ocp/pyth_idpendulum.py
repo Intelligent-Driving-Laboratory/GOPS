@@ -10,15 +10,16 @@
 #  Update: 2022-12-05, Yuhang Zhang: create file
 
 import gym
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from gym import spaces
-from gym.wrappers.time_limit import TimeLimit
 
 from gops.env.env_ocp.pyth_base_env import PythBaseEnv
 from gops.env.env_ocp.env_model.pyth_idpendulum_model import Dynamics
 
+matplotlib.use("Agg")
 gym.logger.setLevel(gym.logger.ERROR)
 plt.rcParams["toolbar"] = "None"
 
