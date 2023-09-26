@@ -1,4 +1,7 @@
 # GOPS (General Optimal control Problem Solver)
+
+[![Read the Docs](https://img.shields.io/readthedocs/gops)](https://gops.readthedocs.io/en/latest/)
+
 Copyright © 2022 Intelligent Driving Laboratory (iDLab). All rights reserved.
 
 ## Description
@@ -42,6 +45,9 @@ conda activate gops
 pip install -e .
 ```
 
+## Documentation
+The tutorials and API documentation are hosted on [gops.readthedocs.io](https://gops.readthedocs.io/en/latest/).
+
 ## Quick Start
 This is an example of running finite-horizon Approximate Dynamic Programming (FHADP) on inverted double pendulum environment. 
 Train the policy by running:
@@ -54,4 +60,16 @@ python example_run/run_idp_fhadp.py
 ```
 You can record a video by setting `save_render=True` in the test file. Here is a video of running a trained policy on the task:
 
-![Video of FHADP policy on inverted double pendulum environment](https://gitee.com/tsinghua-university-iDLab-GOPS/gops/raw/dev/results/FHADP/idpendulum/videos/idp.mp4)
+<div align=center>
+<video src=https://github.com/Intelligent-Driving-Laboratory/GOPS/assets/113587370/a095e8a2-5732-470e-9116-2d592eb8e3c6></video>
+</div>
+
+## WeChat Group
+In order to make it easier for everyone to use GOPS and build a good community, we have established a WeChat group for GOPS users and invite interested users to join by scanning the QR code below.
+Developers will answer questions for users in the group when using GOPS, and will fix problems in GOPS based on user feedback. In addition, the release of a new version of GOPS will also be notified in the group.
+
+Thanks to all users for your support of GOPS and to all developers for your contributions to GOPS. Let's work together to make GOPS a valuable, easy-to-use, and popular software!
+
+<div align=center>
+<img src=https://github.com/Intelligent-Driving-Laboratory/GOPS_DOC/blob/master/docs/source/figures%26videos/QR_code.jpg width="40%">
+</div>
