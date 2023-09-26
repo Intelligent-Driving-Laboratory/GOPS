@@ -26,9 +26,10 @@ from copy import copy
 from gops.create_pkg.create_alg import create_approx_contrainer
 from gops.create_pkg.create_env_model import create_env_model
 from gops.create_pkg.create_env import create_env
+from gops.env.env_gen_ocp.pyth_base import Env
 from gops.utils.plot_evaluation import cm2inch
 from gops.utils.common_utils import get_args_from_json, mp4togif
-from gops.env.env_gen_ocp.pyth_base import Env
+from gops.utils.gops_path import gops_path
 
 default_cfg = dict()
 default_cfg["fig_size"] = (12, 9)
@@ -101,7 +102,9 @@ class PolicyRunner:
         action_noise_type: str = None,
         action_noise_data: list = None,
     ):
-        self.log_policy_dir_list = log_policy_dir_list
+        self.log_policy_dir_list = [
+            os.path.join(gops_path, d) for d in log_policy_dir_list
+        ]
         self.trained_policy_iteration_list = trained_policy_iteration_list
         self.save_render = save_render
         self.args = None
