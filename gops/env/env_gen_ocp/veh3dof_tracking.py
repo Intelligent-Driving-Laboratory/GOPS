@@ -222,10 +222,10 @@ class Veh3DoFTracking(Env):
         ref_y = []
         for i in np.arange(1, 60):
             ref_x.append(self.context.ref_traj.compute_x(
-                self.t + i * self.dt, self.path_num, self.u_num
+                self.context.state.ref_time + i * self.context.state.ref_time, self.context.state.path_num, self.context.state.speed_num
             ))
             ref_y .append(self.context.ref_traj.compute_y(
-                self.t + i * self.dt, self.path_num, self.u_num
+                self.context.state.ref_time + i * self.context.state.ref_time, self.context.state.path_num, self.context.state.speed_num
             ))
         ax.plot(ref_x, ref_y, 'b--', lw=1, zorder=2)
 
@@ -235,7 +235,7 @@ class Veh3DoFTracking(Env):
         delta_y = 2
         ego_speed = self.robot.state[3] * 3.6  # [km/h]
         ref_speed = self.context.state.reference[0, 3] * 3.6  # [km/h]
-        ax.text(left_x, top_y, f'time: {self.t:.1f}s')
+        ax.text(left_x, top_y, f'time: {self.context.state.ref_time:.1f}s')
         ax.text(left_x, top_y - delta_y, f'speed: {ego_speed:.1f}km/h')
         ax.text(left_x, top_y - 2 * delta_y, f'ref speed: {ref_speed:.1f}km/h')
 
