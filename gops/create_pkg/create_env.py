@@ -65,7 +65,7 @@ for env_dir_name in env_dir_list:
     env_dir_abs_path = os.path.join(env_path, env_dir_name)
     file_list = os.listdir(env_dir_abs_path)
     for file in file_list:
-        if file.endswith(".py") and file[0] != "_":
+        if file.endswith(".py") and file[0] != "_" and "base" not in file:
             try:
                 env_id = file[:-3]
                 mdl = importlib.import_module(f"gops.env.{env_dir_name}.{env_id}")
@@ -85,7 +85,7 @@ for env_dir_name in env_dir_list:
         continue
     file_list = os.listdir(env_model_path)
     for file in file_list:
-        if file.endswith(".py") and file[0] != "_":
+        if file.endswith(".py") and file[0] != "_" and "base" not in file:
             env_id = file[:-3]
             mdl = importlib.import_module(f"gops.env.{env_dir_name}.env_model.{env_id}")
             env_id_camel = underline2camel(env_id)
