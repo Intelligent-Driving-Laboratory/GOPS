@@ -24,9 +24,6 @@ from functorch import jacrev, vmap
 from gops.utils.common_utils import get_activation_func
 from gops.utils.act_distribution_cls import Action_Distribution
 
-print("Your PyTorch version is", torch.__version__)
-print("To use LipsNet, the PyTorch version must be >=1.12 and <=2.2")
-
 # A dict supporting different learning_rate for grouped parameters
 class Para_dict(dict):
     def __init__(self, **kwargs):
@@ -85,6 +82,10 @@ class LipsNet(nn.Module):
                  loss_lambda=0.1,
                  local_lips=False, lips_hidden_sizes=None) -> None:
         super().__init__()
+        # display PyTorch version
+        print("Your PyTorch version is", torch.__version__)
+        print("To use LipsNet, the PyTorch version must be >=1.12 and <=2.2")
+
         # declare network
         layers = []
         for j in range(0, len(sizes) - 2):
