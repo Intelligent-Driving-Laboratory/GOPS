@@ -23,10 +23,9 @@ import ray
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from gops.utils.parallel_task_manager import TaskPool
-from gops.utils.tensorboard_setup import add_scalars
-from gops.utils.tensorboard_setup import tb_tags
 from gops.utils.common_utils import random_choice_with_index
+from gops.utils.parallel_task_manager import TaskPool
+from gops.utils.tensorboard_setup import add_scalars, tb_tags
 
 warnings.filterwarnings("ignore")
 
@@ -96,6 +95,10 @@ class OffAsyncTrainer:
         # create alg tasks and start computing gradient
         self.learn_tasks = TaskPool()
         self._set_algs()
+
+        # create evaluation tasks
+        self.evluate_tasks = TaskPool()
+        self.last_eval_iteration = 0
 
         self.use_gpu = kwargs["use_gpu"]
         if self.use_gpu:
@@ -170,12 +173,20 @@ class OffAsyncTrainer:
                 add_scalars(alg_tb_dict, self.writer, step=self.iteration)
                 add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
 
-            # evaluate
-            if self.iteration % self.eval_interval == 0:
-                self.evaluator.load_state_dict.remote(self.networks.state_dict())
-                total_avg_return = ray.get(
-                    self.evaluator.run_evaluation.remote(self.iteration)
-                )
+            # save networks
+            if self.iteration % self.apprfunc_save_interval == 0:
+                self.save_apprfunc()
+
+        # evaluate
+        if self.iteration - self.last_eval_iteration >= self.eval_interval:
+            if self.evluate_tasks.count == 0:
+                # There is no evaluation task, add one.
+                self._add_eval_task()
+            elif self.evluate_tasks.completed_num == 1:
+                # Evaluation tasks is completed, log data and add another one.
+                objID = next(self.evluate_tasks.completed())[1]
+                total_avg_return = ray.get(objID)
+                self._add_eval_task()
 
                 if (
                     total_avg_return >= self.best_tar
@@ -229,10 +240,6 @@ class OffAsyncTrainer:
                     ),
                 )
 
-            # save networks
-            if self.iteration % self.apprfunc_save_interval == 0:
-                self.save_apprfunc()
-
     def train(self):
         while self.iteration < self.max_iteration:
             self.step()
@@ -245,3 +252,11 @@ class OffAsyncTrainer:
             self.networks.state_dict(),
             self.save_folder + "/apprfunc/apprfunc_{}.pkl".format(self.iteration),
         )
+
+    def _add_eval_task(self):
+        self.evaluator.load_state_dict.remote(self.networks.state_dict())
+        self.evluate_tasks.add(
+            self.evaluator,
+            self.evaluator.run_evaluation.remote(self.iteration)
+        )
+        self.last_eval_iteration = self.iteration
