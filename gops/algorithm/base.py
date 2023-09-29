@@ -115,3 +115,9 @@ class AlgorithmBase(metaclass=ABCMeta):
 
     def to(self, device):
         self.networks.to(device)
+
+    def train(self):
+        self.networks.train()
+
+    def eval(self):
+        self.networks.eval()
