@@ -118,7 +118,7 @@ class OffSyncTrainer:
     def _set_algs(self):
         weights = self.networks.state_dict()
         for alg in self.algs:
-            alg.networks.train()
+            alg.train.remote()
             alg.load_state_dict.remote(weights)
             buffer, _ = random_choice_with_index(self.buffers)
             data = ray.get(buffer.sample_batch.remote(self.replay_batch_size))
