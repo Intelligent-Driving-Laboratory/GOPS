@@ -243,6 +243,7 @@ class DSAC(AlgorithmBase):
             q_loss = -Normal(q, q_std).log_prob(target_q).mean()
         return q_loss, q.detach().mean(), q_std.detach().mean()
 
+    def __compute_target_q(self, r, done, q, q_std, q_next, log_prob_a_next):
         target_q = r + (1 - done) * self.gamma * (
             q_next - self.__get_alpha() * log_prob_a_next
         )
