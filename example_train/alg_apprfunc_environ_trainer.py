@@ -44,7 +44,6 @@ if __name__ == "__main__":
     # 1. Parameters for environment
     parser.add_argument("--reward_scale", type=float, default=1, help="reward scale factor")
     parser.add_argument("--reward_shift", type=float, default=0, help="reward shift factor")
-    parser.add_argument("--action_type", type=str, default="continu", help="Options: continu/discret")
     parser.add_argument("--is_render", type=bool, default=False, help="Draw training animation")
     parser.add_argument("--seed", default=3328005365, help="seeds of env & network initialization")
 
