@@ -39,7 +39,6 @@ if __name__ == "__main__":
     parser.add_argument("--action_num", type=int, default=None, help="dim(Action)")
     parser.add_argument("--action_high_limit", type=list, default=None)
     parser.add_argument("--action_low_limit", type=list, default=None)
-    parser.add_argument("--action_type", type=str, default="discret", help="Options: continu/discret")
     parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
 
     ################################################

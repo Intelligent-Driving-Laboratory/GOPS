@@ -38,7 +38,6 @@ if __name__ == "__main__":
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--action_type", type=str, default="continu", help="Options: continu/discret")
     parser.add_argument("--reward_scale", type=float, default=1, help="reward scale factor")
     parser.add_argument("--reward_shift", type=float, default=0, help="reward shift factor")
     parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")

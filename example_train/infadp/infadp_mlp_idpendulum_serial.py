@@ -37,7 +37,6 @@ if __name__ == "__main__":
     parser.add_argument("--seed", default=3328005365, help="seed")
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--action_type", type=str, default="continu")
     parser.add_argument("--reward_scale", type=float, default=1, help="reward scale factor")
     parser.add_argument("--repeat_num", type=int, default=None)
     parser.add_argument("--sum_reward", type=bool, default=False)
