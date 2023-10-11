@@ -58,7 +58,6 @@ class TRPO(AlgorithmBase):
     Paper: https://arxiv.org/abs/1502.05477
 
     :param delta: KL constraint
-    :param norm_adv: whether to normalize advantage
     :param rtol: CG's relative tolerance
     :param atol: CG's absolute tolerance
     :param damping_factor: Add $\lambda I$ damping to Hessian to improve CG solution.
@@ -67,13 +66,13 @@ class TRPO(AlgorithmBase):
     :param max_search: Backtrack search maximum iterations.
     :param train_v_iters: State value training iterations each policy update.
     :param value_learning_rate: State value learning rate
+    :param norm_adv: whether to normalize advantage
     """
 
     def __init__(
         self,
         *,
         delta: float,
-        norm_adv: bool,
         rtol: float,
         atol: float,
         damping_factor: float,
@@ -82,6 +81,7 @@ class TRPO(AlgorithmBase):
         max_search: int,
         train_v_iters: int,
         value_learning_rate: float,
+        norm_adv: bool = True,
         index=0,
         **kwargs,
     ):
