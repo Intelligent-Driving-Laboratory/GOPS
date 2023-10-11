@@ -40,7 +40,6 @@ if __name__ == "__main__":
     parser.add_argument("--vector_env_num", type=int, default=2, help="Number of vector envs")
     parser.add_argument("--vector_env_type", type=str, default='sync', help="Options: sync/async")
     parser.add_argument("--gym2gymnasium", type=bool, default=True, help="Convert Gym-style env to Gymnasium-style")
-    parser.add_argument("--action_type", type=str, default="continu", help="Options: continu/discret")
     parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
     parser.add_argument("--is_adversary", type=bool, default=False, help="Adversary training")
     parser.add_argument("--is_constrained", type=bool, default=False)
