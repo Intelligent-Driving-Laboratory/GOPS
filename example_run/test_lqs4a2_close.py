@@ -14,6 +14,6 @@ from gops.env.inspector.env_dynamic_checker import check_dynamic
 check_dynamic(
     env_info={"env_id": "pyth_lq", "lq_config": "s4a2"},
     traj_num=3,
-    log_policy_dir="../results/INFADP/lqs4a2",
-    policy_iteration="115000_opt",
+    log_policy_dir="./results/INFADP/lqs4a2_mlp",
+    policy_iteration="6000",
 )
