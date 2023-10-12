@@ -21,6 +21,7 @@ from itertools import cycle
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
+from gops.create_pkg.create_alg import create_approx_contrainer
 from gops.utils.common_utils import change_type, get_args_from_json
 from gops.utils.plot_evaluation import cm2inch
 from gops.create_pkg.create_env import create_env
@@ -58,18 +59,13 @@ def load_args(log_policy_dir):
     args = get_args_from_json(json_path, args_dict)
     return args
 
-
 def load_policy(args, policy_path):
     # Create policy
-    alg_name = args["algorithm"]
-    alg_file_name = alg_name.lower()
-    file = __import__(alg_file_name)
-    ApproxContainer = getattr(file, "ApproxContainer")
-    networks = ApproxContainer(**args)
+    networks = create_approx_contrainer(**args)
+
     # Load trained policy
     networks.load_state_dict(torch.load(policy_path))
     return networks
-
 
 def compute_action(obs, networks):
     batch_obs = torch.from_numpy(np.expand_dims(obs, axis=0).astype("float32"))
@@ -189,7 +185,7 @@ def check_dynamic(
 
     assert env is not None
 
-    save_path = os.path.join("../", "figures")
+    save_path = os.path.join("./", "figures")
     if "lq_config" in env_info:
         env_name = "%s_%s" % (env_info["env_id"], env_info["lq_config"])
     else:
@@ -249,7 +245,7 @@ def check_dynamic(
         df_state_list.append([])
         ddf_state_list.append([])
 
-        state = env.state
+        state = env.state.robot_state
         done = False
 
         for step_index in range(20010):
@@ -271,7 +267,7 @@ def check_dynamic(
             if done:
                 break
 
-            state_next = env.state
+            state_next = env.state.robot_state
             if use_obs:
                 df_state_list[-1].append((obs_next - obs, obs))
             else:
@@ -319,7 +315,7 @@ def check_dynamic(
     for i in range(state_dim):
         if df_too_fast[i] or ddf_too_fast[i]:
             warnings.warn(
-                "GOPS: The %d-th state changes too fast!"
+                "The %d-th state may change too fast! If you ensure there is no error, please ignore this message."
                 % i
             )
     warnings.formatwarning = origin_format
