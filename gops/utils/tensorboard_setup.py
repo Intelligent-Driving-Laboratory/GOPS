@@ -52,8 +52,8 @@ def start_tensorboard(logdir, port=DEFAULT_TB_PORT):
     kill_port(port)
 
     sys_name = platform.system()
-    if sys_name == "Linux":
-        cmd_line = "gnome-terminal -- tensorboard --logdir {} --port {}".format(
+    if sys_name == "Linux" or sys_name == "Darwin":
+        cmd_line = "tensorboard --logdir {} --port {} &".format(
             logdir, port
         )
     elif sys_name == "Windows":
@@ -100,7 +100,7 @@ def get_pids_windows(port):
 def kill_pids_linux(pids):
     for pid in pids:
         try:
-            os.kill(int(pid), signal.SIGINT)
+            os.kill(int(pid), signal.SIGTERM)
         except:
             pass
 
@@ -115,7 +115,7 @@ def kill_pid_windows(pids):
 
 def kill_port(port=DEFAULT_TB_PORT):
     sys_name = platform.system()
-    if sys_name == "Linux":
+    if sys_name == "Linux" or sys_name == "Darwin":
         pids = get_pids_linux(port)
         kill_pids_linux(pids)
     elif sys_name == "Windows":
