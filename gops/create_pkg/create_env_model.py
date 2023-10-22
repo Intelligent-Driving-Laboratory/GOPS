@@ -90,6 +90,8 @@ def create_env_model(
     _kwargs = spec_.kwargs.copy()
     _kwargs.update(kwargs)
 
+    _kwargs["device"] = "cuda" if _kwargs["use_gpu"] else "cpu"
+
     if callable(spec_.entry_point):
         env_model_creator = spec_.entry_point
     else:
