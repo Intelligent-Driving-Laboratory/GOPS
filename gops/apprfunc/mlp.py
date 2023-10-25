@@ -9,6 +9,7 @@
 #  Description: Multilayer Perceptron (MLP)
 #  Update: 2021-03-05, Wenjun Zou: create MLP function
 #  Update: 2023-07-28, Jiaxin Gao: add FiniteHorizonFullPolicy function
+#  Update: 2023-10-25, Wenxuan Wang: add DSAC-T algorithm
 
 
 __all__ = [
@@ -25,6 +26,7 @@ __all__ = [
 
 import numpy as np
 import torch
+import warnings
 import torch.nn as nn
 from gops.utils.common_utils import get_activation_func
 from gops.utils.act_distribution_cls import Action_Distribution
@@ -283,19 +285,14 @@ class ActionValueDistri(nn.Module):
             get_activation_func(kwargs["hidden_activation"]),
             get_activation_func(kwargs["output_activation"]),
         )
-        self.min_log_std = kwargs["min_log_std"]
-        self.max_log_std = kwargs["max_log_std"]
-        self.denominator = max(abs(self.min_log_std), self.max_log_std)
+        if "min_log_std"  in kwargs or "max_log_std" in kwargs:
+            warnings.warn("min_log_std and max_log_std are deprecated in ActionValueDistri.")
 
-    def forward(self, obs, act, min=False):
+    def forward(self, obs, act):
         logits = self.q(torch.cat([obs, act], dim=-1))
-        value_mean, log_std = torch.chunk(logits, chunks=2, dim=-1)
-
-        value_log_std = torch.clamp_min(
-            self.max_log_std * torch.tanh(log_std / self.denominator), 0
-        ) + torch.clamp_max(
-            -self.min_log_std * torch.tanh(log_std / self.denominator), 0
-        )
+        value_mean, value_std = torch.chunk(logits, chunks=2, dim=-1)
+        value_log_std = torch.nn.functional.softplus(value_std) 
+        
         return torch.cat((value_mean, value_log_std), dim=-1)
 
 
