@@ -58,8 +58,8 @@ class ReplayBuffer:
                     combined_shape(self.max_size, v["shape"]), dtype=v["dtype"]
                 )
             else:
-                self.buf[k] = v.get_zero_state(self.max_size)
-                self.buf["next_" + k] = v.get_zero_state(self.max_size)
+                self.buf[k] = v.batch(self.max_size)
+                self.buf["next_" + k] = v.batch(self.max_size)
         self.ptr, self.size, = (
             0,
             0,

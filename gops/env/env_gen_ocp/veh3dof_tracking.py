@@ -1,31 +1,10 @@
-from dataclasses import dataclass, fields
 from typing import Dict, Optional, Sequence, Tuple
 
 import numpy as np
 from gym import spaces
 from gops.env.env_gen_ocp.pyth_base import Env, State
 from gops.env.env_gen_ocp.robot.veh3dof import Veh3DoF, angle_normalize
-from gops.env.env_gen_ocp.context.ref_traj import RefTrajContext, RefTrajState
-
-
-@dataclass
-class Veh3DoFTrackingState(State):
-    robot_state: np.ndarray
-    context_state: RefTrajState[np.ndarray]
-    CONTEXT_STATE_TYPE = RefTrajState
-
-    def get_zero_state(self, batch_size: int = 1) -> State:
-        return Veh3DoFTrackingState(
-            robot_state=np.zeros((batch_size, *self.robot_state.shape), dtype=np.float32),
-            context_state=RefTrajState(
-                reference=np.zeros((batch_size, *self.context_state.reference.shape), dtype=np.float32),
-                constraint=np.zeros((batch_size,), dtype=np.float32),
-                t=np.zeros((batch_size,), dtype=np.int8),
-                path_num=np.zeros((batch_size,), dtype=np.int8),
-                speed_num=np.zeros((batch_size,), dtype=np.int8),
-                ref_time=np.zeros((batch_size,), dtype=np.float32),
-            ),
-        )
+from gops.env.env_gen_ocp.context.ref_traj import RefTrajContext
 
 
 class Veh3DoFTracking(Env):
@@ -50,10 +29,6 @@ class Veh3DoFTracking(Env):
             dt=dt,
             path_param=path_para,
             speed_param=u_para,
-        )
-        self._state = Veh3DoFTrackingState(
-            robot_state=self.robot.get_zero_state(),
-            context_state=self.context.get_zero_state(),
         )
 
         self.state_dim = 6
@@ -110,7 +85,7 @@ class Veh3DoFTracking(Env):
             (context_state.reference[0] + delta_state[:4], delta_state[4:])
         )
 
-        self._state = Veh3DoFTrackingState(
+        self._state = State(
             robot_state=self.robot.reset(init_state),
             context_state=context_state,
         )
@@ -290,6 +265,7 @@ if __name__ == "__main__":
     seed = 1
     env_old.seed(seed)
     env_new.seed(seed)
+    np.random.seed(seed)
 
     obs_old, _ = env_old.reset()
     obs_new, _ = env_new.reset()
