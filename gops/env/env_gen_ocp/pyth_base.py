@@ -1,10 +1,9 @@
 from abc import abstractmethod, ABCMeta
 from dataclasses import dataclass, fields
-from typing import Dict, Generic, Optional, Tuple, Sequence, TypeVar
+from typing import Dict, Generic, Optional, Sequence, Tuple, TypeVar, Union
 
 import gym
 from gym import spaces
-from gym.utils import seeding
 import numpy as np
 import torch
 
@@ -16,44 +15,16 @@ class ContextState(Generic[stateType]):
     constraint: stateType
     t: stateType
 
-    @staticmethod
-    def array2tensor(context_state: 'ContextState[np.ndarray]') -> 'ContextState[torch.Tensor]':
-        for field in fields(context_state):
-            if isinstance(getattr(context_state, field.name), np.ndarray):
-                setattr(context_state, field.name, torch.tensor(getattr(context_state, field.name)))
-        return context_state
+    def array2tensor(self):
+        for field in fields(self):
+            if isinstance(getattr(self, field.name), np.ndarray):
+                setattr(self, field.name, torch.tensor(getattr(self, field.name)))
     
-    @staticmethod
-    def tensor2array(context_state: 'ContextState[torch.Tensor]') -> 'ContextState[np.ndarray]':
-        for field in fields(context_state):
-            if isinstance(getattr(context_state, field.name), torch.Tensor):
-                setattr(context_state, field.name, getattr(context_state, field.name).numpy())
-        return context_state
-    
-    @classmethod
-    def stack(cls, context_states: Sequence['ContextState[stateType]']) -> 'ContextState[stateType]':
-        values = []
-        for field in fields(context_states[0]):
-            if isinstance(getattr(context_states[0], field.name), np.ndarray):
-                values.append(np.stack([getattr(context_state, field.name) for context_state in context_states]))
-            elif isinstance(getattr(context_states[0], field.name), torch.Tensor):
-                values.append(torch.stack([getattr(context_state, field.name) for context_state in context_states]))
-            # else:
-            #     values.append(getattr(context_states[0], field.name))
-        return cls(*values)
-    
-    @classmethod
-    def concat(cls, context_states: Sequence['ContextState[stateType]'], dim: int = 0) -> 'ContextState[stateType]':
-        values = []
-        for field in fields(context_states[0]):
-            if isinstance(getattr(context_states[0], field.name), np.ndarray):
-                values.append(np.concatenate([getattr(context_state, field.name) for context_state in context_states], axis=dim))
-            elif isinstance(getattr(context_states[0], field.name), torch.Tensor):
-                values.append(torch.concat([getattr(context_state, field.name) for context_state in context_states], dim=dim))
-            # else:
-            #     values.append(getattr(context_states[0], field.name))
-        return cls(*values)
-    
+    def tensor2array(self):
+        for field in fields(self):
+            if isinstance(getattr(self, field.name), torch.Tensor):
+                setattr(self, field.name, getattr(self, field.name).numpy())
+
     def  __getitem__(self, index):
         try:
             value = []
@@ -73,44 +44,37 @@ class ContextState(Generic[stateType]):
 class State(Generic[stateType]):
     robot_state: stateType
     context_state: ContextState[stateType]
-    CONTEXT_STATE_TYPE = ContextState
 
     @classmethod
     def array2tensor(cls, state: 'State[np.ndarray]') -> 'State[torch.Tensor]':
         if isinstance(state.robot_state, np.ndarray):
             state.robot_state = torch.tensor(state.robot_state)
-            state.context_state = cls.CONTEXT_STATE_TYPE.array2tensor(state.context_state)
+            state.context_state.array2tensor()
         return state
     
     @classmethod
     def tensor2array(cls, state: 'State[torch.Tensor]') -> 'State[np.ndarray]':
         if isinstance(state.robot_state, torch.Tensor):
             state.robot_state = state.robot_state.numpy()
-            state.context_state = cls.CONTEXT_STATE_TYPE.tensor2array(state.context_state)
+            state.context_state.tensor2array()
         return state
     
     @classmethod
-    def stack(cls, states: Sequence['State[stateType]']) -> 'State[stateType]':
-        if isinstance(states[0].robot_state, np.ndarray):
-            stack = np.stack
-        elif isinstance(states[0].robot_state, torch.Tensor):
-            stack = torch.stack
-        robot_states = stack([state.robot_state for state in states])
-        context_states = cls.CONTEXT_STATE_TYPE.stack([state.context_state for state in states])
-        return cls(robot_states, context_states)
-    
-    @classmethod
-    def concat(cls, states: Sequence['State[stateType]'], dim: int = 0) -> 'State[stateType]':
-        if isinstance(states[0].robot_state, np.ndarray):
-            robot_states = np.concatenate([state.robot_state for state in states], axis=dim)
-        elif isinstance(states[0].robot_state, torch.Tensor):
-            robot_states = torch.concat([state.robot_state for state in states], dim=dim)
-        context_states = cls.CONTEXT_STATE_TYPE.concat([state.context_state for state in states], dim=dim)
+    def stack(cls, states: Sequence['State[stateType]'], dim: int = 0) -> 'State[stateType]':
+        robot_states = stack(states, "robot_state", dim)
+        context_states = stack_context_state([state.context_state for state in states], dim=dim)
         return cls(robot_states, context_states)
 
-    @abstractmethod
-    def get_zero_state(self, batch_size: int = 1) -> 'State[stateType]':
-        ...
+    @classmethod
+    def concat(cls, states: Sequence['State[stateType]'], dim: int = 0) -> 'State[stateType]':
+        robot_states = concat(states, "robot_state", dim)
+        context_states = concat_context_state([state.context_state for state in states], dim=dim)
+        return cls(robot_states, context_states)
+
+    def batch(self, batch_size: int) -> 'State[stateType]':
+        robot_state = batch(self.robot_state, batch_size)
+        context_state = batch_context_state(self.context_state, batch_size)
+        return self.__class__(robot_state=robot_state, context_state=context_state)
 
     def __getitem__(self, index):
         try:
@@ -172,35 +136,11 @@ class Env(gym.Env, metaclass=ABCMeta):
     context: Context
     _state: State[np.ndarray]
 
-    def reset(
-        self,
-        seed: Optional[int] = None,
-        options: Optional[dict] = None,
-    ) -> Tuple[np.ndarray, dict]:
-        super().reset(seed=seed, options=options)
-        if options is None:
-            options = {}
-
-        state = options.get('state', None)
-        if state is None:
-            state = self._get_init_state()
-        else:
-            assert type(state) == State, 'Type of initial state not supported!'
-        self._state = state
-
-        return self._get_obs(), self._get_info()
-
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         reward = self._get_reward(action)
         self._state = self._get_next_state(action)
         terminated = self._get_terminated()
         return self._get_obs(), reward, terminated, self._get_info()
-
-    def _get_init_state(self) -> State[np.ndarray]:
-        return State(
-            robot_state=self.robot.reset(),
-            context_state=self.context.reset()
-        )
 
     def _get_info(self) -> dict:
         info = {'state': self._state}
@@ -240,18 +180,58 @@ class Env(gym.Env, metaclass=ABCMeta):
     def _get_terminated(self) -> bool:
         ...
 
-    def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
-    
-    def get_zero_state(self, batch_size) -> State[np.ndarray]:
+    def get_zero_state(self) -> State[np.ndarray]:
         return State(
-            robot_state=self.robot.get_zero_state(batch_size),
-            context_state=self.context.get_zero_state(batch_size)
+            robot_state=self.robot.get_zero_state(),
+            context_state=self.context.get_zero_state()
         )
 
     @property
     def additional_info(self) -> Dict[str, State[np.ndarray]]:
         return {
-            "state": self._state,
+            "state": self.get_zero_state(),
         }
+
+
+def batch(x: Union[np.ndarray, torch.Tensor], batch_size: int) -> Union[np.ndarray, torch.Tensor]:
+    if isinstance(x, np.ndarray):
+        return np.expand_dims(x, 0).repeat(batch_size, 0)
+    elif isinstance(x, torch.Tensor):
+        return torch.unsqueeze(x, 0).repeat(batch_size, 0)
+
+
+def stack(x: Sequence[Union[np.ndarray, torch.Tensor]], dim: int = 0) -> Union[np.ndarray, torch.Tensor]:
+    if isinstance(x[0], np.ndarray):
+        return np.stack(x, axis=dim)
+    elif isinstance(x[0], torch.Tensor):
+        return torch.stack(x, dim=dim)
+
+
+def concat(x: Sequence[Union[np.ndarray, torch.Tensor]], dim: int = 0) -> Union[np.ndarray, torch.Tensor]:
+    if isinstance(x[0], np.ndarray):
+        return np.concatenate(x, axis=dim)
+    elif isinstance(x[0], torch.Tensor):
+        return torch.concat(x, dim=dim)
+
+
+def batch_context_state(context_state: Sequence['ContextState[stateType]'], batch_size: int) -> 'ContextState[stateType]':
+    values = []
+    for field in fields(context_state):
+        values.append(batch(getattr(context_state, field.name), batch_size))
+    return context_state.__class__(*values)
+
+
+def stack_context_state(context_states: Sequence['ContextState[stateType]'], dim: int = 0) -> 'ContextState[stateType]':
+    values = []
+    for field in fields(context_states[0]):
+        value_seq = [getattr(e, field.name) for e in context_states]
+        values.append(stack(value_seq, dim))
+    return context_states[0].__class__(*values)
+
+
+def concat_context_state(context_states: Sequence['ContextState[stateType]'], dim: int = 0) -> 'ContextState[stateType]':
+    values = []
+    for field in fields(context_states[0]):
+        value_seq = [getattr(e, field.name) for e in context_states]
+        values.append(concat(value_seq, dim))
+    return context_states[0].__class__(*values)
