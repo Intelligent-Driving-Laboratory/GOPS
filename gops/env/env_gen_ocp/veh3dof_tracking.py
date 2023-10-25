@@ -104,11 +104,11 @@ class Veh3DoFTracking(Env):
         if init_state is None:
             high = np.array([2, 1, np.pi / 6, 2, 0.1, 0.1], dtype=np.float32)
             delta_state = self.np_random.uniform(low=-high, high=high).astype(np.float32)
-            init_state = np.concatenate(
-                (context_state.reference[0] + delta_state[:4], delta_state[4:])
-            )
         else:
-            init_state = np.array(init_state, dtype=np.float32)
+            delta_state = np.array(init_state, dtype=np.float32)
+        init_state = np.concatenate(
+            (context_state.reference[0] + delta_state[:4], delta_state[4:])
+        )
 
         self._state = Veh3DoFTrackingState(
             robot_state=self.robot.reset(init_state),
@@ -274,3 +274,29 @@ def ego_vehicle_coordinate_transform(
 
 def env_creator(**kwargs):
     return Veh3DoFTracking(**kwargs)
+
+
+if __name__ == "__main__":
+    # test consistency with old environment
+
+    import numpy as np
+    from gops.env.env_gen_ocp.veh3dof_tracking import Veh3DoFTracking
+    from gops.env.env_ocp.pyth_veh3dofconti import SimuVeh3dofconti
+
+
+    env_old = SimuVeh3dofconti()
+    env_new = Veh3DoFTracking()
+
+    seed = 1
+    env_old.seed(seed)
+    env_new.seed(seed)
+
+    obs_old, _ = env_old.reset()
+    obs_new, _ = env_new.reset()
+    print("reset obs close:", np.isclose(obs_old, obs_new).all())
+
+    action = np.random.random(2)
+    next_obs_old, reward_old, done_old, _ = env_old.step(action)
+    next_obs_new, reward_new, done_new, _ = env_new.step(action)
+    print("step obs close:", np.isclose(obs_old, obs_new).all())
+    print("step reward close:", np.isclose(reward_old, reward_new))
