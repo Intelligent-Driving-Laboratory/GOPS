@@ -6,7 +6,7 @@
 #  Lab Leader: Prof. Shengbo Eben Li
 #  Email: lisb04@gmail.com
 #
-#  Description: example for dsac + humanoidconti + mlp + offserial
+#  Description: example for dsac-t + humanoidconti + mlp + offserial
 #  Update Date: 2021-03-05, Wenxuan Wang: create example
 
 import argparse
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     ################################################
     # Key Parameters for users
     parser.add_argument("--env_id", type=str, default="gym_humanoid", help="id of environment")
-    parser.add_argument("--algorithm", type=str, default="DSAC2", help="RL algorithm")
+    parser.add_argument("--algorithm", type=str, default="DSACT", help="RL algorithm")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
     parser.add_argument("--seed", default=12345, help="Global seed")
     ################################################
@@ -57,8 +57,6 @@ if __name__ == "__main__":
         "--value_hidden_activation", type=str, default="gelu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
     )
     parser.add_argument("--value_output_activation", type=str, default="linear", help="Options: linear/tanh")
-    parser.add_argument("--value_min_log_std", type=int, default=-0.1)
-    parser.add_argument("--value_max_log_std", type=int, default=5)
 
     # 2.2 Parameters of policy approximate function
     parser.add_argument(
@@ -96,8 +94,6 @@ if __name__ == "__main__":
     parser.add_argument("--auto_alpha", type=bool, default=True)
     parser.add_argument("--alpha", type=float, default=0.2)
     parser.add_argument("--delay_update", type=int, default=2)
-    parser.add_argument("--TD_bound", type=float, default=10)
-    parser.add_argument("--bound", default=True)
 
     ################################################
     # 4. Parameters for trainer
