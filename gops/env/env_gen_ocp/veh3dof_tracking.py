@@ -1,31 +1,10 @@
-from dataclasses import dataclass, fields
 from typing import Dict, Optional, Sequence, Tuple
 
 import numpy as np
 from gym import spaces
 from gops.env.env_gen_ocp.pyth_base import Env, State
 from gops.env.env_gen_ocp.robot.veh3dof import Veh3DoF, angle_normalize
-from gops.env.env_gen_ocp.context.ref_traj import RefTrajContext, RefTrajState
-
-
-@dataclass
-class Veh3DoFTrackingState(State):
-    robot_state: np.ndarray
-    context_state: RefTrajState[np.ndarray]
-    CONTEXT_STATE_TYPE = RefTrajState
-
-    def get_zero_state(self, batch_size: int = 1) -> State:
-        return Veh3DoFTrackingState(
-            robot_state=np.zeros((batch_size, *self.robot_state.shape), dtype=np.float32),
-            context_state=RefTrajState(
-                reference=np.zeros((batch_size, *self.context_state.reference.shape), dtype=np.float32),
-                constraint=np.zeros((batch_size,), dtype=np.float32),
-                t=np.zeros((batch_size,), dtype=np.int8),
-                path_num=np.zeros((batch_size,), dtype=np.int8),
-                speed_num=np.zeros((batch_size,), dtype=np.int8),
-                ref_time=np.zeros((batch_size,), dtype=np.float32),
-            ),
-        )
+from gops.env.env_gen_ocp.context.ref_traj import RefTrajContext
 
 
 class Veh3DoFTracking(Env):
@@ -50,10 +29,6 @@ class Veh3DoFTracking(Env):
             dt=dt,
             path_param=path_para,
             speed_param=u_para,
-        )
-        self._state = Veh3DoFTrackingState(
-            robot_state=self.robot.get_zero_state(),
-            context_state=self.context.get_zero_state(),
         )
 
         self.state_dim = 6
@@ -104,13 +79,13 @@ class Veh3DoFTracking(Env):
         if init_state is None:
             high = np.array([2, 1, np.pi / 6, 2, 0.1, 0.1], dtype=np.float32)
             delta_state = self.np_random.uniform(low=-high, high=high).astype(np.float32)
-            init_state = np.concatenate(
-                (context_state.reference[0] + delta_state[:4], delta_state[4:])
-            )
         else:
-            init_state = np.array(init_state, dtype=np.float32)
+            delta_state = np.array(init_state, dtype=np.float32)
+        init_state = np.concatenate(
+            (context_state.reference[0] + delta_state[:4], delta_state[4:])
+        )
 
-        self._state = Veh3DoFTrackingState(
+        self._state = State(
             robot_state=self.robot.reset(init_state),
             context_state=context_state,
         )
@@ -274,3 +249,30 @@ def ego_vehicle_coordinate_transform(
 
 def env_creator(**kwargs):
     return Veh3DoFTracking(**kwargs)
+
+
+if __name__ == "__main__":
+    # test consistency with old environment
+
+    import numpy as np
+    from gops.env.env_gen_ocp.veh3dof_tracking import Veh3DoFTracking
+    from gops.env.env_ocp.pyth_veh3dofconti import SimuVeh3dofconti
+
+
+    env_old = SimuVeh3dofconti()
+    env_new = Veh3DoFTracking()
+
+    seed = 1
+    env_old.seed(seed)
+    env_new.seed(seed)
+    np.random.seed(seed)
+
+    obs_old, _ = env_old.reset()
+    obs_new, _ = env_new.reset()
+    print("reset obs close:", np.isclose(obs_old, obs_new).all())
+
+    action = np.random.random(2)
+    next_obs_old, reward_old, done_old, _ = env_old.step(action)
+    next_obs_new, reward_new, done_new, _ = env_new.step(action)
+    print("step obs close:", np.isclose(obs_old, obs_new).all())
+    print("step reward close:", np.isclose(reward_old, reward_new))

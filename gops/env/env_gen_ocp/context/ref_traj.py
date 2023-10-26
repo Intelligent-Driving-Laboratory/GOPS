@@ -8,9 +8,9 @@ from gops.env.env_ocp.resources.ref_traj_data import MultiRefTrajData
 
 @dataclass
 class RefTrajState(ContextState[stateType]):
-    path_num: int
-    speed_num: int
-    ref_time: float
+    path_num: stateType
+    speed_num: stateType
+    ref_time: stateType
 
 
 class RefTrajContext(Context):
@@ -95,9 +95,9 @@ class RefTrajContext(Context):
     def get_zero_state(self) -> ContextState[np.ndarray]:
         return RefTrajState(
             reference=np.zeros((self.pre_horizon + 1, 4), dtype=np.float32),
-            constraint=0.0,
-            t=0,
-            path_num=0,
-            speed_num=0,
-            ref_time=0.0,
+            constraint=np.array(0.0, dtype=np.float32),
+            t=np.array(0, dtype=np.int8),
+            path_num=np.array(0, dtype=np.int8),
+            speed_num=np.array(0, dtype=np.int8),
+            ref_time=np.array(0.0, dtype=np.float32),
         )
