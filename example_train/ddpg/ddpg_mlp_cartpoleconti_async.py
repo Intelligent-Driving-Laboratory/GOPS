@@ -54,8 +54,7 @@ if __name__ == "__main__":
     parser.add_argument("--policy_act_distribution", type=str, default="default")
     parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
     parser.add_argument("--policy_hidden_activation", type=str, default="relu")
-    parser.add_argument("--policy_output_activation", type=str, default="linear")
-
+    
     ################################################
     # 3. Parameters for RL algorithm
     parser.add_argument("--value_learning_rate", type=float, default=3e-4)

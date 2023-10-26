@@ -88,9 +88,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--policy_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
     )
-    parser.add_argument(
-        "--policy_output_activation", type=str, default="tanh", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
-    )
 
     ################################################
     # 3. Parameters for RL algorithm

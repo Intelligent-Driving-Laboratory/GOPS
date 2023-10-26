@@ -32,8 +32,7 @@ class ApproxContainer(ApprBase):
         """Approximate function container for FHADP."""
         """Contains one policy network."""
         super().__init__(**kwargs)
-        policy_func_type = kwargs["policy_func_type"]
-        policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
+        policy_args = get_apprfunc_dict("policy", **kwargs)
 
         self.policy = create_apprfunc(**policy_args)
         self.policy_optimizer = Adam(

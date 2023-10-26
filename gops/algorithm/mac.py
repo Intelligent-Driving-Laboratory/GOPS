@@ -37,11 +37,9 @@ class ApproxContainer(ApprBase):
         Contains a policy and an action value.
         """
         super().__init__(**kwargs)
-        value_func_type = kwargs["value_func_type"]
-        policy_func_type = kwargs["policy_func_type"]
 
-        v_args = get_apprfunc_dict("value", value_func_type, **kwargs)
-        policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
+        v_args = get_apprfunc_dict("value", **kwargs)
+        policy_args = get_apprfunc_dict("policy", **kwargs)
 
         self.v = create_apprfunc(**v_args)
         self.policy = create_apprfunc(**policy_args)

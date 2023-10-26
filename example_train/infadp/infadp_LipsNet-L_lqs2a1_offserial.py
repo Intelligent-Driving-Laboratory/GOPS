@@ -80,7 +80,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--policy_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
     )
-    parser.add_argument("--policy_output_activation", type=str, default="linear", help="Options: linear/tanh")
     parser.add_argument("--policy_lips_init_value", type=float, default=1)
     parser.add_argument("--policy_lips_auto_adjust", type=bool, default=True)
     parser.add_argument("--policy_lips_learning_rate", type=float, default=1e-5)

@@ -81,7 +81,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--policy_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
     )
-    parser.add_argument("--policy_output_activation", type=str, default="linear", help="Options: linear/tanh")
     parser.add_argument("--policy_conv_type", type=str, default="type_2", help="Options: type_1/type_2")
     parser.add_argument("--policy_min_log_std", type=int, default=-6)
     parser.add_argument("--policy_max_log_std", type=int, default=6)

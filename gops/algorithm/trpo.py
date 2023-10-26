@@ -44,9 +44,9 @@ class ApproxContainer(ApprBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        policy_args = get_apprfunc_dict("policy", kwargs["policy_func_type"], **kwargs)
+        policy_args = get_apprfunc_dict("policy", **kwargs)
         self.policy: nn.Module = create_apprfunc(**policy_args)
-        value_args = get_apprfunc_dict("value", kwargs["value_func_type"], **kwargs)
+        value_args = get_apprfunc_dict("value", **kwargs)
         self.value: nn.Module = create_apprfunc(**value_args)
 
     def create_action_distributions(self, logits):

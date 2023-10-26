@@ -57,8 +57,7 @@ if __name__ == "__main__":
     policy_func_type = parser.parse_known_args()[0].policy_func_type
     parser.add_argument("--policy_hidden_sizes", type=list, default=[256, 256])
     parser.add_argument("--policy_hidden_activation", type=str, default="elu")
-    parser.add_argument("--policy_output_activation", type=str, default="linear")
-
+    
     ################################################
     # 3. Parameters for RL algorithm
     parser.add_argument("--policy_learning_rate", type=float, default=3e-5)
