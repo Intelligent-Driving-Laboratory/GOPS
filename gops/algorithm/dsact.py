@@ -272,7 +272,7 @@ class DSACT(AlgorithmBase):
         weight = 1.0
         q1_std_detach = q1_std.detach()
         q2_std_detach = q2_std.detach()
-        eps = 0.1
+        eps = 0.01
 
 
         q1_loss = weight*torch.mean(
