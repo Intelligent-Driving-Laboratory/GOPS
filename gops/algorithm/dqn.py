@@ -38,9 +38,7 @@ class ApproxContainer(ApprBase):
         Contains an action value.
         """
         super().__init__(**kwargs)
-        value_func_type = kwargs["value_func_type"]
-
-        q_args = get_apprfunc_dict("value", value_func_type, **kwargs)
+        q_args = get_apprfunc_dict("value", **kwargs)
         # create action-value function network
         self.q = create_apprfunc(**q_args)
         # create target action-value function network

@@ -46,8 +46,7 @@ class ApproxContainer(ApprBase):
         self.env_model = create_env_model(**kwargs)
 
         # create value network
-        value_func_type = kwargs["value_func_type"]
-        value_args = get_apprfunc_dict("value", value_func_type, **kwargs)
+        value_args = get_apprfunc_dict("value", **kwargs)
         self.value = create_apprfunc(**value_args)
 
         # initialize value network
@@ -58,7 +57,7 @@ class ApproxContainer(ApprBase):
                 torch.tensor(initial_weight, dtype=torch.float32), requires_grad=True
             )
         else:
-            if value_func_type == "POLY":
+            if kwargs["value_func_type"] == "POLY":
                 # zero initialization
                 self.value.v.weight.data.fill_(0)
             else:

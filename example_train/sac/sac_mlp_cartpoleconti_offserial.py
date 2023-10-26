@@ -142,7 +142,7 @@ if __name__ == "__main__":
     env = create_env(**args)
     args = init_args(env, **args)
 
-    # start_tensorboard(args["save_folder"])
+    start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     alg.set_parameters({"tau": 0.2})
