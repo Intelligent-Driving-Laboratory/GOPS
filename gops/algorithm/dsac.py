@@ -198,8 +198,7 @@ class DSAC(AlgorithmBase):
 
     def __q_evaluate(self, obs, act, qnet, use_min=False):
         StochaQ = qnet(obs, act)
-        mean, log_std = StochaQ[..., 0], StochaQ[..., -1]
-        std = log_std.exp()
+        mean, std = StochaQ[..., 0], StochaQ[..., -1]
         normal = Normal(torch.zeros(mean.shape), torch.ones(std.shape))
         if use_min:
             z = -torch.abs(normal.sample())
