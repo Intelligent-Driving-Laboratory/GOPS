@@ -55,7 +55,7 @@ def get_activation_func(key: str):
     return activation_func
 
 
-def get_apprfunc_dict(key: str, type=None, **kwargs):
+def get_apprfunc_dict(key: str, **kwargs):
     var = dict()
     var["apprfunc"] = kwargs[key + "_func_type"]
     var["name"] = kwargs[key + "_func_name"]
@@ -67,6 +67,8 @@ def get_apprfunc_dict(key: str, type=None, **kwargs):
     var["pre_horizon"] = kwargs.get("pre_horizon", None)
 
     apprfunc_type = kwargs[key + "_func_type"]
+    if key + "_output_activation" not in kwargs.keys():
+        kwargs[key + "_output_activation"] = "linear"
     if apprfunc_type == "MLP" or apprfunc_type == "RNN":
         var["hidden_sizes"] = kwargs[key + "_hidden_sizes"]
         var["hidden_activation"] = kwargs[key + "_hidden_activation"]

@@ -28,9 +28,7 @@ class ApprBase(ABC, torch.nn.Module):
         super().__init__()
         # Create a shared feature networks for value function and policy function
         if kwargs["cnn_shared"]:
-            feature_args = get_apprfunc_dict(
-                "feature", kwargs["value_func_type"], **kwargs
-            )
+            feature_args = get_apprfunc_dict("feature", **kwargs)
             kwargs["feature_net"] = create_apprfunc(**feature_args)
 
     def init_scheduler(self, **kwargs):

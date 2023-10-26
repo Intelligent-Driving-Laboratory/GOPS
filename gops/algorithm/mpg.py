@@ -46,8 +46,7 @@ class ApproxContainer(ApprBase):
         pge_method = kwargs["pge_method"]
 
         # create value network
-        value_func_type = kwargs["value_func_type"]
-        q_args = get_apprfunc_dict("value", value_func_type, **kwargs)
+        q_args = get_apprfunc_dict("value", **kwargs)
         self.q1 = create_apprfunc(**q_args)
         self.q2 = create_apprfunc(**q_args)
         if pge_method == "mixed_state":
@@ -55,8 +54,7 @@ class ApproxContainer(ApprBase):
             self.q2_model = deepcopy(self.q2)
 
         # create policy network
-        policy_func_type = kwargs["policy_func_type"]
-        policy_args = get_apprfunc_dict("policy", policy_func_type, **kwargs)
+        policy_args = get_apprfunc_dict("policy", **kwargs)
         self.policy = create_apprfunc(**policy_args)
         self.policy4rollout = create_apprfunc(**policy_args)
         self.policy4rollout = deepcopy(self.policy)

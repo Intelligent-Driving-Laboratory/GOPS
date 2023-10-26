@@ -38,12 +38,12 @@ class ApproxContainer(ApprBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # create q networks
-        q_args = get_apprfunc_dict("value", kwargs["value_func_type"], **kwargs)
+        q_args = get_apprfunc_dict("value", **kwargs)
         self.q1: nn.Module = create_apprfunc(**q_args)
         self.q2: nn.Module = create_apprfunc(**q_args)
 
         # create policy network
-        policy_args = get_apprfunc_dict("policy", kwargs["policy_func_type"], **kwargs)
+        policy_args = get_apprfunc_dict("policy", **kwargs)
         self.policy: nn.Module = create_apprfunc(**policy_args)
 
         # create target networks
