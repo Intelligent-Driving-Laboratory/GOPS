@@ -103,14 +103,12 @@ if __name__ == "__main__":
         parser.add_argument(
             "--policy_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
         )
-        parser.add_argument("--policy_output_activation", type=str, default="linear", help="Options: linear/tanh")
     # 2.2.2 CNN/CNN_SHARED
     if policy_func_type == "CNN" or policy_func_type == "CNN_SHARED":
         parser.add_argument("--policy_hidden_sizes", type=list, default=[256, 256, 128])
         parser.add_argument(
             "--policy_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
         )
-        parser.add_argument("--policy_output_activation", type=str, default="linear", help="Options: linear/tanh")
         parser.add_argument("--policy_conv_type", type=str, default="type_2", help="Options: type_1/type_2")
     # 2.2.3 Polynomial
     if policy_func_type == "POLY":

@@ -80,8 +80,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--policy_hidden_activation", type=str, default="gelu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
     )
-    parser.add_argument("--policy_output_activation", type=str, default="linear", help="Options: linear/tanh")
-
+    
     ################################################
     # 3. Parameters for RL algorithm
     parser.add_argument("--policy_learning_rate", type=float, default=1e-4)
