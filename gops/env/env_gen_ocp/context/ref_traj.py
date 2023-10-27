@@ -56,16 +56,16 @@ class RefTrajContext(Context):
 
         self.state = RefTrajState(
             reference=ref_points,
-            constraint=0.0,
-            t=0,
-            path_num=path_num,
-            speed_num=speed_num,
-            ref_time=ref_time,
+            constraint=np.array(0.0, dtype=np.float32),
+            t=np.array(0, dtype=np.int8),
+            ref_time=np.array(ref_time, dtype=np.float32), 
+            path_num=np.array(path_num, dtype=np.int8),
+            speed_num=np.array(speed_num, dtype=np.int8),
         )
         return self.state
 
     def step(self) -> RefTrajState[np.ndarray]:
-        self.state.ref_time = self.state.ref_time + self.dt
+        self.state.ref_time = np.array(self.state.ref_time + self.dt, dtype=np.float32)
 
         new_ref_point = np.array([
             self.ref_traj.compute_x(

@@ -57,8 +57,8 @@ class RefTrajMdl(ContextModel):
         
         return RefTrajState(
             reference=ref_points,
-            constraint=0.0,
-            t=0,
+            constraint=torch.zeros_like(context_state.constraint),
+            t=torch.zeros_like(context_state.t, dtype=torch.int8),
             path_num=path_num,
             speed_num=speed_num,
             ref_time=ref_time,
