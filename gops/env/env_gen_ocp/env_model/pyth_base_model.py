@@ -80,12 +80,12 @@ class EnvModel(Model, metaclass=ABCMeta):
     # Subclass can realize it like:
     #   def get_constraint(self, obs: torch.Tensor, info: dict) -> torch.Tensor:
     #       ...
-    # This function should return Tensor of shape [n] (ndim = 1),
+    # This function should return Tensor of shape [B, n] (ndim = 2),
     # each element of which will be required to be lower than or equal to 0
     get_constraint: Callable[[State], torch.Tensor] = None
 
     # Just like get_constraint,
-    # define function returning Tensor of shape [] (ndim = 0) in subclass
+    # define function returning Tensor of shape [B] (ndim = 1) in subclass
     # if you need
     get_terminal_cost: Callable[[State], torch.Tensor] = None
 
