@@ -15,10 +15,8 @@ class VehDynMdl(RobotModel):
         robot_state_upper_bound: Optional[Sequence] = None, 
     ):
         self.robot_state_dim = robot_state_dim
-        if robot_state_lower_bound is None:
-            robot_state_lower_bound = torch.full((robot_state_dim,), float('-inf'))
-        if robot_state_upper_bound is None:
-            robot_state_upper_bound = torch.full((robot_state_dim,), float('inf'))
+        self.robot_state_lower_bound = torch.full((robot_state_dim,), float('-inf')) if robot_state_lower_bound is None else robot_state_lower_bound
+        self.robot_state_upper_bound = torch.full((robot_state_dim,), float('inf')) if robot_state_upper_bound is None else robot_state_upper_bound
         
         self.dt = dt
         self.vehicle_params = dict(
