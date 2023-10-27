@@ -893,7 +893,7 @@ class PolicyRunner:
                         from gops.sys_simulator.opt_controller_for_gen_env import OptController
                     else:
                         from gops.sys_simulator.opt_controller import OptController
-                    model = create_env_model(**self.args_list[self.policy_num - 1])
+                    model = create_env_model(**self.args_list[self.policy_num - 1], mask_at_done=False)
                     opt_args = self.opt_args.copy()
                     opt_args.pop("opt_controller_type")
                     opt_args.pop("use_MPC_for_general_env")
