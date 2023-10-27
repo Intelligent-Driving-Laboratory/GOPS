@@ -36,6 +36,8 @@ class EnvModel(Model, metaclass=ABCMeta):
     obs_dim: int
     action_lower_bound: torch.Tensor
     action_upper_bound: torch.Tensor
+    robot_model: RobotModel
+    context_model: ContextModel
 
     def __init__(
         self,
@@ -101,18 +103,18 @@ class EnvModel(Model, metaclass=ABCMeta):
         terminated = self.get_terminated(state)
         next_info = {}
         next_info["state"] = next_state
-        return next_obs, reward, terminated, info
+        return next_obs, reward, terminated, next_info
 
     @abstractmethod
     def get_obs(self, state: State) -> torch.Tensor:
         ...
 
     @abstractmethod
-    def get_reward(state: State, action: torch.Tensor) -> torch.Tensor:
+    def get_reward(self, state: State, action: torch.Tensor) -> torch.Tensor:
         ...
 
     @abstractmethod
-    def get_terminated(state: State) -> torch.bool:
+    def get_terminated(self, state: State) -> torch.bool:
         ...
 
     @property
