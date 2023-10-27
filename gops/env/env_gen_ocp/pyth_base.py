@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABCMeta
 from dataclasses import dataclass, fields
 from typing import Dict, Generic, Optional, Sequence, Tuple, TypeVar, Union
+from copy import deepcopy
 
 import gym
 from gym import spaces
@@ -143,7 +144,7 @@ class Env(gym.Env, metaclass=ABCMeta):
         return self._get_obs(), reward, terminated, self._get_info()
 
     def _get_info(self) -> dict:
-        info = {'state': self._state}
+        info = {'state': deepcopy(self._state)}
         try:
             info['cost'] = self._get_constraint()
         except NotImplementedError:
