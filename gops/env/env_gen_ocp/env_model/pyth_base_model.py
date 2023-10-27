@@ -118,10 +118,5 @@ class EnvModel(Model, metaclass=ABCMeta):
         ...
 
     @property
-    @abstractmethod
-    def StateClass(self) -> type:
-        ...
-
-    @property
     def unwrapped(self):
         return self

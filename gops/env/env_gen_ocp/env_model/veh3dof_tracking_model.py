@@ -94,9 +94,6 @@ class Veh3DofModel(EnvModel):
         )
         return done
 
-    def StateClass(self) -> type:
-        raise State
-
 
 def ego_vehicle_coordinate_transform(
     ego_x: torch.Tensor,
