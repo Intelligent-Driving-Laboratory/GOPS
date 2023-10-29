@@ -104,5 +104,5 @@ class ReplayBuffer:
             if isinstance(v, np.ndarray):
                 batch[k] = torch.as_tensor(v[idxes], dtype=torch.float32)
             else:
-                batch[k] = v.array2tensor(v[idxes])
+                batch[k] = v[idxes].array2tensor()
         return batch

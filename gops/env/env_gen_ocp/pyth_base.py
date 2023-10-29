@@ -17,14 +17,20 @@ class ContextState(Generic[stateType]):
     t: stateType
 
     def array2tensor(self):
+        value = []
         for field in fields(self):
-            if isinstance(getattr(self, field.name), np.ndarray):
-                setattr(self, field.name, torch.tensor(getattr(self, field.name)))
+            v = getattr(self, field.name)
+            assert isinstance(v, np.ndarray)
+            value.append(torch.from_numpy(v))
+        return self.__class__(*value)
     
     def tensor2array(self):
+        value = []
         for field in fields(self):
-            if isinstance(getattr(self, field.name), torch.Tensor):
-                setattr(self, field.name, getattr(self, field.name).numpy())
+            v = getattr(self, field.name)
+            assert isinstance(v, torch.Tensor)
+            value.append(v.numpy())
+        return self.__class__(*value)
 
     def  __getitem__(self, index):
         try:
@@ -46,20 +52,18 @@ class State(Generic[stateType]):
     robot_state: stateType
     context_state: ContextState[stateType]
 
-    @classmethod
-    def array2tensor(cls, state: 'State[np.ndarray]') -> 'State[torch.Tensor]':
-        if isinstance(state.robot_state, np.ndarray):
-            state.robot_state = torch.tensor(state.robot_state)
-            state.context_state.array2tensor()
-        return state
-    
-    @classmethod
-    def tensor2array(cls, state: 'State[torch.Tensor]') -> 'State[np.ndarray]':
-        if isinstance(state.robot_state, torch.Tensor):
-            state.robot_state = state.robot_state.numpy()
-            state.context_state.tensor2array()
-        return state
-    
+    def array2tensor(self) -> 'State[torch.Tensor]':
+        assert isinstance(self.robot_state, np.ndarray)
+        robot_state = torch.from_numpy(self.robot_state)
+        context_state = self.context_state.array2tensor()
+        return self.__class__(robot_state, context_state)
+
+    def tensor2array(self) -> 'State[np.ndarray]':
+        assert isinstance(self.robot_state, torch.Tensor)
+        robot_state = self.robot_state.numpy()
+        context_state = self.context_state.tensor2array()
+        return self.__class__(robot_state, context_state)
+
     @classmethod
     def stack(cls, states: Sequence['State[stateType]'], dim: int = 0) -> 'State[stateType]':
         robot_states = stack([state.robot_state for state in states], dim)

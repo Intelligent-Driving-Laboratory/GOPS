@@ -129,8 +129,7 @@ class OptController:
         Return: optimal control input for current state x
         """
         
-        x = State.array2tensor(deepcopy(x))
-        x = State.batch(x, batch_size=1)
+        x = x.array2tensor().batch(batch_size=1)
 
         constraints = []
         if self.model.get_constraint is not None:
