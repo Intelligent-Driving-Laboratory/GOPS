@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABCMeta
 from dataclasses import dataclass, fields
 from typing import Dict, Generic, Optional, Sequence, Tuple, TypeVar, Union
+from copy import deepcopy
 
 import gym
 from gym import spaces
@@ -61,13 +62,13 @@ class State(Generic[stateType]):
     
     @classmethod
     def stack(cls, states: Sequence['State[stateType]'], dim: int = 0) -> 'State[stateType]':
-        robot_states = stack(states, "robot_state", dim)
+        robot_states = stack([state.robot_state for state in states], dim)
         context_states = stack_context_state([state.context_state for state in states], dim=dim)
         return cls(robot_states, context_states)
 
     @classmethod
     def concat(cls, states: Sequence['State[stateType]'], dim: int = 0) -> 'State[stateType]':
-        robot_states = concat(states, "robot_state", dim)
+        robot_states = concat([state.robot_state for state in states], dim)
         context_states = concat_context_state([state.context_state for state in states], dim=dim)
         return cls(robot_states, context_states)
 
@@ -143,7 +144,7 @@ class Env(gym.Env, metaclass=ABCMeta):
         return self._get_obs(), reward, terminated, self._get_info()
 
     def _get_info(self) -> dict:
-        info = {'state': self._state}
+        info = {'state': deepcopy(self._state)}
         try:
             info['cost'] = self._get_constraint()
         except NotImplementedError:
@@ -195,9 +196,15 @@ class Env(gym.Env, metaclass=ABCMeta):
 
 def batch(x: Union[np.ndarray, torch.Tensor], batch_size: int) -> Union[np.ndarray, torch.Tensor]:
     if isinstance(x, np.ndarray):
-        return np.expand_dims(x, 0).repeat(batch_size, 0)
+        if batch_size == 1:
+            return np.expand_dims(x, 0)
+        else:
+            return np.expand_dims(x, 0).repeat(batch_size, 0)
     elif isinstance(x, torch.Tensor):
-        return torch.unsqueeze(x, 0).repeat(batch_size, 0)
+        if batch_size == 1:
+            return torch.unsqueeze(x, 0)
+        else:
+            return torch.unsqueeze(x, 0).repeat((batch_size,) + (1,) * x.ndim)
 
 
 def stack(x: Sequence[Union[np.ndarray, torch.Tensor]], dim: int = 0) -> Union[np.ndarray, torch.Tensor]:
@@ -214,7 +221,7 @@ def concat(x: Sequence[Union[np.ndarray, torch.Tensor]], dim: int = 0) -> Union[
         return torch.concat(x, dim=dim)
 
 
-def batch_context_state(context_state: Sequence['ContextState[stateType]'], batch_size: int) -> 'ContextState[stateType]':
+def batch_context_state(context_state: 'ContextState[stateType]', batch_size: int) -> 'ContextState[stateType]':
     values = []
     for field in fields(context_state):
         values.append(batch(getattr(context_state, field.name), batch_size))

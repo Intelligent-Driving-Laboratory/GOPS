@@ -36,6 +36,8 @@ class EnvModel(Model, metaclass=ABCMeta):
     obs_dim: int
     action_lower_bound: torch.Tensor
     action_upper_bound: torch.Tensor
+    robot_model: RobotModel
+    context_model: ContextModel
 
     def __init__(
         self,
@@ -78,12 +80,12 @@ class EnvModel(Model, metaclass=ABCMeta):
     # Subclass can realize it like:
     #   def get_constraint(self, obs: torch.Tensor, info: dict) -> torch.Tensor:
     #       ...
-    # This function should return Tensor of shape [n] (ndim = 1),
+    # This function should return Tensor of shape [B, n] (ndim = 2),
     # each element of which will be required to be lower than or equal to 0
     get_constraint: Callable[[State], torch.Tensor] = None
 
     # Just like get_constraint,
-    # define function returning Tensor of shape [] (ndim = 0) in subclass
+    # define function returning Tensor of shape [B] (ndim = 1) in subclass
     # if you need
     get_terminal_cost: Callable[[State], torch.Tensor] = None
 
@@ -101,23 +103,18 @@ class EnvModel(Model, metaclass=ABCMeta):
         terminated = self.get_terminated(state)
         next_info = {}
         next_info["state"] = next_state
-        return next_obs, reward, terminated, info
+        return next_obs, reward, terminated, next_info
 
     @abstractmethod
     def get_obs(self, state: State) -> torch.Tensor:
         ...
 
     @abstractmethod
-    def get_reward(state: State, action: torch.Tensor) -> torch.Tensor:
+    def get_reward(self, state: State, action: torch.Tensor) -> torch.Tensor:
         ...
 
     @abstractmethod
-    def get_terminated(state: State) -> torch.bool:
-        ...
-
-    @property
-    @abstractmethod
-    def StateClass(self) -> type:
+    def get_terminated(self, state: State) -> torch.bool:
         ...
 
     @property

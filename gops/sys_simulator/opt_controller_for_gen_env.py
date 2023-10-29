@@ -11,15 +11,17 @@
 
 
 import time
-from typing import Callable, List, Optional, Tuple, Union
 import warnings
-from gops.env.env_gen_ocp.pyth_base import State
-from gops.env.env_gen_ocp.env_model.pyth_base_model import EnvModel
-import torch
-from functorch import jacrev
+from copy import deepcopy
+from typing import Callable, List, Optional, Tuple, Union
+
 import numpy as np
-from cyipopt import minimize_ipopt
 import scipy.optimize as opt
+import torch
+from cyipopt import minimize_ipopt
+from functorch import jacrev
+from gops.env.env_gen_ocp.env_model.pyth_base_model import EnvModel
+from gops.env.env_gen_ocp.pyth_base import State
 
 
 class OptController:
@@ -64,7 +66,6 @@ class OptController:
         self.sim_dt = model.dt
         self.state_dim = model.robot_model.robot_state_dim
         self.action_dim = model.action_dim
-        self.StateClass = model.StateClass
 
         self.gamma = gamma
 
@@ -128,8 +129,8 @@ class OptController:
         Return: optimal control input for current state x
         """
         
-        x = self.StateClass.array2tensor(x)
-        x = self.StateClass.stack([x])
+        x = State.array2tensor(deepcopy(x))
+        x = State.batch(x, batch_size=1)
 
         constraints = []
         if self.model.get_constraint is not None:
@@ -151,6 +152,7 @@ class OptController:
                 }
             )
         
+        t1 = time.time()
         res = minimize_ipopt(
             fun=self._cost_fcn_and_jac,
             x0=self.initial_guess,
@@ -165,6 +167,8 @@ class OptController:
         self.initial_guess = np.concatenate(
             (res.x[self.optimize_dim :], res.x[-self.optimize_dim :])
         )
+        t2 = time.time()
+        self.total_time = t2 - t1
         if self.verbose > 0:
             self._print_statistics(res)
         return res.x.reshape((self.num_ctrl_points, self.optimize_dim))[
@@ -193,7 +197,7 @@ class OptController:
         # model.get_constraint() returns Tensor, each element of which
         # should be required to be lower than or equal to 0
         # minimize_ipopt() takes inequality constraints that should be greater than or equal to 0
-        cstr_vector = -self.model.get_constraint(self.StateClass.concat(states)).reshape(-1)
+        cstr_vector = -self.model.get_constraint(State.concat(states)).reshape(-1)
         return cstr_vector
 
     def _constraint_jac(
@@ -274,7 +278,7 @@ class OptController:
                         context_state, 
                         inputs[i : i + 1, : self.action_dim]
                     )
-                    states.append(self.StateClass(robot_states[i + 1 : i + 2, :], context_state))
+                    states.append(State(robot_states[i + 1 : i + 2, :], context_state))
         
         et = time.time()
         self.system_simulation_time += et - st
@@ -288,7 +292,7 @@ class OptController:
         """
         # rollout states and rewards
         states = self._rollout(inputs, x)
-        rewards = self.model.get_reward(self.StateClass.concat(states[:-1]), inputs[:, : self.action_dim])
+        rewards = self.model.get_reward(State.concat(states[:-1]), inputs[:, : self.action_dim])
         # sum up integral costs from timestep 0 to T-1
         cost = -rewards @ torch.logspace(
             0, self.num_pred_step - 1, self.num_pred_step, base=self.gamma
@@ -327,6 +331,13 @@ class OptController:
         """
         Print out summary statistics from last run
         """
+        if res.success:
+            # print message in green
+            print("\033[92m" + str(res.message, encoding='utf-8') + "\033[0m")
+        else:
+            # print message in red
+            print("\033[91m" + str(res.message, encoding='utf-8') + "\033[0m")
+        
         print(res.message)
         print("Summary statistics:")
         print("* Number of iterations:", res.nit)
@@ -335,6 +346,7 @@ class OptController:
             print("* Constraint calls:", self.constraint_evaluations)
         print("* System simulations:", self.system_simulations)
         print("* System simulation time:", self.system_simulation_time)
+        print("* Total time:", self.total_time)
         print("* Final cost:", res.fun, "\n")
         if reset:
             self._reset_statistics()

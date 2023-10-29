@@ -171,7 +171,7 @@ class Veh3dofcontiSurrCstrModel(Veh3dofcontiModel):
         # violation = self.get_constraint(obs, info).squeeze()
         # punish = torch.maximum(violation, torch.zeros_like(violation))
         return - 0.01 * (
-            2.0 * delta_x ** 2
+            10.0 * delta_x ** 2
             + 2.0 * delta_y ** 2
             + 500 * delta_phi ** 2
             + 5.0 * delta_u ** 2
