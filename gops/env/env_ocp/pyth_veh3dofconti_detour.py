@@ -56,7 +56,7 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         super().__init__(pre_horizon, path_para, u_para, max_steer, **kwargs)
         ego_obs_dim = 6
         ref_obs_dim = 4
-        self.max_episode_steps = 300
+        self.max_episode_steps = 100
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
             high=np.inf,
@@ -223,7 +223,7 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         if (punish > 0) :
             punish += 1.0
         return - 0.01 * (
-            2.0 * (x - ref_x) ** 2
+            10.0 * (x - ref_x) ** 2
             + 2.0 * (y - ref_y) ** 2
             + 500 * angle_normalize(phi - ref_phi) ** 2
             + 5.0 * (u - ref_u) ** 2
@@ -306,6 +306,6 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
             ax.add_patch(pc.Circle(
                 surr_center[0][1], r,
                 facecolor='w', edgecolor='k', zorder=1))
-                       
+
 def env_creator(**kwargs):
     return SimuVeh3dofcontiSurrCstr(**kwargs)

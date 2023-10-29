@@ -40,6 +40,7 @@ class Veh3DoFTracking(Env):
             dtype=np.float32,
         )
         self.action_space = self.robot.action_space
+        self.dt = dt
 
         self.max_episode_steps = 200
 
@@ -197,10 +198,10 @@ class Veh3DoFTracking(Env):
         ref_y = []
         for i in np.arange(1, 60):
             ref_x.append(self.context.ref_traj.compute_x(
-                self.context.state.ref_time + i * self.context.state.ref_time, self.context.state.path_num, self.context.state.speed_num
+                self.context.state.ref_time + i * self.dt, self.context.state.path_num, self.context.state.speed_num
             ))
             ref_y .append(self.context.ref_traj.compute_y(
-                self.context.state.ref_time + i * self.context.state.ref_time, self.context.state.path_num, self.context.state.speed_num
+                self.context.state.ref_time + i * self.dt, self.context.state.path_num, self.context.state.speed_num
             ))
         ax.plot(ref_x, ref_y, 'b--', lw=1, zorder=2)
 
