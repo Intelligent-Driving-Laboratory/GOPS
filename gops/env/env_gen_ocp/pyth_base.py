@@ -16,20 +16,28 @@ class ContextState(Generic[stateType]):
     constraint: stateType
     t: stateType
 
-    def array2tensor(self):
+    def array2tensor(self) -> 'ContextState[torch.Tensor]':
         value = []
         for field in fields(self):
             v = getattr(self, field.name)
             assert isinstance(v, np.ndarray)
             value.append(torch.from_numpy(v))
         return self.__class__(*value)
-    
-    def tensor2array(self):
+
+    def tensor2array(self) -> 'ContextState[np.ndarray]':
         value = []
         for field in fields(self):
             v = getattr(self, field.name)
             assert isinstance(v, torch.Tensor)
             value.append(v.numpy())
+        return self.__class__(*value)
+
+    def cuda(self) -> 'ContextState[torch.Tensor]':
+        value = []
+        for field in fields(self):
+            v = getattr(self, field.name)
+            assert isinstance(v, torch.Tensor)
+            value.append(v.cuda())
         return self.__class__(*value)
 
     def  __getitem__(self, index):
@@ -62,6 +70,12 @@ class State(Generic[stateType]):
         assert isinstance(self.robot_state, torch.Tensor)
         robot_state = self.robot_state.numpy()
         context_state = self.context_state.tensor2array()
+        return self.__class__(robot_state, context_state)
+
+    def cuda(self) -> 'State[torch.Tensor]':
+        assert isinstance(self.robot_state, torch.Tensor)
+        robot_state = self.robot_state.cuda()
+        context_state = self.context_state.cuda()
         return self.__class__(robot_state, context_state)
 
     @classmethod
