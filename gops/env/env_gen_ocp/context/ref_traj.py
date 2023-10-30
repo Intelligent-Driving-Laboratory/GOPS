@@ -1,8 +1,7 @@
-from dataclasses import dataclass
 from typing import Dict, Optional
 
 import numpy as np
-from gops.env.env_gen_ocp.pyth_base import ContextState, Context, stateType
+from gops.env.env_gen_ocp.pyth_base import ContextState, Context
 from gops.env.env_ocp.resources.ref_traj_data import MultiRefTrajData
 
 
@@ -47,11 +46,7 @@ class RefTrajContext(Context):
             ref_points.append([ref_x, ref_y, ref_phi, ref_u])
         ref_points = np.array(ref_points, dtype=np.float32)
 
-        self.state = ContextState(
-            reference=ref_points,
-            constraint=np.array(0.0, dtype=np.float32),
-            t=np.array(0, dtype=np.int8),
-        )
+        self.state = ContextState(reference=ref_points)
         self.ref_time = ref_time
         self.path_num = path_num
         self.speed_num = speed_num
@@ -88,6 +83,4 @@ class RefTrajContext(Context):
     def get_zero_state(self) -> ContextState[np.ndarray]:
         return ContextState(
             reference=np.zeros((2 * self.pre_horizon + 1, 4), dtype=np.float32),
-            constraint=np.array(0.0, dtype=np.float32),
-            t=np.array(0, dtype=np.int8),
         )
