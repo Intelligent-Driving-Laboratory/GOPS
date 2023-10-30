@@ -24,12 +24,6 @@ class RobotModel(Model):
         ...
 
 
-class ContextModel(Model):
-    @abstractmethod
-    def get_next_state(self, context_state: ContextState, action: torch.Tensor) -> ContextState:
-        ...
-
-
 class EnvModel(Model, metaclass=ABCMeta):
     dt: float
     action_dim: int
@@ -37,7 +31,6 @@ class EnvModel(Model, metaclass=ABCMeta):
     action_lower_bound: torch.Tensor
     action_upper_bound: torch.Tensor
     robot_model: RobotModel
-    context_model: ContextModel
 
     def __init__(
         self,
@@ -90,9 +83,14 @@ class EnvModel(Model, metaclass=ABCMeta):
     get_terminal_cost: Callable[[State], torch.Tensor] = None
 
     def get_next_state(self, state: State, action: torch.Tensor) -> State:
+        next_context_state = ContextState(
+            reference = state.context_state.reference,
+            constraint = state.context_state.constraint,
+            t = state.context_state.t + 1,
+        )
         return State(
             robot_state = self.robot_model.get_next_state(state.robot_state, action),
-            context_state = self.context_model.get_next_state(state.context_state, action)
+            context_state = next_context_state
         )
     
     def forward(self, obs, action, done, info):
