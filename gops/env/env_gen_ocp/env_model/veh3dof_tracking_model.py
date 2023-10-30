@@ -60,10 +60,9 @@ class Veh3DofModel(EnvModel):
         return torch.concat((ego_obs, ref_obs), 1)
 
     def get_reward(self, state: State, action: torch.Tensor) -> torch.Tensor:
-        t = state.context_state.t
-        ego_obs = state.robot_state 
+        ego_obs = state.robot_state
         x, y, phi, u, w = ego_obs[:, 0], ego_obs[:, 1], ego_obs[:, 2], ego_obs[:, 3], ego_obs[:, 5]
-        ref_obs = state.context_state.reference[:, t]
+        ref_obs = state.context_state.index_by_t().reference
         ref_x, ref_y, ref_phi, ref_u = ref_obs[:, 0], ref_obs[:, 1], ref_obs[:, 2], ref_obs[:, 3]
         steer, a_x = action[:, 0], action[:, 1]
         return -(
@@ -77,10 +76,9 @@ class Veh3DofModel(EnvModel):
         )
 
     def get_terminated(self, state: State) -> torch.bool:
-        t = state.context_state.t
         ego_obs = state.robot_state
         x, y, phi = ego_obs[:, 0], ego_obs[:, 1], ego_obs[:, 2]
-        ref_obs = state.context_state.reference[:, t]
+        ref_obs = state.context_state.index_by_t().reference
         ref_x, ref_y, ref_phi = ref_obs[:, 0], ref_obs[:, 1], ref_obs[:, 2]
         done = (
             (torch.abs(x - ref_x) > 5)
