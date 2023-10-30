@@ -14,8 +14,6 @@ class Veh3DofModel(EnvModel):
     def __init__(
         self,
         pre_horizon: int = 10,
-        path_para: Optional[Dict[str, Dict]] = None,
-        u_para: Optional[Dict[str, Dict]] = None,
         max_steer: float = torch.pi / 6,
         device: Union[torch.device, str, None] = None,
         **kwargs,
@@ -40,7 +38,7 @@ class Veh3DofModel(EnvModel):
         self.pre_horizon = pre_horizon
 
     def get_obs(self, state: State) -> torch.Tensor:
-        t = state.context_state.t[0].item()
+        t = state.context_state.t
         current_reference = state.context_state.reference[:, t:t + self.pre_horizon + 1]
         ref_x_tf, ref_y_tf, ref_phi_tf = \
             ego_vehicle_coordinate_transform(
@@ -62,7 +60,7 @@ class Veh3DofModel(EnvModel):
         return torch.concat((ego_obs, ref_obs), 1)
 
     def get_reward(self, state: State, action: torch.Tensor) -> torch.Tensor:
-        t = state.context_state.t[0].item()
+        t = state.context_state.t
         ego_obs = state.robot_state 
         x, y, phi, u, w = ego_obs[:, 0], ego_obs[:, 1], ego_obs[:, 2], ego_obs[:, 3], ego_obs[:, 5]
         ref_obs = state.context_state.reference[:, t]
@@ -79,7 +77,7 @@ class Veh3DofModel(EnvModel):
         )
 
     def get_terminated(self, state: State) -> torch.bool:
-        t = state.context_state.t[0].item()
+        t = state.context_state.t
         ego_obs = state.robot_state
         x, y, phi = ego_obs[:, 0], ego_obs[:, 1], ego_obs[:, 2]
         ref_obs = state.context_state.reference[:, t]

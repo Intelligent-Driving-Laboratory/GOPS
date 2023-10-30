@@ -13,45 +13,57 @@ stateType = TypeVar('stateType', np.ndarray, torch.Tensor)
 @dataclass
 class ContextState(Generic[stateType]):
     reference: stateType
-    constraint: stateType
-    t: stateType
+    constraint: Optional[stateType] = None
+    t: int = 0
 
     def array2tensor(self) -> 'ContextState[torch.Tensor]':
         value = []
         for field in fields(self):
             v = getattr(self, field.name)
-            assert isinstance(v, np.ndarray)
-            value.append(torch.from_numpy(v))
+            if isinstance(v, np.ndarray):
+                value.append(torch.from_numpy(v))
+            else:
+                value.append(v)
         return self.__class__(*value)
 
     def tensor2array(self) -> 'ContextState[np.ndarray]':
         value = []
         for field in fields(self):
             v = getattr(self, field.name)
-            assert isinstance(v, torch.Tensor)
-            value.append(v.numpy())
+            if isinstance(v, torch.Tensor):
+                value.append(v.numpy())
+            else:
+                value.append(v)
         return self.__class__(*value)
 
     def cuda(self) -> 'ContextState[torch.Tensor]':
         value = []
         for field in fields(self):
             v = getattr(self, field.name)
-            assert isinstance(v, torch.Tensor)
-            value.append(v.cuda())
+            if isinstance(v, torch.Tensor):
+                value.append(v.cuda())
+            else:
+                value.append(v)
         return self.__class__(*value)
 
     def  __getitem__(self, index):
         try:
             value = []
             for field in fields(self):
-                value.append(getattr(self, field.name)[index])
+                v = getattr(self, field.name)
+                if isinstance(v, (np.ndarray, torch.Tensor)):
+                    value.append(v[index])
+                else:
+                    value.append(v)
             return self.__class__(*value)
         except IndexError: "ContextState cannot be indexed or index out of range!"
 
     def __setitem__(self, index, value):
         try:
             for field in fields(self):
-                getattr(self, field.name)[index] = getattr(value, field.name)
+                v = getattr(self, field.name)
+                if isinstance(v, (np.ndarray, torch.Tensor)):
+                    v[index] = getattr(value, field.name)
         except IndexError: "ContextState cannot be indexed or index out of range!"
     
 
@@ -242,21 +254,33 @@ def concat(x: Sequence[Union[np.ndarray, torch.Tensor]], dim: int = 0) -> Union[
 def batch_context_state(context_state: 'ContextState[stateType]', batch_size: int) -> 'ContextState[stateType]':
     values = []
     for field in fields(context_state):
-        values.append(batch(getattr(context_state, field.name), batch_size))
+        v = getattr(context_state, field.name)
+        if isinstance(v, (np.ndarray, torch.Tensor)):
+            values.append(batch(v, batch_size))
+        else:
+            values.append(v)
     return context_state.__class__(*values)
 
 
 def stack_context_state(context_states: Sequence['ContextState[stateType]'], dim: int = 0) -> 'ContextState[stateType]':
     values = []
     for field in fields(context_states[0]):
-        value_seq = [getattr(e, field.name) for e in context_states]
-        values.append(stack(value_seq, dim))
+        v = getattr(context_states[0], field.name)
+        if isinstance(v, (np.ndarray, torch.Tensor)):
+            value_seq = [getattr(e, field.name) for e in context_states]
+            values.append(stack(value_seq, dim))
+        else:
+            values.append(v)
     return context_states[0].__class__(*values)
 
 
 def concat_context_state(context_states: Sequence['ContextState[stateType]'], dim: int = 0) -> 'ContextState[stateType]':
     values = []
     for field in fields(context_states[0]):
-        value_seq = [getattr(e, field.name) for e in context_states]
-        values.append(concat(value_seq, dim))
+        v = getattr(context_states[0], field.name)
+        if isinstance(v, (np.ndarray, torch.Tensor)):
+            value_seq = [getattr(e, field.name) for e in context_states]
+            values.append(concat(value_seq, dim))
+        else:
+            values.append(v)
     return context_states[0].__class__(*values)
