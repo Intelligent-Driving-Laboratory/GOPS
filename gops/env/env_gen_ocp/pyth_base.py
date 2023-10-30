@@ -14,7 +14,7 @@ stateType = TypeVar('stateType', np.ndarray, torch.Tensor)
 class ContextState(Generic[stateType]):
     reference: stateType
     constraint: Optional[stateType] = None
-    t: int = 0
+    t: Union[int, stateType] = 0
 
     def array2tensor(self) -> 'ContextState[torch.Tensor]':
         value = []
@@ -66,6 +66,22 @@ class ContextState(Generic[stateType]):
                     v[index] = getattr(value, field.name)
         except IndexError: "ContextState cannot be indexed or index out of range!"
     
+    def index_by_t(self) -> 'ContextState[stateType]':
+        value = []
+        if isinstance(self.t, int):
+            # RL, (batch, horizon, ...)
+            idx = (slice(None), self.t)
+        elif isinstance(self.t, stateType):
+            # MPC, (horizon, ...)
+            idx = (self.t,)
+        for field in fields(self):
+            v = getattr(self, field.name)
+            if field.name == "t":
+                value.append(0)
+            elif isinstance(v, (np.ndarray, torch.Tensor)):
+                value.append(v[idx])
+        return self.__class__(*value)
+
 
 @dataclass
 class State(Generic[stateType]):
