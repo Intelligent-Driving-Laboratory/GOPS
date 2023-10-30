@@ -5,13 +5,11 @@ import torch
 from gops.env.env_gen_ocp.env_model.pyth_base_model import EnvModel
 from gops.env.env_gen_ocp.pyth_base import State
 from gops.env.env_gen_ocp.robot.veh3dof_model import VehDynMdl
-from gops.env.env_gen_ocp.context.ref_traj_model import RefTrajMdl
 from gops.env.env_gen_ocp.robot.veh3dof import angle_normalize
 
 
 class Veh3DofModel(EnvModel):
     robot_model: VehDynMdl
-    context_model: RefTrajMdl
 
     def __init__(
         self,
@@ -39,24 +37,21 @@ class Veh3DofModel(EnvModel):
             dt=dt,
             robot_state_dim=ego_obs_dim,
         )
-        self.context_model = RefTrajMdl(
-            pre_horizon=pre_horizon,
-            path_param=path_para,
-            speed_param=u_para,
-            dt=dt,
-        )
+        self.pre_horizon = pre_horizon
 
     def get_obs(self, state: State) -> torch.Tensor:
+        t = state.context_state.t[0].item()
+        current_reference = state.context_state.reference[:, t:t + self.pre_horizon + 1]
         ref_x_tf, ref_y_tf, ref_phi_tf = \
             ego_vehicle_coordinate_transform(
                 state.robot_state[:, 0],
                 state.robot_state[:, 1],
                 state.robot_state[:, 2],
-                state.context_state.reference[..., 0],
-                state.context_state.reference[..., 1],
-                state.context_state.reference[..., 2],
+                current_reference[..., 0],
+                current_reference[..., 1],
+                current_reference[..., 2],
             )
-        ref_u_tf = state.context_state.reference[..., 3] - state.robot_state[:, 3].unsqueeze(1)
+        ref_u_tf = current_reference[..., 3] - state.robot_state[:, 3].unsqueeze(1)
         ego_obs = torch.concat((torch.stack(
             (ref_x_tf[:, 0], ref_y_tf[:, 0], ref_phi_tf[:, 0], ref_u_tf[:, 0]), 
             dim=1
@@ -67,9 +62,10 @@ class Veh3DofModel(EnvModel):
         return torch.concat((ego_obs, ref_obs), 1)
 
     def get_reward(self, state: State, action: torch.Tensor) -> torch.Tensor:
+        t = state.context_state.t[0].item()
         ego_obs = state.robot_state 
         x, y, phi, u, w = ego_obs[:, 0], ego_obs[:, 1], ego_obs[:, 2], ego_obs[:, 3], ego_obs[:, 5]
-        ref_obs = state.context_state.reference[:, 0]
+        ref_obs = state.context_state.reference[:, t]
         ref_x, ref_y, ref_phi, ref_u = ref_obs[:, 0], ref_obs[:, 1], ref_obs[:, 2], ref_obs[:, 3]
         steer, a_x = action[:, 0], action[:, 1]
         return -(
@@ -83,9 +79,10 @@ class Veh3DofModel(EnvModel):
         )
 
     def get_terminated(self, state: State) -> torch.bool:
+        t = state.context_state.t[0].item()
         ego_obs = state.robot_state
         x, y, phi = ego_obs[:, 0], ego_obs[:, 1], ego_obs[:, 2]
-        ref_obs = state.context_state.reference[:, 0]
+        ref_obs = state.context_state.reference[:, t]
         ref_x, ref_y, ref_phi = ref_obs[:, 0], ref_obs[:, 1], ref_obs[:, 2]
         done = (
             (torch.abs(x - ref_x) > 5)

@@ -6,13 +6,6 @@ from gops.env.env_gen_ocp.pyth_base import ContextState, Context, stateType
 from gops.env.env_ocp.resources.ref_traj_data import MultiRefTrajData
 
 
-@dataclass
-class RefTrajState(ContextState[stateType]):
-    path_num: stateType
-    speed_num: stateType
-    ref_time: stateType
-
-
 class RefTrajContext(Context):
     def __init__(
         self,
@@ -36,9 +29,9 @@ class RefTrajContext(Context):
         ref_time: float,
         path_num: int,
         speed_num: int,
-    ) -> RefTrajState[np.ndarray]:
+    ) -> ContextState[np.ndarray]:
         ref_points = []
-        for i in range(self.pre_horizon + 1):
+        for i in range(2 * self.pre_horizon + 1):
             ref_x = self.ref_traj.compute_x(
                 ref_time + i * self.dt, path_num, speed_num
             )
@@ -54,35 +47,35 @@ class RefTrajContext(Context):
             ref_points.append([ref_x, ref_y, ref_phi, ref_u])
         ref_points = np.array(ref_points, dtype=np.float32)
 
-        self.state = RefTrajState(
+        self.state = ContextState(
             reference=ref_points,
             constraint=np.array(0.0, dtype=np.float32),
             t=np.array(0, dtype=np.int8),
-            ref_time=np.array(ref_time, dtype=np.float32), 
-            path_num=np.array(path_num, dtype=np.int8),
-            speed_num=np.array(speed_num, dtype=np.int8),
         )
+        self.ref_time = ref_time
+        self.path_num = path_num
+        self.speed_num = speed_num
         return self.state
 
-    def step(self) -> RefTrajState[np.ndarray]:
-        self.state.ref_time = np.array(self.state.ref_time + self.dt, dtype=np.float32)
+    def step(self) -> ContextState[np.ndarray]:
+        self.ref_time = self.ref_time + self.dt
 
         new_ref_point = np.array([
             self.ref_traj.compute_x(
-                self.state.ref_time + self.pre_horizon * self.dt, 
-                self.state.path_num, self.state.speed_num
+                self.ref_time + 2 * self.pre_horizon * self.dt, 
+                self.path_num, self.speed_num
             ),
             self.ref_traj.compute_y(
-                self.state.ref_time + self.pre_horizon * self.dt, 
-                self.state.path_num, self.state.speed_num
+                self.ref_time + 2 * self.pre_horizon * self.dt, 
+                self.path_num, self.speed_num
             ),
             self.ref_traj.compute_phi(
-                self.state.ref_time + self.pre_horizon * self.dt, 
-                self.state.path_num, self.state.speed_num
+                self.ref_time + 2 * self.pre_horizon * self.dt, 
+                self.path_num, self.speed_num
             ),
             self.ref_traj.compute_u(
-                self.state.ref_time + self.pre_horizon * self.dt, 
-                self.state.path_num, self.state.speed_num
+                self.ref_time + 2 * self.pre_horizon * self.dt, 
+                self.path_num, self.speed_num
             ),
         ], dtype=np.float32)
         ref_points = self.state.reference.copy()
@@ -93,11 +86,8 @@ class RefTrajContext(Context):
         return self.state
 
     def get_zero_state(self) -> ContextState[np.ndarray]:
-        return RefTrajState(
-            reference=np.zeros((self.pre_horizon + 1, 4), dtype=np.float32),
+        return ContextState(
+            reference=np.zeros((2 * self.pre_horizon + 1, 4), dtype=np.float32),
             constraint=np.array(0.0, dtype=np.float32),
             t=np.array(0, dtype=np.int8),
-            path_num=np.array(0, dtype=np.int8),
-            speed_num=np.array(0, dtype=np.int8),
-            ref_time=np.array(0.0, dtype=np.float32),
         )

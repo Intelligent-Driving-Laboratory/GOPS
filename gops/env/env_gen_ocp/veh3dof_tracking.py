@@ -41,6 +41,7 @@ class Veh3DoFTracking(Env):
         )
         self.action_space = self.robot.action_space
         self.dt = dt
+        self.pre_horizon = pre_horizon
 
         self.max_episode_steps = 200
 
@@ -98,11 +99,11 @@ class Veh3DoFTracking(Env):
                 self.robot.state[0],
                 self.robot.state[1],
                 self.robot.state[2],
-                self.context.state.reference[:, 0],
-                self.context.state.reference[:, 1],
-                self.context.state.reference[:, 2],
+                self.context.state.reference[:self.pre_horizon + 1, 0],
+                self.context.state.reference[:self.pre_horizon + 1, 1],
+                self.context.state.reference[:self.pre_horizon + 1, 2],
             )
-        ref_u_tf = self.context.state.reference[:, 3] - self.robot.state[3]
+        ref_u_tf = self.context.state.reference[:self.pre_horizon + 1, 3] - self.robot.state[3]
         # ego_obs: [
         # delta_x, delta_y, delta_phi, delta_u, (of the first reference point)
         # v, w (of ego vehicle)
@@ -140,16 +141,6 @@ class Veh3DoFTracking(Env):
             | (np.abs(angle_normalize(phi - ref_phi)) > np.pi)
         )
         return done
-
-    def _get_info(self) -> dict:
-        return {
-            **super()._get_info(),
-            "ref_points": self.context.state.reference.copy(),
-            "path_num": self.context.state.path_num,
-            "u_num": self.context.state.speed_num,
-            "ref_time": self.context.state.ref_time,
-            "ref": self.context.state.reference[0].copy(),
-        }
 
     def render(self, mode="human"):
         import matplotlib.pyplot as plt
