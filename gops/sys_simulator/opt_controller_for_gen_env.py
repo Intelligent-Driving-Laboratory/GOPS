@@ -12,13 +12,14 @@
 
 import time
 import warnings
+from functools import partial
 from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 import scipy.optimize as opt
 import torch
 from cyipopt import minimize_ipopt
-from functorch import jacrev
+from torch.func import jacrev
 from gops.env.env_gen_ocp.env_model.pyth_base_model import EnvModel
 from gops.env.env_gen_ocp.pyth_base import State, batch_context_state
 
@@ -205,7 +206,7 @@ class OptController:
         Compute jacobian of constraint function
         """
         inputs = torch.tensor(inputs, dtype=torch.float32)
-        jac = jacrev(self._constraint_fcn)(inputs, x)
+        jac = jacrev(partial(self._constraint_fcn, x=x))(inputs)
         return jac.numpy().astype("d")
 
     def _trans_constraint_fcn(
@@ -229,7 +230,7 @@ class OptController:
         Compute jacobian of transition constraint function (collocation only)
         """
         inputs = torch.tensor(inputs, dtype=torch.float32)
-        jac = jacrev(self._trans_constraint_fcn)(inputs, x)
+        jac = jacrev(partial(self._trans_constraint_fcn, x=x))(inputs)
         return jac.numpy().astype("d")
 
     def _rollout(
@@ -266,7 +267,6 @@ class OptController:
                 xs = self.model.robot_model_get_next_state(xs, us)
                 robot_states[i + 1 :: self.ctrl_interval, :] = xs
             
-            # rollout context states
             context_states = batch_context_state(x.context_state, self.num_pred_step + 1)
             state = State(robot_states, context_states)
         
@@ -285,7 +285,6 @@ class OptController:
         # rollout states and rewards
         state = self._rollout(inputs, x)
         rewards = self.model.get_reward(state[:-1], inputs[:, : self.action_dim])
-        # print(rewards)
         # sum up integral costs from timestep 0 to T-1
         cost = -rewards @ torch.logspace(
             0, self.num_pred_step - 1, self.num_pred_step, base=self.gamma
