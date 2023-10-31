@@ -93,6 +93,9 @@ class EnvModel(Model, metaclass=ABCMeta):
             context_state = next_context_state
         )
     
+    def robot_model_get_next_state(self, robot_state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+        return self.robot_model.get_next_state(robot_state, action)
+    
     def forward(self, obs, action, done, info):
         state = info["state"]
         next_state = self.get_next_state(state, action)
