@@ -12,8 +12,7 @@
 
 import time
 import warnings
-from copy import deepcopy
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 import scipy.optimize as opt
@@ -21,7 +20,7 @@ import torch
 from cyipopt import minimize_ipopt
 from functorch import jacrev
 from gops.env.env_gen_ocp.env_model.pyth_base_model import EnvModel
-from gops.env.env_gen_ocp.pyth_base import State
+from gops.env.env_gen_ocp.pyth_base import State, batch_context_state
 
 
 class OptController:
@@ -129,7 +128,7 @@ class OptController:
         Return: optimal control input for current state x
         """
         
-        x = x.array2tensor().batch(batch_size=1)
+        x = x.array2tensor()
 
         constraints = []
         if self.model.get_constraint is not None:
@@ -191,12 +190,12 @@ class OptController:
         self.constraint_evaluations += 1
 
         inputs = self._preprocess_inputs(inputs)
-        states = self._rollout(inputs, x)
+        state = self._rollout(inputs, x)
 
         # model.get_constraint() returns Tensor, each element of which
         # should be required to be lower than or equal to 0
         # minimize_ipopt() takes inequality constraints that should be greater than or equal to 0
-        cstr_vector = -self.model.get_constraint(State.concat(states)).reshape(-1)
+        cstr_vector = -self.model.get_constraint(state).reshape(-1)
         return cstr_vector
 
     def _constraint_jac(
@@ -218,7 +217,7 @@ class OptController:
         self.constraint_evaluations += 1
 
         inputs = self._preprocess_inputs(inputs)
-        true_states = self._rollout(inputs, x, robot_state_only=True)
+        true_states = self._rollout(inputs, x).robot_state
         true_states = true_states[1 :: self.ctrl_interval, :]
         input_states = inputs[:, -self.state_dim :]
         return (true_states - input_states).reshape(-1)
@@ -234,30 +233,28 @@ class OptController:
         return jac.numpy().astype("d")
 
     def _rollout(
-        self, inputs: torch.Tensor, x: State[torch.Tensor], robot_state_only=False
-    ) -> Union[List[State[torch.Tensor]], torch.Tensor]:
+        self, inputs: torch.Tensor, x: State[torch.Tensor]
+    ) -> State[torch.Tensor]:
         """
         Rollout furture states using environment model
         """
         st = time.time()
         self.system_simulations += 1
-        states = [x.robot_state] if robot_state_only else [x]
 
         if self.rollout_mode == "loop":
+            states = [x.batch(batch_size=1)]
             for i in np.arange(0, self.num_pred_step):
                 u = inputs[i, : self.action_dim].unsqueeze(0)
-                if robot_state_only:
-                    states.append(self.model.robot_model.get_next_state(states[-1], u))
-                else:
-                    states.append(self.model.get_next_state(states[-1], u))
-            
+                states.append(self.model.get_next_state(states[-1], u))
+            state = State.concat(states)
+
         elif self.rollout_mode == "batch":
             # rollout robot states batch-wise
             robot_states = torch.zeros((self.num_pred_step + 1, self.state_dim))
             robot_states[0, :] = x.robot_state
             xs = torch.cat(
                 (
-                    x.robot_state,
+                    x.robot_state.unsqueeze(0),
                     inputs[
                         : -self.ctrl_interval : self.ctrl_interval,
                         -self.state_dim :,
@@ -266,22 +263,18 @@ class OptController:
             )
             us = inputs[:: self.ctrl_interval, : self.action_dim]
             for i in range(self.ctrl_interval):
-                xs = self.model.robot_model.get_next_state(xs, us)
+                xs = self.model.robot_model_get_next_state(xs, us)
                 robot_states[i + 1 :: self.ctrl_interval, :] = xs
             
-            if not robot_state_only:
-                # rollout context states
-                context_state = x.context_state
-                for i in np.arange(0, self.num_pred_step):
-                    context_state = self.model.context_model.get_next_state(
-                        context_state, 
-                        inputs[i : i + 1, : self.action_dim]
-                    )
-                    states.append(State(robot_states[i + 1 : i + 2, :], context_state))
+            # rollout context states
+            context_states = batch_context_state(x.context_state, self.num_pred_step + 1)
+            state = State(robot_states, context_states)
+        
+        state.context_state.t = torch.arange(0, self.num_pred_step + 1)
         
         et = time.time()
         self.system_simulation_time += et - st
-        return robot_states if robot_state_only else states
+        return state
 
     def _compute_cost(
         self, inputs: torch.Tensor, x: State[torch.Tensor]
@@ -290,8 +283,9 @@ class OptController:
         Compute total cost of optimization inputs
         """
         # rollout states and rewards
-        states = self._rollout(inputs, x)
-        rewards = self.model.get_reward(State.concat(states[:-1]), inputs[:, : self.action_dim])
+        state = self._rollout(inputs, x)
+        rewards = self.model.get_reward(state[:-1], inputs[:, : self.action_dim])
+        # print(rewards)
         # sum up integral costs from timestep 0 to T-1
         cost = -rewards @ torch.logspace(
             0, self.num_pred_step - 1, self.num_pred_step, base=self.gamma
@@ -299,7 +293,7 @@ class OptController:
 
         # Terminal cost for timestep T
         if self.terminal_cost is not None:
-            terminal_cost = self.terminal_cost(states[-1, :])
+            terminal_cost = self.terminal_cost(state[-1, :])
             cost += terminal_cost * (self.gamma ** self.num_pred_step)
         return cost
 
@@ -336,8 +330,6 @@ class OptController:
         else:
             # print message in red
             print("\033[91m" + str(res.message, encoding='utf-8') + "\033[0m")
-        
-        print(res.message)
         print("Summary statistics:")
         print("* Number of iterations:", res.nit)
         print("* Cost function calls:", res.nfev)
