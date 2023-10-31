@@ -68,18 +68,12 @@ class ContextState(Generic[stateType]):
     
     def index_by_t(self) -> 'ContextState[stateType]':
         value = []
-        if isinstance(self.t, int):
-            # RL, (batch, horizon, ...)
-            idx = (slice(None), self.t)
-        elif isinstance(self.t, stateType):
-            # MPC, (horizon, ...)
-            idx = (self.t,)
         for field in fields(self):
             v = getattr(self, field.name)
             if field.name == "t":
                 value.append(0)
             elif isinstance(v, (np.ndarray, torch.Tensor)):
-                value.append(v[idx])
+                value.append(v[np.arange(v.shape[0]), self.t])
         return self.__class__(*value)
 
 
