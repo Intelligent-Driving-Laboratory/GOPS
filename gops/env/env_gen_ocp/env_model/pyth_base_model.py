@@ -24,18 +24,13 @@ class RobotModel(Model):
         ...
 
 
-class ContextModel(Model):
-    @abstractmethod
-    def get_next_state(self, context_state: ContextState, action: torch.Tensor) -> ContextState:
-        ...
-
-
 class EnvModel(Model, metaclass=ABCMeta):
     dt: float
     action_dim: int
     obs_dim: int
     action_lower_bound: torch.Tensor
     action_upper_bound: torch.Tensor
+    robot_model: RobotModel
 
     def __init__(
         self,
@@ -78,20 +73,28 @@ class EnvModel(Model, metaclass=ABCMeta):
     # Subclass can realize it like:
     #   def get_constraint(self, obs: torch.Tensor, info: dict) -> torch.Tensor:
     #       ...
-    # This function should return Tensor of shape [n] (ndim = 1),
+    # This function should return Tensor of shape [B, n] (ndim = 2),
     # each element of which will be required to be lower than or equal to 0
     get_constraint: Callable[[State], torch.Tensor] = None
 
     # Just like get_constraint,
-    # define function returning Tensor of shape [] (ndim = 0) in subclass
+    # define function returning Tensor of shape [B] (ndim = 1) in subclass
     # if you need
     get_terminal_cost: Callable[[State], torch.Tensor] = None
 
     def get_next_state(self, state: State, action: torch.Tensor) -> State:
+        next_context_state = ContextState(
+            reference = state.context_state.reference,
+            constraint = state.context_state.constraint,
+            t = state.context_state.t + 1,
+        )
         return State(
             robot_state = self.robot_model.get_next_state(state.robot_state, action),
-            context_state = self.context_model.get_next_state(state.context_state, action)
+            context_state = next_context_state
         )
+    
+    def robot_model_get_next_state(self, robot_state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+        return self.robot_model.get_next_state(robot_state, action)
     
     def forward(self, obs, action, done, info):
         state = info["state"]
@@ -101,23 +104,20 @@ class EnvModel(Model, metaclass=ABCMeta):
         terminated = self.get_terminated(state)
         next_info = {}
         next_info["state"] = next_state
-        return next_obs, reward, terminated, info
+        if self.get_constraint is not None:
+            next_info["constraint"] = self.get_constraint(state)
+        return next_obs, reward, terminated, next_info
 
     @abstractmethod
     def get_obs(self, state: State) -> torch.Tensor:
         ...
 
     @abstractmethod
-    def get_reward(state: State, action: torch.Tensor) -> torch.Tensor:
+    def get_reward(self, state: State, action: torch.Tensor) -> torch.Tensor:
         ...
 
     @abstractmethod
-    def get_terminated(state: State) -> torch.bool:
-        ...
-
-    @property
-    @abstractmethod
-    def StateClass(self) -> type:
+    def get_terminated(self, state: State) -> torch.bool:
         ...
 
     @property

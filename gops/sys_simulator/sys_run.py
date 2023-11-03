@@ -26,7 +26,7 @@ from copy import copy
 from gops.create_pkg.create_alg import create_approx_contrainer
 from gops.create_pkg.create_env_model import create_env_model
 from gops.create_pkg.create_env import create_env
-from gops.env.env_gen_ocp.pyth_base import Env
+from gops.env.env_gen_ocp.pyth_base import Env, State
 from gops.utils.plot_evaluation import cm2inch
 from gops.utils.common_utils import get_args_from_json, mp4togif
 from gops.utils.gops_path import gops_path
@@ -202,23 +202,23 @@ class PolicyRunner:
             if self.constrained_env:
                 constrain_list.append(info["constraint"])
             if self.is_tracking:
-                state_num = len(info["ref"])
-                self.ref_state_num = sum(x is not None for x in info["ref"])
+                reference = get_reference_from_info(info)
+                state_num = len(reference)
+                self.ref_state_num = sum(x is not None for x in reference)
                 if step == 0:
                     for i in range(state_num):
-                        if info["ref"][i] is not None:
+                        if reference[i] is not None:
                             state_with_ref_error["state-{}".format(i)] = []
                             state_with_ref_error["ref-{}".format(i)] = []
                             state_with_ref_error["state-{}-error".format(i)] = []
 
+                robot_state = get_robot_state_from_info(info)
                 for i in range(state_num):
-                    if info["ref"][i] is not None:
-                        state_with_ref_error["state-{}".format(i)].append(
-                            info["state"][i]
-                        )
-                        state_with_ref_error["ref-{}".format(i)].append(info["ref"][i])
+                    if reference[i] is not None:
+                        state_with_ref_error["state-{}".format(i)].append(robot_state[i])
+                        state_with_ref_error["ref-{}".format(i)].append(reference[i])
                         state_with_ref_error["state-{}-error".format(i)].append(
-                            info["ref"][i] - info["state"][i]
+                            reference[i] - robot_state[i]
                         )
             next_obs, reward, done, info = env.step(action)
 
@@ -893,7 +893,7 @@ class PolicyRunner:
                         from gops.sys_simulator.opt_controller_for_gen_env import OptController
                     else:
                         from gops.sys_simulator.opt_controller import OptController
-                    model = create_env_model(**self.args_list[self.policy_num - 1])
+                    model = create_env_model(**self.args_list[self.policy_num - 1], mask_at_done=False)
                     opt_args = self.opt_args.copy()
                     opt_args.pop("opt_controller_type")
                     opt_args.pop("use_MPC_for_general_env")
@@ -962,3 +962,19 @@ class PolicyRunner:
         self.__run_data()
         self.__save_mp4_as_gif()
         self.draw()
+
+
+def get_robot_state_from_info(info: dict) -> np.ndarray:
+    state = info["state"]
+    if isinstance(state, State):
+        return state.robot_state
+    elif isinstance(state, np.ndarray):
+        return state
+
+
+def get_reference_from_info(info: dict) -> np.ndarray:
+    state = info["state"]
+    if isinstance(state, State):
+        return state.context_state.reference[0]
+    elif isinstance(state, np.ndarray):
+        return info["ref"]

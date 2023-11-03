@@ -40,8 +40,13 @@ class Veh3DoFTracking(Env):
             dtype=np.float32,
         )
         self.action_space = self.robot.action_space
+        self.dt = dt
+        self.pre_horizon = pre_horizon
 
         self.max_episode_steps = 200
+
+        self.init_high = np.array([2, 1, np.pi / 6, 2, 0.1, 0.1], dtype=np.float32)
+        self.init_low = -self.init_high
 
         self.seed()
 
@@ -77,8 +82,7 @@ class Veh3DoFTracking(Env):
             ref_time=ref_time, path_num=path_num, speed_num=speed_num)
 
         if init_state is None:
-            high = np.array([2, 1, np.pi / 6, 2, 0.1, 0.1], dtype=np.float32)
-            delta_state = self.np_random.uniform(low=-high, high=high).astype(np.float32)
+            delta_state = self.np_random.uniform(low=self.init_low, high=self.init_high).astype(np.float32)
         else:
             delta_state = np.array(init_state, dtype=np.float32)
         init_state = np.concatenate(
@@ -97,11 +101,11 @@ class Veh3DoFTracking(Env):
                 self.robot.state[0],
                 self.robot.state[1],
                 self.robot.state[2],
-                self.context.state.reference[:, 0],
-                self.context.state.reference[:, 1],
-                self.context.state.reference[:, 2],
+                self.context.state.reference[:self.pre_horizon + 1, 0],
+                self.context.state.reference[:self.pre_horizon + 1, 1],
+                self.context.state.reference[:self.pre_horizon + 1, 2],
             )
-        ref_u_tf = self.context.state.reference[:, 3] - self.robot.state[3]
+        ref_u_tf = self.context.state.reference[:self.pre_horizon + 1, 3] - self.robot.state[3]
         # ego_obs: [
         # delta_x, delta_y, delta_phi, delta_u, (of the first reference point)
         # v, w (of ego vehicle)
@@ -140,16 +144,6 @@ class Veh3DoFTracking(Env):
         )
         return done
 
-    def _get_info(self) -> dict:
-        return {
-            **super()._get_info(),
-            "ref_points": self.context.state.reference.copy(),
-            "path_num": self.context.state.path_num,
-            "u_num": self.context.state.speed_num,
-            "ref_time": self.context.state.ref_time,
-            "ref": self.context.state.reference[0].copy(),
-        }
-
     def render(self, mode="human"):
         import matplotlib.pyplot as plt
 
@@ -186,7 +180,7 @@ class Veh3DoFTracking(Env):
             (ego_x - x_offset, ego_y - y_offset), 
             veh_length, 
             veh_width, 
-            np.rad2deg(phi),
+            angle=np.rad2deg(phi),
             facecolor='w', 
             edgecolor='r', 
             zorder=1
@@ -195,12 +189,12 @@ class Veh3DoFTracking(Env):
         # draw reference paths
         ref_x = []
         ref_y = []
-        for i in np.arange(1, 60):
+        for i in np.arange(1, self.context.pre_horizon + 1):
             ref_x.append(self.context.ref_traj.compute_x(
-                self.context.state.ref_time + i * self.context.state.ref_time, self.context.state.path_num, self.context.state.speed_num
+                self.context.ref_time + i * self.dt, self.context.path_num, self.context.speed_num
             ))
             ref_y .append(self.context.ref_traj.compute_y(
-                self.context.state.ref_time + i * self.context.state.ref_time, self.context.state.path_num, self.context.state.speed_num
+                self.context.ref_time + i * self.dt, self.context.path_num, self.context.speed_num
             ))
         ax.plot(ref_x, ref_y, 'b--', lw=1, zorder=2)
 
@@ -210,7 +204,7 @@ class Veh3DoFTracking(Env):
         delta_y = 2
         ego_speed = self.robot.state[3] * 3.6  # [km/h]
         ref_speed = self.context.state.reference[0, 3] * 3.6  # [km/h]
-        ax.text(left_x, top_y, f'time: {self.context.state.ref_time:.1f}s')
+        ax.text(left_x, top_y, f'time: {self.context.ref_time:.1f}s')
         ax.text(left_x, top_y - delta_y, f'speed: {ego_speed:.1f}km/h')
         ax.text(left_x, top_y - 2 * delta_y, f'ref speed: {ref_speed:.1f}km/h')
 

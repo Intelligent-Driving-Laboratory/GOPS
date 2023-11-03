@@ -49,14 +49,14 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         **kwargs: Any,
     ):
         max_steer = 0.5
-        init_high = np.array([1, 0.2, np.pi / 36, 2, 0.1, 0.1], dtype=np.float32)
+        init_high = np.array([1, 0.0, np.pi / 36, 2, 0.1, 0.1], dtype=np.float32)
         init_low = -np.array([1, 0.8, np.pi / 36, 2, 0.1, 0.1], dtype=np.float32)
         work_space = np.stack((init_low, init_high))
         kwargs["work_space"] = work_space
         super().__init__(pre_horizon, path_para, u_para, max_steer, **kwargs)
         ego_obs_dim = 6
         ref_obs_dim = 4
-        self.max_episode_steps = 300
+        self.max_episode_steps = 100
         self.observation_space = gym.spaces.Box(
             low=-np.inf,
             high=np.inf,
@@ -115,7 +115,7 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
                 # surr_x0 + delta_lon * np.cos(surr_phi) - delta_lat * np.sin(surr_phi)
             )
             surr_y = (
-                surr_y0 + 0.0
+                surr_y0 + 1.0
                 # surr_y0 + delta_lon * np.sin(surr_phi) + delta_lat * np.cos(surr_phi)
             )
             surr_u = 0.0
@@ -223,8 +223,8 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         if (punish > 0) :
             punish += 1.0
         return - 0.01 * (
-            2.0 * (x - ref_x) ** 2
-            + 2.0 * (y - ref_y) ** 2
+            10.0 * (x - ref_x) ** 2
+            + 10.0 * (y - ref_y) ** 2
             + 500 * angle_normalize(phi - ref_phi) ** 2
             + 5.0 * (u - ref_u) ** 2
             + 1000 * w ** 2
@@ -306,6 +306,6 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
             ax.add_patch(pc.Circle(
                 surr_center[0][1], r,
                 facecolor='w', edgecolor='k', zorder=1))
-                       
+
 def env_creator(**kwargs):
     return SimuVeh3dofcontiSurrCstr(**kwargs)

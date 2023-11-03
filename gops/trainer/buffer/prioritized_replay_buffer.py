@@ -124,7 +124,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             if isinstance(v, np.ndarray):
                 batch[k] = torch.as_tensor(v[ptrs], dtype=torch.float32)
             else:
-                batch[k] = v.array2tensor(v[ptrs])
+                batch[k] = v[ptrs].array2tensor()
         return batch
 
     def update_batch(self, idxes: int, priorities: float) -> None:
