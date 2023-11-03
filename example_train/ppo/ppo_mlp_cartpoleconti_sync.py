@@ -11,9 +11,7 @@
 
 
 import argparse
-import numpy as np
 import multiprocessing
-import ray
 
 from gops.create_pkg.create_alg import create_alg
 from gops.create_pkg.create_buffer import create_buffer
@@ -112,7 +110,6 @@ if __name__ == "__main__":
     )
 
     # 4.1. Parameters for sync trainer
-    ray.init()
     parser.add_argument("--num_samplers", type=int, default=2, help="number of samplers")
     cpu_core_num = multiprocessing.cpu_count()
     num_core_input = parser.parse_known_args()[0].num_samplers + 2

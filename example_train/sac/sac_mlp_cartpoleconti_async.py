@@ -104,9 +104,6 @@ if __name__ == "__main__":
     parser.add_argument("--ini_network_dir", type=str, default=None)
 
     # 4.1. Parameters for off_async_trainer
-    import ray
-
-    ray.init()
     parser.add_argument("--num_algs", type=int, default=1, help="number of algs")
     parser.add_argument("--num_samplers", type=int, default=2, help="number of samplers")
     parser.add_argument("--num_buffers", type=int, default=1, help="number of buffers")

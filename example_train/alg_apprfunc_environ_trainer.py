@@ -159,12 +159,11 @@ if __name__ == "__main__":
         parser.add_argument("--sample_interval", type=int, default=1)
     # 4.4. Parameters for off-policy async trainer
     if trainer_type == "off_async_trainer":
-        import ray
-        ray.init()
         parser.add_argument("--num_algs", type=int, default=2)
         parser.add_argument("--num_samplers", type=int, default=2)
         parser.add_argument("--num_buffers", type=int, default=1)
         # Note that num of algs+samplers+buffers <= num of computer cores
+        import multiprocessing
         cpu_core_num = multiprocessing.cpu_count()
         num_core_input = (
                 parser.parse_known_args()[0].num_algs
