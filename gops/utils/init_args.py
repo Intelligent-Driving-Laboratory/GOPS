@@ -14,6 +14,7 @@ import copy
 import datetime
 import json
 import os
+import ray
 import torch
 import warnings
 from gym.spaces import Box, Discrete
@@ -118,4 +119,9 @@ def init_args(env, **args):
         args["additional_info"] = env.additional_info
     else:
         args["additional_info"] = {}
+
+    # Start a new local Ray instance
+    # This is necessary since all training scripts use evaluator, which uses ray.
+    ray.init(address="local")
+
     return args
