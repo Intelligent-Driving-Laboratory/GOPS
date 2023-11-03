@@ -4,7 +4,7 @@ import numpy as np
 from gym import spaces
 from gops.env.env_gen_ocp.robot.veh3dof import angle_normalize
 from gops.env.env_gen_ocp.context.ref_traj_with_static_obstacle import RefTrajWithStaticObstacleContext
-from gops.env.env_gen_ocp.veh3dof_tracking import Veh3DoFTracking
+from gops.env.env_gen_ocp.veh3dof_tracking import Veh3DoFTracking, ego_vehicle_coordinate_transform
 
 class Veh3DoFTrackingDetour(Veh3DoFTracking):
     def __init__(
@@ -240,37 +240,6 @@ class Veh3DoFTrackingDetour(Veh3DoFTracking):
         lower_y = np.ones_like(lower_x) * self.context.lower_bound
         ax.plot(upper_x, upper_y, "k")
         ax.plot(lower_x, lower_y, "k")
-
-def ego_vehicle_coordinate_transform(
-    ego_x: np.ndarray,
-    ego_y: np.ndarray,
-    ego_phi: np.ndarray,
-    ref_x: np.ndarray,
-    ref_y: np.ndarray,
-    ref_phi: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transform absolute coordinate of ego vehicle and reference points to the ego 
-    vehicle coordinate. The origin is the position of ego vehicle. The x-axis points 
-    to heading angle of ego vehicle.
-
-    Args:
-        ego_x (np.ndarray): Absolution x-coordinate of ego vehicle, shape ().
-        ego_y (np.ndarray): Absolution y-coordinate of ego vehicle, shape ().
-        ego_phi (np.ndarray): Absolution heading angle of ego vehicle, shape ().
-        ref_x (np.ndarray): Absolution x-coordinate of reference points, shape (N,).
-        ref_y (np.ndarray): Absolution y-coordinate of reference points, shape (N,).
-        ref_phi (np.ndarray): Absolution tangent angle of reference points, shape (N,).
-
-    Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray]: Transformed x, y, phi of reference 
-        points.
-    """
-    cos_tf = np.cos(-ego_phi)
-    sin_tf = np.sin(-ego_phi)
-    ref_x_tf = (ref_x - ego_x) * cos_tf - (ref_y - ego_y) * sin_tf
-    ref_y_tf = (ref_x - ego_x) * sin_tf + (ref_y - ego_y) * cos_tf
-    ref_phi_tf = angle_normalize(ref_phi - ego_phi)
-    return ref_x_tf, ref_y_tf, ref_phi_tf
 
 
 def env_creator(**kwargs):
