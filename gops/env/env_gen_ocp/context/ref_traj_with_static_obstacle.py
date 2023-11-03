@@ -2,16 +2,10 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
-import torch
 import copy
-from gops.env.env_gen_ocp.pyth_base import ContextState, Context, stateType
-from gops.env.env_ocp.resources.ref_traj_data import MultiRefTrajData
+from gops.env.env_gen_ocp.pyth_base import ContextState
 from gops.env.env_gen_ocp.context.ref_traj import RefTrajContext
-from gops.env.env_ocp.env_model.pyth_veh3dofconti_model import (
-    VehicleDynamicsModel,
-    Veh3dofcontiModel,
-    angle_normalize,
-)
+from gops.env.env_ocp.env_model.pyth_veh3dofconti_model import angle_normalize
 
 @dataclass
 class SurrVehicleData:

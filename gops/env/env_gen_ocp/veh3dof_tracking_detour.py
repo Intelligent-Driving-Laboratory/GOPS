@@ -1,10 +1,8 @@
-from dataclasses import dataclass, fields
 from typing import Dict, Optional, Sequence, Tuple
 
 import numpy as np
 from gym import spaces
-from gops.env.env_gen_ocp.pyth_base import Env, State
-from gops.env.env_gen_ocp.robot.veh3dof import Veh3DoF, angle_normalize
+from gops.env.env_gen_ocp.robot.veh3dof import angle_normalize
 from gops.env.env_gen_ocp.context.ref_traj_with_static_obstacle import RefTrajWithStaticObstacleContext
 from gops.env.env_gen_ocp.veh3dof_tracking import Veh3DoFTracking
 

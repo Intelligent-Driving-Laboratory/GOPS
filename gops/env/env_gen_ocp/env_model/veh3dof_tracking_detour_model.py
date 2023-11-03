@@ -166,18 +166,6 @@ class Veh3DofModel(EnvModel):
             | (torch.abs(angle_normalize(phi - ref_phi)) > torch.pi)
         )
         return done
-    
-    def forward(self, obs, action, done, info):
-        state = info["state"]
-        next_state = self.get_next_state(state, action)
-        next_obs = self.get_obs(next_state)
-        reward = self.get_reward(state, action)
-        terminated = self.get_terminated(state)
-        constraint = self.get_constraint(state)
-        next_info = {}
-        next_info["state"] = next_state
-        next_info["constraint"] = constraint
-        return next_obs, reward, terminated, next_info
 
 
 def ego_vehicle_coordinate_transform(
