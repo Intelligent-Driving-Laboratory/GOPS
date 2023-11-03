@@ -14,7 +14,7 @@ from gops.sys_simulator.sys_run import PolicyRunner
 
 runner = PolicyRunner(
     log_policy_dir_list=[
-        # "../result/veh3dof_tracking/<ALGORITHM>_<DATETIME>"
+        # "../results/veh3dof_tracking/<ALGORITHM>_<DATETIME>"
         "PATH_TO_YOUR_RESULT_DIR",
     ],
     trained_policy_iteration_list=[
@@ -46,7 +46,7 @@ runner = PolicyRunner(
         "use_terminal_cost": False,
         "use_MPC_for_general_env": True,
     },
-    constrained_env=False,
+    constrained_env=True,
     is_tracking=True,
     dt=0.1,
 )
