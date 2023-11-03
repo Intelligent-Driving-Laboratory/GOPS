@@ -104,6 +104,8 @@ class EnvModel(Model, metaclass=ABCMeta):
         terminated = self.get_terminated(state)
         next_info = {}
         next_info["state"] = next_state
+        if self.get_constraint is not None:
+            next_info["constraint"] = self.get_constraint(state)
         return next_obs, reward, terminated, next_info
 
     @abstractmethod
