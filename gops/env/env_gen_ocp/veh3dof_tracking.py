@@ -45,6 +45,9 @@ class Veh3DoFTracking(Env):
 
         self.max_episode_steps = 200
 
+        self.init_high = np.array([2, 1, np.pi / 6, 2, 0.1, 0.1], dtype=np.float32)
+        self.init_low = -self.init_high
+
         self.seed()
 
     def reset(
@@ -79,8 +82,7 @@ class Veh3DoFTracking(Env):
             ref_time=ref_time, path_num=path_num, speed_num=speed_num)
 
         if init_state is None:
-            high = np.array([2, 1, np.pi / 6, 2, 0.1, 0.1], dtype=np.float32)
-            delta_state = self.np_random.uniform(low=-high, high=high).astype(np.float32)
+            delta_state = self.np_random.uniform(low=self.init_low, high=self.init_high).astype(np.float32)
         else:
             delta_state = np.array(init_state, dtype=np.float32)
         init_state = np.concatenate(
@@ -178,7 +180,7 @@ class Veh3DoFTracking(Env):
             (ego_x - x_offset, ego_y - y_offset), 
             veh_length, 
             veh_width, 
-            np.rad2deg(phi),
+            angle=np.rad2deg(phi),
             facecolor='w', 
             edgecolor='r', 
             zorder=1
@@ -187,7 +189,7 @@ class Veh3DoFTracking(Env):
         # draw reference paths
         ref_x = []
         ref_y = []
-        for i in np.arange(1, 60):
+        for i in np.arange(1, self.context.pre_horizon + 1):
             ref_x.append(self.context.ref_traj.compute_x(
                 self.context.ref_time + i * self.dt, self.context.path_num, self.context.speed_num
             ))

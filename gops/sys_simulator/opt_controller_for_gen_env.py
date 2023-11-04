@@ -19,7 +19,7 @@ import numpy as np
 import scipy.optimize as opt
 import torch
 from cyipopt import minimize_ipopt
-from torch.func import jacrev
+from functorch import jacrev
 from gops.env.env_gen_ocp.env_model.pyth_base_model import EnvModel
 from gops.env.env_gen_ocp.pyth_base import State, batch_context_state
 
