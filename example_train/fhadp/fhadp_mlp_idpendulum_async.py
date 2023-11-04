@@ -92,9 +92,6 @@ if __name__ == "__main__":
     )
 
     # 4.1. Parameters for off_async_trainer
-    import ray
-
-    ray.init()
     parser.add_argument("--num_algs", type=int, default=3)
     parser.add_argument("--num_samplers", type=int, default=1)
     parser.add_argument("--num_buffers", type=int, default=1)
