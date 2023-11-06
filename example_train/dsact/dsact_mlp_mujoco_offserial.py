@@ -39,7 +39,7 @@ if __name__ == "__main__":
     ################################################
     # 1. Parameters for environment
     parser.add_argument("--reward_scale", type=float, default=0.2, help="reward scale factor")
-    parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
+    parser.add_argument("--is_render", type=bool, default=True, help="Draw environment animation")
     parser.add_argument("--is_adversary", type=bool, default=False, help="Adversary training")
 
     ################################################

@@ -7,6 +7,7 @@ from enum import Enum
 import xml.etree.ElementTree as etxml
 import math
 import json
+from gops.env.env_gen_ocp.env_model.quadrotor_tracking_model import Task,Cost,QuadType
 
 NAME = 'quadrotor'
 
@@ -101,22 +102,6 @@ INIT_STATE_RAND_INFO = {
     }
 }
 
-class Cost(str, Enum):
-    '''Reward/cost functions enumeration class.'''
-    RL_REWARD = 'rl_reward'  # Default RL reward function.
-    QUADRATIC = 'quadratic'  # Quadratic cost.
-
-
-class Task(str, Enum):
-    '''Environment tasks enumeration class.'''
-    STABILIZATION = 'stabilization'  # Stabilization task.
-    TRAJ_TRACKING = 'traj_tracking'  # Trajectory tracking task.
-
-class QuadType(IntEnum):
-    '''Quadrotor types numeration class.'''
-    ONE_D = 1  # One-dimensional (along z) movement.
-    TWO_D = 2  # Two-dimensional (in the x-z plane) movement.
-    THREE_D = 3  # Three-dimensional movement.
 
 class Quadrotor():
     def __init__(self, 
@@ -132,7 +117,6 @@ class Quadrotor():
       
         self.obs_goal_horizon = obs_goal_horizon
         self.init_state = init_state
-        self.QUAD_TYPE = QuadType(quad_type)
         self.L = 1.
         self.rew_exponential = rew_exponential
         self.GRAVITY_ACC = 9.81
@@ -151,26 +135,15 @@ class Quadrotor():
         self.STATE_UNITS = ['m', 'm/s', 'm', 'm/s', 'm', 'm/s',
                             'rad', 'rad', 'rad', 'rad/s', 'rad/s', 'rad/s']
         self.INIT_STATE_LABELS = {
-            QuadType.ONE_D: ['init_x', 'init_x_dot'],
-            QuadType.TWO_D: ['init_x', 'init_x_dot', 'init_z', 'init_z_dot', 'init_theta', 'init_theta_dot'],
             QuadType.THREE_D: ['init_x', 'init_x_dot', 'init_y', 'init_y_dot', 'init_z', 'init_z_dot',
                                'init_phi', 'init_theta', 'init_psi', 'init_p', 'init_q', 'init_r']
         }
         self.TASK = Task(task)
         self.COST = Cost(cost)
         if info_mse_metric_state_weight is None:
-            if self.QUAD_TYPE == QuadType.ONE_D:
-                self.info_mse_metric_state_weight = np.array([1, 0], ndmin=1, dtype=float)
-            elif self.QUAD_TYPE == QuadType.TWO_D:
-                self.info_mse_metric_state_weight = np.array([1, 0, 1, 0, 0, 0], ndmin=1, dtype=float)
-            elif self.QUAD_TYPE == QuadType.THREE_D:
-                self.info_mse_metric_state_weight = np.array([1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0], ndmin=1, dtype=float)
-            else:
-                raise ValueError('[ERROR] in Quadrotor.__init__(), not implemented quad type.')
+            self.info_mse_metric_state_weight = np.array([1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0], ndmin=1, dtype=float)
         else:
-            if (self.QUAD_TYPE == QuadType.ONE_D and len(info_mse_metric_state_weight) == 2) or \
-                    (self.QUAD_TYPE == QuadType.TWO_D and len(info_mse_metric_state_weight) == 6) or \
-                    (self.QUAD_TYPE == QuadType.THREE_D and len(info_mse_metric_state_weight) == 12):
+            if  len(info_mse_metric_state_weight) == 12:
                 self.info_mse_metric_state_weight = np.array(info_mse_metric_state_weight, ndmin=1, dtype=float)
             else:
                 raise ValueError('[ERROR] in Quadrotor.__init__(), wrong info_mse_metric_state_weight argument size.')
@@ -185,12 +158,7 @@ class Quadrotor():
         elif self.COST == Cost.RL_REWARD and self.TASK == Task.STABILIZATION and self.obs_goal_horizon > 0:
             low = np.concatenate([low] * 2)
             high = np.concatenate([high] * 2)
-        if self.QUAD_TYPE == QuadType.ONE_D:
-            self.state_dim, self.action_dim = 2, 1
-        elif self.QUAD_TYPE == QuadType.TWO_D:
-            self.state_dim, self.action_dim = 6, 2
-        elif self.QUAD_TYPE == QuadType.THREE_D:
-            self.state_dim, self.action_dim = 12, 4
+        self.state_dim, self.action_dim = 12, 4
         self.NORMALIZED_RL_ACTION_SPACE = True
       
         
@@ -241,46 +209,27 @@ class Quadrotor():
         self.psi_threshold_radians = 180 * math.pi / 180  # Do not bound yaw.
 
         # Define obs/state bounds, labels and units.
-        if self.QUAD_TYPE == QuadType.ONE_D:
-            # obs/state = {z, z_dot}.
-            low = np.array([self.GROUND_PLANE_Z, -np.finfo(np.float32).max])
-            high = np.array([self.z_threshold, np.finfo(np.float32).max])
-            self.STATE_LABELS = ['z', 'z_dot']
-            self.STATE_UNITS = ['m', 'm/s']
-        elif self.QUAD_TYPE == QuadType.TWO_D:
-            # obs/state = {x, x_dot, z, z_dot, theta, theta_dot}.
-            low = np.array([
-                -self.x_threshold, -np.finfo(np.float32).max,
-                self.GROUND_PLANE_Z, -np.finfo(np.float32).max,
-                -self.theta_threshold_radians, -np.finfo(np.float32).max
-            ])
-            high = np.array([
-                self.x_threshold, np.finfo(np.float32).max,
-                self.z_threshold, np.finfo(np.float32).max,
-                self.theta_threshold_radians, np.finfo(np.float32).max
-            ])
-            self.STATE_LABELS = ['x', 'x_dot', 'z', 'z_dot', 'theta', 'theta_dot']
-            self.STATE_UNITS = ['m', 'm/s', 'm', 'm/s', 'rad', 'rad/s']
-        elif self.QUAD_TYPE == QuadType.THREE_D:
+       
+       
             # obs/state = {x, x_dot, y, y_dot, z, z_dot, phi, theta, psi, p_body, q_body, r_body}.
-            low = np.array([
-                -self.x_threshold, -np.finfo(np.float32).max,
-                -self.y_threshold, -np.finfo(np.float32).max,
-                self.GROUND_PLANE_Z, -np.finfo(np.float32).max,
-                -self.phi_threshold_radians, -self.theta_threshold_radians, -self.psi_threshold_radians,
-                -np.finfo(np.float32).max, -np.finfo(np.float32).max, -np.finfo(np.float32).max
-            ])
-            high = np.array([
-                self.x_threshold, np.finfo(np.float32).max,
-                self.y_threshold, np.finfo(np.float32).max,
-                self.z_threshold, np.finfo(np.float32).max,
-                self.phi_threshold_radians, self.theta_threshold_radians, self.psi_threshold_radians,
-                np.finfo(np.float32).max, np.finfo(np.float32).max, np.finfo(np.float32).max
-            ])
-            self.STATE_LABELS = ['x', 'x_dot', 'y', 'y_dot', 'z', 'z_dot',
-                                'phi', 'theta', 'psi', 'p', 'q', 'r']
-            self.STATE_UNITS = ['m', 'm/s', 'm', 'm/s', 'm', 'm/s',
-                                'rad', 'rad', 'rad', 'rad/s', 'rad/s', 'rad/s']
+        low = np.array([
+            -self.x_threshold, -np.finfo(np.float32).max,
+            -self.y_threshold, -np.finfo(np.float32).max,
+            self.GROUND_PLANE_Z, -np.finfo(np.float32).max,
+            -self.phi_threshold_radians, -self.theta_threshold_radians, -self.psi_threshold_radians,
+            -np.finfo(np.float32).max, -np.finfo(np.float32).max, -np.finfo(np.float32).max
+        ])
+        high = np.array([
+            self.x_threshold, np.finfo(np.float32).max,
+            self.y_threshold, np.finfo(np.float32).max,
+            self.z_threshold, np.finfo(np.float32).max,
+            self.phi_threshold_radians, self.theta_threshold_radians, self.psi_threshold_radians,
+            np.finfo(np.float32).max, np.finfo(np.float32).max, np.finfo(np.float32).max
+        ])
+        self.STATE_LABELS = ['x', 'x_dot', 'y', 'y_dot', 'z', 'z_dot',
+                            'phi', 'theta', 'psi', 'p', 'q', 'r']
+        self.STATE_UNITS = ['m', 'm/s', 'm', 'm/s', 'm', 'm/s',
+                            'rad', 'rad', 'rad', 'rad/s', 'rad/s', 'rad/s']
         # Define the state space for the dynamics.
         self.state_space = spaces.Box(low=low, high=high, dtype=np.float32)
         
@@ -288,18 +237,11 @@ class Quadrotor():
         '''Sets the action space of the environment.'''
         # Define action/input dimension, labels, and units.
         # import ipdb ; ipdb.set_trace()
-        if self.QUAD_TYPE == QuadType.ONE_D:
-            action_dim = 1
-            self.ACTION_LABELS = ['T']
-            self.ACTION_UNITS = ['N'] if not self.NORMALIZED_RL_ACTION_SPACE else ['-']
-        elif self.QUAD_TYPE == QuadType.TWO_D:
-            action_dim = 2
-            self.ACTION_LABELS = ['T1', 'T2']
-            self.ACTION_UNITS = ['N', 'N'] if not self.NORMALIZED_RL_ACTION_SPACE else ['-', '-']
-        elif self.QUAD_TYPE == QuadType.THREE_D:
-            action_dim = 4
-            self.ACTION_LABELS = ['T1', 'T2', 'T3', 'T4']
-            self.ACTION_UNITS = ['N', 'N', 'N', 'N'] if not self.NORMALIZED_RL_ACTION_SPACE else ['-', '-', '-', '-']
+     
+       
+        action_dim = 4
+        self.ACTION_LABELS = ['T1', 'T2', 'T3', 'T4']
+        self.ACTION_UNITS = ['N', 'N', 'N', 'N'] if not self.NORMALIZED_RL_ACTION_SPACE else ['-', '-', '-', '-']
 
         n_mot = 4 / action_dim
         a_low = self.KF * n_mot * (self.PWM2RPM_SCALE * self.MIN_PWM + self.PWM2RPM_CONST)**2
@@ -323,104 +265,92 @@ class Quadrotor():
         m = self.context.MASS
         g= self.GRAVITY_ACC
         u_eq = m * g
-        if self.QUAD_TYPE == QuadType.ONE_D:
-            self.state_dim, self.action_dim = 2, 1
-            X_dot = np.array([X[1], U[0] / m - g])  
-            return X_dot
-        # Add other cases for QUAD_TYPE (TWO_D, THREE_D) as needed
-        elif self.QUAD_TYPE == QuadType.TWO_D:
-            #X = np.cat((x, x_dot, z, z_dot, theta, theta_dot), dim=0)
-            #U = np.cat((T1, T2))
-            self.state_dim, self.action_dim = 6, 2
-            X_dot = np.array([X[1],np.sin(X[4]) * (U[0] + U[1]) / m,X[3],np.cos(X[4]) * (U[0] + U[1]) / m - g,
-                              X[-1],self.L * (U[1] - U[0]) / self.Iyy / np.sqrt(2.0)])
-            return X_dot
-        elif self.QUAD_TYPE == QuadType.THREE_D:
-            self.state_dim, self.action_dim = 12, 4
-            J = np.array([[self.Ixx, 0.0, 0.0],
-                            [0.0, self.Iyy, 0.0],
-                            [0.0, 0.0, self.Izz]])
-            Jinv = np.array([[1.0 / self.Ixx, 0.0, 0.0],
-                                [0.0, 1.0 / self.Iyy, 0.0],
-                                [0.0, 0.0, 1.0 / self.Izz]])
-            # gamma = self.KM / self.KF    ## gamma 是电机的转矩常数 KM 和推力常数 KF 的比值。
-            gamma = 0.1
-            # X = np.cat((x, x_dot, y, y_dot, z, z_dot, phi, theta, psi, p_body, q_body, r_body))
-            # U = np.cat((f1, f2, f3, f4))
-            def torchRotZ(psi):
-                '''Rotation matrix about Z axis following SDFormat http://sdformat.org/tutorials?tut=specify_pose&cat=specification&.
+       
+        self.state_dim, self.action_dim = 12, 4
+        J = np.array([[self.Ixx, 0.0, 0.0],
+                        [0.0, self.Iyy, 0.0],
+                        [0.0, 0.0, self.Izz]])
+        Jinv = np.array([[1.0 / self.Ixx, 0.0, 0.0],
+                            [0.0, 1.0 / self.Iyy, 0.0],
+                            [0.0, 0.0, 1.0 / self.Izz]])
+        # gamma = self.KM / self.KF    ## gamma 是电机的转矩常数 KM 和推力常数 KF 的比值。
+        gamma = 0.1
+        # X = np.cat((x, x_dot, y, y_dot, z, z_dot, phi, theta, psi, p_body, q_body, r_body))
+        # U = np.cat((f1, f2, f3, f4))
+        def RotZ(psi):
+            '''Rotation matrix about Z axis following SDFormat http://sdformat.org/tutorials?tut=specify_pose&cat=specification&.
 
-                Args:
-                psi: Scalar rotation
+            Args:
+            psi: Scalar rotation
 
-                Returns:
-                R: torch Rotation matrix
-                '''
-                R = np.array([[np.cos(psi), -np.sin(psi), 0],
-                                [np.sin(psi), np.cos(psi), 0],
-                                [0, 0, 1]])
-                return R
+            Returns:
+            R: torch Rotation matrix
+            '''
+            R = np.array([[np.cos(psi), -np.sin(psi), 0],
+                            [np.sin(psi), np.cos(psi), 0],
+                            [0, 0, 1]])
+            return R
 
-            def torchRotY(theta):
-                '''Rotation matrix about Y axis following SDFormat http://sdformat.org/tutorials?tut=specify_pose&cat=specification&.
+        def RotY(theta):
+            '''Rotation matrix about Y axis following SDFormat http://sdformat.org/tutorials?tut=specify_pose&cat=specification&.
 
-                Args:
-                theta: Scalar rotation
+            Args:
+            theta: Scalar rotation
 
-                Returns:
-                R: torch Rotation matrix
-                '''
-                R = np.array([[np.cos(theta), 0, np.sin(theta)],
-                                [0, 1, 0],
-                                [-np.sin(theta), 0, np.cos(theta)]])
-                return R
+            Returns:
+            R: torch Rotation matrix
+            '''
+            R = np.array([[np.cos(theta), 0, np.sin(theta)],
+                            [0, 1, 0],
+                            [-np.sin(theta), 0, np.cos(theta)]])
+            return R
 
-            def torchRotX(phi):
-                '''Rotation matrix about X axis following SDFormat http://sdformat.org/tutorials?tut=specify_pose&cat=specification&.
+        def RotX(phi):
+            '''Rotation matrix about X axis following SDFormat http://sdformat.org/tutorials?tut=specify_pose&cat=specification&.
 
-                Args:
-                phi: Scalar rotation
+            Args:
+            phi: Scalar rotation
 
-                Returns:
-                R: torch Rotation matrix
-                '''
-                R = np.array([[1, 0, 0],
-                                [0, np.cos(phi), -np.sin(phi)],
-                                [0, np.sin(phi), np.cos(phi)]])
-                return R
+            Returns:
+            R: torch Rotation matrix
+            '''
+            R = np.array([[1, 0, 0],
+                            [0, np.cos(phi), -np.sin(phi)],
+                            [0, np.sin(phi), np.cos(phi)]])
+            return R
 
-            Rob = torchRotZ(X[6]) @ torchRotY(X[7]) @ torchRotX(X[8])
-            # import ipdb;ipdb.set_trace()
-            pos_ddot = Rob @ np.concatenate((np.array([0.0]), np.array([0.0]), (U[0] + U[1] + U[2] + U[3]).reshape(1,))) / m - np.concatenate((np.array([0.0]), np.array([0.0]), np.array([g])))
-            pos_dot = np.array([X[1],X[3],X[5]])
-            Mb = np.array((self.L / np.sqrt(2.0) * (U[0] + U[1] - U[2] - U[3]),
-                            self.L / np.sqrt(np.array(2.0)) * (-U[0] + U[1] + U[2] - U[3]),
-                            gamma * (-U[0] + U[1] - U[2] + U[3])))
-            def skew_matrix(angular_velocity):
-                # Create a 3x3 skew-symmetric matrix from a 3D angular velocity vector
-                return np.array([[0, -angular_velocity[2], angular_velocity[1]],
-                                    [angular_velocity[2], 0, -angular_velocity[0]],
-                                    [-angular_velocity[1], angular_velocity[0], 0]])
-            rate_dot = Jinv @ (Mb - skew_matrix(np.array([X[9], X[10], X[11]])) @ J @ np.array([X[9], X[10], X[11]]))
-            # Define the components of the rotation matrix
-            R1 = np.array([[1.0, 0.0, 0.0],
-                            [0.0, np.cos(X[6]), -np.sin(X[6])],
-                            [0.0, np.sin(X[6]), np.cos(X[6])]])
-            R2 = np.array([[np.cos(X[7]), 0.0, np.sin(X[7])],
-                            [0.0, 1.0, 0.0],
-                            [-np.sin(X[7]), 0.0, np.cos(X[7])]])
-            R3 = np.array([[np.cos(X[8]), -np.sin(X[8]), 0.0],
-                            [np.sin(X[8]), np.cos(X[8]), 0.0],
-                            [0.0, 0.0, 1.0]])
-            # Compute the angular velocity vector
-            ang_dot = R1 @ R2 @ R3 @ np.array((X[9], X[10], X[11]))
-            # Flatten ang_dot and rate_dot into one-dimensional tensors
-            ang_dot_flat = ang_dot.reshape(-1)
-            rate_dot_flat = rate_dot.reshape(-1)
-            # Concatenate all tensors
-            X_dot = np.concatenate((pos_dot, pos_ddot, ang_dot_flat, rate_dot_flat))
-            return X_dot
-     
+        Rob = RotZ(X[6]) @ RotY(X[7]) @ RotX(X[8])
+        # import ipdb;ipdb.set_trace()
+        pos_ddot = Rob @ np.concatenate((np.array([0.0]), np.array([0.0]), (U[0] + U[1] + U[2] + U[3]).reshape(1,))) / m - np.concatenate((np.array([0.0]), np.array([0.0]), np.array([g])))
+        pos_dot = np.array([X[1],X[3],X[5]])
+        Mb = np.array((self.L / np.sqrt(2.0) * (U[0] + U[1] - U[2] - U[3]),
+                        self.L / np.sqrt(np.array(2.0)) * (-U[0] + U[1] + U[2] - U[3]),
+                        gamma * (-U[0] + U[1] - U[2] + U[3])))
+        def skew_matrix(angular_velocity):
+            # Create a 3x3 skew-symmetric matrix from a 3D angular velocity vector
+            return np.array([[0, -angular_velocity[2], angular_velocity[1]],
+                                [angular_velocity[2], 0, -angular_velocity[0]],
+                                [-angular_velocity[1], angular_velocity[0], 0]])
+        rate_dot = Jinv @ (Mb - skew_matrix(np.array([X[9], X[10], X[11]])) @ J @ np.array([X[9], X[10], X[11]]))
+        # Define the components of the rotation matrix
+        R1 = np.array([[1.0, 0.0, 0.0],
+                        [0.0, np.cos(X[6]), -np.sin(X[6])],
+                        [0.0, np.sin(X[6]), np.cos(X[6])]])
+        R2 = np.array([[np.cos(X[7]), 0.0, np.sin(X[7])],
+                        [0.0, 1.0, 0.0],
+                        [-np.sin(X[7]), 0.0, np.cos(X[7])]])
+        R3 = np.array([[np.cos(X[8]), -np.sin(X[8]), 0.0],
+                        [np.sin(X[8]), np.cos(X[8]), 0.0],
+                        [0.0, 0.0, 1.0]])
+        # Compute the angular velocity vector
+        ang_dot = R1 @ R2 @ R3 @ np.array((X[9], X[10], X[11]))
+        # Flatten ang_dot and rate_dot into one-dimensional tensors
+        ang_dot_flat = ang_dot.reshape(-1)
+        rate_dot_flat = rate_dot.reshape(-1)
+        # Concatenate all tensors
+        X_dot = np.concatenate((pos_dot, pos_ddot, ang_dot_flat, rate_dot_flat))
+        return X_dot
+    
     def reset(self, init_state=None):
         if init_state is None:
             for init_name in INIT_STATE_RAND_INFO:  # Default zero state.
@@ -478,12 +408,8 @@ class Quadrotor():
             if self.goal_reached:
                 return True 
         # Done if state is out-of-bounds.
-        if self.QUAD_TYPE == QuadType.ONE_D:
-            mask = np.array([1, 0])
-        if self.QUAD_TYPE == QuadType.TWO_D:
-            mask = np.array([1, 0, 1, 0, 1, 0])
-        if self.QUAD_TYPE == QuadType.THREE_D:
-            mask = np.array([1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0])
+    
+        mask = np.array([1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0])
         # Element-wise or to check out-of-bound conditions.
         # import ipdb; ipdb.set_trace()
         self.out_of_bounds = np.logical_or(self.state < self.state_space.low,

@@ -194,7 +194,7 @@ class Env(gym.Env, metaclass=ABCMeta):
     def _get_next_state(self, action: np.ndarray) -> State[np.ndarray]:
         return State(
             robot_state=self.robot.step(action),
-            context_state=None
+            context_state=self.context.step()
         )
     
     @property

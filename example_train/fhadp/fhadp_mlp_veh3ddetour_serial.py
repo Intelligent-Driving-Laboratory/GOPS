@@ -40,7 +40,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", default=None, help="seed")
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--is_render", type=bool, default=False)
+    parser.add_argument("--is_render", type=bool, default=True)
     parser.add_argument("--is_adversary", type=bool, default=False)
 
     ################################################
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
     env = create_env(**args)
     args = init_args(env, **args)
-    start_tensorboard(args["save_folder"])
+    # start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
     # Step 2: create sampler in trainer

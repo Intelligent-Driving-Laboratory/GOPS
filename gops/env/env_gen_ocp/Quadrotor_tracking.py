@@ -5,7 +5,7 @@ from gym import spaces
 from enum import IntEnum
 
 from gops.env.env_gen_ocp.pyth_base import Env, State
-from gops.env.env_gen_ocp.robot.quadrotor import Quadrotor
+from gops.env.env_gen_ocp.robot.quadrotor_3dof import Quadrotor
 from gops.env.env_gen_ocp.context.quad_ref_traj import QuadContext
 
 class QuadType(IntEnum):
@@ -20,7 +20,6 @@ class QuadTracking(Env):
         **kwargs,
     ):
         self.robot: Quadrotor = Quadrotor(
-            quad_type = QuadType.THREE_D,
         )
         self.context: QuadContext = QuadContext(
             quad_type = QuadType.THREE_D
@@ -49,7 +48,18 @@ class QuadTracking(Env):
 
     def render(self, mode="human"):
         pass
-
+    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
+        reward = self._get_reward(action)
+        self._state = self._get_next_state(action)
+        terminated = self._get_terminated()
+        return self._get_obs(), reward, terminated, self._get_info()
+    
+    def _get_next_state(self, action: np.ndarray) -> State[np.ndarray]:
+        return State(
+            robot_state=self.robot.step(action),
+            context_state=None
+        )
+        
 def env_creator(**kwargs):
     return QuadTracking(**kwargs)
 
@@ -64,7 +74,7 @@ if __name__ == "__main__":
     #     with open('./config.ini', 'w') as configfile:
     #         config.write(configfile)
     #     print('\n----------quad_type:',quad_type,'----------')
-    env_new = QuadTracking(quad_type = QuadType.THREE_D)
+    env_new = QuadTracking()
     seed = 1
     env_new.seed(seed)
     np.random.seed(seed)
