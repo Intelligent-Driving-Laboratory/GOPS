@@ -323,12 +323,12 @@ class OptController:
         """
         Print out summary statistics from last run
         """
-        if res.success:
-            # print message in green
-            print("\033[92m" + str(res.message, encoding='utf-8') + "\033[0m")
+        if res.status == 0:
+            print("\033[92m" + str(res.message, encoding='utf-8') + "\033[0m")  # green
+        elif res.status == 1:
+            print("\033[32m" + str(res.message, encoding='utf-8') + "\033[0m")  # lightgreen
         else:
-            # print message in red
-            print("\033[91m" + str(res.message, encoding='utf-8') + "\033[0m")
+            print("\033[91m" + str(res.message, encoding='utf-8') + "\033[0m")  # red
         print("Summary statistics:")
         print("* Number of iterations:", res.nit)
         print("* Cost function calls:", res.nfev)

@@ -45,6 +45,7 @@ class Veh3DoFTrackingDetour(Veh3DoFTracking):
             high=np.array([np.inf] * (ego_obs_dim + ref_obs_dim * pre_horizon + veh_obs_dim * self.context.surr_veh_num)),
             dtype=np.float32,
         )
+        self.max_episode_steps = 100
 
     def reset(
         self,
@@ -158,69 +159,9 @@ class Veh3DoFTrackingDetour(Veh3DoFTracking):
             "constraint": self._get_constraint().copy(),
         }
 
-    def render(self, mode="human"):
-        import matplotlib.pyplot as plt
-
-        fig = plt.figure(num=0, figsize=(6.4, 3.2))
-        plt.clf()
-        ego_x, ego_y = self.robot.state[:2]
-        ax = plt.axes(xlim=(ego_x - 5, ego_x + 30), ylim=(ego_y - 10, ego_y + 10))
-        ax.set_aspect('equal')
-        
-        self._render(ax)
-
-        plt.tight_layout()
-
-        if mode == "rgb_array":
-            fig.canvas.draw()
-            image_from_plot = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-            image_from_plot = image_from_plot.reshape(
-                fig.canvas.get_width_height()[::-1] + (3,)
-            )
-            plt.pause(0.01)
-            return image_from_plot
-        elif mode == "human":
-            plt.pause(0.01)
-            plt.show()
-
     def _render(self, ax, veh_length=4.8, veh_width=2.0):
         import matplotlib.patches as pc
-
-        # draw ego vehicle
-        ego_x, ego_y, phi = self.robot.state[:3]
-        x_offset = veh_length / 2 * np.cos(phi) - veh_width / 2 * np.sin(phi)
-        y_offset = veh_length / 2 * np.sin(phi) + veh_width / 2 * np.cos(phi)
-        ax.add_patch(pc.Rectangle(
-            (ego_x - x_offset, ego_y - y_offset), 
-            veh_length, 
-            veh_width, 
-            angle=np.rad2deg(phi),
-            facecolor='w', 
-            edgecolor='r', 
-            zorder=1
-        ))
-
-        # draw reference paths
-        ref_x = []
-        ref_y = []
-        for i in np.arange(1, self.context.pre_horizon + 1):
-            ref_x.append(self.context.ref_traj.compute_x(
-                self.context.ref_time + i * self.context.dt, self.context.path_num, self.context.speed_num
-            ))
-            ref_y .append(self.context.ref_traj.compute_y(
-                self.context.ref_time + i * self.context.dt, self.context.path_num, self.context.speed_num
-            ))
-        ax.plot(ref_x, ref_y, 'b--', lw=1, zorder=2)
-
-        # draw texts
-        left_x = ego_x - 5
-        top_y = ego_y + 15
-        delta_y = 2
-        ego_speed = self.robot.state[3] * 3.6  # [km/h]
-        ref_speed = self.context.state.reference[0, 3] * 3.6  # [km/h]
-        ax.text(left_x, top_y, f'time: {self.context.ref_time:.1f}s')
-        ax.text(left_x, top_y - delta_y, f'speed: {ego_speed:.1f}km/h')
-        ax.text(left_x, top_y - 2 * delta_y, f'ref speed: {ref_speed:.1f}km/h')
+        super()._render(ax, veh_length, veh_width)
 
         # draw surrounding vehicles
         veh_length = self.context.veh_length
