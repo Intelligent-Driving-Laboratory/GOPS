@@ -1,9 +1,7 @@
 import numpy as np
 from enum import IntEnum
 import configparser
-
 config = configparser.ConfigParser()
-
 import configparser
 from enum import Enum
 

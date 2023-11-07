@@ -123,7 +123,6 @@ class Quadrotor():
         self.TIMESTEP = 0.001  
         self.state = None
         self.dt = self.TIMESTEP
-        self.x_threshold = 2
         self.context = QuadContext()
         self.ctrl_step_counter = 0 
         self.task = self.context.task
@@ -174,7 +173,6 @@ class Quadrotor():
     def load_parameters(self):
         with open(self.URDF_PATH, 'r') as f:
             parameters = json.load(f)
-
         self.MASS = parameters["MASS"]
         self.L = parameters["L"]
         self.THRUST2WEIGHT_RATIO = parameters["THRUST2WEIGHT_RATIO"]
@@ -200,8 +198,6 @@ class Quadrotor():
      
     def _set_observation_space(self):
         '''Sets the observation space of the environment.'''
-        self.x_threshold = 2
-        self.y_threshold = 2
         self.z_threshold = 2
         self.phi_threshold_radians = 85 * math.pi / 180
         self.theta_threshold_radians = 85 * math.pi / 180
@@ -227,13 +223,12 @@ class Quadrotor():
         self.physical_action_bounds = (np.full(action_dim, a_low, np.float32),
                                        np.full(action_dim, a_high, np.float32))
        
-            # Normalized thrust (around hover thrust).
+        # Normalized thrust action space (around hover thrust).
         self.hover_thrust = self.GRAVITY_ACC * self.MASS / action_dim
         self.action_space = spaces.Box(low=-np.ones(action_dim),
                                         high=np.ones(action_dim),
                                         dtype=np.float32)
-        # # else:
-        #     # Direct thrust control.
+        # # else, Direct thrust control.
         # self.action_space = spaces.Box(low=self.physical_action_bounds[0],
         #                                 high=self.physical_action_bounds[1],
         #                                 dtype=np.float32)
@@ -242,7 +237,6 @@ class Quadrotor():
         m = self.context.MASS
         g= self.GRAVITY_ACC
         u_eq = m * g
-        
         self.state_dim, self.action_dim = 2, 1
         X_dot = np.array([X[1], U[0] / m - g])  
         return X_dot
