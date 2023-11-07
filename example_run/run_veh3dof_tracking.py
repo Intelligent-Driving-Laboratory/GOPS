@@ -14,7 +14,7 @@ from gops.sys_simulator.sys_run import PolicyRunner
 
 runner = PolicyRunner(
     log_policy_dir_list=[
-        # "../result/veh3dof_tracking/<ALGORITHM>_<DATETIME>"
+        # "../results/veh3dof_tracking/<ALGORITHM>_<DATETIME>"
         "PATH_TO_YOUR_RESULT_DIR",
     ],
     trained_policy_iteration_list=[
