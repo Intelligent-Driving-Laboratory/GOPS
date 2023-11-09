@@ -8,6 +8,10 @@ from gops.env.env_gen_ocp.context.ref_traj import RefTrajContext
 
 
 class Veh3DoFTracking(Env):
+    metadata = {
+        "render.modes": ["human", "rgb_array"],
+    }
+    
     def __init__(
         self,
         *,
