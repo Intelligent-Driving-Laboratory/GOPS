@@ -4,14 +4,14 @@ import torch
 
 from gops.env.env_gen_ocp.env_model.pyth_base_model import EnvModel
 from gops.env.env_gen_ocp.pyth_base import State
-from gops.env.env_gen_ocp.robot.veh3dof_model import VehDynMdl
+from gops.env.env_gen_ocp.robot.veh3dof_model import Veh3DoFModel
 from gops.env.env_gen_ocp.robot.veh3dof import angle_normalize
 
 
-class Veh3DofModel(EnvModel):
+class Veh3DoFTrackingModel(EnvModel):
     dt: Optional[float] = 0.1
     action_dim: int = 2
-    robot_model: VehDynMdl
+    robot_model: Veh3DoFModel
 
     def __init__(
         self,
@@ -30,7 +30,7 @@ class Veh3DofModel(EnvModel):
             action_upper_bound=[max_steer, 3],
             device=device,
         )
-        self.robot_model = VehDynMdl()
+        self.robot_model = Veh3DoFModel()
         self.pre_horizon = pre_horizon
 
     def get_obs(self, state: State) -> torch.Tensor:
@@ -101,8 +101,8 @@ def ego_vehicle_coordinate_transform(
     return ref_x_tf, ref_y_tf, ref_phi_tf
 
 
-def env_model_creator(**kwargs) -> Veh3DofModel:
+def env_model_creator(**kwargs) -> Veh3DoFTrackingModel:
     """
     make env model `veh3dof_tracking`
     """
-    return Veh3DofModel(**kwargs)
+    return Veh3DoFTrackingModel(**kwargs)

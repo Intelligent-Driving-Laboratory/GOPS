@@ -6,7 +6,7 @@ from gops.env.env_gen_ocp.env_model.pyth_base_model import RobotModel
 from gops.env.env_gen_ocp.robot.veh3dof import angle_normalize, Veh3DoFParam
 
 
-class VehDynMdl(RobotModel):
+class Veh3DoFModel(RobotModel):
     dt: Optional[float] = 0.1
     robot_state_dim: int = 6
 

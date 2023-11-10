@@ -5,15 +5,15 @@ import numpy as np
 
 from gops.env.env_gen_ocp.env_model.pyth_base_model import EnvModel
 from gops.env.env_gen_ocp.pyth_base import State
-from gops.env.env_gen_ocp.robot.veh3dof_model import VehDynMdl
+from gops.env.env_gen_ocp.robot.veh3dof_model import Veh3DoFModel
 from gops.env.env_gen_ocp.robot.veh3dof import angle_normalize
 from gops.env.env_gen_ocp.veh3dof_tracking import ego_vehicle_coordinate_transform
 
 
-class Veh3DofModel(EnvModel):
+class Veh3DoFTrackingDetourModel(EnvModel):
     dt: Optional[float] = 0.1
     action_dim: int = 2
-    robot_model: VehDynMdl
+    robot_model: Veh3DoFModel
 
     def __init__(
         self,
@@ -35,7 +35,7 @@ class Veh3DofModel(EnvModel):
             action_upper_bound=[max_steer, 3],
             device=device,
         )
-        self.robot_model = VehDynMdl()
+        self.robot_model = Veh3DoFModel()
         self.pre_horizon = pre_horizon
         self.veh_length = veh_length
         self.veh_width = veh_width
@@ -166,8 +166,8 @@ class Veh3DofModel(EnvModel):
         return done
 
 
-def env_model_creator(**kwargs) -> Veh3DofModel:
+def env_model_creator(**kwargs) -> Veh3DoFTrackingDetourModel:
     """
     make env model `veh3dof_tracking`
     """
-    return Veh3DofModel(**kwargs)
+    return Veh3DoFTrackingDetourModel(**kwargs)
