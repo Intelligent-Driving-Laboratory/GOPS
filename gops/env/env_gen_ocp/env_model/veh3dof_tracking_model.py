@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 import torch
 
@@ -9,6 +9,8 @@ from gops.env.env_gen_ocp.robot.veh3dof import angle_normalize
 
 
 class Veh3DofModel(EnvModel):
+    dt: Optional[float] = 0.1
+    action_dim: int = 2
     robot_model: VehDynMdl
 
     def __init__(
@@ -20,21 +22,15 @@ class Veh3DofModel(EnvModel):
     ):
         ego_obs_dim = 6
         ref_obs_dim = 4
-        dt = 0.1
+        self.obs_dim = ego_obs_dim + ref_obs_dim * pre_horizon
         super().__init__(
-            obs_dim=ego_obs_dim + ref_obs_dim * pre_horizon,
-            action_dim=2,
-            dt=dt,
             obs_lower_bound=None,
             obs_upper_bound=None,
             action_lower_bound=[-max_steer, -3],
             action_upper_bound=[max_steer, 3],
             device=device,
         )
-        self.robot_model = VehDynMdl(
-            dt=dt,
-            robot_state_dim=ego_obs_dim,
-        )
+        self.robot_model = VehDynMdl()
         self.pre_horizon = pre_horizon
 
     def get_obs(self, state: State) -> torch.Tensor:

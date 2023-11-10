@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple, Union
+from typing import Optional, Union
 
 import torch
 import numpy as np
@@ -7,9 +7,12 @@ from gops.env.env_gen_ocp.env_model.pyth_base_model import EnvModel
 from gops.env.env_gen_ocp.pyth_base import State
 from gops.env.env_gen_ocp.robot.veh3dof_model import VehDynMdl
 from gops.env.env_gen_ocp.robot.veh3dof import angle_normalize
+from gops.env.env_gen_ocp.veh3dof_tracking import ego_vehicle_coordinate_transform
 
 
 class Veh3DofModel(EnvModel):
+    dt: Optional[float] = 0.1
+    action_dim: int = 2
     robot_model: VehDynMdl
 
     def __init__(
@@ -23,21 +26,16 @@ class Veh3DofModel(EnvModel):
     ):
         ego_obs_dim = 6
         ref_obs_dim = 4
-        dt = 0.1
+        obstacle_obs_dim = 4
+        self.obs_dim = ego_obs_dim + ref_obs_dim * pre_horizon + obstacle_obs_dim
         super().__init__(
-            obs_dim=ego_obs_dim + ref_obs_dim * pre_horizon + 4,
-            action_dim=2,
-            dt=dt,
             obs_lower_bound=None,
             obs_upper_bound=None,
             action_lower_bound=[-max_steer, -3],
             action_upper_bound=[max_steer, 3],
             device=device,
         )
-        self.robot_model = VehDynMdl(
-            dt=dt,
-            robot_state_dim=ego_obs_dim,
-        )
+        self.robot_model = VehDynMdl()
         self.pre_horizon = pre_horizon
         self.veh_length = veh_length
         self.veh_width = veh_width
@@ -166,23 +164,6 @@ class Veh3DofModel(EnvModel):
             | (torch.abs(angle_normalize(phi - ref_phi)) > torch.pi)
         )
         return done
-
-
-def ego_vehicle_coordinate_transform(
-    ego_x: torch.Tensor,
-    ego_y: torch.Tensor,
-    ego_phi: torch.Tensor,
-    ref_x: torch.Tensor,
-    ref_y: torch.Tensor,
-    ref_phi: torch.Tensor,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    ego_x, ego_y, ego_phi = ego_x.unsqueeze(1), ego_y.unsqueeze(1), ego_phi.unsqueeze(1)
-    cos_tf = torch.cos(-ego_phi)
-    sin_tf = torch.sin(-ego_phi)
-    ref_x_tf = (ref_x - ego_x) * cos_tf - (ref_y - ego_y) * sin_tf
-    ref_y_tf = (ref_x - ego_x) * sin_tf + (ref_y - ego_y) * cos_tf
-    ref_phi_tf = angle_normalize(ref_phi - ego_phi)
-    return ref_x_tf, ref_y_tf, ref_phi_tf
 
 
 def env_model_creator(**kwargs) -> Veh3DofModel:

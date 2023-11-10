@@ -1,7 +1,8 @@
 from abc import ABCMeta, abstractmethod
-from typing import Optional, TypeVar, Callable, Sequence, Union
+from typing import Optional, TypeVar, Callable, Sequence
 
 import torch
+from torch.types import Device
 
 from gops.env.env_gen_ocp.pyth_base import ContextState, State
 
@@ -15,9 +16,26 @@ class Model(metaclass=ABCMeta):
 
 
 class RobotModel(Model):
+    dt: Optional[float] = None
     robot_state_dim: int
-    robot_state_lower_bound: torch.Tensor
-    robot_state_upper_bound: torch.Tensor
+
+    def __init__(
+        self,
+        robot_state_lower_bound: Optional[Sequence] = None, 
+        robot_state_upper_bound: Optional[Sequence] = None, 
+        device: Device = None,
+    ):
+        if robot_state_lower_bound is None:
+            robot_state_lower_bound = [float("-inf")] * self.robot_state_dim
+        if robot_state_upper_bound is None:
+            robot_state_upper_bound = [float("inf")] * self.robot_state_dim
+        self.robot_state_lower_bound = torch.tensor(
+            robot_state_lower_bound, dtype=torch.float32, device=device
+        )
+        self.robot_state_upper_bound = torch.tensor(
+            robot_state_upper_bound, dtype=torch.float32, device=device
+        )
+        self.device = device
 
     @abstractmethod
     def get_next_state(self, robot_state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
@@ -25,27 +43,19 @@ class RobotModel(Model):
 
 
 class EnvModel(Model, metaclass=ABCMeta):
-    dt: float
+    dt: Optional[float] = None
     action_dim: int
     obs_dim: int
-    action_lower_bound: torch.Tensor
-    action_upper_bound: torch.Tensor
     robot_model: RobotModel
 
     def __init__(
         self,
-        obs_dim: int,
-        action_dim: int,
-        dt: Optional[float] = None,
         obs_lower_bound: Optional[Sequence] = None,
         obs_upper_bound: Optional[Sequence] = None,
         action_lower_bound: Optional[Sequence] = None,
         action_upper_bound: Optional[Sequence] = None,
-        device: Union[torch.device, str, None] = None,
+        device: Device = None,
     ):
-        self.obs_dim = obs_dim
-        self.action_dim = action_dim
-        self.dt = dt
         if obs_lower_bound is None:
             obs_lower_bound = [float("-inf")] * self.obs_dim
         if obs_upper_bound is None:
