@@ -80,7 +80,7 @@ class Veh3DofModel(EnvModel):
         # distance from vehicle center to front/rear circle center
         d = (self.veh_length - self.veh_width) / 2
         # circle radius
-        r = np.sqrt(2) / 2 * self.veh_width
+        r = 0.5 * self.veh_width
         ego_obs = state.robot_state
         x, y, phi = ego_obs[:, :3].split(1, dim=1)
         ego_center = torch.stack(
