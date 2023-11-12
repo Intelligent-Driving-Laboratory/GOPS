@@ -110,6 +110,7 @@ def get_apprfunc_dict(key: str, **kwargs):
     if kwargs["action_type"] == "continu":
         var["act_high_lim"] = np.array(kwargs["action_high_limit"])
         var["act_low_lim"] = np.array(kwargs["action_low_limit"])
+        import ipdb;ipdb.set_trace()
         var["act_dim"] = kwargs["action_dim"]
 
     else:

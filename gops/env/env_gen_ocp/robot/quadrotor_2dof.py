@@ -8,6 +8,7 @@ import xml.etree.ElementTree as etxml
 import math
 import json
 from gops.env.env_gen_ocp.env_model.quadrotor_tracking_model import Task,Cost,QuadType
+from gops.env.env_gen_ocp.pyth_base import Robot
 
 NAME = 'quadrotor'
 
