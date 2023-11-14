@@ -130,10 +130,10 @@ class Quadrotor():
         self.task = self.context.task
         self.GROUND_PLANE_Z = -0.05
        
-        self.STATE_LABELS = ['x', 'x_dot', 'y', 'y_dot', 'z', 'z_dot',
-                                'phi', 'theta', 'psi', 'p', 'q', 'r']
-        self.STATE_UNITS = ['m', 'm/s', 'm', 'm/s', 'm', 'm/s',
-                            'rad', 'rad', 'rad', 'rad/s', 'rad/s', 'rad/s']
+        self.STATE_LABELS = ['x', 'x_dot',  'z', 'z_dot',
+                                'theta',  'q', ]
+        self.STATE_UNITS = ['m', 'm/s',  'm', 'm/s',
+                             'rad', 'rad/s']
         self.INIT_STATE_LABELS = {
             QuadType.TWO_D: ['init_x', 'init_x_dot', 'init_z', 'init_z_dot', 'init_theta', 'init_theta_dot'],
         }
@@ -279,87 +279,15 @@ class Quadrotor():
                     self.__dict__[init_name.upper()] = init_state.get(init_name, 0.)
             else:
                 raise ValueError('[ERROR] in Quadrotor.__init__(), init_state incorrect format.')
-        return self._get_obs()
+        return self.state
     
     def step(self, thrust):
         X_dot= self.f_xu(X=self.state,U=thrust)
         self.state += self.dt * X_dot
         self.action = thrust
-        obs = self._get_obs()
-        rew = self._get_reward(thrust)
-        done = self._get_done()
-        info = self._get_info()
+       
         self.ctrl_step_counter += 1
-        return obs, rew, done, info
+       
+        return  X_dot
 
-    def _get_obs(self):
-        return self.state
-        
-    def _get_reward(self,action):
-        act_error = action - self.context.U_GOAL
-        # Quadratic costs w.r.t state and action
-        # TODO: consider using multiple future goal states for cost in tracking
-        if self.task == 'STABILIZATION':
-            state_error = self.state - self.context.X_GOAL
-            dist = np.sum(self.context.rew_state_weight * state_error * state_error)
-            dist += np.sum(self.context.rew_act_weight * act_error * act_error)
-        if self.task == 'TRAJ_TRACKING':
-            wp_idx = min(self.ctrl_step_counter + 1, self.context.X_GOAL.shape[0] - 1)  # +1 because state has already advanced but counter not incremented.
-            state_error = self.state - self.context.X_GOAL[wp_idx]
-            dist = np.sum(self.context.rew_state_weight * state_error * state_error)
-            dist += np.sum(self.context.rew_act_weight * act_error * act_error)
-        rew = -dist
-        # Convert rew to be positive and bounded [0,1].
-        if self.rew_exponential:
-            rew = np.exp(rew)
-        return rew
    
-
-    def _get_done(self):
-        # Done if goal reached for stabilization task with quadratic cost.
-        if self.task == 'STABILIZATION' :
-            self.goal_reached = bool(np.linalg.norm(self.state - self.context.X_GOAL) < self.context.TASK_INFO['stabilization_goal_tolerance'])
-            if self.goal_reached:
-                return True 
-        # Done if state is out-of-bounds.
-        mask = np.array([1, 0, 1, 0, 1, 0])
-        # Element-wise or to check out-of-bound conditions.
-        # import ipdb; ipdb.set_trace()
-        self.out_of_bounds = np.logical_or(self.state < self.state_space.low,
-                                        self.state > self.state_space.high)
-        # Mask out un-included dimensions (i.e. velocities)
-        self.out_of_bounds = np.any(self.out_of_bounds * mask)
-        # Early terminate if needed.
-        if self.out_of_bounds:
-            return True
-        return False
-      
-    def _get_info(self):
-        '''Generates the info dictionary returned by every call to .step().
-
-        Returns:
-            info (dict): A dictionary with information about the constraints evaluations and violations.
-        '''
-        info = {}
-        if self.task == 'STABILIZATION' :
-            info['goal_reached'] = self.goal_reached  # Add boolean flag for the goal being reached.
-        info['out_of_bounds'] = self.out_of_bounds
-        # Add MSE.
-        state = deepcopy(self.state)
-        if self.task == 'STABILIZATION':
-            state_error = state - self.context.X_GOAL
-        elif self.task == 'TRAJ_TRACKING':
-            # TODO: should use angle wrapping
-            # state[4] = normalize_angle(state[4])
-            wp_idx = min(self.ctrl_step_counter + 1, self.context.X_GOAL.shape[0] - 1)  # +1 so that state is being compared with proper reference state.
-            state_error = state - self.context.X_GOAL[wp_idx]
-        # Filter only relevant dimensions.
-
-        # import ipdb; ipdb.set_trace()
-        state_error = state_error * self.info_mse_metric_state_weight
-        info['mse'] = np.sum(state_error ** 2)
-        # if self.constraints is not None:
-        #     info['constraint_values'] = self.constraints.get_values(self)
-        #     info['constraint_violations'] = self.constraints.get_violations(self)
-        return info
- 
