@@ -167,7 +167,13 @@ class Veh3DoFTrackingDetourModel(EnvModel):
 
 
 def env_model_creator(**kwargs) -> Veh3DoFTrackingDetourModel:
-    """
-    make env model `veh3dof_tracking`
-    """
     return Veh3DoFTrackingDetourModel(**kwargs)
+
+
+if __name__ == "__main__":
+    from gops.env.env_gen_ocp.veh3dof_tracking_detour import Veh3DoFTrackingDetour
+    from gops.env.inspector.consistency_checker import check_env_model_consistency
+
+    env = Veh3DoFTrackingDetour()
+    model = Veh3DoFTrackingDetourModel()
+    check_env_model_consistency(env, model)

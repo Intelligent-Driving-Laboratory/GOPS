@@ -102,7 +102,13 @@ def ego_vehicle_coordinate_transform(
 
 
 def env_model_creator(**kwargs) -> Veh3DoFTrackingModel:
-    """
-    make env model `veh3dof_tracking`
-    """
     return Veh3DoFTrackingModel(**kwargs)
+
+
+if __name__ == "__main__":
+    from gops.env.env_gen_ocp.veh3dof_tracking import Veh3DoFTracking
+    from gops.env.inspector.consistency_checker import check_env_model_consistency
+
+    env = Veh3DoFTracking()
+    model = Veh3DoFTrackingModel()
+    check_env_model_consistency(env, model)

@@ -251,27 +251,9 @@ def env_creator(**kwargs):
 
 
 if __name__ == "__main__":
-    # test consistency with old environment
-
-    import numpy as np
-    from gops.env.env_gen_ocp.veh3dof_tracking import Veh3DoFTracking
     from gops.env.env_ocp.pyth_veh3dofconti import SimuVeh3dofconti
-
+    from gops.env.inspector.consistency_checker import check_env_old_new_consistency
 
     env_old = SimuVeh3dofconti()
     env_new = Veh3DoFTracking()
-
-    seed = 1
-    env_old.seed(seed)
-    env_new.seed(seed)
-    np.random.seed(seed)
-
-    obs_old, _ = env_old.reset()
-    obs_new, _ = env_new.reset()
-    print("reset obs close:", np.isclose(obs_old, obs_new).all())
-
-    action = np.random.random(2)
-    next_obs_old, reward_old, done_old, _ = env_old.step(action)
-    next_obs_new, reward_new, done_new, _ = env_new.step(action)
-    print("step obs close:", np.isclose(obs_old, obs_new).all())
-    print("step reward close:", np.isclose(reward_old, reward_new))
+    check_env_old_new_consistency(env_old, env_new)
