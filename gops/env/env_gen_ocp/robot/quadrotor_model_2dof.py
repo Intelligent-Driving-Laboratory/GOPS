@@ -3,11 +3,11 @@ from typing import Optional, Sequence
 import torch
 from gops.env.env_gen_ocp.env_model.pyth_base_model import RobotModel
 from gops.env.env_gen_ocp.context.quad_ref_traj import QuadContext
-from gops.env.env_gen_ocp.env_model.quadrotor_tracking_model import Task,Cost,QuadType
-from gops.env.env_gen_ocp.env_model.quadrotor_tracking_model import Task,Cost,QuadType
+from gops.env.env_gen_ocp.env_model.quadrotor_1dof_tracking_stablization_model import Task,Cost,QuadType
 
 
-class QuadrotorDynMdl(RobotModel):
+
+class QuadrotorDynMd2(RobotModel):
     def __init__(self, 
                  prior_prop={},
                  obs_goal_horizon = 0,

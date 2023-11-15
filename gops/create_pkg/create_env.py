@@ -168,7 +168,6 @@ def create_env(
             env = ActionRepeatData(env, repeat_num, sum_reward)
 
         env = ConvertType(env)
-
         env = StateData(env)
 
         if reward_scale is not None or reward_shift is not None:

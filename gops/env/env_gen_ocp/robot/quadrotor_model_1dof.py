@@ -1,10 +1,10 @@
 from typing import Optional, Sequence
-
+import json
 import torch
 from gops.env.env_gen_ocp.env_model.pyth_base_model import RobotModel
 from gops.env.env_gen_ocp.context.quad_ref_traj import QuadContext
-from gops.env.env_gen_ocp.env_model.quadrotor_tracking_model import Task,Cost,QuadType
-from gops.env.env_gen_ocp.env_model.quadrotor_tracking_model import Task,Cost,QuadType
+from gops.env.env_gen_ocp.env_model.quadrotor_1dof_tracking_stablization_model import Task,Cost,QuadType
+from gym import spaces
 
 
 class QuadrotorDynMdl(RobotModel):
@@ -77,7 +77,67 @@ class QuadrotorDynMdl(RobotModel):
         self._set_action_space()
         self._set_observation_space()
         
+    def load_parameters(self):
+        with open(self.URDF_PATH, 'r') as f:
+            parameters = json.load(f)
+        self.MASS = parameters["MASS"]
+        self.L = parameters["L"]
+        self.THRUST2WEIGHT_RATIO = parameters["THRUST2WEIGHT_RATIO"]
+        self.J = torch.tensor(parameters["J"])
+        self.J_INV = torch.tensor(parameters["J_INV"])
+        self.KF = parameters["KF"]
+        self.KM = parameters["KM"]
+        self.COLLISION_H = parameters["COLLISION_H"]
+        self.COLLISION_R = parameters["COLLISION_R"]
+        self.COLLISION_Z_OFFSET = parameters["COLLISION_Z_OFFSET"]
+        self.MAX_SPEED_KMH = parameters["MAX_SPEED_KMH"]
+        self.GND_EFF_COEFF = parameters["GND_EFF_COEFF"]
+        self.PROP_RADIUS = parameters["PROP_RADIUS"]
+        self.DRAG_COEFF = parameters["DRAG_COEFF"]
+        self.DW_COEFF_1 = parameters["DW_COEFF_1"]
+        self.DW_COEFF_2 = parameters["DW_COEFF_2"]
+        self.DW_COEFF_3 = parameters["DW_COEFF_3"]
+        self.PWM2RPM_SCALE = parameters["PWM2RPM_SCALE"]
+        self.PWM2RPM_CONST = parameters["PWM2RPM_CONST"]
+        self.MIN_PWM = parameters["MIN_PWM"]
+        self.MAX_PWM = parameters["MAX_PWM"]
+     
+    def _set_observation_space(self):
+        '''Sets the observation space of the environment.'''
+        self.z_threshold = 2
+      
+
+        # Define obs/state bounds, labels and units.
+        # obs/state = {z, z_dot}.
+        import numpy as np
+        low = np.array([self.GROUND_PLANE_Z, -np.finfo(np.float32).max])
+        high = np.array([self.z_threshold, np.finfo(np.float32).max])
+        self.STATE_LABELS = ['z', 'z_dot']
+        self.STATE_UNITS = ['m', 'm/s']
+      
+        self.state_space = spaces.Box(low=low, high=high, dtype=np.float32)
         
+    def _set_action_space(self):
+        '''Sets the action space of the environment.'''
+        # Define action/input dimension, labels, and units.
+        # import ipdb ; ipdb.set_trace()
+        action_dim = 1
+        n_mot = 4 / action_dim
+        a_low = self.KF * n_mot * (self.PWM2RPM_SCALE * self.MIN_PWM + self.PWM2RPM_CONST)**2
+        a_high = self.KF * n_mot * (self.PWM2RPM_SCALE * self.MAX_PWM + self.PWM2RPM_CONST)**2
+        self.physical_action_bounds = (torch.full((action_dim,), a_low, dtype=torch.float32),
+                                    torch.full((action_dim,), a_high, dtype=torch.float32))
+
+        # Normalized thrust action space (around hover thrust).
+        import numpy as np
+        self.hover_thrust = self.GRAVITY_ACC * self.MASS / action_dim
+        self.action_space = spaces.Box(low=-np.ones(action_dim),
+                                        high=np.ones(action_dim),
+                                        dtype=np.float32)
+        # # else, Direct thrust control.
+        # self.action_space = spaces.Box(low=self.physical_action_bounds[0],
+        #                                 high=self.physical_action_bounds[1],
+        #                                 dtype=torch.float32)
     def get_next_state(self,X,U):
         m = self.context.MASS
         g= self.GRAVITY_ACC

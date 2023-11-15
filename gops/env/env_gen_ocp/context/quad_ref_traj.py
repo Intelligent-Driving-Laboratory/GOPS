@@ -4,6 +4,7 @@ import configparser
 config = configparser.ConfigParser()
 import configparser
 from enum import Enum
+from gops.env.env_gen_ocp.pyth_base import ContextState, Context
 
 class QuadType(Enum):
     ONE_D = 1
@@ -34,7 +35,7 @@ TASK_INFO = {
     'proj_normal': [0, 1, 1],
 }
 
-class QuadContext:
+class QuadContext(Context):
     def __init__(self,
                  prior_prop={}, 
                  quad_type = QuadType.THREE_D,
@@ -43,6 +44,7 @@ class QuadContext:
                  task = 'TRAJ_TRACKING') -> None:
         self.QUAD_TYPE = QuadType(quad_type)
         self.task = task
+        self.ctrl_step_counter = 0
         self.MASS = prior_prop.get('M', 1.0)
         self.rew_state_weight = np.array(rew_state_weight, ndmin=1, dtype=float)
         self.rew_act_weight = np.array(rew_act_weight, ndmin=1, dtype=float)
@@ -58,6 +60,18 @@ class QuadContext:
         'proj_normal': [0, 1, 1],
     }
         self._get_GOAL()
+    
+    def reset(self) -> ContextState[np.ndarray]:
+        self._get_GOAL()
+        return self.X_GOAL[0]
+    
+    def step(self) -> ContextState[np.ndarray]:
+        self.ctrl_step_counter += 1
+        wp_idx = min(self.ctrl_step_counter, self.X_GOAL.shape[0] - 1)  
+        return self.X_GOAL[wp_idx]
+    
+    def get_zero_state(self) -> ContextState[np.ndarray]:
+        return ContextState(reference=np.zeros_like(self.X_GOAL[0], dtype=np.float32))
         
     def _generate_trajectory(self,
                              traj_type='figure8',
@@ -402,3 +416,8 @@ class QuadContext:
             coords_a_dot = traverse_speed
             coords_b_dot = 0.0
         return coords_a, coords_b, coords_a_dot, coords_b_dot
+    
+if __name__ == '__main__':
+    quad = QuadContext()
+    quad.step()
+    quad.reset()

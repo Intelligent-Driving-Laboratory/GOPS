@@ -77,7 +77,6 @@ class RefTrajContext(Context):
         ref_points[:-1] = ref_points[1:]
         ref_points[-1] = new_ref_point
         self.state.reference = ref_points
-
         return self.state
 
     def get_zero_state(self) -> ContextState[np.ndarray]:

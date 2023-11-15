@@ -1,12 +1,12 @@
 from typing import Dict, Optional, Sequence, Tuple
-
 import numpy as np
 from gym import spaces
 from enum import IntEnum
 from copy import deepcopy
 from gops.env.env_gen_ocp.pyth_base import Env, State
-from gops.env.env_gen_ocp.robot.quadrotor_3dof import Quadrotor
+from gops.env.env_gen_ocp.robot.quadrotor_1dof import Quadrotor
 from gops.env.env_gen_ocp.context.quad_ref_traj import QuadContext
+
 
 class QuadType(IntEnum):
     '''Quadrotor types numeration class.'''
@@ -16,15 +16,14 @@ class QuadType(IntEnum):
     
 class QuadTracking(Env):
     def __init__(
-        self,  
+        self,       
         task = "TRAJ_TRACKING",
-             
         **kwargs,
     ):
         self.robot: Quadrotor = Quadrotor(
         )
         self.context: QuadContext = QuadContext(
-            quad_type = QuadType.THREE_D
+            quad_type = QuadType.ONE_D
         )
         self.state_space = self.robot.state_space
         self.action_space = self.robot.action_space
@@ -71,8 +70,9 @@ class QuadTracking(Env):
             if self.goal_reached:
                 return True 
         # Done if state is out-of-bounds.
-        mask = np.array([1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0])
-
+       
+        mask = np.array([1, 0])
+      
         # Element-wise or to check out-of-bound conditions.
         # import ipdb; ipdb.set_trace()
         self.out_of_bounds = np.logical_or(self.state.robot_state < self.robot.state_space.low,
@@ -133,9 +133,6 @@ class QuadTracking(Env):
             context_state=None
         )
         
-        
- 
-
 def env_creator(**kwargs):
     return QuadTracking(**kwargs)
 
