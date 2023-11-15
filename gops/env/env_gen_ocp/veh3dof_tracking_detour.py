@@ -129,9 +129,8 @@ class Veh3DoFTrackingDetour(Veh3DoFTracking):
         violation = self._get_constraint()
         threshold = -0.1
         punish = np.maximum(violation - threshold, 0).sum()
-        if (punish > 0) :
+        if punish > 0:
             punish += 1.0
-        done = self._get_terminated()
         return - 0.01 * (
             10.0 * (x - ref_x) ** 2
             + 10.0 * (y - ref_y) ** 2
@@ -141,7 +140,7 @@ class Veh3DoFTrackingDetour(Veh3DoFTracking):
             + 1000  * steer ** 2
             + 50  * a_x ** 2
             + 500.0 * punish
-        ) + 2.0 - 100 * done
+        ) + 2.0
 
     def _get_terminated(self) -> bool:
         x, y, phi = self.robot.state[:3]

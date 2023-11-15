@@ -176,11 +176,14 @@ class Env(gym.Env, metaclass=ABCMeta):
     robot: Robot
     context: Context
     _state: State[np.ndarray]
+    termination_penalty: float = 0.0
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         reward = self._get_reward(action)
         self._state = self._get_next_state(action)
         terminated = self._get_terminated()
+        if terminated:
+            reward -= self.termination_penalty
         return self._get_obs(), reward, terminated, self._get_info()
 
     def _get_info(self) -> dict:
