@@ -111,7 +111,7 @@ class EnvModel(Model, metaclass=ABCMeta):
         next_state = self.get_next_state(state, action)
         next_obs = self.get_obs(next_state)
         reward = self.get_reward(state, action)
-        terminated = self.get_terminated(state)
+        terminated = self.get_terminated(next_state)
         next_info = {}
         next_info["state"] = next_state
         if self.get_constraint is not None:
