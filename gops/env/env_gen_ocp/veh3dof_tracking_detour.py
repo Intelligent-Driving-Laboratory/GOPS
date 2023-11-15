@@ -129,9 +129,8 @@ class Veh3DoFTrackingDetour(Veh3DoFTracking):
         violation = self._get_constraint()
         threshold = -0.1
         punish = np.maximum(violation - threshold, 0).sum()
-        if (punish > 0) :
+        if punish > 0:
             punish += 1.0
-        done = self._get_terminated()
         return - 0.01 * (
             10.0 * (x - ref_x) ** 2
             + 10.0 * (y - ref_y) ** 2
@@ -141,7 +140,7 @@ class Veh3DoFTrackingDetour(Veh3DoFTracking):
             + 1000  * steer ** 2
             + 50  * a_x ** 2
             + 500.0 * punish
-        ) + 2.0 - 100 * done
+        ) + 2.0
 
     def _get_terminated(self) -> bool:
         x, y, phi = self.robot.state[:3]
@@ -186,28 +185,11 @@ class Veh3DoFTrackingDetour(Veh3DoFTracking):
 def env_creator(**kwargs):
     return Veh3DoFTrackingDetour(**kwargs)
 
+
 if __name__ == "__main__":
-    # test consistency with old environment
-
-    import numpy as np
-    from gops.env.env_gen_ocp.veh3dof_tracking_detour import Veh3DoFTrackingDetour
     from gops.env.env_ocp.pyth_veh3dofconti_detour import SimuVeh3dofcontiSurrCstr
-
+    from gops.env.inspector.consistency_checker import check_env_old_new_consistency
 
     env_old = SimuVeh3dofcontiSurrCstr()
     env_new = Veh3DoFTrackingDetour()
-
-    seed = 1
-    env_old.seed(seed)
-    env_new.seed(seed)
-    np.random.seed(seed)
-
-    obs_old, _ = env_old.reset()
-    obs_new, _ = env_new.reset()
-    print("reset obs close:", np.isclose(obs_old, obs_new).all())
-
-    action = np.random.random(2)
-    next_obs_old, reward_old, done_old, _ = env_old.step(action)
-    next_obs_new, reward_new, done_new, _ = env_new.step(action)
-    print("step obs close:", np.isclose(obs_old, obs_new).all())
-    print("step reward close:", np.isclose(reward_old, reward_new))
+    check_env_old_new_consistency(env_old, env_new)

@@ -16,6 +16,7 @@ class Veh3DoFTrackingModel(EnvModel):
     def __init__(
         self,
         pre_horizon: int = 10,
+        max_acc: float = 3.0,
         max_steer: float = torch.pi / 6,
         device: Union[torch.device, str, None] = None,
         **kwargs,
@@ -26,8 +27,8 @@ class Veh3DoFTrackingModel(EnvModel):
         super().__init__(
             obs_lower_bound=None,
             obs_upper_bound=None,
-            action_lower_bound=[-max_steer, -3],
-            action_upper_bound=[max_steer, 3],
+            action_lower_bound=[-max_steer, -max_acc],
+            action_upper_bound=[max_steer, max_acc],
             device=device,
         )
         self.robot_model = Veh3DoFModel()
@@ -102,7 +103,13 @@ def ego_vehicle_coordinate_transform(
 
 
 def env_model_creator(**kwargs) -> Veh3DoFTrackingModel:
-    """
-    make env model `veh3dof_tracking`
-    """
     return Veh3DoFTrackingModel(**kwargs)
+
+
+if __name__ == "__main__":
+    from gops.env.env_gen_ocp.veh3dof_tracking import Veh3DoFTracking
+    from gops.env.inspector.consistency_checker import check_env_model_consistency
+
+    env = Veh3DoFTracking()
+    model = Veh3DoFTrackingModel()
+    check_env_model_consistency(env, model)

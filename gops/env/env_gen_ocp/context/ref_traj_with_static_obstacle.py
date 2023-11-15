@@ -108,7 +108,6 @@ class RefTrajWithStaticObstacleContext(RefTrajContext):
         self.state = ContextState(
             reference=ref_points,
             constraint=self.get_surr_state_pred(),
-            t=np.array(0, dtype=np.int8),
         )
         return self.state
     
