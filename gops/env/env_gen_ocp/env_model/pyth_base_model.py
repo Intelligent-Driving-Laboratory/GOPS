@@ -38,7 +38,7 @@ class RobotModel(Model):
         self.device = device
 
     @abstractmethod
-    def get_next_state(self, robot_state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+    def get_next_state(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         ...
 
 

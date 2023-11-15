@@ -21,16 +21,16 @@ class Veh3DoFModel(RobotModel):
         )
         self.vehicle_params = Veh3DoFParam()
 
-    def get_next_state(self, robot_state: torch.Tensor, robot_action: torch.Tensor) -> torch.Tensor:
+    def get_next_state(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         x, y, phi, u, v, w = (
-            robot_state[:, 0],
-            robot_state[:, 1],
-            robot_state[:, 2],
-            robot_state[:, 3],
-            robot_state[:, 4],
-            robot_state[:, 5],
+            state[:, 0],
+            state[:, 1],
+            state[:, 2],
+            state[:, 3],
+            state[:, 4],
+            state[:, 5],
         )
-        steer, a_x = robot_action[:, 0], robot_action[:, 1]
+        steer, a_x = action[:, 0], action[:, 1]
         k_f = self.vehicle_params.kf
         k_r = self.vehicle_params.kr
         l_f = self.vehicle_params.lf
