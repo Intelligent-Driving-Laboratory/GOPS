@@ -4,7 +4,7 @@ from gops.env.env_gen_ocp.pyth_base import State
 from gops.env.env_gen_ocp.env_model.veh3dof_tracking_model import Veh3DoFTrackingModel
 
 
-class Veh3DoFTrackingErrModel(Veh3DoFTrackingModel):
+class Veh3DoFTrackingErrorModel(Veh3DoFTrackingModel):
     def get_constraint(self, state: State) -> torch.Tensor:
         y, u = state.robot_state[:, 1], state.robot_state[:, 3]
         ref = state.context_state.index_by_t().reference
@@ -18,14 +18,14 @@ class Veh3DoFTrackingErrModel(Veh3DoFTrackingModel):
         return constraint
 
 
-def env_model_creator(**kwargs) -> Veh3DoFTrackingErrModel:
-    return Veh3DoFTrackingErrModel(**kwargs)
+def env_model_creator(**kwargs) -> Veh3DoFTrackingErrorModel:
+    return Veh3DoFTrackingErrorModel(**kwargs)
 
 
 if __name__ == "__main__":
-    from gops.env.env_gen_ocp.veh3dof_tracking_err import Veh3DoFTrackingErr
+    from gops.env.env_gen_ocp.veh3dof_tracking_error import Veh3DoFTrackingError
     from gops.env.inspector.consistency_checker import check_env_model_consistency
 
-    env = Veh3DoFTrackingErr()
-    model = Veh3DoFTrackingErrModel()
+    env = Veh3DoFTrackingError()
+    model = Veh3DoFTrackingErrorModel()
     check_env_model_consistency(env, model)
