@@ -189,7 +189,7 @@ class Env(gym.Env, metaclass=ABCMeta):
     def _get_info(self) -> dict:
         info = {'state': deepcopy(self._state)}
         try:
-            info['cost'] = self._get_constraint()
+            info['constraint'] = self._get_constraint()
         except NotImplementedError:
             pass
         return info
