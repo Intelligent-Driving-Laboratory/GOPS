@@ -1,18 +1,74 @@
-import gym
 import numpy as np
 import torch
-from gops.env.env_gen_ocp.pyth_base import Env
-from gops.env.env_gen_ocp.env_model.pyth_base_model import EnvModel
+import pytest
+
+from gops.env.env_ocp.pyth_veh3dofconti import SimuVeh3dofconti
+from gops.env.env_gen_ocp.veh3dof_tracking import Veh3DoFTracking
+from gops.env.env_gen_ocp.env_model.veh3dof_tracking_model import Veh3DoFTrackingModel
+
+from gops.env.env_ocp.pyth_veh3dofconti_errcstr import SimuVeh3dofcontiErrCstr
+from gops.env.env_gen_ocp.veh3dof_tracking_error import Veh3DoFTrackingError
+from gops.env.env_gen_ocp.env_model.veh3dof_tracking_error_model import Veh3DoFTrackingErrorModel
 
 
-def check_env_old_new_consistency(
-    env_old: gym.Env,
-    env_new: Env,
-    rtol: float = 1e-5,
-    atol: float = 1e-6,
-    step: int = 10,
-    seed: int = 0,
-):
+
+"""
+    Add new test cases in the following two lists, each test case is a dict with keys:
+        "env_old_cls": old env class / "env_cls": env class
+        "env_new_cls": new env class / "model_cls": model class
+        "rtol": relative tolerance for np.isclose
+        "atol": absolute tolerance for np.isclose
+        "step": number of steps to test
+        "seed": seed for env,
+    last four keys among which are optional
+"""
+raw_test_cases_env_old_vs_new = [
+    {
+        "env_old_cls": SimuVeh3dofconti,
+        "env_new_cls": Veh3DoFTracking,
+    },
+    {
+        "env_old_cls": SimuVeh3dofcontiErrCstr,
+        "env_new_cls": Veh3DoFTrackingError,
+    },
+]
+
+raw_test_cases_env_vs_model = [
+    {
+        "env_cls": Veh3DoFTracking,
+        "model_cls": Veh3DoFTrackingModel,
+    },
+    {
+        "env_cls": Veh3DoFTrackingError,
+        "model_cls": Veh3DoFTrackingErrorModel,
+    },
+]
+
+DEFAULT_PARAMS = {
+    "rtol": 1e-5,
+    "atol": 1e-6,
+    "step": 10,
+    "seed": 0,
+}
+
+@pytest.fixture
+def test_cases_env_old_vs_new(request):
+    return {**DEFAULT_PARAMS, **request.param}
+
+@pytest.fixture
+def test_cases_env_vs_model(request):
+    return {**DEFAULT_PARAMS, **request.param}
+
+@pytest.mark.parametrize("test_cases_env_old_vs_new", raw_test_cases_env_old_vs_new, indirect=True)
+def test_env_old_vs_new_consistency(test_cases_env_old_vs_new):
+    env_old_cls = test_cases_env_old_vs_new["env_old_cls"]
+    env_new_cls = test_cases_env_old_vs_new["env_new_cls"]
+    rtol = test_cases_env_old_vs_new["rtol"]
+    atol = test_cases_env_old_vs_new["atol"]
+    step = test_cases_env_old_vs_new["step"]
+    seed = test_cases_env_old_vs_new["seed"]
+    env_old = env_old_cls()
+    env_new = env_new_cls()
     env_old.seed(seed)
     env_new.seed(seed)
     env_old.action_space.seed(seed)
@@ -41,15 +97,16 @@ def check_env_old_new_consistency(
 
     print(f'Tested {i + 1} steps! New env is consistent with old env!')
 
-
-def check_env_model_consistency(
-    env: Env,
-    model: EnvModel,
-    rtol: float = 1e-5,
-    atol: float = 1e-6,
-    step: int = 10,
-    seed: int = 0,
-):
+@pytest.mark.parametrize("test_cases_env_vs_model", raw_test_cases_env_vs_model, indirect=True)
+def test_env_vs_model_consistency(test_cases_env_vs_model):
+    env_cls = test_cases_env_vs_model["env_cls"]
+    model_cls = test_cases_env_vs_model["model_cls"]
+    rtol = test_cases_env_vs_model["rtol"]
+    atol = test_cases_env_vs_model["atol"]
+    step = test_cases_env_vs_model["step"]
+    seed = test_cases_env_vs_model["seed"]
+    env = env_cls()
+    model = model_cls()
     env.seed(seed)
     env.action_space.seed(seed)
 
