@@ -2,14 +2,25 @@ import numpy as np
 import torch
 import pytest
 
+from gops.env.env_ocp.pyth_veh2dofconti import SimuVeh2dofconti
+from gops.env.env_gen_ocp.veh2dof_tracking import Veh2DoFTracking
+from gops.env.env_gen_ocp.env_model.veh2dof_tracking_model import Veh2DoFTrackingModel
+
 from gops.env.env_ocp.pyth_veh3dofconti import SimuVeh3dofconti
 from gops.env.env_gen_ocp.veh3dof_tracking import Veh3DoFTracking
 from gops.env.env_gen_ocp.env_model.veh3dof_tracking_model import Veh3DoFTrackingModel
+
+from gops.env.env_ocp.pyth_veh2dofconti_errcstr import SimuVeh2dofcontiErrCstr
+from gops.env.env_gen_ocp.veh2dof_tracking_error import Veh2DoFTrackingError
+from gops.env.env_gen_ocp.env_model.veh2dof_tracking_error_model import Veh2DoFTrackingErrorModel
 
 from gops.env.env_ocp.pyth_veh3dofconti_errcstr import SimuVeh3dofcontiErrCstr
 from gops.env.env_gen_ocp.veh3dof_tracking_error import Veh3DoFTrackingError
 from gops.env.env_gen_ocp.env_model.veh3dof_tracking_error_model import Veh3DoFTrackingErrorModel
 
+from gops.env.env_ocp.pyth_veh3dofconti_detour import SimuVeh3dofcontiSurrCstr
+from gops.env.env_gen_ocp.veh3dof_tracking_detour import Veh3DoFTrackingDetour
+from gops.env.env_gen_ocp.env_model.veh3dof_tracking_detour_model import Veh3DoFTrackingDetourModel
 
 
 """
@@ -24,8 +35,16 @@ from gops.env.env_gen_ocp.env_model.veh3dof_tracking_error_model import Veh3DoFT
 """
 raw_test_cases_env_old_vs_new = [
     {
+        "env_old_cls": SimuVeh2dofconti,
+        "env_new_cls": Veh2DoFTracking,
+    },
+    {
         "env_old_cls": SimuVeh3dofconti,
         "env_new_cls": Veh3DoFTracking,
+    },
+    {
+        "env_old_cls": SimuVeh2dofcontiErrCstr,
+        "env_new_cls": Veh2DoFTrackingError,
     },
     {
         "env_old_cls": SimuVeh3dofcontiErrCstr,
@@ -35,8 +54,16 @@ raw_test_cases_env_old_vs_new = [
 
 raw_test_cases_env_vs_model = [
     {
+        "env_cls": Veh2DoFTracking,
+        "model_cls": Veh2DoFTrackingModel,
+    },
+    {
         "env_cls": Veh3DoFTracking,
         "model_cls": Veh3DoFTrackingModel,
+    },
+    {
+        "env_cls": Veh2DoFTrackingError,
+        "model_cls": Veh2DoFTrackingErrorModel,
     },
     {
         "env_cls": Veh3DoFTrackingError,
@@ -90,6 +117,7 @@ def test_env_old_vs_new_consistency(test_cases_env_old_vs_new):
         if "constraint" in info_old:
             constraint_old = info_old["constraint"]
             constraint_new = info_new["constraint"]
+            print(constraint_old-constraint_new)
             assert np.isclose(constraint_old, constraint_new, rtol=rtol, atol=atol).all(), \
                 f"constraint not close on step {i}!"
         if done_old:
