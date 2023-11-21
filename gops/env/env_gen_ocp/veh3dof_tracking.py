@@ -248,12 +248,3 @@ def ego_vehicle_coordinate_transform(
 
 def env_creator(**kwargs):
     return Veh3DoFTracking(**kwargs)
-
-
-if __name__ == "__main__":
-    from gops.env.env_ocp.pyth_veh3dofconti import SimuVeh3dofconti
-    from gops.env.inspector.consistency_checker import check_env_old_new_consistency
-
-    env_old = SimuVeh3dofconti()
-    env_new = Veh3DoFTracking()
-    check_env_old_new_consistency(env_old, env_new)
