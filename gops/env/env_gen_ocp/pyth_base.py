@@ -2,6 +2,7 @@ from abc import abstractmethod, ABCMeta
 from dataclasses import dataclass, fields
 from typing import Dict, Generic, Optional, Sequence, Tuple, TypeVar, Union
 from copy import deepcopy
+from gym.utils.seeding import RandomNumberGenerator
 
 import gym
 from gym import spaces
@@ -160,7 +161,8 @@ class Robot(metaclass=ABCMeta):
 # TODO: Static constraint value
 class Context(metaclass=ABCMeta):
     state: ContextState[np.ndarray]
-    
+    np_random: Optional[RandomNumberGenerator] = RandomNumberGenerator
+
     @abstractmethod
     def reset(self) -> ContextState[np.ndarray]:
         ...
@@ -238,6 +240,9 @@ class Env(gym.Env, metaclass=ABCMeta):
             "state": self.get_zero_state(),
         }
 
+    def seed(self, seed=None):
+        super().seed(seed)
+        self.context.np_random = self.np_random
 
 def batch(x: Union[np.ndarray, torch.Tensor], batch_size: int) -> Union[np.ndarray, torch.Tensor]:
     if isinstance(x, np.ndarray):

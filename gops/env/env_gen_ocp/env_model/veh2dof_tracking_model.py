@@ -72,11 +72,3 @@ class Veh2DoFTrackingModel(EnvModel):
 def env_model_creator(**kwargs) -> Veh2DoFTrackingModel:
     return Veh2DoFTrackingModel(**kwargs)
 
-
-if __name__ == "__main__":
-    from gops.env.env_gen_ocp.veh2dof_tracking import Veh2DoFTracking
-    from gops.env.inspector.consistency_checker import check_env_model_consistency
-
-    env = Veh2DoFTracking()
-    model = Veh2DoFTrackingModel()
-    check_env_model_consistency(env, model)

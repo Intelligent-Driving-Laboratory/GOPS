@@ -179,13 +179,3 @@ class Veh3DoFTrackingSurrCstr(Veh3DoFTracking):
 
 def env_creator(**kwargs):
     return Veh3DoFTrackingSurrCstr(**kwargs)
-
-
-if __name__ == "__main__":
-    from gops.env.env_ocp.pyth_veh3dofconti_surrcstr import SimuVeh3dofcontiSurrCstr
-    from gops.env.inspector.consistency_checker import check_env_old_new_consistency
-
-    env_old = SimuVeh3dofcontiSurrCstr()
-    env_new = Veh3DoFTrackingSurrCstr()
-
-    check_env_old_new_consistency(env_old, env_new)
