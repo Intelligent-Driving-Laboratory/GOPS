@@ -158,8 +158,6 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
             self.surr_state[:, 0], self.surr_state[:, 1], self.surr_state[:, 2])
         surr_obs_rel = np.concatenate(
             ([surr_x_tf[0], surr_y_tf[0], surr_phi_tf[0],], self.surr_state[:, 3]))  # TODO: 多辆车 , [np.sign(surr_y_tf[0])]
-        # print("surr_obs_rel", surr_obs_rel)
-        surr_obs = self.surr_state[:, :4] - self.state[np.newaxis, :4]
         return np.concatenate((obs, surr_obs_rel))
 
     def get_constraint(self) -> np.ndarray:
@@ -167,7 +165,7 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         # distance from vehicle center to front/rear circle center
         d = (self.veh_length - self.veh_width) / 2
         # circle radius
-        r = 1.2 / 2 * self.veh_width
+        r = 0.5 * self.veh_width
 
         x, y, phi = self.state[:3]
         ego_center = np.array(
@@ -211,7 +209,7 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
         ego_lower_y = min(ego_center[0, 1], ego_center[1, 1]) - r
         upper_bound_violation = ego_upper_y - self.upper_bound
         lower_bound_violation = self.lower_bound - ego_lower_y
-        return np.array([ego_to_veh_violation, upper_bound_violation, lower_bound_violation], dtype=np.float32)
+        return np.array([ego_to_veh_violation], dtype=np.float32)
 
     def compute_reward(self, action: np.ndarray) -> float:
         x, y, phi, u, _, w = self.state

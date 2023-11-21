@@ -83,13 +83,13 @@ class Veh3DoFTracking(Env):
         if speed_num is None:
             speed_num = self.np_random.choice([0, 1])
 
-        context_state = self.context.reset(
-            ref_time=ref_time, path_num=path_num, speed_num=speed_num)
-
         if init_state is None:
             delta_state = self.np_random.uniform(low=self.init_low, high=self.init_high).astype(np.float32)
         else:
             delta_state = np.array(init_state, dtype=np.float32)
+        context_state = self.context.reset(
+            ref_time=ref_time, path_num=path_num, speed_num=speed_num, np_random=self.np_random)
+
         init_state = np.concatenate(
             (context_state.reference[0] + delta_state[:4], delta_state[4:])
         )

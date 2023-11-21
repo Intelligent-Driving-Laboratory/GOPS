@@ -56,7 +56,6 @@ class RefTrajSurrCstrContext(RefTrajContext):
         ref_time: float,
         path_num: Optional[int] = None,
         speed_num: Optional[int] = None,
-        np_random: Optional[np.random.RandomState] = None,
     ) -> ContextState[np.ndarray]:
         self.state = super().reset(
             ref_time=ref_time,
@@ -80,8 +79,8 @@ class RefTrajSurrCstrContext(RefTrajContext):
             # avoid ego vehicle
             while True:
                 # TODO: sample position according to reference trajectory
-                delta_lon = 10 * np_random.uniform(-1, 1)
-                delta_lat = 5 * np_random.uniform(-1, 1)
+                delta_lon = 10 * self.np_random.uniform(-1, 1)
+                delta_lat = 5 * self.np_random.uniform(-1, 1)
                 if abs(delta_lon) > 7 or abs(delta_lat) > 3:
                     break
             surr_x = (
@@ -90,7 +89,7 @@ class RefTrajSurrCstrContext(RefTrajContext):
             surr_y = (
                 surr_y0 + delta_lon * np.sin(surr_phi) + delta_lat * np.cos(surr_phi)
             )
-            surr_u = 5 + np_random.uniform(-1, 1)
+            surr_u = 5 + self.np_random.uniform(-1, 1)
             self.surr_vehs.append(
                 SurrVehicleData(
                     x=surr_x,

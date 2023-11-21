@@ -152,12 +152,6 @@ class Veh3DoFTrackingDetour(Veh3DoFTracking):
         )
         return done
 
-    def _get_info(self) -> dict:
-        return {
-            **super()._get_info(),
-            "constraint": self._get_constraint().copy(),
-        }
-
     def _render(self, ax, veh_length=4.8, veh_width=2.0):
         import matplotlib.patches as pc
         super()._render(ax, veh_length, veh_width)

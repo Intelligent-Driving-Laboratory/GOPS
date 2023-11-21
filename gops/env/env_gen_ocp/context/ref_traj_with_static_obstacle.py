@@ -80,13 +80,6 @@ class RefTrajWithStaticObstacleContext(RefTrajContext):
 
         self.surr_vehs = []
         for _ in range(self.surr_veh_num):
-            # avoid ego vehicle
-            while True:
-                # TODO: sample position according to reference trajectory
-                delta_lon = 10 * np.random.uniform(-1, 1)
-                delta_lat = 5 * np.random.uniform(-1, 1)
-                if abs(delta_lon) > 7 or abs(delta_lat) > 3:
-                    break
             surr_x = (
                 surr_x0 + 20.0
             )
