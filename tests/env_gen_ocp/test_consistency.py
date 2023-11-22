@@ -18,7 +18,7 @@ from gops.env.env_ocp.pyth_veh3dofconti_errcstr import SimuVeh3dofcontiErrCstr
 from gops.env.env_gen_ocp.veh3dof_tracking_error import Veh3DoFTrackingError
 from gops.env.env_gen_ocp.env_model.veh3dof_tracking_error_model import Veh3DoFTrackingErrorModel
 
-from gops.env.env_ocp.pyth_veh3dofconti_detour import SimuVeh3dofcontiSurrCstr
+from gops.env.env_ocp.pyth_veh3dofconti_detour import SimuVeh3dofcontiDetour
 from gops.env.env_gen_ocp.veh3dof_tracking_detour import Veh3DoFTrackingDetour
 from gops.env.env_gen_ocp.env_model.veh3dof_tracking_detour_model import Veh3DoFTrackingDetourModel
 
@@ -52,6 +52,10 @@ raw_test_cases_env_old_vs_new = [
     {
         "env_old_cls": SimuVeh3dofcontiErrCstr,
         "env_new_cls": Veh3DoFTrackingError,
+    },
+    {
+        "env_old_cls": SimuVeh3dofcontiDetour,
+        "env_new_cls": Veh3DoFTrackingDetour,
     },
     {
         "env_old_cls": SimuVeh3dofcontiSurrCstr,

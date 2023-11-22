@@ -37,7 +37,7 @@ class SurrVehicleData:
         self.phi = angle_normalize(self.phi)
 
 
-class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
+class SimuVeh3dofcontiDetour(SimuVeh3dofconti):
     def __init__(
         self,
         pre_horizon: int = 10,
@@ -306,4 +306,4 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
                 facecolor='w', edgecolor='k', zorder=1))
 
 def env_creator(**kwargs):
-    return SimuVeh3dofcontiSurrCstr(**kwargs)
+    return SimuVeh3dofcontiDetour(**kwargs)
