@@ -3,10 +3,10 @@ from typing import Dict, Optional, Sequence, Tuple
 import numpy as np
 from gym import spaces
 from gops.env.env_gen_ocp.robot.veh3dof import angle_normalize
-from gops.env.env_gen_ocp.context.ref_traj_with_static_obstacle import RefTrajWithStaticObstacleContext
+from gops.env.env_gen_ocp.context.ref_traj_surrcstr import RefTrajSurrCstrContext
 from gops.env.env_gen_ocp.veh3dof_tracking import Veh3DoFTracking, ego_vehicle_coordinate_transform
 
-class Veh3DoFTrackingDetour(Veh3DoFTracking):
+class Veh3DoFTrackingSurrCstr(Veh3DoFTracking):
     def __init__(
         self,
         *,
@@ -27,10 +27,10 @@ class Veh3DoFTrackingDetour(Veh3DoFTracking):
             max_steer=max_steer,
             **kwargs,
         )
-        self.init_high = np.array([1, 0.0, np.pi / 36, 2, 0.1, 0.1], dtype=np.float32)
-        self.init_low = -np.array([1, 0.8, np.pi / 36, 2, 0.1, 0.1], dtype=np.float32)
+        self.init_high = np.array([2, 1, np.pi / 6, 2, 0.1, 0.1], dtype=np.float32)
+        self.init_low = -self.init_high
 
-        self.context: RefTrajWithStaticObstacleContext = RefTrajWithStaticObstacleContext(
+        self.context: RefTrajSurrCstrContext = RefTrajSurrCstrContext(
             pre_horizon=pre_horizon,
             dt=dt,
             path_param=path_para,
@@ -53,14 +53,14 @@ class Veh3DoFTrackingDetour(Veh3DoFTracking):
         options: Optional[dict] = None,
         init_state: Optional[Sequence] = None,
         ref_time: Optional[float] = None,
-        ref_num: Optional[int] = 9,
+        ref_num: Optional[int] = None,
     ) -> Tuple[np.ndarray, dict]:
         return super().reset(
             seed=seed,
             options=options,
             init_state=init_state,
             ref_time=ref_time,
-            ref_num=9,
+            ref_num=ref_num,
         )
     
     def _get_constraint(self) -> np.ndarray:
@@ -70,7 +70,7 @@ class Veh3DoFTrackingDetour(Veh3DoFTracking):
         veh_width = self.context.veh_width
         d = (veh_length - veh_width) / 2
         # circle radius
-        r = 0.5 * veh_width
+        r = np.sqrt(2) / 2 * veh_width
 
         ego_x, ego_y, ego_phi = self.robot.state[:3]
         ego_center = np.array(
@@ -94,6 +94,8 @@ class Veh3DoFTrackingDetour(Veh3DoFTracking):
             ),
             axis=1,
         )
+        # print("new ego_center: ", ego_center)
+        # print("new surr_center: ", surr_center)
 
         min_dist = np.inf
         for i in range(2):
@@ -105,7 +107,7 @@ class Veh3DoFTrackingDetour(Veh3DoFTracking):
                 )
                 min_dist = min(min_dist, np.min(dist))
         ego_to_veh_violation = 2 * r - min_dist
-
+        # print("new ego_to_veh_violation: ", ego_to_veh_violation)
         return np.array([ego_to_veh_violation], dtype=np.float32)
 
     def _get_obs(self) -> np.ndarray:
@@ -126,28 +128,27 @@ class Veh3DoFTrackingDetour(Veh3DoFTracking):
         x, y, phi, u, _, w = self.robot.state
         ref_x, ref_y, ref_phi, ref_u = self.context.state.reference[0]
         steer, a_x = action
-        violation = self._get_constraint()
-        threshold = -0.1
-        punish = np.maximum(violation - threshold, 0).sum()
-        if punish > 0:
-            punish += 1.0
-        return - 0.01 * (
-            10.0 * (x - ref_x) ** 2
-            + 10.0 * (y - ref_y) ** 2
-            + 500 * angle_normalize(phi - ref_phi) ** 2
-            + 5.0 * (u - ref_u) ** 2
-            + 1000 * w ** 2
-            + 1000  * steer ** 2
-            + 50  * a_x ** 2
-            + 500.0 * punish
-        ) + 2.0
+        # violation = self._get_constraint()
+        # threshold = -0.1
+        # punish = np.maximum(violation - threshold, 0).sum()
+        # if punish > 0:
+        #     punish += 1.0
+        return -(
+            0.04 * (x - ref_x) ** 2
+            + 0.04 * (y - ref_y) ** 2
+            + 0.02 * angle_normalize(phi - ref_phi) ** 2
+            + 0.02 * (u - ref_u) ** 2
+            + 0.01 * w ** 2
+            + 0.01 * steer ** 2
+            + 0.01 * a_x ** 2
+        ) - 100 * self._get_terminated()
 
     def _get_terminated(self) -> bool:
         x, y, phi = self.robot.state[:3]
         ref_x, ref_y, ref_phi = self.context.state.reference[0, :3]
         done = (
             (np.abs(x - ref_x) > 5)
-            | (np.abs(y - ref_y) > 3)
+            | (np.abs(y - ref_y) > 2)
             | (np.abs(angle_normalize(phi - ref_phi)) > np.pi)
         )
         return done
@@ -177,4 +178,4 @@ class Veh3DoFTrackingDetour(Veh3DoFTracking):
 
 
 def env_creator(**kwargs):
-    return Veh3DoFTrackingDetour(**kwargs)
+    return Veh3DoFTrackingSurrCstr(**kwargs)

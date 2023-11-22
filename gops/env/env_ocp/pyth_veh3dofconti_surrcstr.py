@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 import gym
 import numpy as np
 
-from gops.env.env_ocp.pyth_veh3dofconti import SimuVeh3dofconti, angle_normalize
+from gops.env.env_ocp.pyth_veh3dofconti import SimuVeh3dofconti, angle_normalize, ego_vehicle_coordinate_transform
 
 
 @dataclass
@@ -114,17 +114,15 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
                 )
             )
         self.update_surr_state()
-
         return self.get_obs(), self.info
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
-        _, reward, done, _ = super().step(action)
-
         for surr_veh in self.surr_vehs:
             surr_veh.step()
         self.update_surr_state()
+        _, reward, done, info = super().step(action)
 
-        return self.get_obs(), reward, done, self.info
+        return self.get_obs(), reward, done, info
 
     def update_surr_state(self):
         for i, surr_veh in enumerate(self.surr_vehs):
@@ -135,8 +133,11 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
 
     def get_obs(self) -> np.ndarray:
         obs = super().get_obs()
-        surr_obs = self.surr_state[:, :4] - self.state[np.newaxis, :4]
-        return np.concatenate((obs, surr_obs.flatten()))
+        surr_x_tf, surr_y_tf, surr_phi_tf = ego_vehicle_coordinate_transform(
+            self.state[0], self.state[1], self.state[2], 
+            self.surr_state[:, 0], self.surr_state[:, 1], self.surr_state[:, 2])
+        surr_obs_rel = np.concatenate((surr_x_tf, surr_y_tf, surr_phi_tf, self.surr_state[:, 3]))
+        return np.concatenate((obs, surr_obs_rel.flatten()))
 
     def get_constraint(self) -> np.ndarray:
         # collision detection using bicircle model
@@ -170,7 +171,6 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
             ),
             axis=1,
         )
-
         min_dist = np.inf
         for i in range(2):
             # front and rear circle of ego vehicle
@@ -180,8 +180,8 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
                     ego_center[np.newaxis, i] - surr_center[:, j], axis=1
                 )
                 min_dist = min(min_dist, np.min(dist))
-
-        return np.array([2 * r - min_dist], dtype=np.float32)
+        ego_to_veh_violation = 2 * r - min_dist
+        return np.array([ego_to_veh_violation], dtype=np.float32)
 
     @property
     def info(self):

@@ -18,10 +18,13 @@ from gops.env.env_ocp.pyth_veh3dofconti_errcstr import SimuVeh3dofcontiErrCstr
 from gops.env.env_gen_ocp.veh3dof_tracking_error import Veh3DoFTrackingError
 from gops.env.env_gen_ocp.env_model.veh3dof_tracking_error_model import Veh3DoFTrackingErrorModel
 
-from gops.env.env_ocp.pyth_veh3dofconti_detour import SimuVeh3dofcontiSurrCstr
+from gops.env.env_ocp.pyth_veh3dofconti_detour import SimuVeh3dofcontiDetour
 from gops.env.env_gen_ocp.veh3dof_tracking_detour import Veh3DoFTrackingDetour
 from gops.env.env_gen_ocp.env_model.veh3dof_tracking_detour_model import Veh3DoFTrackingDetourModel
 
+from gops.env.env_ocp.pyth_veh3dofconti_surrcstr import SimuVeh3dofcontiSurrCstr
+from gops.env.env_gen_ocp.veh3dof_tracking_surrcstr import Veh3DoFTrackingSurrCstr
+from gops.env.env_gen_ocp.env_model.veh3dof_tracking_surrcstr_model import Veh3DoFTrackingSurrCstrModel
 
 """
     Add new test cases in the following two lists, each test case is a dict with keys:
@@ -50,6 +53,14 @@ raw_test_cases_env_old_vs_new = [
         "env_old_cls": SimuVeh3dofcontiErrCstr,
         "env_new_cls": Veh3DoFTrackingError,
     },
+    {
+        "env_old_cls": SimuVeh3dofcontiDetour,
+        "env_new_cls": Veh3DoFTrackingDetour,
+    },
+    {
+        "env_old_cls": SimuVeh3dofcontiSurrCstr,
+        "env_new_cls": Veh3DoFTrackingSurrCstr,
+    }
 ]
 
 raw_test_cases_env_vs_model = [
@@ -69,6 +80,14 @@ raw_test_cases_env_vs_model = [
         "env_cls": Veh3DoFTrackingError,
         "model_cls": Veh3DoFTrackingErrorModel,
     },
+    {
+        "env_cls": Veh3DoFTrackingDetour,
+        "model_cls": Veh3DoFTrackingDetourModel,
+    },
+    {
+        "env_cls": Veh3DoFTrackingSurrCstr,
+        "model_cls": Veh3DoFTrackingSurrCstrModel,
+    }
 ]
 
 DEFAULT_PARAMS = {
