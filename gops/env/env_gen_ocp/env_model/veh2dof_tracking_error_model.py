@@ -15,11 +15,3 @@ class Veh2DoFTrackingErrorModel(Veh2DoFTrackingModel):
 def env_model_creator(**kwargs) -> Veh2DoFTrackingErrorModel:
     return Veh2DoFTrackingErrorModel(**kwargs)
 
-
-if __name__ == "__main__":
-    from gops.env.env_gen_ocp.veh2dof_tracking_error import Veh2DoFTrackingError
-    from gops.env.inspector.consistency_checker import check_env_model_consistency
-
-    env = Veh2DoFTrackingError()
-    model = Veh2DoFTrackingErrorModel()
-    check_env_model_consistency(env, model)

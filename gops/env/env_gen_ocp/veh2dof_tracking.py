@@ -186,12 +186,3 @@ class Veh2DoFTracking(Env):
 
 def env_creator(**kwargs):
     return Veh2DoFTracking(**kwargs)
-
-
-if __name__ == "__main__":
-    from gops.env.env_ocp.pyth_veh2dofconti import SimuVeh2dofconti
-    from gops.env.inspector.consistency_checker import check_env_old_new_consistency
-
-    env_old = SimuVeh2dofconti()
-    env_new = Veh2DoFTracking()
-    check_env_old_new_consistency(env_old, env_new)

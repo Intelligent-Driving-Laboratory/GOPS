@@ -83,13 +83,13 @@ class Veh3DoFTracking(Env):
         if speed_num is None:
             speed_num = self.np_random.choice([0, 1])
 
-        context_state = self.context.reset(
-            ref_time=ref_time, path_num=path_num, speed_num=speed_num)
-
         if init_state is None:
             delta_state = self.np_random.uniform(low=self.init_low, high=self.init_high).astype(np.float32)
         else:
             delta_state = np.array(init_state, dtype=np.float32)
+        context_state = self.context.reset(
+            ref_time=ref_time, path_num=path_num, speed_num=speed_num)
+
         init_state = np.concatenate(
             (context_state.reference[0] + delta_state[:4], delta_state[4:])
         )
@@ -248,12 +248,3 @@ def ego_vehicle_coordinate_transform(
 
 def env_creator(**kwargs):
     return Veh3DoFTracking(**kwargs)
-
-
-if __name__ == "__main__":
-    from gops.env.env_ocp.pyth_veh3dofconti import SimuVeh3dofconti
-    from gops.env.inspector.consistency_checker import check_env_old_new_consistency
-
-    env_old = SimuVeh3dofconti()
-    env_new = Veh3DoFTracking()
-    check_env_old_new_consistency(env_old, env_new)

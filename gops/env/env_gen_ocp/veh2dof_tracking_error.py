@@ -42,12 +42,3 @@ class Veh2DoFTrackingError(Veh2DoFTracking):
 
 def env_creator(**kwargs):
     return Veh2DoFTrackingError(**kwargs)
-
-
-if __name__ == "__main__":
-    from gops.env.env_ocp.pyth_veh2dofconti_errcstr import SimuVeh2dofcontiErrCstr
-    from gops.env.inspector.consistency_checker import check_env_old_new_consistency
-
-    env_old = SimuVeh2dofcontiErrCstr()
-    env_new = Veh2DoFTrackingError()
-    check_env_old_new_consistency(env_old, env_new)

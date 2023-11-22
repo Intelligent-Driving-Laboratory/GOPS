@@ -10,7 +10,7 @@ from gops.env.env_gen_ocp.robot.veh3dof import angle_normalize
 from gops.env.env_gen_ocp.veh3dof_tracking import ego_vehicle_coordinate_transform
 
 
-class Veh3DoFTrackingDetourModel(EnvModel):
+class Veh3DoFTrackingSurrCstrModel(EnvModel):
     dt: Optional[float] = 0.1
     action_dim: int = 2
     robot_model: Veh3DoFModel
@@ -71,7 +71,12 @@ class Veh3DoFTrackingDetourModel(EnvModel):
             current_constraint[..., 2],
         )
         surr_u_tf = current_constraint[..., 3]
-        surr_obs = torch.stack((surr_x_tf, surr_y_tf, surr_phi_tf, surr_u_tf), 2) \
+        # print("=======model========")
+        # print("surr_x_tf: ", surr_x_tf)
+        # print("surr_y_tf: ", surr_y_tf)
+        # print("surr_phi_tf: ", surr_phi_tf)
+        # print("surr_u_tf: ", surr_u_tf)
+        surr_obs = torch.stack((surr_x_tf, surr_y_tf, surr_phi_tf, surr_u_tf), 1) \
             .reshape(ego_obs.shape[0], -1)
         return torch.concat((ego_obs, ref_obs, surr_obs), 1)
 
@@ -80,7 +85,7 @@ class Veh3DoFTrackingDetourModel(EnvModel):
         # distance from vehicle center to front/rear circle center
         d = (self.veh_length - self.veh_width) / 2
         # circle radius
-        r = 0.5 * self.veh_width
+        r = np.sqrt(2) / 2 * self.veh_width
         ego_obs = state.robot_state
         x, y, phi = ego_obs[:, :3].split(1, dim=1)
         ego_center = torch.stack(
@@ -142,15 +147,15 @@ class Veh3DoFTrackingDetourModel(EnvModel):
         ref_obs = state.context_state.index_by_t().reference
         ref_x, ref_y, ref_phi, ref_u = ref_obs[:, 0], ref_obs[:, 1], ref_obs[:, 2], ref_obs[:, 3]
         steer, a_x = action[:, 0], action[:, 1]
-        reward = - 0.01 * (
-            10.0 * (x - ref_x) ** 2
-            + 10.0 * (y - ref_y) ** 2
-            + 500 * angle_normalize(phi - ref_phi) ** 2
-            + 5.0 * (u - ref_u) ** 2
-            + 1000 * w ** 2
-            + 1000  * steer ** 2
-            + 50  * a_x ** 2
-        ) + 2.0
+        reward = -(
+            0.04 * (x - ref_x) ** 2
+            + 0.04 * (y - ref_y) ** 2
+            + 0.02 * angle_normalize(phi - ref_phi) ** 2
+            + 0.02 * (u - ref_u) ** 2
+            + 0.01 * w ** 2
+            + 0.01 * steer ** 2
+            + 0.01 * a_x ** 2
+        )
         return reward
 
     def get_terminated(self, state: State) -> torch.bool:
@@ -160,12 +165,12 @@ class Veh3DoFTrackingDetourModel(EnvModel):
         ref_x, ref_y, ref_phi = ref_obs[:, 0], ref_obs[:, 1], ref_obs[:, 2]
         done = (
             (torch.abs(x - ref_x) > 5)
-            | (torch.abs(y - ref_y) > 3)
+            | (torch.abs(y - ref_y) > 2)
             | (torch.abs(angle_normalize(phi - ref_phi)) > torch.pi)
         )
         return done
 
 
-def env_model_creator(**kwargs) -> Veh3DoFTrackingDetourModel:
-    return Veh3DoFTrackingDetourModel(**kwargs)
+def env_model_creator(**kwargs) -> Veh3DoFTrackingSurrCstrModel:
+    return Veh3DoFTrackingSurrCstrModel(**kwargs)
 
