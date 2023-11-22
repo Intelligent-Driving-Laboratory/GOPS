@@ -36,4 +36,5 @@ class MaskAtDoneModel(ModelWrapper):
         done = done.bool()
         next_obs = ~done.unsqueeze(1) * next_obs + done.unsqueeze(1) * obs
         reward = ~done * reward
+        next_done = next_done.bool() | done
         return next_obs, reward, next_done, next_info
