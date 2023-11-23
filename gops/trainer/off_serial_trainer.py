@@ -24,6 +24,7 @@ from torch.utils.tensorboard import SummaryWriter
 from gops.utils.common_utils import ModuleOnDevice
 from gops.utils.parallel_task_manager import TaskPool
 from gops.utils.tensorboard_setup import add_scalars, tb_tags
+from gops.utils.log_data import LogData
 
 
 class OffSerialTrainer:
@@ -63,6 +64,7 @@ class OffSerialTrainer:
         while self.buffer.size < kwargs["buffer_warm_size"]:
             samples, _ = self.sampler.sample()
             self.buffer.add_batch(samples)
+        self.sampler_tb_dict = LogData()
 
         # create evaluation tasks
         self.evluate_tasks = TaskPool()
@@ -76,11 +78,11 @@ class OffSerialTrainer:
 
     def step(self):
         # sampling
-        sampler_tb_dict = {}
         if self.iteration % self.sample_interval == 0:
             with ModuleOnDevice(self.networks, "cpu"):
                 sampler_samples, sampler_tb_dict = self.sampler.sample()
             self.buffer.add_batch(sampler_samples)
+            self.sampler_tb_dict.add_average(sampler_tb_dict)
 
         # replay
         replay_samples = self.buffer.sample_batch(self.replay_batch_size)
@@ -104,7 +106,7 @@ class OffSerialTrainer:
         if self.iteration % self.log_save_interval == 0:
             print("Iter = ", self.iteration)
             add_scalars(alg_tb_dict, self.writer, step=self.iteration)
-            add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
+            add_scalars(self.sampler_tb_dict.pop(), self.writer, step=self.iteration)
 
         # save
         if self.iteration % self.apprfunc_save_interval == 0:
