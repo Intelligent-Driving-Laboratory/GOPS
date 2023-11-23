@@ -26,6 +26,7 @@ from torch.utils.tensorboard import SummaryWriter
 from gops.utils.common_utils import random_choice_with_index
 from gops.utils.parallel_task_manager import TaskPool
 from gops.utils.tensorboard_setup import add_scalars, tb_tags
+from gops.utils.log_data import LogData
 
 warnings.filterwarnings("ignore")
 
@@ -79,6 +80,7 @@ class OffAsyncTrainer:
         # create sample tasks and pre sampling
         self.sample_tasks = TaskPool()
         self._set_samplers()
+        self.sampler_tb_dict = LogData()
 
         self.warm_size = kwargs["buffer_warm_size"]
         while not all(
@@ -126,7 +128,6 @@ class OffAsyncTrainer:
 
     def step(self):
         # sampling
-        sampler_tb_dict = {}
         if self.iteration % self.sample_interval == 0:
             if self.sample_tasks.completed_num > 0:
                 weights = ray.put(self.networks.state_dict())
@@ -135,6 +136,7 @@ class OffAsyncTrainer:
                     random.choice(self.buffers).add_batch.remote(batch_data)
                     sampler.load_state_dict.remote(weights)
                     self.sample_tasks.add(sampler, sampler.sample.remote())
+                    self.sampler_tb_dict.add_average(sampler_tb_dict)
 
         # learning
         for alg, objID in self.learn_tasks.completed():
@@ -171,7 +173,7 @@ class OffAsyncTrainer:
             if self.iteration % self.log_save_interval == 0:
                 print("Iter = ", self.iteration)
                 add_scalars(alg_tb_dict, self.writer, step=self.iteration)
-                add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
+                add_scalars(self.sampler_tb_dict.pop(), self.writer, step=self.iteration)
 
             # save networks
             if self.iteration % self.apprfunc_save_interval == 0:
