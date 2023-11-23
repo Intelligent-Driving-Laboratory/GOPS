@@ -10,6 +10,8 @@
 #  Update Date: 2020-11-10, Yuhang Zhang: add create environments code
 
 from dataclasses import dataclass, field
+import importlib
+import os
 from typing import Callable, Dict, Optional, Union
 
 import numpy as np
@@ -20,7 +22,7 @@ from gops.env.wrapper.mask_at_done import MaskAtDoneModel
 from gops.env.wrapper.scale_action import ScaleActionModel
 from gops.env.wrapper.scale_observation import ScaleObservationModel
 from gops.env.wrapper.shaping_reward import ShapingRewardModel
-
+from gops.utils.gops_path import env_path, underline2camel
 
 @dataclass
 class Spec:
@@ -124,3 +126,23 @@ def create_env_model(
         env_model = ScaleActionModel(env_model, min_action, max_action)
 
     return env_model
+
+# regist env model
+env_dir_list = [e for e in os.listdir(env_path) if e.startswith("env_")]
+
+for env_dir_name in env_dir_list:
+    env_model_path = os.path.join(env_path, env_dir_name, "env_model")
+    if not os.path.exists(env_model_path):
+        continue
+    file_list = os.listdir(env_model_path)
+    for file in file_list:
+        if file.endswith(".py") and file[0] != "_" and "base" not in file:
+            env_id = file[:-3]
+            mdl = importlib.import_module(f"gops.env.{env_dir_name}.env_model.{env_id}")
+            env_id_camel = underline2camel(env_id)
+            if hasattr(mdl, "env_model_creator"):
+                register(env_id=env_id, entry_point=getattr(mdl, "env_model_creator"))
+            elif hasattr(mdl, env_id_camel):
+                register(env_id=env_id, entry_point=getattr(mdl, env_id_camel))
+            else:
+                print(f"env {env_id} has no env_model_creator or {env_id_camel} in {env_dir_name}")
