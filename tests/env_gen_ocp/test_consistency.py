@@ -26,6 +26,10 @@ from gops.env.env_ocp.pyth_veh3dofconti_surrcstr import SimuVeh3dofcontiSurrCstr
 from gops.env.env_gen_ocp.veh3dof_tracking_surrcstr import Veh3DoFTrackingSurrCstr
 from gops.env.env_gen_ocp.env_model.veh3dof_tracking_surrcstr_model import Veh3DoFTrackingSurrCstrModel
 
+from gops.env.env_ocp.pyth_idpendulum import PythInverteddoublependulum
+from gops.env.env_gen_ocp.idpendulum import Inverteddoublependulum
+from gops.env.env_gen_ocp.env_model.idpendulum_model import IdpendulumMdl
+
 """
     Add new test cases in the following two lists, each test case is a dict with keys:
         "env_old_cls": old env class / "env_cls": env class
@@ -87,6 +91,10 @@ raw_test_cases_env_vs_model = [
     {
         "env_cls": Veh3DoFTrackingSurrCstr,
         "model_cls": Veh3DoFTrackingSurrCstrModel,
+    },
+    {
+        "env_cls": Inverteddoublependulum,
+        "model_cls": IdpendulumMdl,
     }
 ]
 
