@@ -2,6 +2,10 @@ import numpy as np
 import torch
 import pytest
 
+from gops.env.env_ocp.resources.lq_base import LqEnv
+from gops.env.env_gen_ocp.lq_control import LqControl
+from gops.env.env_gen_ocp.env_model.lq_control_model import LqControlModel
+
 from gops.env.env_ocp.pyth_veh2dofconti import SimuVeh2dofconti
 from gops.env.env_gen_ocp.veh2dof_tracking import Veh2DoFTracking
 from gops.env.env_gen_ocp.env_model.veh2dof_tracking_model import Veh2DoFTrackingModel
@@ -64,6 +68,10 @@ raw_test_cases_env_old_vs_new = [
     {
         "env_old_cls": SimuVeh3dofcontiSurrCstr,
         "env_new_cls": Veh3DoFTrackingSurrCstr,
+    },
+    {
+        "env_old_cls": LqEnv,
+        "env_new_cls": LqControl,
     }
 ]
 
@@ -95,6 +103,10 @@ raw_test_cases_env_vs_model = [
     {
         "env_cls": Inverteddoublependulum,
         "model_cls": IdpendulumMdl,
+    },
+    {
+        "env_cls": LqControl,
+        "model_cls": LqControlModel,  
     }
 ]
 
