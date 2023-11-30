@@ -28,7 +28,7 @@ class LqControl(Env):
         self.config = config
         self.max_episode_steps = config["max_step"]
         self.robot = LqModel(config)
-        self.context = lq_configs.LQContext()
+        self.context = lq_configs.LQContext(balanced_state=[0, 0])
         self.work_space = work_space
         self.initial_distribution = "uniform"
 
