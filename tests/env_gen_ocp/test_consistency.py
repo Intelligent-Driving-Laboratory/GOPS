@@ -34,6 +34,10 @@ from gops.env.env_ocp.pyth_idpendulum import PythInverteddoublependulum
 from gops.env.env_gen_ocp.idpendulum import Inverteddoublependulum
 from gops.env.env_gen_ocp.env_model.idpendulum_model import IdpendulumMdl
 
+from gops.env.env_gen_ocp.env_model.cartpoleconti_model import CartpolecontiMdl
+from gops.env.env_gen_ocp.cartpoleconti import Cartpoleconti
+from gops.env.env_gym.gym_cartpoleconti import _GymCartpoleconti
+
 """
     Add new test cases in the following two lists, each test case is a dict with keys:
         "env_old_cls": old env class / "env_cls": env class
@@ -72,7 +76,11 @@ raw_test_cases_env_old_vs_new = [
     {
         "env_old_cls": LqEnv,
         "env_new_cls": LqControl,
-    }
+    },
+    {
+        "env_old_cls": _GymCartpoleconti,
+        "env_new_cls": Cartpoleconti,
+    },
 ]
 
 raw_test_cases_env_vs_model = [
@@ -107,7 +115,11 @@ raw_test_cases_env_vs_model = [
     {
         "env_cls": LqControl,
         "model_cls": LqControlModel,  
-    }
+    },
+    {
+        "env_cls": Cartpoleconti,
+        "model_cls": CartpolecontiMdl,
+    },
 ]
 
 DEFAULT_PARAMS = {
