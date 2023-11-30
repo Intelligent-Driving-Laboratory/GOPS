@@ -5,6 +5,8 @@ from enum import IntEnum,Enum
 from gops.env.env_gen_ocp.env_model.pyth_base_model import EnvModel
 from gops.env.env_gen_ocp.pyth_base import State
 from gops.env.env_gen_ocp.context.quad_ref_traj import QuadContext
+from gops.env.env_gen_ocp.robot.quadrotor_model_3dof import QuadrotorDynMd3
+
 # import gops.env.env_gen_ocp.robot.quadrotor_model as model
 
 class Cost(str, Enum):
@@ -43,7 +45,7 @@ class QuadTracking(EnvModel):
             action_upper_bound= torch.ones(action_dim),
             device = device,
         )
-        self.robot: QuadrotorDynMd2 = QuadrotorDynMd2(
+        self.robot: QuadrotorDynMd3 = QuadrotorDynMd3(
             quad_type = QuadType.THREE_D,
         )
         self.context: QuadContext = QuadContext(

@@ -14,18 +14,28 @@ class QuadType(IntEnum):
     TWO_D = 2  # Two-dimensional (in the x-z plane) movement.
     THREE_D = 3  # Three-dimensional movement.
     
-class QuadTracking(Env):
+class Quadrotor1dofTrackingStablization(Env):
     def __init__(
         self,       
         task = "TRAJ_TRACKING",
+        *,
+        pre_horizon: int = 10,
         **kwargs,
     ):
         self.robot: Quadrotor = Quadrotor(
         )
         self.context: QuadContext = QuadContext(
+            pre_horizon=pre_horizon,
             quad_type = QuadType.ONE_D
         )
-        self.state_space = self.robot.state_space
+        self.observation_space =  self.robot.state_space
+        ref_obs_dim = 2
+        
+        self.observation_space = spaces.Box(
+            low=np.tile(self.robot.state_space.low, 2),
+            high=np.tile(self.robot.state_space.high, 2),
+            dtype=np.float32,
+        )
         self.action_space = self.robot.action_space
         self.max_episode_steps = 200
         self.seed()
@@ -36,37 +46,37 @@ class QuadTracking(Env):
     ) -> Tuple[np.ndarray, dict]:
         self._state = State(
         robot_state=self.robot.reset(),
-        context_state=None
+        context_state= self.context.reset()
     )
-        return self.robot.reset()
+        return self._get_obs(),self._get_info()
 
     def _get_obs(self) -> np.ndarray:
-        return self.state.robot_state
-
+        # return np.concatenate((self._state.context_state.reference[0].reshape(1, -1),self._state.robot_state.reshape(1, -1)),axis=0).flatten()
+        return self._state.robot_state
     def _get_reward(self, action: np.ndarray) -> float:
         act_error = action - self.context.U_GOAL
         # Quadratic costs w.r.t state and action
         # TODO: consider using multiple future goal states for cost in tracking
         if self.task == 'STABILIZATION':
-            state_error = self.state - self.context.X_GOAL
+            state_error = self._state.robot_state - self._state.context_state[0]
             dist = np.sum(self.context.rew_state_weight * state_error * state_error)
             dist += np.sum(self.context.rew_act_weight * act_error * act_error)
         if self.task == 'TRAJ_TRACKING':
             wp_idx = min(self.robot.ctrl_step_counter + 1, self.context.X_GOAL.shape[0] - 1)  # +1 because state has already advanced but counter not incremented.
-            state_error = self.state.robot_state - self.context.X_GOAL[wp_idx]
+            state_error = self._state.robot_state - self.context.X_GOAL[wp_idx]
             dist = np.sum(self.context.rew_state_weight * state_error * state_error)
             dist += np.sum(self.context.rew_act_weight * act_error * act_error)
         rew = -dist
         # Convert rew to be positive and bounded [0,1].
-        if self.robot.rew_exponential:
-            rew = np.exp(rew)
+        # if self.robot.rew_exponential:
+        #     rew = np.exp(rew)
         return rew
 
     def _get_terminated(self) -> bool:
            
         # Done if goal reached for stabilization task with quadratic cost.
         if self.task == 'STABILIZATION' :
-            self.goal_reached = bool(np.linalg.norm(self.state - self.context.X_GOAL) < self.context.TASK_INFO['stabilization_goal_tolerance'])
+            self.goal_reached = bool(np.linalg.norm(self._state.robot_state - self._state.context_state) < self.context.TASK_INFO['stabilization_goal_tolerance'])
             if self.goal_reached:
                 return True 
         # Done if state is out-of-bounds.
@@ -75,8 +85,8 @@ class QuadTracking(Env):
       
         # Element-wise or to check out-of-bound conditions.
         # import ipdb; ipdb.set_trace()
-        self.out_of_bounds = np.logical_or(self.state.robot_state < self.robot.state_space.low,
-                                        self.state.robot_state > self.robot.state_space.high)
+        self.out_of_bounds = np.logical_or(self._state.robot_state < self.robot.state_space.low,
+                                        self._state.robot_state > self.robot.state_space.high)
         # Mask out un-included dimensions (i.e. velocities)
         self.out_of_bounds = np.any(self.out_of_bounds * mask)
         # Early terminate if needed.
@@ -92,49 +102,34 @@ class QuadTracking(Env):
             info (dict): A dictionary with information about the constraints evaluations and violations.
         '''
         info = {}
-        if self.task == 'STABILIZATION' :
-            info['goal_reached'] = self.goal_reached  # Add boolean flag for the goal being reached.
-        info['out_of_bounds'] = self.out_of_bounds
-        # Add MSE.
-        state = deepcopy(self.state)
-        if self.task == 'STABILIZATION':
-            state_error = state - self.context.X_GOAL
-        elif self.task == 'TRAJ_TRACKING':
-            # TODO: should use angle wrapping
-            # state[4] = normalize_angle(state[4])
-            wp_idx = min(self.robot.ctrl_step_counter + 1, self.context.X_GOAL.shape[0] - 1)  # +1 so that state is being compared with proper reference state.
-            state_error = state.robot_state - self.context.X_GOAL[wp_idx]
-        # Filter only relevant dimensions.
-
-        # import ipdb; ipdb.set_trace()
-        state_error = state_error * self.robot.info_mse_metric_state_weight
-        info['mse'] = np.sum(state_error ** 2)
-        # if self.constraints is not None:
-        #     info['constraint_values'] = self.constraints.get_values(self)
-        #     info['constraint_violations'] = self.constraints.get_violations(self)
+        # if self.task == 'STABILIZATION' :
+        #     info['goal_reached'] = self.goal_reached  # Add boolean flag for the goal being reached.
+        # info['out_of_bounds'] = self.out_of_bounds
+        # # Add MSE.
+        # state = deepcopy(self._state)
+        # if self.task == 'STABILIZATION':
+        #     state_error = state.robot_state - state.context_state.reference
+        # elif self.task == 'TRAJ_TRACKING':
+        #     # TODO: should use angle wrapping
+        #     # state[4] = normalize_angle(state[4])
+        #     # wp_idx = min(self.robot.ctrl_step_counter + 1, self._state.context_state.shape[0] - 1)  # +1 so that state is being compared with proper reference state.
+        #     state_error = state.robot_state - state.context_state.reference
+        # # Filter only relevant dimensions.
+        # # import ipdb; ipdb.set_trace()
+        # state_error = state_error * self.robot.info_mse_metric_state_weight
+        # info['mse'] = np.sum(state_error ** 2)
+        # # if self.constraints is not None:
+        # #     info['constraint_values'] = self.constraints.get_values(self)
+        # #     info['constraint_violations'] = self.constraints.get_violations(self)
+        info.update(super()._get_info())
         return info
- 
-       
 
     def render(self, mode="human"):
         pass
-    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
-        reward = self._get_reward(action)
-        self._state = self._get_next_state(action)
-        terminated = self._get_terminated()
-        return self._get_obs(), reward, terminated, self._get_info()
-    
-        
-
-    
-    def _get_next_state(self, action: np.ndarray) -> State[np.ndarray]:
-        return State(
-            robot_state=self.robot.step(action),
-            context_state=None
-        )
+       
         
 def env_creator(**kwargs):
-    return QuadTracking(**kwargs)
+    return Quadrotor1dofTrackingStablization(**kwargs)
 
 
 if __name__ == "__main__":
@@ -147,7 +142,7 @@ if __name__ == "__main__":
     #     with open('./config.ini', 'w') as configfile:
     #         config.write(configfile)
     #     print('\n----------quad_type:',quad_type,'----------')
-    env_new = QuadTracking()
+    env_new = Quadrotor1dofTrackingStablization()
     seed = 1
     env_new.seed(seed)
     np.random.seed(seed)

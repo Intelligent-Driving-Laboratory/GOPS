@@ -3,16 +3,31 @@ import json
 import torch
 from gops.env.env_gen_ocp.env_model.pyth_base_model import RobotModel
 from gops.env.env_gen_ocp.context.quad_ref_traj import QuadContext
-from gops.env.env_gen_ocp.env_model.quadrotor_1dof_tracking_stablization_model import Task,Cost,QuadType
 from gym import spaces
+from enum import IntEnum,Enum
+
+class Cost(str, Enum):
+    '''Reward/cost functions enumeration class.'''
+    RL_REWARD = 'rl_reward'  # Default RL reward function.
+    QUADRATIC = 'quadratic'  # Quadratic cost.
 
 
+class Task(str, Enum):
+    '''Environment tasks enumeration class.'''
+    STABILIZATION = 'stabilization'  # Stabilization task.
+    TRAJ_TRACKING = 'traj_tracking'  # Trajectory tracking task.
+  
+class QuadType(IntEnum):
+    '''Quadrotor types numeration class.'''
+    ONE_D = 1  # One-dimensional (along z) movement.
+    TWO_D = 2  # Two-dimensional (in the x-z plane) movement.
+    THREE_D = 3  # Three-dimensional movement.
+    
 class QuadrotorDynMdl(RobotModel):
     def __init__(self, 
                  prior_prop={},
                  obs_goal_horizon = 0,
                  rew_exponential=True,  
-                 quad_type = None,
                  init_state=None,
                  task: Task = Task.STABILIZATION,
                  cost: Cost = Cost.RL_REWARD,
@@ -21,7 +36,7 @@ class QuadrotorDynMdl(RobotModel):
       
         self.obs_goal_horizon = obs_goal_horizon
         self.init_state = init_state
-        self.QUAD_TYPE = QuadType(quad_type)
+        # self.QUAD_TYPE = QuadType(quad_type)
         self.L = 1.
         self.rew_exponential = rew_exponential
         self.GRAVITY_ACC = 9.81
@@ -138,11 +153,13 @@ class QuadrotorDynMdl(RobotModel):
         # self.action_space = spaces.Box(low=self.physical_action_bounds[0],
         #                                 high=self.physical_action_bounds[1],
         #                                 dtype=torch.float32)
-    def get_next_state(self,X,U):
+    def get_next_state(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         m = self.context.MASS
         g= self.GRAVITY_ACC
-        u_eq = m * g
+        # u_eq = m * g
         self.state_dim, self.action_dim = 2, 1
-        X_dot = torch.tensor([X[1], U[0] / m - g])  
-        return X_dot
+        X_dot = torch.stack([state[:, 1], action[:, 0] / m - g], dim=1) 
+        next_state = state + self.dt * X_dot
+        self.ctrl_step_counter += 1
+        return next_state
        

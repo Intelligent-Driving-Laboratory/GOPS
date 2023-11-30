@@ -37,17 +37,21 @@ TASK_INFO = {
 
 class QuadContext(Context):
     def __init__(self,
+                 *,
                  prior_prop={}, 
                  quad_type = QuadType.THREE_D,
                  rew_state_weight=1.0,
                  rew_act_weight=0.0001,
-                 task = 'TRAJ_TRACKING') -> None:
+                 pre_horizon: int = 10,
+                 task = 'TRAJ_TRACKING'
+        ) -> None:
         self.QUAD_TYPE = QuadType(quad_type)
         self.task = task
         self.ctrl_step_counter = 0
         self.MASS = prior_prop.get('M', 1.0)
         self.rew_state_weight = np.array(rew_state_weight, ndmin=1, dtype=float)
         self.rew_act_weight = np.array(rew_act_weight, ndmin=1, dtype=float)
+        self.pre_horizon = pre_horizon
         self.TASK_INFO = {
         'stabilization_goal': [0, 1],
         'stabilization_goal_tolerance': 0.05,
@@ -60,18 +64,28 @@ class QuadContext(Context):
         'proj_normal': [0, 1, 1],
     }
         self._get_GOAL()
+        self.reset()
     
     def reset(self) -> ContextState[np.ndarray]:
-        self._get_GOAL()
-        return self.X_GOAL[0]
+        self.ctrl_step_counter = 0
+        ref_points = self.X_GOAL[self.ctrl_step_counter :self.ctrl_step_counter + self.pre_horizon + 1]
+        self.state = ContextState(reference=ref_points)
+        return self.state
     
     def step(self) -> ContextState[np.ndarray]:
         self.ctrl_step_counter += 1
         wp_idx = min(self.ctrl_step_counter, self.X_GOAL.shape[0] - 1)  
-        return self.X_GOAL[wp_idx]
+        new_ref_point = self.X_GOAL[wp_idx]
+        # self.state = ContextState(np.expand_dims(self.X_GOAL[wp_idx], axis=0))
+        ref_points = self.state.reference.copy()
+        ref_points[:-1] = ref_points[1:]
+        ref_points[-1] = new_ref_point
+        self.state.reference = ref_points
+        return self.state
     
     def get_zero_state(self) -> ContextState[np.ndarray]:
-        return ContextState(reference=np.zeros_like(self.X_GOAL[0], dtype=np.float32))
+        return ContextState(
+            reference=np.zeros((self.pre_horizon + 1, len(self.X_GOAL[0])), dtype=np.float32))
         
     def _generate_trajectory(self,
                              traj_type='figure8',

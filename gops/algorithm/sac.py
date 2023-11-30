@@ -243,7 +243,6 @@ class SAC(AlgorithmBase):
     def __update(self, iteration: int):
         self.networks.q1_optimizer.step()
         self.networks.q2_optimizer.step()
-
         self.networks.policy_optimizer.step()
 
         if self.auto_alpha:

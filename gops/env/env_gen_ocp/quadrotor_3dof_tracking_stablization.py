@@ -2,7 +2,7 @@ from typing import Dict, Optional, Sequence, Tuple
 
 import numpy as np
 from gym import spaces
-from enum import IntEnum
+from enum import IntEnum,Enum
 from copy import deepcopy
 from gops.env.env_gen_ocp.pyth_base import Env, State
 from gops.env.env_gen_ocp.robot.quadrotor_3dof import Quadrotor
@@ -25,11 +25,6 @@ class QuadType(IntEnum):
     TWO_D = 2  # Two-dimensional (in the x-z plane) movement.
     THREE_D = 3  # Three-dimensional movement.
 
-class QuadType(IntEnum):
-    '''Quadrotor types numeration class.'''
-    ONE_D = 1  # One-dimensional (along z) movement.
-    TWO_D = 2  # Two-dimensional (in the x-z plane) movement.
-    THREE_D = 3  # Three-dimensional movement.
     
 class QuadTracking(Env):
     def __init__(

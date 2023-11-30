@@ -147,13 +147,11 @@ class Quadrotor(Robot):
        
         # Normalized thrust action space (around hover thrust).
         self.hover_thrust = self.GRAVITY_ACC * self.MASS / action_dim
-        self.action_space = spaces.Box(low=-np.ones(action_dim),
-                                        high=np.ones(action_dim),
+   
+        # else, Direct thrust control.
+        self.action_space = spaces.Box(low=self.physical_action_bounds[0],
+                                        high=self.physical_action_bounds[1],
                                         dtype=np.float32)
-        # # else, Direct thrust control.
-        # self.action_space = spaces.Box(low=self.physical_action_bounds[0],
-        #                                 high=self.physical_action_bounds[1],
-        #                                 dtype=np.float32)
 
     def f_xu(self,X,U):
         m = self.context.MASS
@@ -184,8 +182,7 @@ class Quadrotor(Robot):
         X_dot= self.f_xu(X=self.state,U=thrust)
         self.state += self.dt * X_dot
         self.action = thrust
-
         self.ctrl_step_counter += 1
-        return X_dot
+        return self.state
 
     

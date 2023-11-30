@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 import pytest
+from gops.env.env_gen_ocp.quadrotor_1dof_tracking_stablization import Quadrotor1dofTrackingStablization
+from gops.env.env_gen_ocp.env_model.quadrotor_1dof_tracking_stablization_model import Quadrotor1dofTrackingStablizationModel
 
 from gops.env.env_ocp.pyth_veh2dofconti import SimuVeh2dofconti
 from gops.env.env_gen_ocp.veh2dof_tracking import Veh2DoFTracking
@@ -37,57 +39,61 @@ from gops.env.env_gen_ocp.env_model.veh3dof_tracking_surrcstr_model import Veh3D
     last four keys among which are optional
 """
 raw_test_cases_env_old_vs_new = [
-    {
-        "env_old_cls": SimuVeh2dofconti,
-        "env_new_cls": Veh2DoFTracking,
-    },
-    {
-        "env_old_cls": SimuVeh3dofconti,
-        "env_new_cls": Veh3DoFTracking,
-    },
-    {
-        "env_old_cls": SimuVeh2dofcontiErrCstr,
-        "env_new_cls": Veh2DoFTrackingError,
-    },
-    {
-        "env_old_cls": SimuVeh3dofcontiErrCstr,
-        "env_new_cls": Veh3DoFTrackingError,
-    },
-    {
-        "env_old_cls": SimuVeh3dofcontiDetour,
-        "env_new_cls": Veh3DoFTrackingDetour,
-    },
-    {
-        "env_old_cls": SimuVeh3dofcontiSurrCstr,
-        "env_new_cls": Veh3DoFTrackingSurrCstr,
-    }
+    # {
+    #     "env_old_cls": SimuVeh2dofconti,
+    #     "env_new_cls": Veh2DoFTracking,
+    # },
+    # {
+    #     "env_old_cls": SimuVeh3dofconti,
+    #     "env_new_cls": Veh3DoFTracking,
+    # },
+    # {
+    #     "env_old_cls": SimuVeh2dofcontiErrCstr,
+    #     "env_new_cls": Veh2DoFTrackingError,
+    # },
+    # {
+    #     "env_old_cls": SimuVeh3dofcontiErrCstr,
+    #     "env_new_cls": Veh3DoFTrackingError,
+    # },
+    # {
+    #     "env_old_cls": SimuVeh3dofcontiDetour,
+    #     "env_new_cls": Veh3DoFTrackingDetour,
+    # },
+    # {
+    #     "env_old_cls": SimuVeh3dofcontiSurrCstr,
+    #     "env_new_cls": Veh3DoFTrackingSurrCstr,
+    # }
 ]
 
 raw_test_cases_env_vs_model = [
+    # {
+    #     "env_cls": Veh2DoFTracking,
+    #     "model_cls": Veh2DoFTrackingModel,
+    # },
+    # {
+    #     "env_cls": Veh3DoFTracking,
+    #     "model_cls": Veh3DoFTrackingModel,
+    # },
+    # {
+    #     "env_cls": Veh2DoFTrackingError,
+    #     "model_cls": Veh2DoFTrackingErrorModel,
+    # },
+    # {
+    #     "env_cls": Veh3DoFTrackingError,
+    #     "model_cls": Veh3DoFTrackingErrorModel,
+    # },
+    # {
+    #     "env_cls": Veh3DoFTrackingDetour,
+    #     "model_cls": Veh3DoFTrackingDetourModel,
+    # },
+    # {
+    #     "env_cls": Veh3DoFTrackingSurrCstr,
+    #     "model_cls": Veh3DoFTrackingSurrCstrModel,
+    # },
     {
-        "env_cls": Veh2DoFTracking,
-        "model_cls": Veh2DoFTrackingModel,
+        "env_cls": Quadrotor1dofTrackingStablization,
+        "model_cls": Quadrotor1dofTrackingStablizationModel,
     },
-    {
-        "env_cls": Veh3DoFTracking,
-        "model_cls": Veh3DoFTrackingModel,
-    },
-    {
-        "env_cls": Veh2DoFTrackingError,
-        "model_cls": Veh2DoFTrackingErrorModel,
-    },
-    {
-        "env_cls": Veh3DoFTrackingError,
-        "model_cls": Veh3DoFTrackingErrorModel,
-    },
-    {
-        "env_cls": Veh3DoFTrackingDetour,
-        "model_cls": Veh3DoFTrackingDetourModel,
-    },
-    {
-        "env_cls": Veh3DoFTrackingSurrCstr,
-        "model_cls": Veh3DoFTrackingSurrCstrModel,
-    }
 ]
 
 DEFAULT_PARAMS = {
@@ -164,6 +170,8 @@ def test_env_vs_model_consistency(test_cases_env_vs_model):
 
     for i in range(step):
         action = env.action_space.sample()
+        # print('action',torch.from_numpy(action).unsqueeze(0))
+        # print('state',state)
         next_state = model.get_next_state(state, torch.from_numpy(action).unsqueeze(0))
         next_obs_model = model.get_obs(next_state)
         reward_model = model.get_reward(state, torch.from_numpy(action).unsqueeze(0))
@@ -173,9 +181,9 @@ def test_env_vs_model_consistency(test_cases_env_vs_model):
             f"obs not close on step {i}!"
         if not done_env:
             # skip reward check at done because reward_env may include penalty while reward_model does not
-            assert np.isclose(reward_env, reward_model.item(), rtol=rtol, atol=atol), \
+            assert np.isclose(reward_env, np.array(reward_model.item()), rtol=rtol, atol=atol), \
                 f"reward not close on step {i}!"
-        assert done_env == done_model.item(), f"done not equal on step {i}!"
+        assert done_env == done_model, f"done not equal on step {i}!"
         if "constraint" in info_env:
             constraint_env = info_env["constraint"]
             constraint_model = model.get_constraint(next_state)

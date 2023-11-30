@@ -117,6 +117,7 @@ class State(Generic[stateType]):
 
     def batch(self, batch_size: int) -> 'State[stateType]':
         robot_state = batch(self.robot_state, batch_size)
+        # import ipdb;ipdb.set_trace()
         context_state = batch_context_state(self.context_state, batch_size)
         return self.__class__(robot_state=robot_state, context_state=context_state)
 
@@ -273,6 +274,7 @@ def concat(x: Sequence[Union[np.ndarray, torch.Tensor]], dim: int = 0) -> Union[
 
 def batch_context_state(context_state: 'ContextState[stateType]', batch_size: int) -> 'ContextState[stateType]':
     values = []
+    print(type(context_state))
     for field in fields(context_state):
         v = getattr(context_state, field.name)
         if isinstance(v, (np.ndarray, torch.Tensor)):
