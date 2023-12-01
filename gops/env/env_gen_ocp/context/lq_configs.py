@@ -2,25 +2,12 @@ import numpy as np
 from typing import Dict, Optional
 
 import numpy as np
+from gops.env.env_gen_ocp.context.balance_point import BalancePoint
 from gops.env.env_gen_ocp.pyth_base import ContextState, Context
 from gops.env.env_ocp.resources.ref_traj_data import MultiRefTrajData
 
 
-class LQContext(Context):
-    def __init__(self):
-        super().__init__()
-        self.state = None
-
-    def reset(self):
-        self.state = ContextState(reference=[0, 0])
-        return self.state
-
-    def step(self):
-        return ContextState(reference=[0, 0])
-
-    def get_zero_state(self):
-        return ContextState(reference=[0, 0])
-
+LQContext = BalancePoint
 
 config_s2a1 = dict(
     A=[[0.0, 1.0], [0.0, 0.0]],

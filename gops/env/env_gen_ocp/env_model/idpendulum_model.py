@@ -26,14 +26,18 @@ class IdpendulumMdl(EnvModel):
     
     def get_reward(self, state: State, action: torch.Tensor) -> torch.Tensor:
         action = action.squeeze(-1)
-        trans_state = state.robot_state - state.context_state.reference
+        ref_p, ref_theta1, ref_theta2 = (
+            state.context_state.reference[:, 0],
+            state.context_state.reference[:, 1],
+            state.context_state.reference[:, 2],
+        )
         p, theta1, theta2, pdot, theta1dot, theta2dot = (
-            trans_state[:, 0],
-            trans_state[:, 1],
-            trans_state[:, 2],
-            trans_state[:, 3],
-            trans_state[:, 4],
-            trans_state[:, 5],
+            state.robot_state[:, 0] - ref_p,
+            state.robot_state[:, 1] - ref_theta1,
+            state.robot_state[:, 2] - ref_theta2,
+            state.robot_state[:, 3],
+            state.robot_state[:, 4],
+            state.robot_state[:, 5],
         )
         dist_penalty = (
             0 * torch.square(p) + 5 * torch.square(theta1) + 10 * torch.square(theta2)
@@ -47,14 +51,15 @@ class IdpendulumMdl(EnvModel):
         return rewards
 
     def get_terminated(self, state: State) -> torch.Tensor:
-        trans_state = state.robot_state - state.context_state.reference
-        p, theta1, theta2, pdot, theta1dot, theta2dot = (
-            trans_state[:, 0],
-            trans_state[:, 1],
-            trans_state[:, 2],
-            trans_state[:, 3],
-            trans_state[:, 4],
-            trans_state[:, 5],
+        ref_p, ref_theta1, ref_theta2 = (
+            state.context_state.reference[:, 0],
+            state.context_state.reference[:, 1],
+            state.context_state.reference[:, 2],
+        )
+        p, theta1, theta2 = (
+            state.robot_state[:, 0] - ref_p,
+            state.robot_state[:, 1] - ref_theta1,
+            state.robot_state[:, 2] - ref_theta2,
         )
         l_rod1 = self.robot_model.param.l_rod1
         l_rod2 = self.robot_model.param.l_rod2

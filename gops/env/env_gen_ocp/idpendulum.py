@@ -6,7 +6,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-from gops.env.env_gen_ocp.context.idp_balance_point import BalancePoint
+from gops.env.env_gen_ocp.context.balance_point import BalancePoint
 from gops.env.env_gen_ocp.pyth_base import Env, State
 from gops.env.env_gen_ocp.robot.Idpendulum_dynamics import Dynamics
 
@@ -18,7 +18,10 @@ plt.rcParams["toolbar"] = "None"
 class Inverteddoublependulum(Env):
     def __init__(self, **kwargs):
         self.robot: Dynamics = Dynamics()
-        self.context = BalancePoint()
+        self.context: BalancePoint = BalancePoint(
+            balanced_state=np.array([0, 0, 0, 0, 0, 0]),
+            index=[0, 1, 2],
+        )
         obs_dim = 6
         self.observation_space = spaces.Box(
             low=np.array([-np.inf] * obs_dim),
@@ -49,7 +52,9 @@ class Inverteddoublependulum(Env):
 
     def _get_reward(self, action: np.ndarray) -> float:
         action = action.squeeze(-1)
-        trans_state = self.robot.state - self.context.state.reference
+        balanced_state = np.zeros_like(self.robot.state)
+        balanced_state[self.context.index] = self.context.state.reference
+        trans_state = self.robot.state - balanced_state
         p, theta1, theta2, pdot, theta1dot, theta2dot = (
             trans_state[0],
             trans_state[1],
@@ -70,7 +75,9 @@ class Inverteddoublependulum(Env):
         return rewards
 
     def _get_terminated(self) -> bool:
-        trans_state = self.robot.state - self.context.state.reference
+        balanced_state = np.zeros_like(self.robot.state)
+        balanced_state[self.context.index] = self.context.state.reference
+        trans_state = self.robot.state - balanced_state
         p, theta1, theta2, pdot, theta1dot, theta2dot = (
             trans_state[0],
             trans_state[1],
