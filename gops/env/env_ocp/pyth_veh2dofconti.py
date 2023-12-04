@@ -289,7 +289,7 @@ class SimuVeh2dofconti(PythBaseEnv):
             (ego_x - x_offset, ego_y - y_offset), 
             veh_length, 
             veh_width, 
-            np.rad2deg(phi),
+            angle=np.rad2deg(phi),
             facecolor='w', 
             edgecolor='r', 
             zorder=1

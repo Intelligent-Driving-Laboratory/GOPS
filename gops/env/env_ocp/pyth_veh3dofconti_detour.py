@@ -267,7 +267,7 @@ class SimuVeh3dofcontiDetour(SimuVeh3dofconti):
             rectan_x = surr_x - self.veh_length / 2 * np.cos(surr_phi) + self.veh_width / 2 * np.sin(surr_phi)
             rectan_y = surr_y - self.veh_width / 2 * np.cos(surr_phi) - self.veh_length / 2 * np.sin(surr_phi)
             ax.add_patch(pc.Rectangle(
-                (rectan_x, rectan_y), self.veh_length, self.veh_width, surr_phi * 180 / np.pi,
+                (rectan_x, rectan_y), self.veh_length, self.veh_width, angle=surr_phi * 180 / np.pi,
                 facecolor='w', edgecolor='k', zorder=1))
             
             # distance from vehicle center to front/rear circle center
