@@ -16,6 +16,7 @@ import numpy as np
 
 from gops.env.env_ocp.pyth_base_env import PythBaseEnv
 from gops.env.env_ocp.resources.ref_traj_data import MultiRefTrajData
+from gops.utils.math import angle_normalize
 
 
 class VehicleDynamicsData:
@@ -316,7 +317,7 @@ class SimuVeh3dofconti(PythBaseEnv):
             (ego_x - x_offset, ego_y - y_offset), 
             veh_length, 
             veh_width, 
-            np.rad2deg(phi),
+            angle=np.rad2deg(phi),
             facecolor='w', 
             edgecolor='r', 
             zorder=1
@@ -343,9 +344,6 @@ class SimuVeh3dofconti(PythBaseEnv):
         ax.text(left_x, top_y, f'time: {self.t:.1f}s')
         ax.text(left_x, top_y - delta_y, f'speed: {ego_speed:.1f}km/h')
         ax.text(left_x, top_y - 2 * delta_y, f'ref speed: {ref_speed:.1f}km/h')
-
-def angle_normalize(x):
-    return ((x + np.pi) % (2 * np.pi)) - np.pi
 
 
 def ego_vehicle_coordinate_transform(

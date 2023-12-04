@@ -37,7 +37,7 @@ You can install GOPS through the following steps:
 ```bash
 # clone GOPS repository
 git clone https://github.com/Intelligent-Driving-Laboratory/GOPS.git
-cd gops
+cd GOPS
 # create conda environment
 conda env create -f gops_environment.yml
 conda activate gops

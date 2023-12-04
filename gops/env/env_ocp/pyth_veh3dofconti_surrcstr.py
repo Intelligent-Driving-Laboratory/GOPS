@@ -204,7 +204,7 @@ class SimuVeh3dofcontiSurrCstr(SimuVeh3dofconti):
                 (surr_x - x_offset, surr_y - y_offset), 
                 self.veh_length, 
                 self.veh_width, 
-                np.rad2deg(surr_phi),
+                angle=np.rad2deg(surr_phi),
                 facecolor='w', 
                 edgecolor='k', 
                 zorder=1
