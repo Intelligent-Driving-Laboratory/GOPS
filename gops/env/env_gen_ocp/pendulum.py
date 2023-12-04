@@ -9,7 +9,7 @@ from gymnasium.error import DependencyNotInstalled
 from gops.env.env_gen_ocp.pyth_base import Env, State
 from gops.env.env_gen_ocp.robot.pendulum_dynamics import PendulumDynamics
 from gops.env.env_gen_ocp.context.balance_point import BalancePoint
-
+from gops.utils.math import angle_normalize
 
 
 class Pendulum(Env):
@@ -177,7 +177,3 @@ class Pendulum(Env):
             pygame.display.quit()
             pygame.quit()
             self.isopen = False
-
-
-def angle_normalize(x):
-    return ((x + np.pi) % (2 * np.pi)) - np.pi
