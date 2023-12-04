@@ -42,8 +42,8 @@ class LqControlModel(EnvModel):
         self.state_high = torch.as_tensor(config["state_high"], dtype=torch.float32)
         self.observation_dim = len(config["state_high"])
 
-        self.action_high = torch.as_tensor(config["action_high"], dtype=torch.float32)
-        self.action_low = torch.as_tensor(config["action_low"], dtype=torch.float32)
+        self.action_upper_bound = torch.as_tensor(config["action_high"], dtype=torch.float32)
+        self.action_lower_bound = torch.as_tensor(config["action_low"], dtype=torch.float32)
         self.action_dim = len(config["action_high"])
         self.control_matrix = self.robot_model.K
         self.device = torch.device("cpu")

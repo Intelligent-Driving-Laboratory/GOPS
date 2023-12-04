@@ -127,7 +127,7 @@ def controllability(A, B):
     AB[0] = B
     for i in range(1, A.shape[0]):
         AB[i] = A.dot(AB[i - 1])
-    q = np.column_stack((AB.values()))
+    q = np.column_stack(tuple(AB.values()))
 
     z = q.dot(q.T)
     if np.linalg.matrix_rank(z) != A.shape[0]:

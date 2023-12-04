@@ -43,12 +43,12 @@ class SimuVeh3dofcontiDetour(SimuVeh3dofconti):
         pre_horizon: int = 10,
         path_para: Optional[Dict[str, Dict]] = None,
         u_para: Optional[Dict[str, Dict]] = None,
+        max_steer: float = np.pi / 6,
         surr_veh_num: int = 1,
         veh_length: float = 4.8,
         veh_width: float = 2.0,
         **kwargs: Any,
     ):
-        max_steer = 0.5
         init_high = np.array([1, 0.0, np.pi / 36, 2, 0.1, 0.1], dtype=np.float32)
         init_low = -np.array([1, 0.8, np.pi / 36, 2, 0.1, 0.1], dtype=np.float32)
         work_space = np.stack((init_low, init_high))
@@ -134,7 +134,6 @@ class SimuVeh3dofcontiDetour(SimuVeh3dofconti):
         return self.get_obs(), self.info
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
-        # info = self.info
         _, reward, _, _ = super().step(action)
         done = self.judge_done()
 

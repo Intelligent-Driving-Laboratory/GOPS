@@ -41,7 +41,7 @@ class LqModel(RobotModel):
 
     def get_next_state(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         tmp = torch.mm(self.B, action.T) * self.time_step + state.T
-        tmp = torch.tensor(tmp, dtype=torch.float32)
+        tmp = tmp.float()
         x_next = torch.mm(self.inv_IA, tmp).T
 
         return x_next

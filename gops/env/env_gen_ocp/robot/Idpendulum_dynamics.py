@@ -26,10 +26,6 @@ class Dynamics(Robot):
         self.discrete_num = 5
         self.max_episode_steps = 500
 
-    def reset(self, state: np.ndarray) -> np.ndarray:
-        self.state = state.copy()
-        return self.state
-    
     def step(self, action: np.ndarray) -> np.ndarray:
         act_batch = 500 * action.reshape(1, -1)
         for _ in range(self.discrete_num):

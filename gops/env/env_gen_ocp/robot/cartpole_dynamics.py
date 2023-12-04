@@ -36,10 +36,6 @@ class Dynamics(Robot):
         self.state_space = spaces.Box(-high, high)
         self.state = None
 
-    def reset(self, state: np.ndarray) -> np.ndarray:
-        self.state = state.copy()
-        return self.state
-    
     def step(self, action: np.ndarray) -> np.ndarray:
         action = np.expand_dims(action, 0)
         force = self.param.force_mag * float(action)

@@ -25,10 +25,6 @@ class PendulumDynamics(Robot):
             low=-np.inf, high=np.inf, shape=(2,), dtype=np.float32
         )
 
-    def reset(self, state: np.ndarray) -> np.ndarray:
-        self.state = state.copy()
-        return self.state
-
     def step(self, action: np.ndarray) -> np.ndarray:
         th, thdot = self.state
 
