@@ -31,20 +31,21 @@ class Quadrotor1dofTrackingStablizationModel(EnvModel):
 
     def __init__(
         self,     
-        task = 'TRAJ_TRACKING',
+        task = 'STABILIZATION',
         device: Union[torch.device, str, None] = None,
         **kwargs,
     ):
         dt = 0.01
-        self.obs_dim = 4
+        # self.obs_dim = 4
+        self.obs_dim = 2
         action_dim = 1
         dt=dt
         self.robot_model = QuadrotorDynMdl()
         super().__init__(
             obs_lower_bound=None,
             obs_upper_bound=None,
-            action_lower_bound=-torch.ones(action_dim),
-            action_upper_bound= torch.ones(action_dim),
+            action_lower_bound= -5 * torch.ones(action_dim),
+            action_upper_bound= 12 * torch.ones(action_dim),
             device = device,
         )
         self.robot: QuadrotorDynMdl = QuadrotorDynMdl(
@@ -83,15 +84,17 @@ class Quadrotor1dofTrackingStablizationModel(EnvModel):
     def get_reward(self, state:torch.Tensor , action: torch.Tensor) -> float:
         act_error = action - torch.tensor(self.context.U_GOAL)
         # state = deepcopy(self.s)
+    
         if self.task == 'STABILIZATION':
-            state_error = torch.tensor(state.robot_state) - torch.tensor(state.context_state.reference[state.context_state.t])
-            dist = torch.sum(torch.tensor(self.context.rew_state_weight) * state_error ** 2)
-            dist += torch.sum(torch.tensor(self.context.rew_act_weight) * act_error ** 2)
+            wp_idx = min(self.robot.ctrl_step_counter + 1, self.context.X_GOAL.shape[0] - 1)
+            state_error = torch.tensor(state.robot_state) - torch.tensor(state.context_state.reference[:,0,:])
+            dist = torch.sum(torch.tensor(self.context.rew_state_weight) * state_error ** 2,dim=1)
+            dist += torch.sum(torch.tensor(self.context.rew_act_weight) * act_error ** 2,dim=1)
         elif self.task == 'TRAJ_TRACKING':
             wp_idx = min(self.robot.ctrl_step_counter , self.context.X_GOAL.shape[0] - 1)  # +1 because state has already advanced but counter not incremented.
             state_error = state.robot_state - torch.tensor(self.context.X_GOAL[wp_idx]).unsqueeze(0)
-            dist = torch.sum(torch.tensor(self.context.rew_state_weight) * state_error ** 2)
-            dist += torch.sum(torch.tensor(self.context.rew_act_weight) * act_error ** 2)
+            dist = torch.sum(torch.tensor(self.context.rew_state_weight) * state_error ** 2,dim=1)
+            dist += torch.sum(torch.tensor(self.context.rew_act_weight) * act_error ** 2,dim=1)
             # state_error = torch.tensor(state.robot_state) - torch.tensor(state.context_state.reference)
             # dist = torch.sum(torch.tensor(self.context.rew_state_weight) * state_error ** 2)
             # dist += torch.sum(torch.tensor(self.context.rew_act_weight) * act_error ** 2)
@@ -102,10 +105,12 @@ class Quadrotor1dofTrackingStablizationModel(EnvModel):
         return rew
 
     def get_terminated(self,state) -> bool:
+        wp_idx = min(self.robot.ctrl_step_counter + 1, self.context.X_GOAL.shape[0] - 1)
         if self.task == 'STABILIZATION':
-            self.goal_reached = (torch.linalg.norm(torch.tensor(state.robot_state) - torch.tensor(state.context_state.reference)) < self.context.TASK_INFO['stabilization_goal_tolerance']).item()
-            if self.goal_reached:
-                return True
+            self.goal_reached = (torch.linalg.norm(
+                torch.tensor(state.robot_state) - torch.tensor(state.context_state.reference[:,0,:]),dim=1
+                ) < self.context.TASK_INFO['stabilization_goal_tolerance'])
+            return self.goal_reached
         
         # mask = torch.tensor([1, 0])
         out_of_bounds = torch.logical_or(torch.tensor(state.robot_state) < torch.tensor(self.robot.state_space.low),

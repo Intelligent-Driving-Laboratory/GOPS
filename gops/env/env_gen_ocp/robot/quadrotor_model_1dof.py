@@ -79,7 +79,7 @@ class QuadrotorDynMdl(RobotModel):
             high = torch.concatenate([high] * 2)
 
         self.state_dim, self.action_dim = 2, 1
-        self.NORMALIZED_RL_ACTION_SPACE = True
+        # self.NORMALIZED_RL_ACTION_SPACE = True
       
         
         # Define obs space exposed to the controller.
@@ -138,16 +138,18 @@ class QuadrotorDynMdl(RobotModel):
         # import ipdb ; ipdb.set_trace()
         action_dim = 1
         n_mot = 4 / action_dim
-        a_low = self.KF * n_mot * (self.PWM2RPM_SCALE * self.MIN_PWM + self.PWM2RPM_CONST)**2
-        a_high = self.KF * n_mot * (self.PWM2RPM_SCALE * self.MAX_PWM + self.PWM2RPM_CONST)**2
+        # a_low = self.KF * n_mot * (self.PWM2RPM_SCALE * self.MIN_PWM + self.PWM2RPM_CONST)**2
+        # a_high = self.KF * n_mot * (self.PWM2RPM_SCALE * self.MAX_PWM + self.PWM2RPM_CONST)**2
+        a_low = -20
+        a_high = 20
         self.physical_action_bounds = (torch.full((action_dim,), a_low, dtype=torch.float32),
                                     torch.full((action_dim,), a_high, dtype=torch.float32))
 
         # Normalized thrust action space (around hover thrust).
         import numpy as np
         self.hover_thrust = self.GRAVITY_ACC * self.MASS / action_dim
-        self.action_space = spaces.Box(low=-np.ones(action_dim),
-                                        high=np.ones(action_dim),
+        self.action_space = spaces.Box(low=a_low * np.ones(action_dim),
+                                        high=a_high * np.ones(action_dim),
                                         dtype=np.float32)
         # # else, Direct thrust control.
         # self.action_space = spaces.Box(low=self.physical_action_bounds[0],
@@ -157,7 +159,6 @@ class QuadrotorDynMdl(RobotModel):
         m = self.context.MASS
         g= self.GRAVITY_ACC
         # u_eq = m * g
-        self.state_dim, self.action_dim = 2, 1
         X_dot = torch.stack([state[:, 1], action[:, 0] / m - g], dim=1) 
         next_state = state + self.dt * X_dot
         self.ctrl_step_counter += 1

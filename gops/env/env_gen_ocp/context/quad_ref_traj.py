@@ -23,27 +23,20 @@ class QuadType(IntEnum):
     TWO_D = 2  # Two-dimensional (in the x-z plane) movement.
     THREE_D = 3  # Three-dimensional movement.
 
-TASK_INFO = {
-    'stabilization_goal': [0, 1],
-    'stabilization_goal_tolerance': 0.05,
-    'trajectory_type': 'circle',
-    'num_cycles': 1,
-    'trajectory_plane': 'zx',
-    'trajectory_position_offset': [0.5, 0],
-    'trajectory_scale': -0.5,
-    'proj_point': [0, 0, 0.5],
-    'proj_normal': [0, 1, 1],
-}
+
 
 class QuadContext(Context):
     def __init__(self,
+                 offset = [0.5, 0],
                  *,
                  prior_prop={}, 
-                 quad_type = QuadType.THREE_D,
+                 quad_type = QuadType.ONE_D,
                  rew_state_weight=1.0,
-                 rew_act_weight=0.0001,
+                 rew_act_weight=0.01,
+                #  rew_act_weight=0.0001,
+                 
                  pre_horizon: int = 10,
-                 task = 'TRAJ_TRACKING'
+                 task = 'STABILIZATION'
         ) -> None:
         self.QUAD_TYPE = QuadType(quad_type)
         self.task = task
@@ -53,7 +46,7 @@ class QuadContext(Context):
         self.rew_act_weight = np.array(rew_act_weight, ndmin=1, dtype=float)
         self.pre_horizon = pre_horizon
         self.TASK_INFO = {
-        'stabilization_goal': [0, 1],
+        'stabilization_goal': [0, 0, 0],
         'stabilization_goal_tolerance': 0.05,
         'trajectory_type': 'circle',
         'num_cycles': 1,
@@ -63,7 +56,7 @@ class QuadContext(Context):
         'proj_point': [0, 0, 0.5],
         'proj_normal': [0, 1, 1],
     }
-        self._get_GOAL()
+        self._get_GOAL(offset)
         self.reset()
     
     def reset(self) -> ContextState[np.ndarray]:
@@ -188,20 +181,20 @@ class QuadContext(Context):
         vel_ref[coord_index_b] = coords_b_dot
         return pos_ref, vel_ref
 
-    def _get_GOAL(self):
+    def _get_GOAL(self,offset):
         # Create X_GOAL and U_GOAL references for the assigned task.
         self.action_dim = 1
         self.GRAVITY_ACC = 9.8
-        self.EPISODE_LEN_SEC = 5
+        self.EPISODE_LEN_SEC = 20
         self.CTRL_FREQ = 100
         self.CTRL_TIMESTEP = 0.01
         self.CTRL_STEPS = self.EPISODE_LEN_SEC *  self.CTRL_FREQ
         self.U_GOAL = np.ones(self.action_dim) * self.MASS * self.GRAVITY_ACC / self.action_dim
         if self.task == 'STABILIZATION':
             if self.QUAD_TYPE == QuadType.ONE_D:
-                self.X_GOAL = np.hstack(
+                self.X_GOAL = np.expand_dims(np.hstack(
                     [self.TASK_INFO['stabilization_goal'][1],
-                     0.0])  # x = {z, z_dot}.
+                     0.0]),axis=0)  # x = {z, z_dot}.
             elif self.QUAD_TYPE == QuadType.TWO_D:
                 self.X_GOAL = np.hstack([
                     self.TASK_INFO['stabilization_goal'][0], 0.0,
@@ -220,7 +213,7 @@ class QuadContext(Context):
                                                             traj_length=self.EPISODE_LEN_SEC,
                                                             num_cycles=self.TASK_INFO['num_cycles'],
                                                             traj_plane=self.TASK_INFO['trajectory_plane'],
-                                                            position_offset=self.TASK_INFO['trajectory_position_offset'],
+                                                            position_offset=offset,
                                                             scaling=self.TASK_INFO['trajectory_scale'],
                                                             sample_time=self.CTRL_TIMESTEP
                                                             )  # Each of the 3 returned values is of shape (Ctrl timesteps, 3)

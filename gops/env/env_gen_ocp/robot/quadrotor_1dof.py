@@ -140,8 +140,10 @@ class Quadrotor(Robot):
         # import ipdb ; ipdb.set_trace()
         action_dim = 1
         n_mot = 4 / action_dim
-        a_low = self.KF * n_mot * (self.PWM2RPM_SCALE * self.MIN_PWM + self.PWM2RPM_CONST)**2
-        a_high = self.KF * n_mot * (self.PWM2RPM_SCALE * self.MAX_PWM + self.PWM2RPM_CONST)**2
+        # a_low = self.KF * n_mot * (self.PWM2RPM_SCALE * self.MIN_PWM + self.PWM2RPM_CONST)**2
+        # a_high = self.KF * n_mot * (self.PWM2RPM_SCALE * self.MAX_PWM + self.PWM2RPM_CONST)**2
+        a_low = -20
+        a_high = 20
         self.physical_action_bounds = (np.full(action_dim, a_low, np.float32),
                                        np.full(action_dim, a_high, np.float32))
        
@@ -166,13 +168,14 @@ class Quadrotor(Robot):
         if init_state is None:
             for init_name in INIT_STATE_RAND_INFO:  # Default zero state.
                 self.__dict__[init_name.upper()] = 0.
-            self.state = np.ones(self.state_dim)
+            self.state = np.zeros(self.state_dim)
         else:
             if isinstance(init_state, np.ndarray):  # Full state as numpy array .
-                for i, init_name in enumerate(self.INIT_STATE_LABELS[self.QUAD_TYPE]):
+                for i, init_name in enumerate(self.INIT_STATE_LABELS[QuadType.ONE_D]):
                     self.__dict__[init_name.upper()] = init_state[i]
+                self.state = init_state
             elif isinstance(init_state, dict):  # Partial state as dictionary.
-                for init_name in self.INIT_STATE_LABELS[self.QUAD_TYPE]:
+                for init_name in self.INIT_STATE_LABELS[QuadType.ONE_D]:
                     self.__dict__[init_name.upper()] = init_state.get(init_name, 0.)
             else:
                 raise ValueError('[ERROR] in Quadrotor.__init__(), init_state incorrect format.')

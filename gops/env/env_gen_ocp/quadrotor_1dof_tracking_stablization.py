@@ -29,13 +29,12 @@ class Quadrotor1dofTrackingStablization(Env):
             quad_type = QuadType.ONE_D
         )
         self.observation_space =  self.robot.state_space
-        ref_obs_dim = 2
         
-        self.observation_space = spaces.Box(
-            low=np.tile(self.robot.state_space.low, 2),
-            high=np.tile(self.robot.state_space.high, 2),
-            dtype=np.float32,
-        )
+        # self.observation_space = spaces.Box(
+        #     low=np.tile(self.robot.state_space.low, 2),
+        #     high=np.tile(self.robot.state_space.high, 2),
+        #     dtype=np.float32,
+        # )
         self.action_space = self.robot.action_space
         self.max_episode_steps = 200
         self.seed()
@@ -43,11 +42,12 @@ class Quadrotor1dofTrackingStablization(Env):
 
     def reset(
         self,
+        init_state = None
     ) -> Tuple[np.ndarray, dict]:
         self._state = State(
-        robot_state=self.robot.reset(),
-        context_state= self.context.reset()
-    )
+            robot_state=self.robot.reset(init_state),
+            context_state= self.context.reset()
+        )
         return self._get_obs(),self._get_info()
 
     def _get_obs(self) -> np.ndarray:
@@ -58,7 +58,8 @@ class Quadrotor1dofTrackingStablization(Env):
         # Quadratic costs w.r.t state and action
         # TODO: consider using multiple future goal states for cost in tracking
         if self.task == 'STABILIZATION':
-            state_error = self._state.robot_state - self._state.context_state[0]
+            wp_idx = min(self.robot.ctrl_step_counter + 1, self.context.X_GOAL.shape[0] - 1)  # +1 because state has already advanced but counter not incremented.
+            state_error = self._state.robot_state - self.context.X_GOAL[wp_idx]
             dist = np.sum(self.context.rew_state_weight * state_error * state_error)
             dist += np.sum(self.context.rew_act_weight * act_error * act_error)
         if self.task == 'TRAJ_TRACKING':
@@ -76,7 +77,9 @@ class Quadrotor1dofTrackingStablization(Env):
            
         # Done if goal reached for stabilization task with quadratic cost.
         if self.task == 'STABILIZATION' :
-            self.goal_reached = bool(np.linalg.norm(self._state.robot_state - self._state.context_state) < self.context.TASK_INFO['stabilization_goal_tolerance'])
+            wp_idx = min(self.robot.ctrl_step_counter + 1, self.context.X_GOAL.shape[0] - 1)  # +1 because state has already advanced but counter not incremented.
+            state_error = self._state.robot_state - self.context.X_GOAL[wp_idx]
+            self.goal_reached = bool(np.linalg.norm(state_error) < self.context.TASK_INFO['stabilization_goal_tolerance'])
             if self.goal_reached:
                 return True 
         # Done if state is out-of-bounds.
@@ -142,15 +145,25 @@ if __name__ == "__main__":
     #     with open('./config.ini', 'w') as configfile:
     #         config.write(configfile)
     #     print('\n----------quad_type:',quad_type,'----------')
-    env_new = Quadrotor1dofTrackingStablization()
-    seed = 1
-    env_new.seed(seed)
-    np.random.seed(seed)
-    obs_new = env_new.reset()
-    print("reset obs close:", obs_new)
-    action = np.random.random(4)
-    next_obs_new, reward_new, done_new, _ = env_new.step(action)
-    print("step reward close:",  reward_new)
+    env = Quadrotor1dofTrackingStablization()
+    # seed = 1
+    # env_new.seed(seed)
+    # np.random.seed(seed)
+    
+    obs, info = env.reset()
+    actions = [0.116961166, 0.35555518, 0.23784652, 0.3495553, 0.18962601, 0.33521265, 0.22090153, 0.44335434, 0.19350258, 0.15874778]
+
+    for i in range(10):
+        action = np.array([actions[i]])
+        print(f'-----------{i}------------')
+        print('obs',obs)
+        print('act',action)
+        
+        obs_, rew, done, info = env.step(action=action)
+        print('context',info['state'].context_state.reference[0])
+        print('rew',rew)
+        print('obs_',obs_)
+        obs = obs_
 
     
 
