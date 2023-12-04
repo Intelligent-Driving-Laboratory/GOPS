@@ -260,8 +260,14 @@ class SimuVeh3dofcontiSurrCstrPenalty(SimuVeh3dofconti):
         for i in range(self.surr_veh_num):
             surr_x, surr_y, surr_phi = self.surr_state[i, :3]
             ax.add_patch(pc.Rectangle(
-                (surr_x - self.veh_length / 2, surr_y - self.veh_width / 2), self.veh_length, self.veh_width, surr_phi * 180 / np.pi,
-                facecolor='w', edgecolor='k', zorder=1))
+                (surr_x - self.veh_length / 2, surr_y - self.veh_width / 2),
+                self.veh_length,
+                self.veh_width,
+                angle=surr_phi * 180 / np.pi,
+                facecolor='w',
+                edgecolor='k',
+                zorder=1
+            ))
 
 
 def env_creator(**kwargs):

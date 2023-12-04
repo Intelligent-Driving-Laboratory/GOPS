@@ -38,6 +38,9 @@ from gops.env.env_gen_ocp.env_model.cartpoleconti_model import CartpolecontiMdl
 from gops.env.env_gen_ocp.cartpoleconti import Cartpoleconti
 from gops.env.env_gym.gym_cartpoleconti import _GymCartpoleconti
 
+from gops.env.env_gen_ocp.pendulum import Pendulum
+from gops.env.env_gen_ocp.env_model.pendulum_model import PendulumModel
+
 """
     Add new test cases in the following two lists, each test case is a dict with keys:
         "env_old_cls": old env class / "env_cls": env class
@@ -120,6 +123,10 @@ raw_test_cases_env_vs_model = [
         "env_cls": Cartpoleconti,
         "model_cls": CartpolecontiMdl,
     },
+    {
+        "env_cls": Pendulum,
+        "model_cls": PendulumModel,
+    },
 ]
 
 DEFAULT_PARAMS = {
@@ -168,7 +175,6 @@ def test_env_old_vs_new_consistency(test_cases_env_old_vs_new):
         if "constraint" in info_old:
             constraint_old = info_old["constraint"]
             constraint_new = info_new["constraint"]
-            print(constraint_old-constraint_new)
             assert np.isclose(constraint_old, constraint_new, rtol=rtol, atol=atol).all(), \
                 f"constraint not close on step {i}!"
         if done_old:
