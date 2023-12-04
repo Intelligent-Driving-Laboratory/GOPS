@@ -145,14 +145,14 @@ class Robot(metaclass=ABCMeta):
     state: np.ndarray
     state_space: spaces.Box
     action_space: spaces.Box
-    
-    @abstractmethod
-    def reset(self, state: Optional[np.ndarray]) -> np.ndarray:
-        ...
 
     @abstractmethod
     def step(self, action: np.ndarray) -> np.ndarray:
         ...
+
+    def reset(self, state: np.ndarray) -> np.ndarray:
+        self.state = state.copy()
+        return state
 
     def get_zero_state(self) -> np.ndarray:
         return np.zeros_like(self.state_space.low)

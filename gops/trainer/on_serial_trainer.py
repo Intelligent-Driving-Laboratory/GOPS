@@ -24,6 +24,7 @@ from torch.utils.tensorboard import SummaryWriter
 from gops.utils.common_utils import ModuleOnDevice
 from gops.utils.parallel_task_manager import TaskPool
 from gops.utils.tensorboard_setup import add_scalars, tb_tags
+from gops.utils.log_data import LogData
 
 
 class OnSerialTrainer:
@@ -55,6 +56,8 @@ class OnSerialTrainer:
         )
         self.writer.flush()
 
+        self.sampler_tb_dict = LogData()
+
         # create evaluation tasks
         self.evluate_tasks = TaskPool()
         self.last_eval_iteration = 0
@@ -69,6 +72,7 @@ class OnSerialTrainer:
             samples_with_replay_format,
             sampler_tb_dict,
         ) = self.sampler.sample_with_replay_format()
+        self.sampler_tb_dict.add_average(sampler_tb_dict)
 
         # learning
         if self.use_gpu:
@@ -85,7 +89,7 @@ class OnSerialTrainer:
         if self.iteration % self.log_save_interval == 0:
             print("Iter = ", self.iteration)
             add_scalars(alg_tb_dict, self.writer, step=self.iteration)
-            add_scalars(sampler_tb_dict, self.writer, step=self.iteration)
+            add_scalars(self.sampler_tb_dict.pop(), self.writer, step=self.iteration)
 
         # save
         if self.iteration % self.apprfunc_save_interval == 0:

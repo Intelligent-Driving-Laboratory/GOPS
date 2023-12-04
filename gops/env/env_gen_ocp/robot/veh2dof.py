@@ -4,6 +4,7 @@ from typing import NamedTuple
 import numpy as np
 from gym import spaces
 from gops.env.env_gen_ocp.pyth_base import Robot
+from gops.utils.math import angle_normalize
 
 
 class Veh2DoFParam(NamedTuple):
@@ -30,10 +31,6 @@ class Veh2DoF(Robot):
             low=np.array([-max_steer], dtype=np.float32),
             high=np.array([max_steer], dtype=np.float32),
         )
-
-    def reset(self, state: np.ndarray) -> np.ndarray:
-        self.state = state.copy()
-        return self.state
 
     def step(self, action: np.ndarray) -> np.ndarray:
         y, phi, v, w = self.state
@@ -62,7 +59,3 @@ class Veh2DoF(Robot):
 
         self.state = next_state
         return self.state
-
-
-def angle_normalize(x):
-    return ((x + math.pi) % (2 * math.pi)) - math.pi

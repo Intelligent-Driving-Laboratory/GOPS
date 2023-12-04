@@ -25,6 +25,7 @@ from scipy.linalg._solvers import solve_discrete_are
 from gops.env.env_ocp.pyth_base_env import PythBaseEnv
 from gops.env.env_ocp.env_model.pyth_base_model import PythBaseModel
 from gops.utils.gops_typing import InfoDict
+from gops.env.env_ocp.resources.lq_configs import config_s3a1
 
 warnings.filterwarnings("ignore")
 gym.logger.setLevel(gym.logger.ERROR)
@@ -145,7 +146,7 @@ class LqEnv(PythBaseEnv):
         "render.modes": ["human", "rgb_array"],
     }
 
-    def __init__(self, config, **kwargs):
+    def __init__(self, config=config_s3a1, **kwargs):
         work_space = kwargs.pop("work_space", None)
         if work_space is None:
             init_mean = np.array(config["init_mean"], dtype=np.float32)
@@ -203,7 +204,7 @@ class LqEnv(PythBaseEnv):
 
         self.state_buffer[self.step_counter, :] = self.obs
 
-        return self.obs
+        return self.obs, None
 
     def step(self, action: np.ndarray, adv_action=None):
         """
@@ -357,7 +358,6 @@ class LqModel(PythBaseModel):
 
 
 def test_check():
-    from gops.env.env_ocp.resources.lq_configs import config_s3a1
     from gops.env.inspector.env_data_checker import check_env0
     from gops.env.inspector.env_model_checker import check_model0
 

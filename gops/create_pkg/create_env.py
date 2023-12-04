@@ -15,9 +15,9 @@ from dataclasses import dataclass, field
 from typing import Callable, Dict, Optional, Union
 
 import gym
+import gymnasium
 import numpy as np
 from gym.wrappers.time_limit import TimeLimit
-from gops.create_pkg.create_env_model import register as register_env_model
 from gops.env.vector.sync_vector_env import SyncVectorEnv
 from gops.env.vector.async_vector_env import AsyncVectorEnv
 from gops.env.wrapper.action_repeat import ActionRepeatData
@@ -58,7 +58,7 @@ def register(
     registry[new_spec.env_id] = new_spec
 
 
-# regist env and env model
+# regist env
 env_dir_list = [e for e in os.listdir(env_path) if e.startswith("env_")]
 
 for env_dir_name in env_dir_list:
@@ -79,23 +79,6 @@ for env_dir_name in env_dir_list:
                     print(f"env {env_id} has no env_creator or {env_id_camel} in {env_dir_name}")
             except:
                 RuntimeError(f"Register env {env_id} failed")
-
-    env_model_path = os.path.join(env_path, env_dir_name, "env_model")
-    if not os.path.exists(env_model_path):
-        continue
-    file_list = os.listdir(env_model_path)
-    for file in file_list:
-        if file.endswith(".py") and file[0] != "_" and "base" not in file:
-            env_id = file[:-3]
-            mdl = importlib.import_module(f"gops.env.{env_dir_name}.env_model.{env_id}")
-            env_id_camel = underline2camel(env_id)
-            if hasattr(mdl, "env_model_creator"):
-                register_env_model(env_id=env_id, entry_point=getattr(mdl, "env_model_creator"))
-            elif hasattr(mdl, env_id_camel):
-                register_env_model(env_id=env_id, entry_point=getattr(mdl, env_id_camel))
-            else:
-                print(f"env {env_id} has no env_model_creator or {env_id_camel} in {env_dir_name}")
-
 
 def create_env(
     env_id: str,
@@ -184,7 +167,8 @@ def create_env(
             _obs_shift = 0.0 if obs_shift is None else obs_shift
             env = ScaleObservationData(env, _obs_shift, _obs_scale)
 
-        if action_scale and isinstance(env.action_space, gym.spaces.Box):
+        if action_scale and isinstance(
+            env.action_space, (gym.spaces.Box, gymnasium.spaces.Box)):
             env = ScaleActionData(env, min_action, max_action)
         
         if gym2gymnasium:

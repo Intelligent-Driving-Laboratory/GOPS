@@ -17,6 +17,7 @@ import torch
 
 from gops.env.env_ocp.env_model.pyth_base_model import PythBaseModel
 from gops.utils.gops_typing import InfoDict
+from gops.utils.math import angle_normalize
 
 pi = torch.tensor(np.pi, dtype=torch.float32)
 
@@ -105,10 +106,6 @@ class GymPendulumModel(PythBaseModel):
         isdone = state[:, 0].new_zeros(size=[state.size()[0]], dtype=torch.bool)
 
         return state_next, reward, isdone, {}
-
-
-def angle_normalize(x):
-    return ((x + pi) % (2 * pi)) - pi
 
 
 def arccs(sinth, costh):
