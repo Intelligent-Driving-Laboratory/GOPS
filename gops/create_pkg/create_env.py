@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Dict, Optional, Union
 
 import gym
+import gymnasium
 import numpy as np
 from gym.wrappers.time_limit import TimeLimit
 from gops.env.vector.sync_vector_env import SyncVectorEnv
@@ -166,7 +167,8 @@ def create_env(
             _obs_shift = 0.0 if obs_shift is None else obs_shift
             env = ScaleObservationData(env, _obs_shift, _obs_scale)
 
-        if action_scale and isinstance(env.action_space, gym.spaces.Box):
+        if action_scale and isinstance(
+            env.action_space, (gym.spaces.Box, gymnasium.spaces.Box)):
             env = ScaleActionData(env, min_action, max_action)
         
         if gym2gymnasium:
