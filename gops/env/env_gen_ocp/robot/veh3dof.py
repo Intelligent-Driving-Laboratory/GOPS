@@ -32,10 +32,6 @@ class Veh3DoF(Robot):
             high=np.array([max_steer, max_acc], dtype=np.float32),
         )
 
-    def reset(self, state: np.ndarray) -> np.ndarray:
-        self.state = state.copy()
-        return self.state
-
     def step(self, action: np.ndarray) -> np.ndarray:
         x, y, phi, u, v, w = self.state
         steer, ax = action

@@ -31,10 +31,6 @@ class Veh2DoF(Robot):
             high=np.array([max_steer], dtype=np.float32),
         )
 
-    def reset(self, state: np.ndarray) -> np.ndarray:
-        self.state = state.copy()
-        return self.state
-
     def step(self, action: np.ndarray) -> np.ndarray:
         y, phi, v, w = self.state
         steer = action[0]

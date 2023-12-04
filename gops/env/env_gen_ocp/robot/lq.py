@@ -24,10 +24,6 @@ class LqModel(Robot):
 
         self.state = None
 
-    def reset(self, state: np.ndarray) -> np.ndarray:
-        self.state = state.copy()
-        return self.state
-
     def step(self, action: np.ndarray) -> np.ndarray:
         self.state = self.prediction(self.state, action)
         return self.state
