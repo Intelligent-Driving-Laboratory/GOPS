@@ -61,7 +61,8 @@ class Quadrotor1dofTrackingStablization(Env):
             wp_idx = min(self.robot.ctrl_step_counter + 1, self.context.X_GOAL.shape[0] - 1)  # +1 because state has already advanced but counter not incremented.
             state_error = self._state.robot_state - self.context.X_GOAL[wp_idx]
             dist = np.sum(self.context.rew_state_weight * state_error * state_error)
-            dist += np.sum(self.context.rew_act_weight * act_error * act_error)
+            # dist += np.sum(self.context.rew_act_weight * act_error * act_error)
+            # dist = np.sum(act_error * act_error)
         if self.task == 'TRAJ_TRACKING':
             wp_idx = min(self.robot.ctrl_step_counter + 1, self.context.X_GOAL.shape[0] - 1)  # +1 because state has already advanced but counter not incremented.
             state_error = self._state.robot_state - self.context.X_GOAL[wp_idx]
@@ -80,11 +81,10 @@ class Quadrotor1dofTrackingStablization(Env):
             wp_idx = min(self.robot.ctrl_step_counter + 1, self.context.X_GOAL.shape[0] - 1)  # +1 because state has already advanced but counter not incremented.
             state_error = self._state.robot_state - self.context.X_GOAL[wp_idx]
             self.goal_reached = bool(np.linalg.norm(state_error) < self.context.TASK_INFO['stabilization_goal_tolerance'])
-            if self.goal_reached:
-                return True 
+            # if self.goal_reached:
+            #     return True 
         # Done if state is out-of-bounds.
-       
-        mask = np.array([1, 0])
+        mask = np.array([1, 1])
       
         # Element-wise or to check out-of-bound conditions.
         # import ipdb; ipdb.set_trace()
@@ -132,7 +132,7 @@ class Quadrotor1dofTrackingStablization(Env):
        
         
 def env_creator(**kwargs):
-    return Quadrotor1dofTrackingStablization(**kwargs)
+    return Quadrotor1dofTrackingStablization(task = 'STABILIZATION', **kwargs)
 
 
 if __name__ == "__main__":

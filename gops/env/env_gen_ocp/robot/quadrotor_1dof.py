@@ -51,10 +51,8 @@ class Quadrotor(Robot):
         self.L = 1.
         self.rew_exponential = rew_exponential
         self.GRAVITY_ACC = 9.81
-        self.CTRL_TIMESTEP = 0.01 
-        self.TIMESTEP = 0.001  
         self.state = None
-        self.dt = self.TIMESTEP
+        self.dt = 0.01
         self.context = QuadContext()
         self.ctrl_step_counter = 0 
         self.task = self.context.task
@@ -127,8 +125,11 @@ class Quadrotor(Robot):
 
         # Define obs/state bounds, labels and units.
         # obs/state = {z, z_dot}.
-        low = np.array([self.GROUND_PLANE_Z, -np.finfo(np.float32).max])
-        high = np.array([self.z_threshold, np.finfo(np.float32).max])
+        # low = np.array([self.GROUND_PLANE_Z, -np.finfo(np.float32).max])
+        low = np.array([self.GROUND_PLANE_Z, -1.])
+        high = np.array([self.z_threshold, 1.])
+        
+        # high = np.array([self.z_threshold, np.finfo(np.float32).max])
         self.STATE_LABELS = ['z', 'z_dot']
         self.STATE_UNITS = ['m', 'm/s']
       
@@ -142,7 +143,7 @@ class Quadrotor(Robot):
         n_mot = 4 / action_dim
         # a_low = self.KF * n_mot * (self.PWM2RPM_SCALE * self.MIN_PWM + self.PWM2RPM_CONST)**2
         # a_high = self.KF * n_mot * (self.PWM2RPM_SCALE * self.MAX_PWM + self.PWM2RPM_CONST)**2
-        a_low = -20
+        a_low = 0
         a_high = 20
         self.physical_action_bounds = (np.full(action_dim, a_low, np.float32),
                                        np.full(action_dim, a_high, np.float32))
@@ -168,7 +169,8 @@ class Quadrotor(Robot):
         if init_state is None:
             for init_name in INIT_STATE_RAND_INFO:  # Default zero state.
                 self.__dict__[init_name.upper()] = 0.
-            self.state = np.zeros(self.state_dim)
+            self.state = np.array([0.2 * (np.random.rand(1)[0] - 0.5) + 0.5, 0.3 * (np.random.rand(1)[0] - 0.5)], dtype=np.float32)
+            # self.state = np.array([1.,0.])
         else:
             if isinstance(init_state, np.ndarray):  # Full state as numpy array .
                 for i, init_name in enumerate(self.INIT_STATE_LABELS[QuadType.ONE_D]):

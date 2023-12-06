@@ -27,7 +27,7 @@ class QuadType(IntEnum):
 
 class QuadContext(Context):
     def __init__(self,
-                 offset = [0.5, 0],
+                 offset = [1, 0],
                  *,
                  prior_prop={}, 
                  quad_type = QuadType.ONE_D,
@@ -36,7 +36,7 @@ class QuadContext(Context):
                 #  rew_act_weight=0.0001,
                  
                  pre_horizon: int = 10,
-                 task = 'STABILIZATION'
+                 task = 'TRAJ_TRACKING'
         ) -> None:
         self.QUAD_TYPE = QuadType(quad_type)
         self.task = task
@@ -46,7 +46,7 @@ class QuadContext(Context):
         self.rew_act_weight = np.array(rew_act_weight, ndmin=1, dtype=float)
         self.pre_horizon = pre_horizon
         self.TASK_INFO = {
-        'stabilization_goal': [0, 0, 0],
+        'stabilization_goal': [0, 1, 0],
         'stabilization_goal_tolerance': 0.05,
         'trajectory_type': 'circle',
         'num_cycles': 1,
@@ -187,7 +187,7 @@ class QuadContext(Context):
         self.GRAVITY_ACC = 9.8
         self.EPISODE_LEN_SEC = 20
         self.CTRL_FREQ = 100
-        self.CTRL_TIMESTEP = 0.01
+        self.CTRL_TIMESTEP = 0.1
         self.CTRL_STEPS = self.EPISODE_LEN_SEC *  self.CTRL_FREQ
         self.U_GOAL = np.ones(self.action_dim) * self.MASS * self.GRAVITY_ACC / self.action_dim
         if self.task == 'STABILIZATION':

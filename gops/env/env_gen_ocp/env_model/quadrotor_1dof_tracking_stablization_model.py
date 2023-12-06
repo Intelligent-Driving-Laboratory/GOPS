@@ -31,21 +31,19 @@ class Quadrotor1dofTrackingStablizationModel(EnvModel):
 
     def __init__(
         self,     
-        task = 'STABILIZATION',
+        task = 'TRAJ_TRACKING',
         device: Union[torch.device, str, None] = None,
         **kwargs,
     ):
-        dt = 0.01
         # self.obs_dim = 4
         self.obs_dim = 2
         action_dim = 1
-        dt=dt
         self.robot_model = QuadrotorDynMdl()
         super().__init__(
-            obs_lower_bound=None,
-            obs_upper_bound=None,
-            action_lower_bound= -5 * torch.ones(action_dim),
-            action_upper_bound= 12 * torch.ones(action_dim),
+            obs_lower_bound=torch.tensor([0,-2]),
+            obs_upper_bound=torch.tensor([2,2]),
+            action_lower_bound= 0 * torch.ones(action_dim),
+            action_upper_bound= 20 * torch.ones(action_dim),
             device = device,
         )
         self.robot: QuadrotorDynMdl = QuadrotorDynMdl(
@@ -54,8 +52,6 @@ class Quadrotor1dofTrackingStablizationModel(EnvModel):
         self.context: QuadContext = QuadContext(
             quad_type = QuadType.ONE_D
         )
-        self.state_space = self.robot.state_space
-        self.action_space = self.robot.action_space
         self.max_episode_steps = 200
         self.task = task
         
@@ -66,14 +62,7 @@ class Quadrotor1dofTrackingStablizationModel(EnvModel):
     #         context_state = self.context.step()
     #     )
         
-    def reset(self) -> Tuple[torch.Tensor, dict]:
-        numpy_state = self.robot.reset()
-        tensor_state = torch.from_numpy(numpy_state).float()
-        self._state = {
-            'robot_state': tensor_state,
-            'context_state': self.context.state  
-        }
-        return tensor_state, self._state
+
  
 
     def get_obs(self,state) -> torch.Tensor:
@@ -87,12 +76,13 @@ class Quadrotor1dofTrackingStablizationModel(EnvModel):
     
         if self.task == 'STABILIZATION':
             wp_idx = min(self.robot.ctrl_step_counter + 1, self.context.X_GOAL.shape[0] - 1)
-            state_error = torch.tensor(state.robot_state) - torch.tensor(state.context_state.reference[:,0,:])
+            state_error = state.robot_state - torch.tensor(state.context_state.reference[:,0,:])
             dist = torch.sum(torch.tensor(self.context.rew_state_weight) * state_error ** 2,dim=1)
-            dist += torch.sum(torch.tensor(self.context.rew_act_weight) * act_error ** 2,dim=1)
+            # dist += torch.sum(torch.tensor(self.context.rew_act_weight) * act_error ** 2,dim=1)
+            # dist = torch.sum(act_error ** 2,dim=1)
+            
         elif self.task == 'TRAJ_TRACKING':
-            wp_idx = min(self.robot.ctrl_step_counter , self.context.X_GOAL.shape[0] - 1)  # +1 because state has already advanced but counter not incremented.
-            state_error = state.robot_state - torch.tensor(self.context.X_GOAL[wp_idx]).unsqueeze(0)
+            state_error = state.robot_state - torch.tensor(state.context_state.reference[:,0,:])
             dist = torch.sum(torch.tensor(self.context.rew_state_weight) * state_error ** 2,dim=1)
             dist += torch.sum(torch.tensor(self.context.rew_act_weight) * act_error ** 2,dim=1)
             # state_error = torch.tensor(state.robot_state) - torch.tensor(state.context_state.reference)
@@ -108,13 +98,12 @@ class Quadrotor1dofTrackingStablizationModel(EnvModel):
         wp_idx = min(self.robot.ctrl_step_counter + 1, self.context.X_GOAL.shape[0] - 1)
         if self.task == 'STABILIZATION':
             self.goal_reached = (torch.linalg.norm(
-                torch.tensor(state.robot_state) - torch.tensor(state.context_state.reference[:,0,:]),dim=1
+                state.robot_state - torch.tensor(state.context_state.reference[:,0,:]),dim=1
                 ) < self.context.TASK_INFO['stabilization_goal_tolerance'])
-            return self.goal_reached
         
         # mask = torch.tensor([1, 0])
-        out_of_bounds = torch.logical_or(torch.tensor(state.robot_state) < torch.tensor(self.robot.state_space.low),
-                                              torch.tensor(state.robot_state) > torch.tensor(self.robot.state_space.high))
+        out_of_bounds = torch.logical_or(state.robot_state < torch.tensor(self.obs_lower_bound),
+                                              state.robot_state > torch.tensor(self.obs_upper_bound))
         out_of_bounds = torch.any(out_of_bounds , dim=1)
         # if self.out_of_bounds.item():
         #     return True

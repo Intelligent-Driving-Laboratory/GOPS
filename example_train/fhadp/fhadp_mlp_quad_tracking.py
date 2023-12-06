@@ -35,7 +35,7 @@ if __name__ == "__main__":
     # Key Parameters for users
     parser.add_argument("--env_id", type=str, default="quadrotor_1dof_tracking_stablization")
     parser.add_argument("--algorithm", type=str, default="FHADP")
-    parser.add_argument("--pre_horizon", type=int, default=30)
+    parser.add_argument("--pre_horizon", type=int, default=10)
     parser.add_argument("--enable_cuda", default=False)
     parser.add_argument("--seed", default=None, help="seed")
     ################################################
@@ -78,7 +78,7 @@ if __name__ == "__main__":
         type=str,
         default="off_serial_trainer")
     # Maximum iteration number
-    parser.add_argument("--max_iteration", type=int, default=2000)
+    parser.add_argument("--max_iteration", type=int, default=20000)
     trainer_type = parser.parse_known_args()[0].trainer
     parser.add_argument(
         "--ini_network_dir",
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--noise_params",
         type=dict,
-        default={"mean": np.array([0], dtype=np.float32), "std": np.array([0.2], dtype=np.float32),},
+        default={"mean": np.array([0], dtype=np.float32), "std": np.array([0.1], dtype=np.float32),},
     )
 
     ################################################
