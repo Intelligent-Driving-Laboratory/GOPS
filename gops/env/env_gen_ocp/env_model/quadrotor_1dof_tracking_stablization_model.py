@@ -75,14 +75,14 @@ class Quadrotor1dofTrackingStablizationModel(EnvModel):
         # state = deepcopy(self.s)
     
         if self.task == 'STABILIZATION':
-            wp_idx = min(self.robot.ctrl_step_counter + 1, self.context.X_GOAL.shape[0] - 1)
             state_error = state.robot_state - torch.tensor(state.context_state.reference[:,0,:])
             dist = torch.sum(torch.tensor(self.context.rew_state_weight) * state_error ** 2,dim=1)
             # dist += torch.sum(torch.tensor(self.context.rew_act_weight) * act_error ** 2,dim=1)
             # dist = torch.sum(act_error ** 2,dim=1)
             
         elif self.task == 'TRAJ_TRACKING':
-            state_error = state.robot_state - torch.tensor(state.context_state.reference[:,0,:])
+            t = state.context_state.t
+            state_error = state.robot_state - torch.tensor(state.context_state.reference[:,t,:])
             dist = torch.sum(torch.tensor(self.context.rew_state_weight) * state_error ** 2,dim=1)
             dist += torch.sum(torch.tensor(self.context.rew_act_weight) * act_error ** 2,dim=1)
             # state_error = torch.tensor(state.robot_state) - torch.tensor(state.context_state.reference)

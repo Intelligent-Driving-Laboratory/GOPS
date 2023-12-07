@@ -41,7 +41,7 @@ class QuadrotorDynMdl(RobotModel):
         self.rew_exponential = rew_exponential
         self.GRAVITY_ACC = 9.81
         self.CTRL_TIMESTEP = 0.01 
-        self.TIMESTEP = 0.001  
+        self.TIMESTEP = 0.01  
         self.state = None
         self.dt = self.TIMESTEP
         self.x_threshold = 2
@@ -89,8 +89,6 @@ class QuadrotorDynMdl(RobotModel):
         self.Iyy = prior_prop.get('Iyy', self.J[1, 1])
         self.Ixx = prior_prop.get('Ixx', self.J[0, 0])
         self.Izz = prior_prop.get('Izz', self.J[2, 2])
-        self._set_action_space()
-        self._set_observation_space()
         
     def load_parameters(self):
         with open(self.URDF_PATH, 'r') as f:
@@ -117,44 +115,7 @@ class QuadrotorDynMdl(RobotModel):
         self.MIN_PWM = parameters["MIN_PWM"]
         self.MAX_PWM = parameters["MAX_PWM"]
      
-    def _set_observation_space(self):
-        '''Sets the observation space of the environment.'''
-        self.z_threshold = 2
-      
 
-        # Define obs/state bounds, labels and units.
-        # obs/state = {z, z_dot}.
-        import numpy as np
-        low = np.array([self.GROUND_PLANE_Z, -np.finfo(np.float32).max])
-        high = np.array([self.z_threshold, np.finfo(np.float32).max])
-        self.STATE_LABELS = ['z', 'z_dot']
-        self.STATE_UNITS = ['m', 'm/s']
-      
-        self.state_space = spaces.Box(low=low, high=high, dtype=np.float32)
-        
-    def _set_action_space(self):
-        '''Sets the action space of the environment.'''
-        # Define action/input dimension, labels, and units.
-        # import ipdb ; ipdb.set_trace()
-        action_dim = 1
-        n_mot = 4 / action_dim
-        # a_low = self.KF * n_mot * (self.PWM2RPM_SCALE * self.MIN_PWM + self.PWM2RPM_CONST)**2
-        # a_high = self.KF * n_mot * (self.PWM2RPM_SCALE * self.MAX_PWM + self.PWM2RPM_CONST)**2
-        a_low = -20
-        a_high = 20
-        self.physical_action_bounds = (torch.full((action_dim,), a_low, dtype=torch.float32),
-                                    torch.full((action_dim,), a_high, dtype=torch.float32))
-
-        # Normalized thrust action space (around hover thrust).
-        import numpy as np
-        self.hover_thrust = self.GRAVITY_ACC * self.MASS / action_dim
-        self.action_space = spaces.Box(low=a_low * np.ones(action_dim),
-                                        high=a_high * np.ones(action_dim),
-                                        dtype=np.float32)
-        # # else, Direct thrust control.
-        # self.action_space = spaces.Box(low=self.physical_action_bounds[0],
-        #                                 high=self.physical_action_bounds[1],
-        #                                 dtype=torch.float32)
     def get_next_state(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         m = self.context.MASS
         g= self.GRAVITY_ACC
