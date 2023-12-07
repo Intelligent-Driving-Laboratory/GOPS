@@ -9,6 +9,8 @@ import math
 import json
 from gops.env.env_gen_ocp.env_model.quadrotor_1dof_tracking_stablization_model import Task,Cost,QuadType
 from gops.env.env_gen_ocp.pyth_base import Robot
+from gops.utils.gops_path import env_path
+import os
 
 NAME = 'quadrotor'
 
@@ -87,7 +89,7 @@ class Quadrotor(Robot):
         self.state_dim, self.action_dim = 2, 1
         # Define obs space exposed to the controller.
         # Note how the obs space can differ from state space (i.e. augmented with the next reference states for RL)
-        self.URDF_PATH = '/home/qinshentao/code/gops/gops/env/env_gen_ocp/robot/quadrotor_parm.json'
+        self.URDF_PATH = os.path.join(env_path,  'env_gen_ocp/robot/quadrotor_parm.json')
         self.load_parameters()
         self._set_action_space()
         self._set_observation_space()

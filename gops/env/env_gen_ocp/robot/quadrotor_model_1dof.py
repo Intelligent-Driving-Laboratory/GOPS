@@ -5,7 +5,8 @@ from gops.env.env_gen_ocp.env_model.pyth_base_model import RobotModel
 from gops.env.env_gen_ocp.context.quad_ref_traj import QuadContext
 from gym import spaces
 from enum import IntEnum,Enum
-
+from gops.utils.gops_path import env_path
+import os
 class Cost(str, Enum):
     '''Reward/cost functions enumeration class.'''
     RL_REWARD = 'rl_reward'  # Default RL reward function.
@@ -84,7 +85,8 @@ class QuadrotorDynMdl(RobotModel):
         
         # Define obs space exposed to the controller.
         # Note how the obs space can differ from state space (i.e. augmented with the next reference states for RL)
-        self.URDF_PATH = '/home/qinshentao/code/gops/gops/env/env_gen_ocp/robot/quadrotor_parm.json'
+        self.URDF_PATH = os.path.join(env_path,  'env_gen_ocp/robot/quadrotor_parm.json')
+
         self.load_parameters()
         self.Iyy = prior_prop.get('Iyy', self.J[1, 1])
         self.Ixx = prior_prop.get('Ixx', self.J[0, 0])
