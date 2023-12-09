@@ -187,6 +187,7 @@ class PolicyRunner:
         done = False
         info.update({"TimeLimit.truncated": False})
         while not (done or info["TimeLimit.truncated"]):
+            print("step:", step + 1)
             state_list.append(state.robot_state)
             obs_list.append(obs)
             if is_opt:
@@ -230,7 +231,6 @@ class PolicyRunner:
             obs = next_obs
             state = env.state
             step = step + 1
-            print("step:", step)
 
             if "TimeLimit.truncated" not in info.keys():
                 info["TimeLimit.truncated"] = False

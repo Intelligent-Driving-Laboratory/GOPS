@@ -25,12 +25,12 @@ class SurrVehicleData:
         self.phi = self.phi + self.u * np.tan(self.delta) / self.l * self.dt
         self.phi = angle_normalize(self.phi)
     
-class RefTrajWithStaticObstacleContext(RefTrajContext):
+class RefTrajSurrCstrContext(RefTrajContext):
     def __init__(
         self,
         *,
         pre_horizon: int = 10,
-        surr_veh_num: int = 1,
+        surr_veh_num: int = 4,
         dt: float = 0.1,
         path_param: Optional[Dict[str, Dict]] = None,
         speed_param: Optional[Dict[str, Dict]] = None,
@@ -54,13 +54,9 @@ class RefTrajWithStaticObstacleContext(RefTrajContext):
         self,
         *,
         ref_time: float,
-        path_num: int = 4,
-        speed_num: int = 1,
+        path_num: Optional[int] = None,
+        speed_num: Optional[int] = None,
     ) -> ContextState[np.ndarray]:
-        if (path_num != 4 or speed_num != 1):
-            print("path_num: ", path_num)
-            print("speed_num: ", speed_num)
-            raise NotImplementedError("Only support path_num=4 and speed_num=1")
         self.state = super().reset(
             ref_time=ref_time,
             path_num=path_num,
@@ -80,13 +76,20 @@ class RefTrajWithStaticObstacleContext(RefTrajContext):
 
         self.surr_vehs = []
         for _ in range(self.surr_veh_num):
+            # avoid ego vehicle
+            while True:
+                # TODO: sample position according to reference trajectory
+                delta_lon = 10 * self.np_random.uniform(-1, 1)
+                delta_lat = 5 * self.np_random.uniform(-1, 1)
+                if abs(delta_lon) > 7 or abs(delta_lat) > 3:
+                    break
             surr_x = (
-                surr_x0 + 20.0
+                surr_x0 + delta_lon * np.cos(surr_phi) - delta_lat * np.sin(surr_phi)
             )
             surr_y = (
-                surr_y0 + 1.0
+                surr_y0 + delta_lon * np.sin(surr_phi) + delta_lat * np.cos(surr_phi)
             )
-            surr_u = 0.0
+            surr_u = 5 + self.np_random.uniform(-1, 1)
             self.surr_vehs.append(
                 SurrVehicleData(
                     x=surr_x,
@@ -97,6 +100,7 @@ class RefTrajWithStaticObstacleContext(RefTrajContext):
                     dt=self.dt,
                 )
             )
+        # self.update_surr_state()
 
         self.state = ContextState(
             reference=ref_points,
@@ -104,11 +108,13 @@ class RefTrajWithStaticObstacleContext(RefTrajContext):
         )
         return self.state
     
-    def get_next_surr_state(self):
-        surr_state = np.zeros((self.surr_veh_num, 5), dtype=np.float32)
-
-        for i, surr_veh in enumerate(self.surr_vehs):
+    def step_surr(self, ):
+        for surr_veh in self.surr_vehs:
             surr_veh.step()
+    
+    def get_surr_state(self):
+        surr_state = np.zeros((self.surr_veh_num, 5), dtype=np.float32)
+        for i, surr_veh in enumerate(self.surr_vehs):
             surr_state[i] = np.array(
                 [surr_veh.x, surr_veh.y, surr_veh.phi, surr_veh.u, surr_veh.delta],
                 dtype=np.float32,
@@ -117,15 +123,17 @@ class RefTrajWithStaticObstacleContext(RefTrajContext):
     
     def get_surr_state_pred(self):
         surr_state_pred = np.zeros((self.pre_horizon + 1, self.surr_veh_num, 5), dtype=np.float32)
-        surr_state_pred[0] = self.get_next_surr_state()
+        surr_state_pred[0] = self.get_surr_state()
         surr_vehs_backup = copy.deepcopy(self.surr_vehs)
         for i in range(self.pre_horizon):
-            surr_state_pred[i + 1] = self.get_next_surr_state()
+            self.step_surr()
+            surr_state_pred[i + 1] = self.get_surr_state()
         self.surr_vehs = surr_vehs_backup
         return surr_state_pred
 
     def step(self) -> ContextState[np.ndarray]:
         super().step()
+        self.step_surr()
         self.state.constraint = self.get_surr_state_pred()
 
         return self.state

@@ -1,20 +1,20 @@
-#  Copyright (c). All Rights Reserved.
-#  General Optimal control Problem Solver (GOPS)
-#  Intelligent Driving Lab (iDLab), Tsinghua University
-#
-#  Creator: iDLab
-#  Lab Leader: Prof. Shengbo Eben Li
-#  Email: lisb04@gmail.com
-#
-#  Description: Linear Quadratic control environment config
-#  Update Date: 2022-08-12, Yuhang Zhang: create environment config
-
+import numpy as np
+from typing import Dict, Optional
 
 import numpy as np
+from gops.env.env_gen_ocp.context.balance_point import BalancePoint
+from gops.env.env_gen_ocp.pyth_base import ContextState, Context
+from gops.env.env_ocp.resources.ref_traj_data import MultiRefTrajData
+
+
+LQContext = BalancePoint
 
 config_s2a1 = dict(
     A=[[0.0, 1.0], [0.0, 0.0]],
-    B=[[0.0], [1.0],],
+    B=[
+        [0.0],
+        [1.0],
+    ],
     Q=[2, 1],
     R=[1.0],
     dt=0.05,
