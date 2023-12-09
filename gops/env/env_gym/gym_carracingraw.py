@@ -57,7 +57,7 @@ class Env(gym.Env):
         self.env.seed(seed)
 
     def render(self, *arg):
-        self.env.render(*arg)
+        return self.env.render(*arg)
 
     def close(self):
         self.env.close()

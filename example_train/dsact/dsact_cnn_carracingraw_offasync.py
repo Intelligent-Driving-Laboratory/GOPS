@@ -109,12 +109,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--trainer",
         type=str,
-        default="off_async_trainer",
+        default="off_serial_trainer",
         help="Options: on_serial_trainer, on_sync_trainer, off_serial_trainer, off_async_trainer",
     )
-    parser.add_argument("--num_algs", type=int, default=2, help="number of algs")
-    parser.add_argument("--num_samplers", type=int, default=2, help="number of samplers")
-    parser.add_argument("--num_buffers", type=int, default=1, help="number of buffers")
+    # parser.add_argument("--num_algs", type=int, default=2, help="number of algs")
+    # parser.add_argument("--num_samplers", type=int, default=2, help="number of samplers")
+    # parser.add_argument("--num_buffers", type=int, default=1, help="number of buffers")
     # Maximum iteration number
     parser.add_argument("--max_iteration", type=int, default=500_000)
     parser.add_argument(
