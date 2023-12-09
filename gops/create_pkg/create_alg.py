@@ -89,7 +89,7 @@ def create_alg(**kwargs) -> object:
         import ray
 
         algo = [
-            ray.remote(num_gpus=1)(algorithm_creator).remote(index=idx, **_kwargs) for idx in range(_kwargs["num_algs"])
+            ray.remote(num_cpus=1)(algorithm_creator).remote(index=idx, **_kwargs) for idx in range(_kwargs["num_algs"])
         ]
     else:
         raise RuntimeError(f"trainer {trainer_name} not recognized")
