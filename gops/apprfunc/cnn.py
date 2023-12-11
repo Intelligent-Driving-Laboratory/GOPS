@@ -17,9 +17,11 @@ __all__ = [
     "ActionValue",
     "ActionValueDis",
     "StateValue",
+    "ActionValueDistri",
 ]
 
 import torch
+import warnings
 import torch.nn as nn
 from gops.utils.common_utils import get_activation_func
 from gops.utils.act_distribution_cls import Action_Distribution
@@ -110,7 +112,7 @@ class DetermPolicy(nn.Module, Action_Distribution):
             conv_strides = [2, 2, 2, 2, 1, 1]
             conv_activation = nn.ReLU
             conv_input_channel = obs_dim[0]
-            mlp_hidden_layers = [128]
+            mlp_hidden_layers = [256,256,256]
 
             # Construct CNN+MLP
             self.conv = CNN(
@@ -123,6 +125,7 @@ class DetermPolicy(nn.Module, Action_Distribution):
             conv_num_dims = (
                 self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
             )
+            # print(conv_num_dims)
             mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
 
             self.mlp = MLP(mlp_sizes, self.hidden_activation, self.output_activation)
@@ -202,7 +205,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
             conv_strides = [2, 2, 2, 2, 1, 1]
             conv_activation = nn.ReLU
             conv_input_channel = obs_dim[0]
-            mlp_hidden_layers = [128]
+            mlp_hidden_layers = [256,256,256]
 
             # Construct CNN+MLP
             self.conv = CNN(
@@ -215,6 +218,7 @@ class StochaPolicy(nn.Module, Action_Distribution):
             conv_num_dims = (
                 self.conv(torch.ones(obs_dim).unsqueeze(0)).reshape(1, -1).shape[-1]
             )
+            # print(conv_num_dims)
             policy_mlp_sizes = [conv_num_dims] + mlp_hidden_layers + [act_dim]
             self.mean = MLP(
                 policy_mlp_sizes, self.hidden_activation, self.output_activation
@@ -282,7 +286,7 @@ class ActionValue(nn.Module, Action_Distribution):
             conv_strides = [2, 2, 2, 2, 1, 1]
             conv_activation = nn.ReLU
             conv_input_channel = obs_dim[0]
-            mlp_hidden_layers = [128]
+            mlp_hidden_layers = [256,256,256]
 
             # Construct CNN+MLP
             self.conv = CNN(
@@ -351,7 +355,7 @@ class ActionValueDis(nn.Module, Action_Distribution):
             conv_strides = [2, 2, 2, 2, 1, 1]
             conv_activation = nn.ReLU
             conv_input_channel = obs_dim[0]
-            mlp_hidden_layers = [128]
+            mlp_hidden_layers = [256,256,256]
 
             # Construct CNN+MLP
             self.conv = CNN(
@@ -391,9 +395,8 @@ class ActionValueDistri(nn.Module):
         self.hidden_activation = get_activation_func(kwargs["hidden_activation"])
         self.output_activation = get_activation_func(kwargs["output_activation"])
         self.action_distribution_cls = kwargs["action_distribution_cls"]
-        self.min_log_std = kwargs["min_log_std"]
-        self.max_log_std = kwargs["max_log_std"]
-        self.denominator = max(abs(self.min_log_std), self.max_log_std)
+        if "min_log_std" in kwargs or "max_log_std" in kwargs:
+            warnings.warn("min_log_std and max_log_std are deprecated in ActionValueDistri.")
         if conv_type == "type_1":
             # CNN+MLP Parameters
             conv_kernel_sizes = [8, 4, 3]
@@ -427,7 +430,7 @@ class ActionValueDistri(nn.Module):
             conv_strides = [2, 2, 2, 2, 1, 1]
             conv_activation = nn.ReLU
             conv_input_channel = obs_dim[0]
-            mlp_hidden_layers = [128]
+            mlp_hidden_layers = [256,256,256]
 
             # Construct CNN+MLP
             self.conv = CNN(
@@ -452,14 +455,10 @@ class ActionValueDistri(nn.Module):
         img = self.conv(obs)
         feature = torch.cat([img.view(img.size(0), -1), act], -1)
         value_mean = self.mean(feature)
-        log_std = self.log_std(feature)
+        value_std = self.log_std(feature) # note: std, not log_std
+        value_std = torch.nn.functional.softplus(value_std)  # avoid 0
 
-        value_log_std = torch.clamp_min(
-            self.max_log_std * torch.tanh(log_std / self.denominator), 0
-        ) + torch.clamp_max(
-            -self.min_log_std * torch.tanh(log_std / self.denominator), 0
-        )
-        return torch.cat((value_mean, value_log_std), dim=-1)
+        return torch.cat((value_mean, value_std), dim=-1)
 
 
 class StochaPolicyDis(ActionValueDis, Action_Distribution):
@@ -516,7 +515,7 @@ class StateValue(nn.Module, Action_Distribution):
             conv_strides = [2, 2, 2, 2, 1, 1]
             conv_activation = nn.ReLU
             conv_input_channel = obs_dim[0]
-            mlp_hidden_layers = [128]
+            mlp_hidden_layers = [256,256,256]
 
             # Construct CNN+MLP
             self.conv = CNN(
