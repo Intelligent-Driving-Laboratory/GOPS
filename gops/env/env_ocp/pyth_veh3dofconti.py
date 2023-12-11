@@ -16,7 +16,7 @@ import numpy as np
 
 from gops.env.env_ocp.pyth_base_env import PythBaseEnv
 from gops.env.env_ocp.resources.ref_traj_data import MultiRefTrajData
-from gops.utils.math import angle_normalize
+from gops.utils.math_utils import angle_normalize
 
 
 class VehicleDynamicsData:

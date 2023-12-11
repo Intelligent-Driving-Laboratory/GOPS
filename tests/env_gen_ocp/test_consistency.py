@@ -84,6 +84,9 @@ raw_test_cases_env_vs_model = [
     },
     {
         "env_id": "pendulum",
+    },
+    {
+        "env_id": "quadrotor_1dof_tracking_stablization"
     }
 ]
 
