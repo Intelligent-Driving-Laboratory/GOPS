@@ -17,7 +17,7 @@ import torch
 
 from gops.env.env_ocp.env_model.pyth_base_model import PythBaseModel
 from gops.utils.gops_typing import InfoDict
-from gops.utils.math import angle_normalize
+from gops.utils.math_utils import angle_normalize
 
 pi = torch.tensor(np.pi, dtype=torch.float32)
 

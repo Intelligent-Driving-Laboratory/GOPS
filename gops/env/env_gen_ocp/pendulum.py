@@ -9,7 +9,7 @@ from gymnasium.error import DependencyNotInstalled
 from gops.env.env_gen_ocp.pyth_base import Env, State
 from gops.env.env_gen_ocp.robot.pendulum_dynamics import PendulumDynamics
 from gops.env.env_gen_ocp.context.balance_point import BalancePoint
-from gops.utils.math import angle_normalize
+from gops.utils.math_utils import angle_normalize
 
 
 class Pendulum(Env):

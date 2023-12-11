@@ -4,7 +4,7 @@ from typing import NamedTuple
 import numpy as np
 from gym import spaces
 from gops.env.env_gen_ocp.pyth_base import Robot
-from gops.utils.math import angle_normalize
+from gops.utils.math_utils import angle_normalize
 
 
 class Veh2DoFParam(NamedTuple):
