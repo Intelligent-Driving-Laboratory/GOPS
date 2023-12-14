@@ -1,14 +1,10 @@
-from typing import Dict, Optional, Tuple, Union
-from gym import spaces
+from typing import Union
 
 import torch
 from enum import IntEnum,Enum
 from gops.env.env_gen_ocp.env_model.pyth_base_model import EnvModel
-from gops.env.env_gen_ocp.pyth_base import State
 from gops.env.env_gen_ocp.context.quad_ref_traj import QuadContext
 from gops.env.env_gen_ocp.robot.quadrotor_model_1dof import QuadrotorDynMdl
-import numpy as np
-# import gops.env.env_gen_ocp.robot.quadrotor_model as model
 
 class Cost(str, Enum):
     '''Reward/cost functions enumeration class.'''
@@ -40,10 +36,10 @@ class Quadrotor1dofTrackingStablizationModel(EnvModel):
         action_dim = 1
         self.robot_model = QuadrotorDynMdl()
         super().__init__(
-            obs_lower_bound=torch.tensor([0,-2]),
-            obs_upper_bound=torch.tensor([2,2]),
-            action_lower_bound= 0 * torch.ones(action_dim),
-            action_upper_bound= 20 * torch.ones(action_dim),
+            obs_lower_bound=[0, -2],
+            obs_upper_bound=[2, 2],
+            action_lower_bound=[0] * action_dim,
+            action_upper_bound=[20] * action_dim,
             device = device,
         )
         self.robot: QuadrotorDynMdl = QuadrotorDynMdl(
@@ -54,16 +50,6 @@ class Quadrotor1dofTrackingStablizationModel(EnvModel):
         )
         self.max_episode_steps = 200
         self.task = task
-        
-     
-    # def get_next_state(self, state: State, action: np.ndarray) -> State[np.ndarray]:
-    #     return State(
-    #         robot_state=self.robot.get_next_state(state = state.robot_state, action = action),
-    #         context_state = self.context.step()
-    #     )
-        
-
- 
 
     def get_obs(self,state) -> torch.Tensor:
         t = state.context_state.t
@@ -75,14 +61,14 @@ class Quadrotor1dofTrackingStablizationModel(EnvModel):
         # state = deepcopy(self.s)
     
         if self.task == 'STABILIZATION':
-            state_error = state.robot_state - torch.tensor(state.context_state.reference[:,0,:])
+            state_error = state.robot_state - state.context_state.reference[:,0,:]
             dist = torch.sum(torch.tensor(self.context.rew_state_weight) * state_error ** 2,dim=1)
             # dist += torch.sum(torch.tensor(self.context.rew_act_weight) * act_error ** 2,dim=1)
             # dist = torch.sum(act_error ** 2,dim=1)
             
         elif self.task == 'TRAJ_TRACKING':
             t = state.context_state.t
-            state_error = state.robot_state - torch.tensor(state.context_state.reference[:,t,:])
+            state_error = state.robot_state - state.context_state.reference[:,t,:]
             dist = torch.sum(torch.tensor(self.context.rew_state_weight) * state_error ** 2,dim=1)
             dist += torch.sum(torch.tensor(self.context.rew_act_weight) * act_error ** 2,dim=1)
             # state_error = torch.tensor(state.robot_state) - torch.tensor(state.context_state.reference)
@@ -102,8 +88,8 @@ class Quadrotor1dofTrackingStablizationModel(EnvModel):
                 ) < self.context.TASK_INFO['stabilization_goal_tolerance'])
         
         # mask = torch.tensor([1, 0])
-        out_of_bounds = torch.logical_or(state.robot_state < torch.tensor(self.obs_lower_bound),
-                                              state.robot_state > torch.tensor(self.obs_upper_bound))
+        out_of_bounds = torch.logical_or(state.robot_state < self.obs_lower_bound,
+                                              state.robot_state > self.obs_upper_bound)
         out_of_bounds = torch.any(out_of_bounds , dim=1)
         # if self.out_of_bounds.item():
         #     return True
@@ -112,29 +98,3 @@ class Quadrotor1dofTrackingStablizationModel(EnvModel):
  
 def env_creator(**kwargs):
     return Quadrotor1dofTrackingStablizationModel(**kwargs)
-
-if __name__ == "__main__":
-    from gops.env.env_gen_ocp.veh3dof_tracking import Veh3DoFTracking
-    # from gops.env.inspector.consistency_checker import check_env_model_consistency
-    env = Quadrotor1dofTrackingStablizationModel(2002)
-    model = QuadrotorDynMdl()
-    # check_env_model_consistency(env, model)
-# if __name__ == "__main__":
-#     # test consistency with old environment
-#     # for quad_type in QuadType:  
-#     #     import configparser
-#     #     import os
-#     #     config = configparser.ConfigParser()
-#     #     config['quad_type'] = {'quad_type': str(QuadType.ONE_D)}
-#     #     with open('./config.ini', 'w') as configfile:
-#     #         config.write(configfile)
-#     #     print('\n----------quad_type:',quad_type,'----------')
-#     env_new = QuadTracking(quad_type = QuadType.THREE_D)
-#     seed = 1
-#     env_new.seed(seed)
-#     torch.random.seed(seed)
-#     obs_new = env_new.reset()
-#     print("reset obs close:", obs_new)
-#     action = torch.random.random(4)
-#     state = env_new.get_next_state(obs_new,action)
-#     print("step reward close:",  state)
