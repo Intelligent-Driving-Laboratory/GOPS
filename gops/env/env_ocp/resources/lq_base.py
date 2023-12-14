@@ -204,7 +204,7 @@ class LqEnv(PythBaseEnv):
 
         self.state_buffer[self.step_counter, :] = self.obs
 
-        return self.obs, None
+        return self.obs, {}
 
     def step(self, action: np.ndarray, adv_action=None):
         """
