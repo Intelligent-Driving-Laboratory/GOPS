@@ -136,7 +136,7 @@ class FiniteHorizonFullPolicy(nn.Module, Action_Distribution):
         self.action_distribution_cls = kwargs["action_distribution_cls"]
 
     def forward(self, obs):
-        return self.forward_all_policy(obs)[0, :]
+        return self.forward_all_policy(obs)[:, 0, :]
 
     def forward_all_policy(self, obs):
         actions = self.pi(obs).reshape(obs.shape[0], self.pre_horizon, self.act_dim)
