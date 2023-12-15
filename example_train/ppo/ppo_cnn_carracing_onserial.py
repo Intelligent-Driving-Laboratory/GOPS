@@ -27,7 +27,6 @@ from gops.utils.tensorboard_setup import start_tensorboard, save_tb_to_csv
 
 PROJ_DIR = Path.cwd().parent.parent
 sys.path.append(str(PROJ_DIR))
-os.environ["OMP_NUM_THREADS"] = "4"
 
 if __name__ == "__main__":
     # Parameters Setup
