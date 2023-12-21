@@ -45,7 +45,7 @@ class _GymSuspensionconti(PythBaseEnv):
         self.start_cancel = kwargs.get("start_cancel", kwargs["max_iteration"])
         self.dist_func_type = kwargs.get("dist_func_type", "zero")
         self.initial_obs = kwargs.get("initial_obs", kwargs["fixed_initial_state"])
-        self.sample_batch_size = kwargs["sample_batch_size"]
+        self.sample_batch_size = kwargs["reset_batch_size"]
 
         self.time_start_decline = self.start_decline * self.tau * self.sample_batch_size
         self.time_start_cancel = self.start_cancel * self.tau * self.sample_batch_size
@@ -120,7 +120,7 @@ class _GymSuspensionconti(PythBaseEnv):
 
         self.steps_beyond_done = None
 
-        self.max_episode_steps = kwargs["max_episode_steps"]
+        self.max_episode_steps = 1500
         self.steps = 0
 
     def reset(self, init_state=None, **kwargs):
