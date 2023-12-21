@@ -101,7 +101,7 @@ class _GymAircraftconti(PythBaseEnv):
 
         self.steps_beyond_done = None
 
-        self.max_episode_steps = kwargs["max_episode_steps"]
+        self.max_episode_steps = 200
         self.steps = 0
 
     @property
