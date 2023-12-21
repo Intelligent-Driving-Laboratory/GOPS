@@ -7,7 +7,7 @@ from gops.env.env_gen_ocp.env_model.pyth_base_model import EnvModel
 from gops.env.env_gen_ocp.pyth_base import State
 from gops.env.env_gen_ocp.robot.veh3dof_model import Veh3DoFModel
 from gops.env.env_gen_ocp.robot.veh3dof import angle_normalize
-from gops.env.env_gen_ocp.veh3dof_tracking import ego_vehicle_coordinate_transform
+from gops.env.env_gen_ocp.env_model.veh3dof_tracking_model import ego_vehicle_coordinate_transform
 
 
 class Veh3DoFTrackingSurrCstrModel(EnvModel):

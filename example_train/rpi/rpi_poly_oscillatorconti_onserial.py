@@ -25,7 +25,6 @@ from gops.utils.init_args import init_args
 from gops.utils.plot_evaluation import plot_all
 from gops.utils.tensorboard_setup import start_tensorboard, save_tb_to_csv
 
-os.environ["OMP_NUM_THREADS"] = "1"
 
 if __name__ == "__main__":
     # Parameters Setup
@@ -103,6 +102,7 @@ if __name__ == "__main__":
     parser.add_argument("--sampler_name", type=str, default="on_sampler", help="Options: on_sampler/off_sampler")
     # Batch size of sampler for buffer store
     parser.add_argument("--sample_batch_size", type=int, default=64, help="Batch size of sampler for buffer store = 64")
+    parser.add_argument("--reset_batch_size", type=int, default=64, help="Batch size of reset for env_model")
     # Add noise to actions for better exploration
     parser.add_argument("--noise_params", type=dict, default=None, help="add noise to actions for exploration")
     parser.add_argument("--probing_noise", type=bool, default=True, help="the persistency of excitation (PE) condition")

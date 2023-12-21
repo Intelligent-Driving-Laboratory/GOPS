@@ -26,7 +26,7 @@ class PythAircraftcontiModel(PythBaseModel):
         """
         # define common parameters here
         self.is_adversary = kwargs["is_adversary"]
-        self.sample_batch_size = kwargs["sample_batch_size"]
+        self.sample_batch_size = kwargs["reset_batch_size"]
         self.state_dim = 3
         self.action_dim = 1
         self.adversary_dim = 1

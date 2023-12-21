@@ -15,6 +15,7 @@ dependencies:
   - seaborn
   - scipy
   - cyipopt
+  - llvm-openmp<16
   - pip
   - pip:
     - gym==0.23.1

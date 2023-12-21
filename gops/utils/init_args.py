@@ -25,9 +25,17 @@ from gops.utils.common_utils import change_type, seed_everything
 
 
 def init_args(env, **args):
-    # set torch parallel threads nums
-    torch.set_num_threads(4)
-    print("limit torch intra-op parallel threads num to {num} for saving computing resource.".format(num = 4))
+    # set torch parallel threads nums in main process
+    num_threads_main = args.get("num_threads_main", None)
+    if num_threads_main is None:
+        if "serial" in args["trainer"]:
+            num_threads_main = 4
+        else:
+            num_threads_main = 1
+    torch.set_num_threads(num_threads_main)
+    print("limit torch intra-op parallel threads num in main process "
+          "to {num} for saving computing resource.".format(num=num_threads_main))
+
     # cuda
     if args["enable_cuda"]:
         if torch.cuda.is_available():
