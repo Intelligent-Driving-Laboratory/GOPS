@@ -223,7 +223,8 @@ class PolicyRunner:
                         )
             next_obs, reward, done, info = env.step(action)
 
-            action_list.append(action)
+            # save the real action (without scaling)
+            action_list.append(info.get("raw_action", action))
             step_list.append(step)
             reward_list.append(reward)
             info_list.append(info)
