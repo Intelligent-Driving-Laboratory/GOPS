@@ -139,7 +139,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
         idxes_to_update = {}  # lazy update to avoid redundancy
         for idx in idxes:
-            while idx >= 0 and idx not in idxes_to_update:
+            while idx > 0 and idx not in idxes_to_update:
                 idxes_to_update[idx] = True
                 idx = (idx - 1) // 2
         for idx in sorted(idxes_to_update.keys(), reverse=True):
