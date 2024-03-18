@@ -30,6 +30,7 @@ from gops.utils.tensorboard_setup import add_scalars
 from gops.utils.tensorboard_setup import tb_tags
 from gops.utils.common_utils import random_choice_with_index
 from gops.utils.log_data import LogData
+from gops.utils.gops_path import camel2underline
 
 warnings.filterwarnings("ignore")
 
@@ -48,7 +49,7 @@ class OffSyncTrainer:
 
         # create center network
         alg_name = kwargs["algorithm"]
-        alg_file_name = alg_name.lower()
+        alg_file_name = camel2underline(alg_name)
         try:
             module = importlib.import_module("gops.algorithm." + alg_file_name)
         except NotImplementedError:

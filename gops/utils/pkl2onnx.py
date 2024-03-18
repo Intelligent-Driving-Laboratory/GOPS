@@ -16,6 +16,7 @@ import argparse
 import os
 import sys
 from gops.utils.common_utils import get_args_from_json
+from gops.utils.gops_path import camel2underline
 import numpy as np
 
 py_file_path = os.path.abspath(__file__)
@@ -96,7 +97,7 @@ if __name__=='__main__':
     log_policy_dir = "../../results/FHADP/230223-220506"
     args = __load_args(log_policy_dir)
     alg_name = args["algorithm"]
-    alg_file_name = alg_name.lower()
+    alg_file_name = camel2underline(alg_name)
     file = __import__(alg_file_name)
     ApproxContainer = getattr(file, "ApproxContainer")
     networks = ApproxContainer(**args)
