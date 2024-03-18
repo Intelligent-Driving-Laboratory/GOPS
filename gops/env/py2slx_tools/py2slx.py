@@ -17,6 +17,7 @@ import winreg
 from gops.create_pkg.create_env import create_env
 from gops.create_pkg.create_sampler import create_sampler
 from gops.utils.common_utils import get_args_from_json
+from gops.utils.gops_path import camel2underline
 
 from gops.env.py2slx_tools.export import check_jit_compatibility, export_model
 
@@ -81,7 +82,7 @@ class Py2slxRuner:
     def __load_policy(self, log_policy_dir: str, trained_policy_iteration: str):
         # Create policy
         alg_name = self.args["algorithm"]
-        alg_file_name = alg_name.lower()
+        alg_file_name = camel2underline(alg_name)
         file = __import__(alg_file_name)
         ApproxContainer = getattr(file, "ApproxContainer")
         networks = ApproxContainer(**self.args)
