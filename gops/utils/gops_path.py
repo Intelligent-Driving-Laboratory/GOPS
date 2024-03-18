@@ -18,3 +18,13 @@ def underline2camel(s: str, first_upper: bool = False) -> str:
     for a in arr:
         res = res + a[0].upper() + a[1:]
     return res
+
+def camel2underline(s: str) -> str:
+    res = ''
+    for i in range(len(s) - 1):
+        if s[i].isupper() and s[i+1].islower():
+            res = res + "_" + s[i].lower()
+        else:
+            res = res + s[i].lower()
+    res = res + s[-1].lower()
+    return res
