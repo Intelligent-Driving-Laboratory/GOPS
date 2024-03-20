@@ -112,14 +112,14 @@ class DSACT(AlgorithmBase):
         )
 
     def local_update(self, data: DataDict, iteration: int) -> dict:
-        tb_info = self.__compute_gradient(data, iteration)
-        self.__update(iteration)
+        tb_info = self._compute_gradient(data, iteration)
+        self._update(iteration)
         return tb_info
 
     def get_remote_update_info(
         self, data: DataDict, iteration: int
     ) -> Tuple[dict, dict]:
-        tb_info = self.__compute_gradient(data, iteration)
+        tb_info = self._compute_gradient(data, iteration)
 
         update_info = {
             "q1_grad": [p._grad for p in self.networks.q1.parameters()],
@@ -147,9 +147,9 @@ class DSACT(AlgorithmBase):
         if self.auto_alpha:
             self.networks.log_alpha._grad = update_info["log_alpha_grad"]
 
-        self.__update(iteration)
+        self._update(iteration)
 
-    def __get_alpha(self, requires_grad: bool = False):
+    def _get_alpha(self, requires_grad: bool = False):
         if self.auto_alpha:
             alpha = self.networks.log_alpha.exp()
             if requires_grad:
@@ -159,7 +159,7 @@ class DSACT(AlgorithmBase):
         else:
             return self.alpha
 
-    def __compute_gradient(self, data: DataDict, iteration: int):
+    def _compute_gradient(self, data: DataDict, iteration: int):
         start_time = time.time()
 
         obs = data["obs"]
@@ -174,7 +174,7 @@ class DSACT(AlgorithmBase):
 
         self.networks.q1_optimizer.zero_grad()
         self.networks.q2_optimizer.zero_grad()
-        loss_q, q1, q2, std1, std2, min_std1, min_std2 = self.__compute_loss_q(data)
+        loss_q, q1, q2, std1, std2, min_std1, min_std2 = self._compute_loss_q(data)
         loss_q.backward()
 
         for p in self.networks.q1.parameters():
@@ -184,7 +184,7 @@ class DSACT(AlgorithmBase):
             p.requires_grad = False
 
         self.networks.policy_optimizer.zero_grad()
-        loss_policy, entropy = self.__compute_loss_policy(data)
+        loss_policy, entropy = self._compute_loss_policy(data)
         loss_policy.backward()
 
         for p in self.networks.q1.parameters():
@@ -194,7 +194,7 @@ class DSACT(AlgorithmBase):
 
         if self.auto_alpha:
             self.networks.alpha_optimizer.zero_grad()
-            loss_alpha = self.__compute_loss_alpha(data)
+            loss_alpha = self._compute_loss_alpha(data)
             loss_alpha.backward()
 
         tb_info = {
@@ -209,7 +209,7 @@ class DSACT(AlgorithmBase):
             "DSAC2/policy_mean-RL iter": policy_mean,
             "DSAC2/policy_std-RL iter": policy_std,
             "DSAC2/entropy-RL iter": entropy.item(),
-            "DSAC2/alpha-RL iter": self.__get_alpha(),
+            "DSAC2/alpha-RL iter": self._get_alpha(),
             "DSAC2/mean_std1": self.mean_std1,
             "DSAC2/mean_std2": self.mean_std2,
             tb_tags["alg_time"]: (time.time() - start_time) * 1000,
@@ -217,7 +217,7 @@ class DSACT(AlgorithmBase):
 
         return tb_info
 
-    def __q_evaluate(self, obs, act, qnet):
+    def _q_evaluate(self, obs, act, qnet):
         StochaQ = qnet(obs, act)
         mean, std = StochaQ[..., 0], StochaQ[..., -1]
         normal = Normal(torch.zeros_like(mean), torch.ones_like(std))
@@ -226,7 +226,7 @@ class DSACT(AlgorithmBase):
         q_value = mean + torch.mul(z, std)
         return mean, std, q_value
 
-    def __compute_loss_q(self, data: DataDict):
+    def _compute_loss_q(self, data: DataDict):
         obs, act, rew, obs2, done = (
             data["obs"],
             data["act"],
@@ -238,8 +238,8 @@ class DSACT(AlgorithmBase):
         act2_dist = self.networks.create_action_distributions(logits_2)
         act2, log_prob_act2 = act2_dist.rsample()
 
-        q1, q1_std, _ = self.__q_evaluate(obs, act, self.networks.q1)
-        q2, q2_std, _ = self.__q_evaluate(obs, act, self.networks.q2)
+        q1, q1_std, _ = self._q_evaluate(obs, act, self.networks.q1)
+        q2, q2_std, _ = self._q_evaluate(obs, act, self.networks.q2)
         if self.mean_std1 is None:
             self.mean_std1 = torch.mean(q1_std.detach())
         else:
@@ -251,17 +251,17 @@ class DSACT(AlgorithmBase):
             self.mean_std2 = (1 - self.tau_b) * self.mean_std2 + self.tau_b * torch.mean(q2_std.detach())
 
 
-        q1_next, _, q1_next_sample = self.__q_evaluate(
+        q1_next, _, q1_next_sample = self._q_evaluate(
             obs2, act2, self.networks.q1_target
         )
         
-        q2_next, _, q2_next_sample = self.__q_evaluate(
+        q2_next, _, q2_next_sample = self._q_evaluate(
             obs2, act2, self.networks.q2_target
         )
         q_next = torch.min(q1_next, q2_next)
         q_next_sample = torch.where(q1_next < q2_next, q1_next_sample, q2_next_sample)
 
-        target_q1, target_q1_bound = self.__compute_target_q(
+        target_q1, target_q1_bound = self._compute_target_q(
             rew,
             done,
             q1.detach(),
@@ -271,7 +271,7 @@ class DSACT(AlgorithmBase):
             log_prob_act2.detach(),
         )
         
-        target_q2, target_q2_bound = self.__compute_target_q(
+        target_q2, target_q2_bound = self._compute_target_q(
             rew,
             done,
             q2.detach(),
@@ -300,27 +300,27 @@ class DSACT(AlgorithmBase):
 
         return q1_loss +q2_loss, q1.detach().mean(), q2.detach().mean(), q1_std.detach().mean(), q2_std.detach().mean(), q1_std.min().detach(), q2_std.min().detach()
 
-    def __compute_target_q(self, r, done, q,q_std, q_next, q_next_sample, log_prob_a_next):
+    def _compute_target_q(self, r, done, q,q_std, q_next, q_next_sample, log_prob_a_next):
         target_q = r + (1 - done) * self.gamma * (
-            q_next - self.__get_alpha() * log_prob_a_next
+            q_next - self._get_alpha() * log_prob_a_next
         )
         target_q_sample = r + (1 - done) * self.gamma * (
-            q_next_sample - self.__get_alpha() * log_prob_a_next
+            q_next_sample - self._get_alpha() * log_prob_a_next
         )
         td_bound = 3 * q_std
         difference = torch.clamp(target_q_sample - q, -td_bound, td_bound)
         target_q_bound = q + difference
         return target_q.detach(), target_q_bound.detach()
 
-    def __compute_loss_policy(self, data: DataDict):
+    def _compute_loss_policy(self, data: DataDict):
         obs, new_act, new_log_prob = data["obs"], data["new_act"], data["new_log_prob"]
-        q1, _, _ = self.__q_evaluate(obs, new_act, self.networks.q1)
-        q2, _, _ = self.__q_evaluate(obs, new_act, self.networks.q2)
-        loss_policy = (self.__get_alpha() * new_log_prob - torch.min(q1,q2)).mean()
+        q1, _, _ = self._q_evaluate(obs, new_act, self.networks.q1)
+        q2, _, _ = self._q_evaluate(obs, new_act, self.networks.q2)
+        loss_policy = (self._get_alpha() * new_log_prob - torch.min(q1,q2)).mean()
         entropy = -new_log_prob.detach().mean()
         return loss_policy, entropy
 
-    def __compute_loss_alpha(self, data: DataDict):
+    def _compute_loss_alpha(self, data: DataDict):
         new_log_prob = data["new_log_prob"]
         loss_alpha = (
             -self.networks.log_alpha
@@ -328,7 +328,7 @@ class DSACT(AlgorithmBase):
         )
         return loss_alpha
 
-    def __update(self, iteration: int):
+    def _update(self, iteration: int):
         self.networks.q1_optimizer.step()
         self.networks.q2_optimizer.step()
 

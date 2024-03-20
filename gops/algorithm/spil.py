@@ -124,12 +124,12 @@ class SPIL(AlgorithmBase):
         return para_tuple
 
     def local_update(self, data: dict, iteration: int) -> dict:
-        update_list = self.__compute_gradient(data, iteration)
-        self.__update(update_list)
+        update_list = self._compute_gradient(data, iteration)
+        self._update(update_list)
         return self.tb_info
 
     def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
-        update_list = self.__compute_gradient(data, iteration)
+        update_list = self._compute_gradient(data, iteration)
         update_info = dict()
         for net_name in update_list:
             update_info[net_name] = [
@@ -141,9 +141,9 @@ class SPIL(AlgorithmBase):
         for net_name, grads in update_info.items():
             for p, grad in zip(self.networks.net_dict[net_name].parameters(), grads):
                 p.grad = grad
-        self.__update(list(update_info.keys()))
+        self._update(list(update_info.keys()))
 
-    def __update(self, update_list: list):
+    def _update(self, update_list: list):
         tau = self.tau
         for net_name in update_list:
             self.networks.optimizer_dict[net_name].step()
@@ -157,18 +157,18 @@ class SPIL(AlgorithmBase):
                     p_targ.data.mul_(1 - tau)
                     p_targ.data.add_(tau * p.data)
 
-    def __compute_gradient(self, data: dict, iteration: int) -> list:
+    def _compute_gradient(self, data: dict, iteration: int) -> list:
         update_list = []
 
         start_time = time.time()
         self.networks.v.zero_grad()
-        loss_v, v = self.__compute_loss_v(deepcopy(data))
+        loss_v, v = self._compute_loss_v(deepcopy(data))
         loss_v.backward()
         self.tb_info[tb_tags["loss_critic"]] = loss_v.item()
         self.tb_info[tb_tags["critic_avg_value"]] = v.item()
         update_list.append("v")
         self.networks.policy.zero_grad()
-        loss_policy = self.__compute_loss_policy(deepcopy(data))
+        loss_policy = self._compute_loss_policy(deepcopy(data))
         loss_policy.backward()
         self.tb_info[tb_tags["loss_actor"]] = loss_policy.item()
         update_list.append("policy")
@@ -179,7 +179,7 @@ class SPIL(AlgorithmBase):
 
         return update_list
 
-    def __compute_loss_v(self, data: dict):
+    def _compute_loss_v(self, data: dict):
         o, a, r, o2, d = (
             data["obs"],
             data["act"],
@@ -211,7 +211,7 @@ class SPIL(AlgorithmBase):
         self.safe_prob = traj_issafe.mean(0).numpy()
         return loss_v, torch.mean(v)
 
-    def __compute_loss_policy(self, data: dict):
+    def _compute_loss_policy(self, data: dict):
         o, a, r, c, o2, d = (
             data["obs"],
             data["act"],
@@ -250,11 +250,11 @@ class SPIL(AlgorithmBase):
                 r_sum = r_sum + self.reward_scale * self.gamma**step * r
                 c_sum = c_sum + c
                 c_mul = c_mul * c
-        w_r, w_c = self.__spil_get_weight()
+        w_r, w_c = self._spil_get_weight()
         loss_pi = (w_r * r_sum + (c_mul * torch.Tensor(w_c)).sum(1)).mean()
         return -loss_pi
 
-    def __spil_get_weight(self):
+    def _spil_get_weight(self):
         delta_p = self.chance_thre - self.safe_prob
         # integral separation
         delta_p_sepa = np.where(np.abs(delta_p) > 0.1, delta_p * 0.7, delta_p)

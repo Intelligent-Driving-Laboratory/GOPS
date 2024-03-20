@@ -158,7 +158,7 @@ class MPG(AlgorithmBase):
         return para_tuple
 
     # compute loss and gradient
-    def __compute_gradient(self, data: dict, iteration):
+    def _compute_gradient(self, data: dict, iteration):
         # get data including state, action, reward, next state and done
         o, a, r, o2, d = (
             data["obs"],
@@ -178,7 +178,7 @@ class MPG(AlgorithmBase):
 
         # compute q loss and backward
         start_time = time.time()
-        q_info, backup_info = self.__compute_loss_q(o, a, r, o2, d)
+        q_info, backup_info = self._compute_loss_q(o, a, r, o2, d)
         loss_q = q_info["MPG/loss_q-RL iter"]
         loss_q.backward()
         if self.pge_method == "mixed_state":
@@ -196,7 +196,7 @@ class MPG(AlgorithmBase):
                 p.requires_grad = False
 
         # compute policy loss and backward
-        loss_pi, pi_tb_info = self.__compute_loss_pi(data, iteration, backup_info)
+        loss_pi, pi_tb_info = self._compute_loss_pi(data, iteration, backup_info)
         loss_pi.backward()
 
         for p in self.networks.q1.parameters():
@@ -218,7 +218,7 @@ class MPG(AlgorithmBase):
         return tb_info
 
     # compute value backup/target for data-driven policy gradient
-    def __compute_value_backup(self, o, a, r, o2, d):
+    def _compute_value_backup(self, o, a, r, o2, d):
         with torch.no_grad():
             pi_targ = self.networks.policy_target(o2)
             # Target Q-values
@@ -229,7 +229,7 @@ class MPG(AlgorithmBase):
         return backup
 
     # compute value backup/target for model-driven policy gradient
-    def __compute_value_backup_model(self, o, a, r, o2, d):
+    def _compute_value_backup_model(self, o, a, r, o2, d):
         with torch.no_grad():
             pi_targ = self.networks.policy_target(o2)
             # Target Q-values of model
@@ -240,12 +240,12 @@ class MPG(AlgorithmBase):
         return backup_model
 
     # compute q loss for data-driven and model-driven policy gradient
-    def __compute_loss_q(self, o, a, r, o2, d):
+    def _compute_loss_q(self, o, a, r, o2, d):
         q1 = self.networks.q1(o, a)
         q2 = self.networks.q2(o, a)
 
         # Bellman backup for Q functions
-        backup_data = self.__compute_value_backup(o, a, r, o2, d)
+        backup_data = self._compute_value_backup(o, a, r, o2, d)
         backup_info = {"backup_data": backup_data}
 
         # MSE loss against Bellman backup for data-driven policy gradient
@@ -266,7 +266,7 @@ class MPG(AlgorithmBase):
             q2_model = self.networks.q2_model(o, a)
 
             # Bellman backup for Q functions
-            backup_model = self.__compute_value_backup_model(o, a, r, o2, d)
+            backup_model = self._compute_value_backup_model(o, a, r, o2, d)
             backup_info.update({"backup_model": backup_model})
 
             # MSE loss against Bellman backup for model-driven policy gradient
@@ -285,7 +285,7 @@ class MPG(AlgorithmBase):
         return q_info, backup_info
 
     # weights of data-driven policy gradient and model-driven policy gradient
-    def __compute_weights(self, iteration):
+    def _compute_weights(self, iteration):
         # lambda linearly increases in [1 - eta, 1.5]
         start = 1.0 - self.eta
         slope = 2.0 * self.eta / self.terminal_iter
@@ -309,7 +309,7 @@ class MPG(AlgorithmBase):
         return ws
 
     # compute policy loss for data-driven and model-driven policy gradient
-    def __compute_loss_pi(self, data, iteration, backup_info):
+    def _compute_loss_pi(self, data, iteration, backup_info):
         # get data including state, action, reward, next state and done
         o, a, r, o2, d = (
             data["obs"],
@@ -343,7 +343,7 @@ class MPG(AlgorithmBase):
         # mixed policy gradient
         if self.pge_method == "mixed_weight":
             with torch.no_grad():
-                ws = self.__compute_weights(iteration)
+                ws = self._compute_weights(iteration)
             data_w, model_w = ws[0], ws[1]
             data_loss = -data_return.mean()
             model_loss = -model_return.mean()
@@ -379,7 +379,7 @@ class MPG(AlgorithmBase):
         return loss, pi_tb_info
 
     # update networks and target networks
-    def __update(self, iteration):
+    def _update(self, iteration):
         self.networks.q1_optimizer.step()
         self.networks.q2_optimizer.step()
         if self.pge_method == "mixed_state":
@@ -424,12 +424,12 @@ class MPG(AlgorithmBase):
                     p_targ.data.add_((1 - polyak) * p.data)
 
     def local_update(self, data: dict, iteration: int):
-        tb_info = self.__compute_gradient(data, iteration)
-        self.__update(iteration)
+        tb_info = self._compute_gradient(data, iteration)
+        self._update(iteration)
         return tb_info
 
     def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
-        tb_info = self.__compute_gradient(data, iteration)
+        tb_info = self._compute_gradient(data, iteration)
 
         update_info = {
             "q1_grad": [p._grad for p in self.networks.q1.parameters()],
@@ -471,4 +471,4 @@ class MPG(AlgorithmBase):
                 p._grad = grad
             for p, grad in zip(self.networks.q2_model.parameters(), q2_model_grad):
                 p._grad = grad
-        self.__update(iteration)
+        self._update(iteration)

@@ -103,7 +103,7 @@ class TD3(AlgorithmBase):
         para_tuple = ("gamma", "tau", "delay_update", "reward_scale")
         return para_tuple
 
-    def __compute_gradient(self, data: dict, iteration):
+    def _compute_gradient(self, data: dict, iteration):
         tb_info = dict()
         start_time = time.time()
         self.networks.q1_optimizer.zero_grad()
@@ -118,7 +118,7 @@ class TD3(AlgorithmBase):
                 data["obs2"],
                 data["done"],
             )
-            loss_q, loss_q1, loss_q2 = self.__compute_loss_q(o, a, r, o2, d)
+            loss_q, loss_q1, loss_q2 = self._compute_loss_q(o, a, r, o2, d)
             loss_q.backward()
         else:
             o, a, r, o2, d, idx, weight = (
@@ -130,7 +130,7 @@ class TD3(AlgorithmBase):
                 data["idx"],
                 data["weight"],
             )
-            loss_q, loss_q1, loss_q2, abs_err = self.__compute_loss_q_per(
+            loss_q, loss_q1, loss_q2, abs_err = self._compute_loss_q_per(
                 o, a, r, o2, d, idx, weight
             )
             loss_q.backward()
@@ -140,7 +140,7 @@ class TD3(AlgorithmBase):
         for p in self.networks.q2.parameters():
             p.requires_grad = False
 
-        loss_policy = self.__compute_loss_pi(o)
+        loss_policy = self._compute_loss_pi(o)
         loss_policy.backward()
 
         for p in self.networks.q1.parameters():
@@ -159,7 +159,7 @@ class TD3(AlgorithmBase):
         else:
             return tb_info
 
-    def __compute_loss_q(self, o, a, r, o2, d):
+    def _compute_loss_q(self, o, a, r, o2, d):
         q1 = self.networks.q1(o, a)
         q2 = self.networks.q2(o, a)
 
@@ -189,7 +189,7 @@ class TD3(AlgorithmBase):
 
         return loss_q, loss_q1, loss_q2
 
-    def __compute_loss_q_per(self, o, a, r, o2, d, idx, weight):
+    def _compute_loss_q_per(self, o, a, r, o2, d, idx, weight):
         q1 = self.networks.q1(o, a)
         q2 = self.networks.q2(o, a)
 
@@ -220,11 +220,11 @@ class TD3(AlgorithmBase):
 
         return loss_q, loss_q1, loss_q2, abs_err
 
-    def __compute_loss_pi(self, o):
+    def _compute_loss_pi(self, o):
         q1_pi = self.networks.q1(o, self.networks.policy(o))
         return -q1_pi.mean()
 
-    def __update(self, iteration):
+    def _update(self, iteration):
         self.networks.q1_optimizer.step()
         self.networks.q2_optimizer.step()
 
@@ -251,12 +251,12 @@ class TD3(AlgorithmBase):
                 p_targ.data.add_((1 - polyak) * p.data)
 
     def local_update(self, data: dict, iteration: int):
-        extra_info = self.__compute_gradient(data, iteration)
-        self.__update(iteration)
+        extra_info = self._compute_gradient(data, iteration)
+        self._update(iteration)
         return extra_info
 
     def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
-        extra_info = self.__compute_gradient(data, iteration)
+        extra_info = self._compute_gradient(data, iteration)
 
         update_info = {
             "q1_grad": [p._grad for p in self.networks.q1.parameters()],
@@ -280,4 +280,4 @@ class TD3(AlgorithmBase):
         for p, grad in zip(self.networks.policy.parameters(), policy_grad):
             p._grad = grad
 
-        self.__update(iteration)
+        self._update(iteration)
