@@ -9,7 +9,6 @@
 #  Description: example for fhadp + idpendulum + mlp + off_serial
 #  Update Date: 2022-04-29, Jiaxin Gao: create example
 
-import os
 import argparse
 import numpy as np
 
@@ -120,7 +119,7 @@ if __name__ == "__main__":
     # 6. Parameters for evaluator
     parser.add_argument("--evaluator_name", type=str, default="evaluator")
     parser.add_argument("--num_eval_episode", type=int, default=10)
-    parser.add_argument("--eval_interval", type=int, default=1000)
+    parser.add_argument("--eval_interval", type=int, default=100)
     parser.add_argument("--eval_save", type=str, default=False, help="save evaluation data")
 
     ################################################
@@ -129,7 +128,7 @@ if __name__ == "__main__":
     # Save value/policy every N updates
     parser.add_argument("--apprfunc_save_interval", type=int, default=5000)
     # Save key info every N updates
-    parser.add_argument("--log_save_interval", type=int, default=1000)
+    parser.add_argument("--log_save_interval", type=int, default=10)
 
     ################################################
     # Get parameter dictionary

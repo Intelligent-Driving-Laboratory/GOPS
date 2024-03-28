@@ -123,12 +123,12 @@ class MAC(AlgorithmBase):
         return para_tuple
 
     def local_update(self, data: dict, iteration: int) -> dict:
-        update_list = self.__compute_gradient(data, iteration)
-        self.__update(update_list)
+        update_list = self._compute_gradient(data, iteration)
+        self._update(update_list)
         return self.tb_info
 
     def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
-        update_list = self.__compute_gradient(data, iteration)
+        update_list = self._compute_gradient(data, iteration)
         update_info = dict()
         for net_name in update_list:
             update_info[net_name] = [
@@ -140,9 +140,9 @@ class MAC(AlgorithmBase):
         for net_name, grads in update_info.items():
             for p, grad in zip(self.networks.net_dict[net_name].parameters(), grads):
                 p.grad = grad
-        self.__update(list(update_info.keys()))
+        self._update(list(update_info.keys()))
 
-    def __update(self, update_list):
+    def _update(self, update_list):
         tau = self.tau
         for net_name in update_list:
             self.networks.optimizer_dict[net_name].step()
@@ -193,7 +193,7 @@ class MAC(AlgorithmBase):
             sample = sample.cuda()
         return sample
 
-    def __compute_gradient(self, data, iteration):
+    def _compute_gradient(self, data, iteration):
         update_list = []
 
         start_time = time.perf_counter()

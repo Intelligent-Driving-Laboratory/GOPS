@@ -99,12 +99,12 @@ class INFADP(AlgorithmBase):
         return para_tuple
 
     def local_update(self, data: dict, iteration: int) -> dict:
-        update_list = self.__compute_gradient(data, iteration)
-        self.__update(update_list)
+        update_list = self._compute_gradient(data, iteration)
+        self._update(update_list)
         return self.tb_info
 
     def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
-        update_list = self.__compute_gradient(data, iteration)
+        update_list = self._compute_gradient(data, iteration)
         update_info = dict()
         for net_name in update_list:
             update_info[net_name] = [
@@ -116,9 +116,9 @@ class INFADP(AlgorithmBase):
         for net_name, grads in update_info.items():
             for p, grad in zip(self.networks.net_dict[net_name].parameters(), grads):
                 p.grad = grad
-        self.__update(list(update_info.keys()))
+        self._update(list(update_info.keys()))
 
-    def __update(self, update_list):
+    def _update(self, update_list):
         tau = self.tau
         for net_name in update_list:
             self.networks.optimizer_dict[net_name].step()
@@ -132,21 +132,21 @@ class INFADP(AlgorithmBase):
                     p_targ.data.mul_(1 - tau)
                     p_targ.data.add_(tau * p.data)
 
-    def __compute_gradient(self, data, iteration):
+    def _compute_gradient(self, data, iteration):
         update_list = []
 
         start_time = time.time()
 
         if iteration % (self.pev_step + self.pim_step) < self.pev_step:
             self.networks.v.zero_grad()
-            loss_v, v = self.__compute_loss_v(data)
+            loss_v, v = self._compute_loss_v(data)
             loss_v.backward()
             self.tb_info[tb_tags["loss_critic"]] = loss_v.item()
             self.tb_info[tb_tags["critic_avg_value"]] = v.item()
             update_list.append("v")
         else:
             self.networks.policy.zero_grad()
-            loss_policy = self.__compute_loss_policy(data)
+            loss_policy = self._compute_loss_policy(data)
             loss_policy.backward()
             self.tb_info[tb_tags["loss_actor"]] = loss_policy.item()
             update_list.append("policy")
@@ -156,7 +156,7 @@ class INFADP(AlgorithmBase):
         self.tb_info[tb_tags["alg_time"]] = (end_time - start_time) * 1000  # ms
         return update_list
 
-    def __compute_loss_v(self, data):
+    def _compute_loss_v(self, data):
         o, a, r, o2, d = (
             data["obs"],
             data["act"],
@@ -185,7 +185,7 @@ class INFADP(AlgorithmBase):
         loss_v = ((v - backup) ** 2).mean()
         return loss_v, torch.mean(v)
 
-    def __compute_loss_policy(self, data):
+    def _compute_loss_policy(self, data):
         o, a, r, o2, d = (
             data["obs"],
             data["act"],

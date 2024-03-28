@@ -177,7 +177,7 @@ class RPI(AlgorithmBase):
 
         # threshold value to determine whether to continue policy evaluation
         self.set_state = self.env_model.reset().clone()
-        self.norm_hamiltonian_before = self.__calculate_norm_hamiltonian(self.set_state)
+        self.norm_hamiltonian_before = self._calculate_norm_hamiltonian(self.set_state)
 
         # policy evaluation and update value network
         for i in range(self.max_step_update_value):
@@ -185,12 +185,12 @@ class RPI(AlgorithmBase):
             data = self.sample()
 
             self.approximate_optimizer.zero_grad()
-            loss_value = self.__compute_loss(data)
+            loss_value = self._compute_loss(data)
             loss_value.backward()
             self.approximate_optimizer.step()
 
             # judge whether to continue policy evaluation
-            self.norm_hamiltonian_after = self.__calculate_norm_hamiltonian(
+            self.norm_hamiltonian_after = self._calculate_norm_hamiltonian(
                 self.set_state
             )
             if not self.continue_evaluation():
@@ -215,7 +215,7 @@ class RPI(AlgorithmBase):
         return grad_info
 
     # compute value loss
-    def __compute_loss(self, data):
+    def _compute_loss(self, data):
         # get data including state, action, and adversary
         obs, act, adv = data["obs"], data["act"], data["advers"]
 
@@ -224,22 +224,22 @@ class RPI(AlgorithmBase):
         batch_input = torch.cat((act, adv), dim=1)
 
         # value loss
-        loss_value = self.__calculate_hamiltonian(batch_observation, batch_input)
+        loss_value = self._calculate_hamiltonian(batch_observation, batch_input)
 
         return loss_value
 
     # for policy evaluation terminal condition
-    def __calculate_norm_hamiltonian(self, set_state):
+    def _calculate_norm_hamiltonian(self, set_state):
         # name completion
         batch_observation = set_state
         batch_input = self.networks.action_and_adversary(set_state)
 
         # hamiltonian
-        hamiltonian = self.__calculate_hamiltonian(batch_observation, batch_input)
+        hamiltonian = self._calculate_hamiltonian(batch_observation, batch_input)
 
         return hamiltonian.detach().item()
 
-    def __calculate_hamiltonian(self, batch_observation, batch_input):
+    def _calculate_hamiltonian(self, batch_observation, batch_input):
         """
         calculate Hamiltonian.
         :param: torch.tensor batch_observation: state.
@@ -263,14 +263,14 @@ class RPI(AlgorithmBase):
 
         batch_utility = -batch_reward
         batch_delta_state = next_info["delta_state"]
-        hamiltonian = self.__value_loss_function(
+        hamiltonian = self._value_loss_function(
             batch_delta_value, batch_utility.detach(), batch_delta_state.detach()
         )
 
         return hamiltonian
 
     @staticmethod
-    def __value_loss_function(delta_value, utility, delta_state):
+    def _value_loss_function(delta_value, utility, delta_state):
         """
         value loss for continuous-time zero-sum game.
         :param: torch.tensor delta_value: partial value partial state.

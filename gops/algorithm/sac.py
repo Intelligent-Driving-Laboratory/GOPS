@@ -109,14 +109,14 @@ class SAC(AlgorithmBase):
         return ("gamma", "tau", "auto_alpha", "alpha", "target_entropy")
 
     def local_update(self, data: DataDict, iteration: int) -> dict:
-        tb_info = self.__compute_gradient(data, iteration)
-        self.__update(iteration)
+        tb_info = self._compute_gradient(data, iteration)
+        self._update(iteration)
         return tb_info
 
     def get_remote_update_info(
         self, data: DataDict, iteration: int
     ) -> Tuple[dict, dict]:
-        tb_info = self.__compute_gradient(data, iteration)
+        tb_info = self._compute_gradient(data, iteration)
 
         update_info = {
             "q1_grad": [p.grad for p in self.networks.q1.parameters()],
@@ -144,9 +144,9 @@ class SAC(AlgorithmBase):
         if self.auto_alpha:
             self.networks.log_alpha._grad = update_info["log_alpha_grad"]
 
-        self.__update(iteration)
+        self._update(iteration)
 
-    def __get_alpha(self, requires_grad: bool = False):
+    def _get_alpha(self, requires_grad: bool = False):
         if self.auto_alpha:
             alpha = self.networks.log_alpha.exp()
             if requires_grad:
@@ -156,7 +156,7 @@ class SAC(AlgorithmBase):
         else:
             return self.alpha
 
-    def __compute_gradient(self, data: DataDict, iteration: int):
+    def _compute_gradient(self, data: DataDict, iteration: int):
         start_time = time.time()
 
         obs = data["obs"]
@@ -167,7 +167,7 @@ class SAC(AlgorithmBase):
 
         self.networks.q1_optimizer.zero_grad()
         self.networks.q2_optimizer.zero_grad()
-        loss_q, q1, q2 = self.__compute_loss_q(data)
+        loss_q, q1, q2 = self._compute_loss_q(data)
         loss_q.backward()
 
         for p in self.networks.q1.parameters():
@@ -176,7 +176,7 @@ class SAC(AlgorithmBase):
             p.requires_grad = False
 
         self.networks.policy_optimizer.zero_grad()
-        loss_policy, entropy = self.__compute_loss_policy(data)
+        loss_policy, entropy = self._compute_loss_policy(data)
         loss_policy.backward()
 
         for p in self.networks.q1.parameters():
@@ -186,7 +186,7 @@ class SAC(AlgorithmBase):
 
         if self.auto_alpha:
             self.networks.alpha_optimizer.zero_grad()
-            loss_alpha = self.__compute_loss_alpha(data)
+            loss_alpha = self._compute_loss_alpha(data)
             loss_alpha.backward()
 
         tb_info = {
@@ -195,13 +195,13 @@ class SAC(AlgorithmBase):
             "SAC/critic_avg_q1-RL iter": q1.item(),
             "SAC/critic_avg_q2-RL iter": q2.item(),
             "SAC/entropy-RL iter": entropy.item(),
-            "SAC/alpha-RL iter": self.__get_alpha(),
+            "SAC/alpha-RL iter": self._get_alpha(),
             tb_tags["alg_time"]: (time.time() - start_time) * 1000,
         }
 
         return tb_info
 
-    def __compute_loss_q(self, data: DataDict):
+    def _compute_loss_q(self, data: DataDict):
         obs, act, rew, obs2, done = (
             data["obs"],
             data["act"],
@@ -219,28 +219,28 @@ class SAC(AlgorithmBase):
             next_q2 = self.networks.q2_target(obs2, next_act)
             next_q = torch.min(next_q1, next_q2)
             backup = rew + (1 - done) * self.gamma * (
-                next_q - self.__get_alpha() * next_logp
+                next_q - self._get_alpha() * next_logp
             )
         loss_q1 = ((q1 - backup) ** 2).mean()
         loss_q2 = ((q2 - backup) ** 2).mean()
         return loss_q1 + loss_q2, q1.detach().mean(), q2.detach().mean()
 
-    def __compute_loss_policy(self, data: DataDict):
+    def _compute_loss_policy(self, data: DataDict):
         obs, new_act, new_logp = data["obs"], data["new_act"], data["new_logp"]
         q1 = self.networks.q1(obs, new_act)
         q2 = self.networks.q2(obs, new_act)
-        loss_policy = (self.__get_alpha() * new_logp - torch.min(q1, q2)).mean()
+        loss_policy = (self._get_alpha() * new_logp - torch.min(q1, q2)).mean()
         entropy = -new_logp.detach().mean()
         return loss_policy, entropy
 
-    def __compute_loss_alpha(self, data: DataDict):
+    def _compute_loss_alpha(self, data: DataDict):
         new_logp = data["new_logp"]
         loss_alpha = (
             -self.networks.log_alpha * (new_logp.detach() + self.target_entropy).mean()
         )
         return loss_alpha
 
-    def __update(self, iteration: int):
+    def _update(self, iteration: int):
         self.networks.q1_optimizer.step()
         self.networks.q2_optimizer.step()
 

@@ -87,9 +87,14 @@ def create_alg(**kwargs) -> object:
         algo = algorithm_creator(**_kwargs)
     elif trainer_name.startswith("off_async") or trainer_name.startswith("off_sync"):
         import ray
-
+        if _kwargs.get("use_gpu", False):
+            import torch
+            EPSILON = 0.001
+            num_gpus = torch.cuda.device_count() / _kwargs["num_algs"] - EPSILON
+        else:
+            num_gpus = 0
         algo = [
-            ray.remote(num_cpus=1)(algorithm_creator).remote(index=idx, **_kwargs) for idx in range(_kwargs["num_algs"])
+            ray.remote(num_cpus=1, num_gpus=num_gpus)(algorithm_creator).remote(index=idx, **_kwargs) for idx in range(_kwargs["num_algs"])
         ]
     else:
         raise RuntimeError(f"trainer {trainer_name} not recognized")

@@ -91,7 +91,7 @@ class DQN(AlgorithmBase):
                 warning_msg = "param '" + key + "'is not defined in algorithm!"
                 warnings.warn(warning_msg)
 
-    def __compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
+    def _compute_gradient(self, data: Dict[str, torch.Tensor], iteration: int):
         tb_info = dict()
         start_time = time.perf_counter()
 
@@ -105,7 +105,7 @@ class DQN(AlgorithmBase):
                 data["obs2"],
                 data["done"],
             )
-            loss_q = self.__compute_loss_q(o, a, r, o2, d)
+            loss_q = self._compute_loss_q(o, a, r, o2, d)
             loss_q.backward()
         # compute gradient with priority
         else:
@@ -118,7 +118,7 @@ class DQN(AlgorithmBase):
                 data["idx"],
                 data["weight"],
             )
-            loss_q, abs_err = self.__compute_loss_per(o, a, r, o2, d, idx, weight)
+            loss_q, abs_err = self._compute_loss_per(o, a, r, o2, d, idx, weight)
             loss_q.backward()
 
         end_time = time.perf_counter()
@@ -132,7 +132,7 @@ class DQN(AlgorithmBase):
             return tb_info
 
     # compute loss of Q function
-    def __compute_loss_q(self, o, a, r, o2, d):
+    def _compute_loss_q(self, o, a, r, o2, d):
         q = self.networks.q(o).gather(1, a.to(torch.long)).squeeze()
         # MSE loss against Bellman backup
         with torch.no_grad():
@@ -142,7 +142,7 @@ class DQN(AlgorithmBase):
         return loss_q
 
     # compute loss of Q function with priority
-    def __compute_loss_per(self, o, a, r, o2, d, idx, weight):
+    def _compute_loss_per(self, o, a, r, o2, d, idx, weight):
         q = self.networks.q(o).gather(1, a.to(torch.long)).squeeze()
 
         with torch.no_grad():
@@ -153,7 +153,7 @@ class DQN(AlgorithmBase):
         abs_err = torch.abs(q - backup)
         return loss_q, abs_err
 
-    def __update(self, iteration):
+    def _update(self, iteration):
         polyak = 1 - self.tau
 
         self.networks.q_optimizer.step()
@@ -166,12 +166,12 @@ class DQN(AlgorithmBase):
                 p_targ.data.add_((1 - polyak) * p.data)
 
     def local_update(self, data: dict, iteration: int):
-        extra_info = self.__compute_gradient(data, iteration)
-        self.__update(iteration)
+        extra_info = self._compute_gradient(data, iteration)
+        self._update(iteration)
         return extra_info
 
     def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
-        extra_info = self.__compute_gradient(data, iteration)
+        extra_info = self._compute_gradient(data, iteration)
 
         q_grad = [p._grad for p in self.networks.q.parameters()]
 
@@ -188,4 +188,4 @@ class DQN(AlgorithmBase):
         for p, grad in zip(self.networks.q.parameters(), q_grad):
             p._grad = grad
 
-        self.__update(iteration)
+        self._update(iteration)

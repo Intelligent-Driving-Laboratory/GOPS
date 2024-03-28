@@ -142,7 +142,7 @@ class PPO(AlgorithmBase):
                     loss_entropy,
                     approximate_kl,
                     clip_fra,
-                ) = self.__compute_loss(mb_sample, iteration)
+                ) = self._compute_loss(mb_sample, iteration)
                 self.approximate_optimizer.zero_grad()
                 loss_total.backward()
                 self.approximate_optimizer.step()
@@ -164,7 +164,7 @@ class PPO(AlgorithmBase):
 
         return tb_info
 
-    def __compute_loss(self, data: DataDict, iteration: int):
+    def _compute_loss(self, data: DataDict, iteration: int):
         obs, act = data["obs"], data["act"]
         pro = data["logp"]
         returns, advantages, values = data["ret"], data["adv"], data["val"]

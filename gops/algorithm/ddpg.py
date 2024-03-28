@@ -92,7 +92,7 @@ class DDPG(AlgorithmBase):
             "delay_update",
         )
 
-    def __compute_gradient(self, data: dict, iteration):
+    def _compute_gradient(self, data: dict, iteration):
         tb_info = dict()
         start_time = time.perf_counter()
 
@@ -105,7 +105,7 @@ class DDPG(AlgorithmBase):
                 data["obs2"],
                 data["done"],
             )
-            loss_q, q = self.__compute_loss_q(o, a, r, o2, d)
+            loss_q, q = self._compute_loss_q(o, a, r, o2, d)
             loss_q.backward()
         else:
             o, a, r, o2, d, idx, weight = (
@@ -117,14 +117,14 @@ class DDPG(AlgorithmBase):
                 data["idx"],
                 data["weight"],
             )
-            loss_q, q, abs_err = self.__compute_loss_q_per(o, a, r, o2, d, idx, weight)
+            loss_q, q, abs_err = self._compute_loss_q_per(o, a, r, o2, d, idx, weight)
             loss_q.backward()
 
         for p in self.networks.q.parameters():
             p.requires_grad = False
 
         self.networks.policy_optimizer.zero_grad()
-        loss_policy = self.__compute_loss_policy(o)
+        loss_policy = self._compute_loss_policy(o)
         loss_policy.backward()
 
         for p in self.networks.q.parameters():
@@ -142,7 +142,7 @@ class DDPG(AlgorithmBase):
         else:
             return tb_info
 
-    def __compute_loss_q(self, o, a, r, o2, d):
+    def _compute_loss_q(self, o, a, r, o2, d):
         # Q-values
         q = self.networks.q(o, a)
 
@@ -154,7 +154,7 @@ class DDPG(AlgorithmBase):
         loss_q = ((q - backup) ** 2).mean()
         return loss_q, torch.mean(q)
 
-    def __compute_loss_q_per(self, o, a, r, o2, d, idx, weight):
+    def _compute_loss_q_per(self, o, a, r, o2, d, idx, weight):
         # Q-values
         q = self.networks.q(o, a)
 
@@ -167,11 +167,11 @@ class DDPG(AlgorithmBase):
         abs_err = torch.abs(q - backup)
         return loss_q, torch.mean(q), abs_err
 
-    def __compute_loss_policy(self, o):
+    def _compute_loss_policy(self, o):
         q_policy = self.networks.q(o, self.networks.policy(o))
         return -q_policy.mean()
 
-    def __update(self, iteration):
+    def _update(self, iteration):
         polyak = 1 - self.tau
         delay_update = self.delay_update
 
@@ -193,12 +193,12 @@ class DDPG(AlgorithmBase):
                 p_targ.data.add_((1 - polyak) * p.data)
 
     def local_update(self, data: dict, iteration: int):
-        extra_info = self.__compute_gradient(data, iteration)
-        self.__update(iteration)
+        extra_info = self._compute_gradient(data, iteration)
+        self._update(iteration)
         return extra_info
 
     def get_remote_update_info(self, data: dict, iteration: int) -> Tuple[dict, dict]:
-        extra_info = self.__compute_gradient(data, iteration)
+        extra_info = self._compute_gradient(data, iteration)
 
         q_grad = [p._grad for p in self.networks.q.parameters()]
         policy_grad = [p._grad for p in self.networks.policy.parameters()]
@@ -220,4 +220,4 @@ class DDPG(AlgorithmBase):
         for p, grad in zip(self.networks.policy.parameters(), policy_grad):
             p._grad = grad
 
-        self.__update(iteration)
+        self._update(iteration)
