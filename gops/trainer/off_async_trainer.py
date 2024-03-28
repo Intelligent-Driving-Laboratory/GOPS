@@ -95,6 +95,11 @@ class OffAsyncTrainer:
                 random.choice(self.buffers).add_batch.remote(batch_data)
                 self.sample_tasks.add(sampler, sampler.sample.remote())
 
+        self.use_gpu = kwargs["use_gpu"]
+        if self.use_gpu:
+            for alg in self.algs:
+                alg.to.remote("cuda")
+
         # create alg tasks and start computing gradient
         self.learn_tasks = TaskPool()
         self._set_algs()
@@ -102,11 +107,6 @@ class OffAsyncTrainer:
         # create evaluation tasks
         self.evluate_tasks = TaskPool()
         self.last_eval_iteration = 0
-
-        self.use_gpu = kwargs["use_gpu"]
-        if self.use_gpu:
-            for alg in self.algs:
-                alg.to.remote("cuda")
 
         self.start_time = time.time()
 
@@ -123,6 +123,9 @@ class OffAsyncTrainer:
             alg.load_state_dict.remote(weights)
             buffer, _ = random_choice_with_index(self.buffers)
             data = ray.get(buffer.sample_batch.remote(self.replay_batch_size))
+            if self.use_gpu:
+                for k, v in data.items():
+                    data[k] = v.cuda()
             self.learn_tasks.add(
                 alg, alg.get_remote_update_info.remote(data, self.iteration)
             )
