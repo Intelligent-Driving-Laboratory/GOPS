@@ -82,12 +82,11 @@ class TRPO(AlgorithmBase):
         train_v_iters: int,
         value_learning_rate: float,
         norm_adv: bool = True,
-        index=0,
+        index: int = 0,
         **kwargs,
     ):
         super().__init__(index, **kwargs)
         self.delta = delta
-        self.norm_adv = norm_adv
         self.rtol = rtol
         self.atol = atol
         self.damping_factor = damping_factor
@@ -95,6 +94,7 @@ class TRPO(AlgorithmBase):
         self.alpha = alpha
         self.max_search = max_search
         self.train_v_iters = train_v_iters
+        self.norm_adv = norm_adv
         self.networks = ApproxContainer(**kwargs)
         self.value_optimizer = Adam(
             self.networks.value.parameters(), lr=value_learning_rate
@@ -104,15 +104,15 @@ class TRPO(AlgorithmBase):
     def adjustable_parameters(self):
         return (
             "delta",
-            "norm_adv",
-            "train_v_iters",
-            "value_learning_rate",
             "rtol",
             "atol",
             "damping_factor",
             "max_cg",
             "alpha",
             "max_search",
+            "train_v_iters",
+            "value_learning_rate",
+            "norm_adv",
         )
 
     def local_update(self, data: DataDict, iteration: int) -> dict:

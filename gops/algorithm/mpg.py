@@ -110,11 +110,11 @@ class MPG(AlgorithmBase):
     def __init__(
         self,
         index: int = 0,
+        gamma: float = 0.99,
+        tau: float = 0.1,
         terminal_iter: int = 10000,
         eta: float = 0.1,
         kappa: float = 0.5,
-        gamma: float = 0.99,
-        tau: float = 0.1,
         delay_update: int = 1,
         forward_step: int = 10,
         **kwargs,
@@ -134,15 +134,13 @@ class MPG(AlgorithmBase):
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
         self.pge_method = kwargs["pge_method"]
+        self.gamma = gamma
+        self.tau = tau
         if self.pge_method == "mixed_weight":
             self.terminal_iter = terminal_iter
             self.eta = eta
         elif self.pge_method == "mixed_state":
             self.kappa = kappa
-        self.gamma = gamma
-        self.tau = tau
-
-        self.reward_scale = 1.0
         self.delay_update = delay_update
         self.forward_step = forward_step
 
@@ -151,9 +149,11 @@ class MPG(AlgorithmBase):
         para_tuple = (
             "gamma",
             "tau",
-            "delay_update",
             "terminal_iter",
             "eta",
+            "kappa",
+            "delay_update",
+            "forward_step",
         )
         return para_tuple
 
@@ -163,7 +163,7 @@ class MPG(AlgorithmBase):
         o, a, r, o2, d = (
             data["obs"],
             data["act"],
-            data["rew"] * self.reward_scale,
+            data["rew"],
             data["obs2"],
             data["done"],
         )
@@ -330,12 +330,12 @@ class MPG(AlgorithmBase):
             if step == 0:
                 a = self.networks.policy(o)
                 o2, r, done, info = self.envmodel.forward(o, a, done, info)
-                model_return = self.reward_scale * r
+                model_return = r
             else:
                 o = o2
                 a = self.networks.policy4rollout(o)
                 o2, r, done, info = self.envmodel.forward(o, a, done, info)
-                model_return += self.reward_scale * self.gamma**step * r
+                model_return += self.gamma**step * r
         model_return += self.gamma**self.forward_step * self.networks.q1_target(
             o2, self.networks.policy(o2)
         )

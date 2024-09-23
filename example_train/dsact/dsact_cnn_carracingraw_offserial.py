@@ -8,10 +8,8 @@
 #
 #  Description: example for dsac + humanoidconti + mlp + offserial
 #  Update Date: 2021-03-05, Wenxuan Wang: create example
-import os
-import argparse
-import json
 
+import argparse
 
 from gops.create_pkg.create_alg import create_alg
 from gops.create_pkg.create_buffer import create_buffer
@@ -89,7 +87,6 @@ if __name__ == "__main__":
     parser.add_argument("--tau", type=float, default=0.005)
     parser.add_argument("--auto_alpha", type=bool, default=True)
     parser.add_argument("--delay_update", type=int, default=2)
-    parser.add_argument("--bound", default=True)
 
     ################################################
     # 4. Parameters for trainer

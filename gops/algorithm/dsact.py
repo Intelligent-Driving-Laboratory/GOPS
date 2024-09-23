@@ -82,11 +82,10 @@ class DSACT(AlgorithmBase):
 
     :param float gamma: discount factor.
     :param float tau: param for soft update of target network.
-    :param bool auto_alpha: whether to adjust temperature automatically.
     :param float alpha: initial temperature.
-    :param bool bound: whether to bound the q value.
-    :param float delay_update: delay update steps for actor.
+    :param bool auto_alpha: whether to adjust temperature automatically.
     :param Optional[float] target_entropy: target entropy for automatic
+    :param float delay_update: delay update steps for actor.
         temperature adjustment.
     """
 
@@ -98,7 +97,7 @@ class DSACT(AlgorithmBase):
         alpha: float = math.e,
         auto_alpha: bool = True,
         target_entropy: Optional[float] = None,
-        bound: bool = True,
+        delay_update: int = 2,
         **kwargs: Any,
     ):
         super().__init__(index, **kwargs)
@@ -110,8 +109,7 @@ class DSACT(AlgorithmBase):
         if target_entropy is None:
             target_entropy = -kwargs["action_dim"]
         self.target_entropy = target_entropy
-        self.bound = bound
-        self.delay_update = kwargs["delay_update"]
+        self.delay_update = delay_update
         self.mean_std1= None
         self.mean_std2= None
         self.tau_b = kwargs.get("tau_b", self.tau)

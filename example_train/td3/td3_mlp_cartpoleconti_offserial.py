@@ -42,6 +42,7 @@ if __name__ == "__main__":
     parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
     parser.add_argument("--is_adversary", type=bool, default=False, help="Adversary training")
+    parser.add_argument("--reward_scale", type=float, default=0.1, help="Reward scale factor")
     ################################################
     # 2.1 Parameters of value approximate function
     parser.add_argument(
@@ -83,6 +84,7 @@ if __name__ == "__main__":
     
     ################################################
     # 3. Parameters for RL algorithm
+    parser.add_argument("--tau", type=float, default=0.2)
     parser.add_argument("--value_learning_rate", type=float, default=1e-3)
     parser.add_argument("--policy_learning_rate", type=float, default=1e-3)
 
@@ -147,7 +149,6 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters({"reward_scale": 0.1, "gamma": 0.99, "tau": 0.2, "delay_update": 2})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

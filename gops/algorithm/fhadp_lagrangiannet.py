@@ -8,11 +8,10 @@
 
 __all__ = ["FHADPLagrangiannet"]
 
-import math
+
 from typing import Tuple
 
 import torch
-from torch import nn
 from torch.optim import Adam
 from gops.algorithm.fhadp import FHADP
 from gops.utils.gops_typing import DataDict, InfoDict

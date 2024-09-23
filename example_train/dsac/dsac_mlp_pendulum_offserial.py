@@ -10,7 +10,6 @@
 #  Update Date: 2021-03-05, Gu Ziqing: create example
 
 import argparse
-import os
 
 from gops.create_pkg.create_alg import create_alg
 from gops.create_pkg.create_buffer import create_buffer

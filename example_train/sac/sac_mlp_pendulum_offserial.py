@@ -11,8 +11,6 @@
 
 
 import argparse
-import os
-import numpy as np
 
 from gops.create_pkg.create_alg import create_alg
 from gops.create_pkg.create_buffer import create_buffer
@@ -82,6 +80,7 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
+    parser.add_argument("--tau", type=float, default=0.05)
     parser.add_argument("--q_learning_rate", type=float, default=1e-3)
     parser.add_argument("--policy_learning_rate", type=float, default=1e-3)
     parser.add_argument("--alpha_learning_rate", type=float, default=1e-3)
@@ -144,7 +143,6 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters({"tau": 0.05})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

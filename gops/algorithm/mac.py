@@ -94,20 +94,27 @@ class MAC(AlgorithmBase):
     :param int pim_step: number of steps for policy improvement.
     :param int forward_step: envmodel forward step.
     """
-
-    def __init__(self, index=0, **kwargs):
+    def __init__(
+        self, 
+        index: int = 0, 
+        gamma: float = 0.99,
+        tau: float = 0.005,
+        pev_step: int = 1,
+        pim_step: int = 1,
+        forward_step: int = 10,
+        **kwargs
+    ):
         super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
         self.use_gpu = kwargs["use_gpu"]
         if self.use_gpu:
             self.envmodel = self.envmodel.cuda()
-        self.gamma = 0.99
-        self.tau = 0.005
-        self.pev_step = 1
-        self.pim_step = 1
-        self.forward_step = 10
-        self.reward_scale = 1
+        self.gamma = gamma
+        self.tau = tau
+        self.pev_step = pev_step
+        self.pim_step = pim_step
+        self.forward_step = forward_step
         self.tb_info = dict()
         self.delta = None
 
@@ -234,12 +241,12 @@ class MAC(AlgorithmBase):
                 if step == 0:
                     a = self.networks.policy(o)
                     o2, r, d = self.dynamic_model_forward(o, a, d)
-                    backup = self.reward_scale * r
+                    backup = r
                 else:
                     o = o2
                     a = self.networks.policy(o)
                     o2, r, d = self.dynamic_model_forward(o, a, d)
-                    backup += self.reward_scale * self.gamma**step * r
+                    backup += self.gamma**step * r
 
             backup += (
                 (~d) * self.gamma**self.forward_step * self.networks.v_target(o2)
@@ -262,12 +269,12 @@ class MAC(AlgorithmBase):
             if step == 0:
                 a = self.networks.policy(o)
                 o2, r, d = self.dynamic_model_forward(o, a, d)
-                v_pi = self.reward_scale * r
+                v_pi = r
             else:
                 o = o2
                 a = self.networks.policy(o)
                 o2, r, d = self.dynamic_model_forward(o, a, d)
-                v_pi += self.reward_scale * self.gamma**step * r
+                v_pi += self.gamma**step * r
         v_pi += (~d) * self.gamma**self.forward_step * self.networks.v_target(o2)
         for p in self.networks.v.parameters():
             p.requires_grad = True

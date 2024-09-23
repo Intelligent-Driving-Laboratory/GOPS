@@ -10,13 +10,8 @@
 #  Update: 2021-03-05, Baiyu Peng: create example
 
 import argparse
-import os
 import numpy as np
-import multiprocessing
 
-# import sys
-# gops_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..')
-# sys.path.insert(0, gops_path)
 
 from gops.create_pkg.create_alg import create_alg
 from gops.create_pkg.create_buffer import create_buffer

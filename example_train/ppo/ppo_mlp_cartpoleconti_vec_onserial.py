@@ -11,7 +11,6 @@
 
 
 import argparse
-import os
 
 from gops.create_pkg.create_alg import create_alg
 from gops.create_pkg.create_buffer import create_buffer
@@ -86,6 +85,8 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for algorithm
+    parser.add_argument("--loss_coefficient_value", type=float, default=0.25)
+    parser.add_argument("--loss_coefficient_entropy", type=float, default=0.01)
     parser.add_argument("--learning_rate", type=float, default=1e-3)
 
     ################################################
@@ -162,16 +163,6 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters(
-        {
-            "loss_coefficient_value": 0.25,
-            "loss_coefficient_entropy": 0.01,
-            "schedule_adam": "None",
-            "schedule_clip": "None",
-            "loss_value_clip": False,
-            "loss_value_norm": False,
-        }
-    )
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

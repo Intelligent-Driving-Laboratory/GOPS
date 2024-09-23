@@ -100,7 +100,6 @@ class SPIL(AlgorithmBase):
         self.pev_step = pev_step
         self.pim_step = pim_step
         self.forward_step = forward_step
-        self.reward_scale = 1.0
 
         self.n_constraint = kwargs["constraint_dim"]
         self.delta_i = np.array([0.0] * kwargs["constraint_dim"])
@@ -119,7 +118,6 @@ class SPIL(AlgorithmBase):
             "pev_step",
             "pim_step",
             "forward_step",
-            "reward_scale",
         )
         return para_tuple
 
@@ -196,14 +194,14 @@ class SPIL(AlgorithmBase):
                 if step == 0:
                     a = self.networks.policy(o)
                     o2, r, d, info = self.envmodel.forward(o, a, d, info)
-                    r_sum = self.reward_scale * r
+                    r_sum = r
                     traj_issafe *= info["constraint"] <= 0
 
                 else:
                     o = o2
                     a = self.networks.policy(o)
                     o2, r, d, info = self.envmodel.forward(o, a, d, info)
-                    r_sum += self.reward_scale * self.gamma**step * r
+                    r_sum += self.gamma**step * r
                     traj_issafe *= info["constraint"] <= 0
 
             r_sum += self.gamma**self.forward_step * self.networks.v_target(o2)
@@ -238,7 +236,7 @@ class SPIL(AlgorithmBase):
                 o2, r, d, info = self.envmodel.forward(o, a, d, info)
                 c = info["constraint"]
                 c = Phi(c)
-                r_sum = self.reward_scale * r
+                r_sum = r
                 c_sum = c
                 c_mul = c
             else:
@@ -247,7 +245,7 @@ class SPIL(AlgorithmBase):
                 o2, r, d, info = self.envmodel.forward(o, a, d, info)
                 c = info["constraint"]
                 c = Phi(c)
-                r_sum = r_sum + self.reward_scale * self.gamma**step * r
+                r_sum = r_sum + self.gamma**step * r
                 c_sum = c_sum + c
                 c_mul = c_mul * c
         w_r, w_c = self._spil_get_weight()

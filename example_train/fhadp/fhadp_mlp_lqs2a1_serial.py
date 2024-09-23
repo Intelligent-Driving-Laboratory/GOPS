@@ -9,7 +9,6 @@
 #  Description: example for fhadp + lqrs2a1 + mlp + off_serial
 #  Update Date: 2022-04-29, Jiaxin Gao: create example
 
-import os
 import argparse
 import numpy as np
 
@@ -137,7 +136,6 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters({"gamma": 1})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

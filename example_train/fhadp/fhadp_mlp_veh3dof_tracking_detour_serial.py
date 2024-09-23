@@ -9,7 +9,6 @@
 #  Description: example for fhadp + veh3dofconti + mlp + off_serial
 #  Update Date: 2023-08-28, Guojian Zhan: support lr schedule
 
-import os
 import argparse
 import json
 import numpy as np

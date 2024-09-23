@@ -9,7 +9,6 @@
 #  Description: example for fhadp2 + veh3dofconti + mlp + off_serial using full horizon action
 #  Update Date: 2023-07-30, Jiaxin Gao: create example
 
-import os
 import argparse
 import numpy as np
 

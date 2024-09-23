@@ -70,18 +70,26 @@ class DDPG(AlgorithmBase):
     Paper: https://arxiv.org/pdf/1509.02971.pdf
 
     Args:
-        string  buffer_name : buffer type. Default to 'replay_buffer'.
         float   gamma       : discount factor. Default to 0.99.
         float   tau         : param for soft update of target network. Default to 0.005.
         int     delay_update: delay update steps for actor. Default to 1.
+        string  buffer_name : buffer type. Default to 'replay_buffer'.
     """
 
-    def __init__(self, index=0, buffer_name="replay_buffer", **kwargs):
+    def __init__(
+        self, 
+        index: int = 0, 
+        gamma: float = 0.99,
+        tau: float = 0.005,
+        delay_update: int = 1,
+        buffer_name: str = "replay_buffer", 
+        **kwargs
+    ):
         super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
-        self.gamma = 0.99
-        self.tau = 0.005
-        self.delay_update = 1
+        self.gamma = gamma
+        self.tau = tau
+        self.delay_update = delay_update
         self.per_flag = buffer_name == "prioritized_replay_buffer"
 
     @property

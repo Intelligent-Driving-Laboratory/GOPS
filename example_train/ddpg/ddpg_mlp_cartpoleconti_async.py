@@ -57,6 +57,7 @@ if __name__ == "__main__":
     
     ################################################
     # 3. Parameters for RL algorithm
+    parser.add_argument("--tau", type=float, default=0.2)
     parser.add_argument("--value_learning_rate", type=float, default=3e-4)
     parser.add_argument("--policy_learning_rate", type=float, default=3e-4)
 
@@ -127,8 +128,6 @@ if __name__ == "__main__":
 
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    for alg_id in alg:
-        alg_id.set_parameters.remote({"gamma": 0.99, "tau": 0.2, "delay_update": 1})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

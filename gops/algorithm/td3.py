@@ -80,27 +80,29 @@ class TD3(AlgorithmBase):
 
     def __init__(
         self,
-        target_noise=0.2,
-        noise_clip=0.5,
-        buffer_name="replay_buffer",
-        index=0,
+        index: int = 0,
+        gamma: float = 0.99,
+        tau: float = 0.005,
+        delay_update: int = 2,
+        target_noise: float = 0.2,
+        noise_clip: float = 0.5,
+        buffer_name: str = "replay_buffer",
         **kwargs
     ):
         super(TD3, self).__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
-        self.target_noise = target_noise
-        self.noise_clip = noise_clip
         self.act_low_limit = kwargs["action_low_limit"]
         self.act_high_limit = kwargs["action_high_limit"]
-        self.gamma = 0.99
-        self.tau = 0.005
-        self.delay_update = 2
-        self.reward_scale = 1
+        self.gamma = gamma
+        self.tau = tau
+        self.delay_update = delay_update
+        self.target_noise = target_noise
+        self.noise_clip = noise_clip
         self.per_flag = buffer_name == "prioritized_replay_buffer"
 
     @property
     def adjustable_parameters(self):
-        para_tuple = ("gamma", "tau", "delay_update", "reward_scale")
+        para_tuple = ("gamma", "tau", "delay_update", "target_noise", "noise_clip")
         return para_tuple
 
     def _compute_gradient(self, data: dict, iteration):
@@ -114,7 +116,7 @@ class TD3(AlgorithmBase):
             o, a, r, o2, d = (
                 data["obs"],
                 data["act"],
-                data["rew"] * self.reward_scale,
+                data["rew"],
                 data["obs2"],
                 data["done"],
             )
@@ -124,7 +126,7 @@ class TD3(AlgorithmBase):
             o, a, r, o2, d, idx, weight = (
                 data["obs"],
                 data["act"],
-                data["rew"] * self.reward_scale,
+                data["rew"],
                 data["obs2"],
                 data["done"],
                 data["idx"],

@@ -9,7 +9,6 @@
 #  Description: example for infhadp + idpendulum + mlp + off_serial
 #  Update Date: 2022-04-29, Jiaxin Gao: create example
 
-import os
 import argparse
 import numpy as np
 
@@ -82,6 +81,7 @@ if __name__ == "__main__":
     
     ################################################
     # 3. Parameters for RL algorithm
+    parser.add_argument("--tau", type=float, default=0.05)
     parser.add_argument("--policy_learning_rate", type=float, default=1e-4)
     parser.add_argument("--value_learning_rate", type=float, default=3e-4)
 
@@ -150,7 +150,6 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters({"gamma": 0.99, "tau": 0.05, "forward_step": 10})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

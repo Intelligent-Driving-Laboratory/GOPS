@@ -95,6 +95,7 @@ class DSAC(AlgorithmBase):
         auto_alpha: bool = True,
         target_entropy: Optional[float] = None,
         bound: bool = True,
+        delay_update: int = 2,
         **kwargs: Any,
     ):
         super().__init__(index, **kwargs)
@@ -107,7 +108,7 @@ class DSAC(AlgorithmBase):
             target_entropy = -kwargs["action_dim"]
         self.target_entropy = target_entropy
         self.bound = bound
-        self.delay_update = kwargs["delay_update"]
+        self.delay_update = delay_update
 
     @property
     def adjustable_parameters(self):

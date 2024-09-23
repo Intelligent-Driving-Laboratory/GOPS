@@ -71,11 +71,16 @@ class DQN(AlgorithmBase):
         tau (float, optional): target network update rate. Defaults to 0.005.
     """
 
-    def __init__(self, index=0, **kwargs):
+    def __init__(
+        self, 
+        index: int = 0,
+        gamma: float = 0.99,
+        tau: float = 0.005,
+        **kwargs
+    ):
         super().__init__(index, **kwargs)
-        self.gamma = 0.99
-        self.tau = 0.005
-        self.reward_scale = 1
+        self.gamma = gamma
+        self.tau = tau
         self.networks = ApproxContainer(**kwargs)
         self.per_flag = kwargs["buffer_name"] == "prioritized_replay_buffer"
 
@@ -101,7 +106,7 @@ class DQN(AlgorithmBase):
             o, a, r, o2, d = (
                 data["obs"],
                 data["act"],
-                data["rew"] * self.reward_scale,
+                data["rew"],
                 data["obs2"],
                 data["done"],
             )
@@ -112,7 +117,7 @@ class DQN(AlgorithmBase):
             o, a, r, o2, d, idx, weight = (
                 data["obs"],
                 data["act"],
-                data["rew"] * self.reward_scale,
+                data["rew"],
                 data["obs2"],
                 data["done"],
                 data["idx"],

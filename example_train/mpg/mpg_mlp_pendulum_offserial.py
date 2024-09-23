@@ -41,6 +41,8 @@ if __name__ == "__main__":
     parser.add_argument("--action_low_limit", type=list, default=None)
     parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
     parser.add_argument("--is_adversary", type=bool, default=False, help="Adversary training")
+    # Reward = reward_scale * environment.Reward
+    parser.add_argument("--reward_scale", type=float, default=0.1)
     ################################################
     # 2.1 Parameters of value approximate function
     parser.add_argument(
@@ -96,8 +98,6 @@ if __name__ == "__main__":
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument("--tau", type=float, default=0.01)
     parser.add_argument("--delay_update", type=int, default=1, help="")
-    # Reward = reward_scale * environment.Reward
-    parser.add_argument("--reward_scale", type=float, default=0.1)
 
     ################################################
     # 4. Parameters for trainer

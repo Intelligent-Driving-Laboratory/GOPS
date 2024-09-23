@@ -9,7 +9,6 @@
 #  Description: example for fhadp + veh3dofcontisurrcstrpenalty + mlp + off_serial
 #  Update Date: 2023-01-09, Jiaxin Gao: create example
 
-import os
 import argparse
 import numpy as np
 

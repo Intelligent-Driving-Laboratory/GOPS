@@ -13,13 +13,10 @@
 
 __all__ = ["FHADP2"]
 
+import time
 from copy import deepcopy
 from typing import Tuple
-import torch
-import torch.nn as nn
 from torch.optim import Adam
-import time
-import warnings
 from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.create_pkg.create_env_model import create_env_model
 from gops.utils.common_utils import get_apprfunc_dict
@@ -49,21 +46,27 @@ class FHADP2(AlgorithmBase):
 
     Paper: https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=4124940
 
-    :param int forward_step: envmodel forward step.
+    :param int pre_horizon: envmodel predict horizon.
     :param float gamma: discount factor.
     """
 
-    def __init__(self, index=0, **kwargs):
+    def __init__(
+        self, 
+        pre_horizon: int,
+        gamma: float = 1.0,
+        index: int = 0,
+        **kwargs
+    ):
         super().__init__(index, **kwargs)
-        self.networks = ApproxContainer(**kwargs)
-        self.envmodel = create_env_model(**kwargs)
-        self.forward_step = kwargs["pre_horizon"]
-        self.gamma = 1.0
+        self.networks = ApproxContainer(**kwargs, pre_horizon=pre_horizon)
+        self.envmodel = create_env_model(**kwargs, pre_horizon=pre_horizon)
+        self.pre_horizon = pre_horizon
+        self.gamma = gamma
         self.tb_info = dict()
 
     @property
     def adjustable_parameters(self):
-        para_tuple = ("forward_step", "gamma")
+        para_tuple = ("pre_horizon", "gamma")
         return para_tuple
 
     def local_update(self, data, iteration: int):
@@ -109,7 +112,7 @@ class FHADP2(AlgorithmBase):
         info_init = data
         v_pi = 0
         a = self.networks.policy.forward_all_policy(o)
-        for step in range(self.forward_step):
+        for step in range(self.pre_horizon):
             if step == 0:
                 o2, r, d, info = self.envmodel.forward(o, a[:, 0, :], d, info_init)
                 v_pi = r
@@ -119,7 +122,3 @@ class FHADP2(AlgorithmBase):
                 v_pi += r * (self.gamma**step)
 
         return -(v_pi).mean()
-
-
-if __name__ == "__main__":
-    print("11111")

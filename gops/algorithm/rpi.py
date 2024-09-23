@@ -16,19 +16,16 @@
 __all__ = ["ApproxContainer", "RPI"]
 
 from copy import deepcopy
-import math
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.nn.parameter import Parameter
 import time
-import warnings
 
 from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.create_pkg.create_env_model import create_env_model
 from gops.utils.common_utils import get_apprfunc_dict
-from gops.utils.act_distribution_cls import Action_Distribution
 from gops.utils.act_distribution_type import DiracDistribution
 from gops.utils.tensorboard_setup import tb_tags
 from gops.algorithm.base import AlgorithmBase, ApprBase

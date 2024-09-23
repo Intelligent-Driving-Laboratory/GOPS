@@ -75,15 +75,24 @@ class INFADP(AlgorithmBase):
     :param int pim_step: number of steps for policy improvement.
     """
 
-    def __init__(self, index=0, **kwargs):
+    def __init__(
+        self, 
+        index: int = 0, 
+        gamma: float = 0.99,
+        tau: float = 0.005,
+        pev_step: int = 1,
+        pim_step: int = 1,
+        forward_step: int = 10,
+        **kwargs
+    ):
         super().__init__(index, **kwargs)
         self.networks = ApproxContainer(**kwargs)
         self.envmodel = create_env_model(**kwargs)
-        self.gamma = 0.99
-        self.tau = 0.005
-        self.pev_step = 1
-        self.pim_step = 1
-        self.forward_step = 10
+        self.gamma = gamma
+        self.tau = tau
+        self.pev_step = pev_step
+        self.pim_step = pim_step
+        self.forward_step = forward_step
         self.tb_info = dict()
 
     @property
@@ -94,7 +103,6 @@ class INFADP(AlgorithmBase):
             "pev_step",
             "pim_step",
             "forward_step",
-            "reward_scale",
         )
         return para_tuple
 

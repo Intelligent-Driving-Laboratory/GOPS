@@ -68,6 +68,7 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for RL algorithm
+    parser.add_argument("--tau", type=float, default=0.2)
     parser.add_argument("--value_learning_rate", type=float, default=1e-3)
 
     ################################################
@@ -127,7 +128,6 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters({"gamma": 0.99, "tau": 0.2})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

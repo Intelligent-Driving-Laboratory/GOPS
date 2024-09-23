@@ -10,7 +10,6 @@
 #  Update: 2021-03-05, Baiyu Peng: create example
 
 import argparse
-import os
 import numpy as np
 
 from gops.create_pkg.create_alg import create_alg

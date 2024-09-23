@@ -12,7 +12,6 @@
 from pathlib import Path
 import sys
 import argparse
-import os
 import numpy as np
 
 from gops.create_pkg.create_alg import create_alg
@@ -86,6 +85,9 @@ if __name__ == "__main__":
 
     ################################################
     # 3. Parameters for algorithm
+    parser.add_argument("--loss_coefficient_value", type=float, default=1.0)
+    parser.add_argument("--loss_coefficient_entropy", type=float, default=0.001)
+    parser.add_argument("--loss_value_clip", type=bool, default=True)
     parser.add_argument("--learning_rate", type=float, default=3e-4)
 
     ################################################
@@ -164,7 +166,6 @@ if __name__ == "__main__":
     start_tensorboard(args["save_folder"])
     # Step 1: create algorithm and approximate function
     alg = create_alg(**args)
-    alg.set_parameters({"loss_coefficient_value": 1.0, "loss_coefficient_entropy": 0.001})
     # Step 2: create sampler in trainer
     sampler = create_sampler(**args)
     # Step 3: create buffer in trainer

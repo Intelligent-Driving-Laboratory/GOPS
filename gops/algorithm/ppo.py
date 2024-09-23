@@ -67,7 +67,18 @@ class PPO(AlgorithmBase):
         num_mini_batch: int,
         mini_batch_size: int,
         sample_batch_size: int,
-        index=0,
+        index: int = 0,
+        gamma: float = 0.99,
+        clip: float = 0.2,
+        advantage_norm: bool = True,
+        loss_value_clip: bool = False,
+        value_clip: float = 10.0,
+        loss_value_norm: bool = False,
+        loss_coefficient_kl: float = 0.2,
+        loss_coefficient_value: float = 1.0,
+        loss_coefficient_entropy: float = 0.0,
+        schedule_adam: str = "None",
+        schedule_clip: str = "None",
         **kwargs
     ):
         super().__init__(index, **kwargs)
@@ -79,38 +90,35 @@ class PPO(AlgorithmBase):
         self.indices = np.arange(self.sample_batch_size)
 
         # Parameters for algorithm
-        self.clip = 0.2
+        self.gamma = gamma
+        self.clip = clip
         self.clip_now = self.clip
-        self.EPS = 1e-8
-        self.gamma = 0.99
-        self.reward_scale = 0.1
-        self.loss_coefficient_kl = 0.2
-        self.loss_coefficient_value = 1.0
-        self.loss_coefficient_entropy = 0.0
-
-        self.schedule_adam = "none"
-        self.schedule_clip = "none"
-        self.advantage_norm = True
-        self.loss_value_clip = True
-        self.value_clip = 10.0
-        self.loss_value_norm = False
+        self.advantage_norm = advantage_norm
+        self.loss_value_clip = loss_value_clip
+        self.value_clip = value_clip
+        self.loss_value_norm = loss_value_norm
+        self.loss_coefficient_kl = loss_coefficient_kl
+        self.loss_coefficient_value = loss_coefficient_value
+        self.loss_coefficient_entropy = loss_coefficient_entropy
+        self.schedule_adam = schedule_adam
+        self.schedule_clip = schedule_clip
 
         self.networks = ApproxContainer(**kwargs)
         self.learning_rate = kwargs["learning_rate"]
         self.approximate_optimizer = Adam(
             self.networks.parameters(), lr=self.learning_rate
         )
+        self.EPS = 1e-8
 
     @property
     def adjustable_parameters(self):
         return (
             "gamma",
-            "reward_scale",
             "clip",
+            "advantage_norm",
             "loss_value_clip",
             "value_clip",
             "loss_value_norm",
-            "advantage_norm",
             "loss_coefficient_kl",
             "loss_coefficient_value",
             "loss_coefficient_entropy",
