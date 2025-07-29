@@ -72,49 +72,9 @@ def create_optim(**kwargs, ) -> object:
     else:
         raise RuntimeError(f"{spec_.optim_name} registered but entry_point is not specified or not optimizer")
 
-    if optim_name == "SingleDeviceMuonWithAuxAdam":     # Filter out for Muon
-        valid_args = {k: v for k, v in optim_param.items()
-                      if k in optim_creator.__init__.__code__.co_varnames
-                      and k not in ["lr", "betas", "eps"]}
-    else:                                               # Filter out the keys that are parameters of the class constructor
-        valid_args = {k: v for k, v in optim_param.items()
-                      if k in optim_creator.__init__.__code__.co_varnames}
-
+    # Filter out the keys that are parameters of the class constructor
+    valid_args = {k: v for k, v in optim_param.items() if k in optim_creator.__init__.__code__.co_varnames}
     assert "learning_rate" not in valid_args, "Learning rate should not be passed in the optim_param, please use kwargs['learning_rate'] instead"
-
-    # SingleDeviceMuonWithAuxAdam handled specifically
-    if optim_name == "SingleDeviceMuonWithAuxAdam":
-        # default parameter grouping function
-        def param_groups_fn_default(params):
-            hidden_weights = [p for p in params if p.ndim >= 2]
-            other_params = [p for p in params if p.ndim < 2]
-
-            return [
-                {
-                    "params": hidden_weights,
-                    "use_muon": True,
-                    "lr": 67 * kwargs.get("lr"),
-                    "weight_decay": kwargs.get("muon_wd", 0.01)
-                },
-                {
-                    "params": other_params,
-                    "use_muon": False,
-                    "lr": kwargs.get("lr"),
-                    "betas": kwargs.get("adamw_betas", (0.9, 0.95)),
-                    "eps": kwargs.get("adamw_eps", 1e-8),  # 必需参数
-                    "weight_decay": kwargs.get("adamw_wd", 0.01)
-                }
-            ]
-
-        param_groups_fn = kwargs.get("param_groups_fn", param_groups_fn_default)
-
-        def optim_helper(params, **kwargs):
-            param_groups = param_groups_fn(params)
-            return optim_creator(param_groups)
-
-        print(f"Created SingleDeviceMuonWithAuxAdam optimizer")
-        print(f"yes its a muon")
-        return optim_helper
 
     # Standard optimizer handling
     def optim_helper(params, **kwargs):

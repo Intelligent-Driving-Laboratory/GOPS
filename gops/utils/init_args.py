@@ -128,6 +128,10 @@ def init_args(env, **args):
     else:
         args["additional_info"] = {}
 
+    # process optimizer parameters
+    if args["optim_param"]:
+        args["optim_param"] = change_type(args["optim_param"])
+
     # Start a new local Ray instance
     # This is necessary since all training scripts use evaluator, which uses ray.
     ray.init(address="local")
