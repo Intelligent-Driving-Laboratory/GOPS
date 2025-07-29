@@ -14,6 +14,8 @@ import copy
 import datetime
 import json
 import os
+import re
+
 import ray
 import torch
 import warnings
@@ -128,9 +130,31 @@ def init_args(env, **args):
     else:
         args["additional_info"] = {}
 
-    # process optimizer parameters
-    if args["optim_param"]:
-        args["optim_param"] = change_type(args["optim_param"])
+    # process optimizer parameters, convert a string parameter input to a dict
+    if isinstance(args["optim_param"], str):
+        optim_dict = {}
+        items = re.findall(r'(\w+)=(\[(?:[^\]\[]|\]\[)*\]|(?:[^,\[\]]+))', args["optim_param"])
+        for item in items:
+            if '=' in item:
+                key, value = item.split('=', 1)
+                key = key.strip()
+                value = value.strip()
+                try:
+                    if '.' in value or 'e' in value:
+                        optim_dict[key] = float(value)
+                    elif value.startswith(('[', '(', '{')) and value.endswith((']', ')', '}')):
+                        try:
+                            parsed = eval(value)
+                            if isinstance(parsed, list):
+                                parsed = [float(x) for x in parsed]
+                            optim_dict[key] = parsed
+                        except:
+                            optim_dict[key] = value
+                    else:
+                        optim_dict[key] = int(value)
+                except:
+                    optim_dict[key] = value
+        args["optim_param"] = optim_dict
 
     # Start a new local Ray instance
     # This is necessary since all training scripts use evaluator, which uses ray.
