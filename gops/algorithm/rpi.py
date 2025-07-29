@@ -19,7 +19,6 @@ from copy import deepcopy
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.optim import Adam
 from torch.nn.parameter import Parameter
 import time
 
@@ -150,7 +149,7 @@ class RPI(AlgorithmBase):
 
         self.networks = ApproxContainer(**kwargs)
         self.learning_rate = learning_rate
-        self.approximate_optimizer = Adam(
+        self.approximate_optimizer = self.optimizer(
             self.networks.parameters(),
             lr=self.learning_rate,
             betas=(0.9, 0.99),
