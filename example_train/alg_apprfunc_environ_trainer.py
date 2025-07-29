@@ -122,6 +122,15 @@ if __name__ == "__main__":
     parser.add_argument("--value_learning_rate", type=float, default=1e-4)
     parser.add_argument("--policy_learning_rate", type=float, default=1e-5)
 
+    # 3.1 Parameters for optimizer
+    parser.add_argument("--optim_name", type=str, default="Adam")
+    parser.add_argument(
+        "--optim_param",
+        type=str,
+        default="",
+        help="Optimizer parameters in key=value format separated by commas (e.g., lr=0.01,betas=[0.9,0.99])"
+    )
+
     ################################################
     # 4. Parameters for trainer
     parser.add_argument(
