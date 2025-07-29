@@ -44,6 +44,10 @@ class ApproxContainer(ApprBase):
         # create value network
         value_args = get_apprfunc_dict("value", **kwargs)
         self.value = create_apprfunc(**value_args)
+        self.approximate_optimizer = self.optimizer(
+            self.value.parameters(),
+            lr=self.learning_rate,
+        )
 
         # initialize value network
         initial_weight = kwargs.get("initial_weight", None)
@@ -111,13 +115,13 @@ class RPI(AlgorithmBase):
     """
 
     def __init__(
-        self,
-        index: int = 0,
-        max_newton_iteration: int = 50,
-        max_step_update_value: int = 10000,
-        print_interval: int = 1,
-        learning_rate: float = 1e-3,
-        **kwargs,
+            self,
+            index: int = 0,
+            max_newton_iteration: int = 50,
+            max_step_update_value: int = 10000,
+            print_interval: int = 1,
+            learning_rate: float = 1e-3,
+            **kwargs,
     ) -> None:
         """
         Relaxed Policy Iteration (RPI) algorithm.
@@ -134,7 +138,7 @@ class RPI(AlgorithmBase):
 
         self.num_update_value = 0
         self.norm_hamiltonian_before = 0
-        self.norm_hamiltonian_after = self.max_step_update_value**3
+        self.norm_hamiltonian_after = self.max_step_update_value ** 3
         self.step_size_newton = 0
         self.set_state = None
         self.grad_step = np.ones([int(self.max_newton_iteration), 1], dtype="float32")
@@ -149,18 +153,12 @@ class RPI(AlgorithmBase):
 
         self.networks = ApproxContainer(**kwargs)
         self.learning_rate = learning_rate
-        self.approximate_optimizer = self.optimizer(
-            self.networks.parameters(),
-            lr=self.learning_rate,
-            betas=(0.9, 0.99),
-            weight_decay=0,
-        )
 
     # terminal condition for policy evaluation
     def continue_evaluation(self):
         return (
-            abs(self.norm_hamiltonian_after) > 0.88 * abs(self.norm_hamiltonian_before)
-            and self.num_update_value < self.max_step_update_value
+                abs(self.norm_hamiltonian_after) > 0.88 * abs(self.norm_hamiltonian_before)
+                and self.num_update_value < self.max_step_update_value
         )
 
     @property
@@ -302,7 +300,7 @@ class RPI(AlgorithmBase):
             }
         )
         if self.is_adversary:
-            data_dict.update({"advers": action[:, self.act_dim :]})
+            data_dict.update({"advers": action[:, self.act_dim:]})
         else:
             data_dict.update({"advers": None})
         self.obs = next_obs

@@ -15,6 +15,7 @@ from abc import ABCMeta, ABC, abstractmethod
 
 from typing import Tuple, Type
 
+from gops.create_pkg.create_optim import create_optim
 from gops.utils.common_utils import set_seed
 from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.utils.common_utils import get_apprfunc_dict
@@ -30,6 +31,7 @@ class ApprBase(ABC, torch.nn.Module):
         if kwargs["cnn_shared"]:
             feature_args = get_apprfunc_dict("feature", **kwargs)
             kwargs["feature_net"] = create_apprfunc(**feature_args)
+        self.optimizer = create_optim(**kwargs)
 
     def init_scheduler(self, **kwargs):
         # self.optimizer_dict should be initialized in alg before calling this function
