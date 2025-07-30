@@ -86,7 +86,8 @@ if __name__ == "__main__":
 
     # 3.1 Parameters for algorithm
     parser.add_argument("--optim_name", type=str, default="AdamW")
-    parser.add_argument("--optim_param", type=str, default="betas=[0.99,0.999],weight_decay=0.01111")
+    parser.add_argument("--optim_param", type=str, default="betas=[0.99,0.999],weight_decay=0.01",
+                        help="Options: 'betas=[0.99,0.999],weight_decay=0.01' (NOTICE: Only '[' is permitted)")
 
     ################################################
     # 4. Parameters for trainer
