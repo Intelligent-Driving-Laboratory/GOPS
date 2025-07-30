@@ -44,10 +44,10 @@ class ApproxContainer(ApprBase):
         self.value: nn.Module = create_apprfunc(**value_args)
 
         self.policy_optimizer = self.optimizer(
-            self.policy.parameters(), lr=self.learning_rate
+            self.policy.parameters(), lr=kwargs["learning_rate"]
         )
         self.value_optimizer = self.optimizer(
-            self.value.parameters(), lr=self.learning_rate
+            self.value.parameters(), lr=kwargs["learning_rate"]
         )
 
     def create_action_distributions(self, logits):

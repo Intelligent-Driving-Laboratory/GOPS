@@ -147,7 +147,8 @@ if __name__ == "__main__":
     # Get parameter dictionary
     args = vars(parser.parse_args())
     if args["optim_param"] == "":
-        args["optim_param"] = {}
+        args["optim_param"] = {
+        }
     env = create_env(**args)
     args = init_args(env, **args)
 

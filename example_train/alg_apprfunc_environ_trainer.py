@@ -128,7 +128,7 @@ if __name__ == "__main__":
         "--optim_param",
         type=str,
         default="",
-        help="Optimizer parameters in key=value format separated by commas (e.g., lr=0.01,betas=[0.9,0.99])"
+        help="Options: 'betas=[0.99,0.999],weight_decay=0.01' (NOTICE: Only '[' is permitted)"
     )
 
     ################################################
