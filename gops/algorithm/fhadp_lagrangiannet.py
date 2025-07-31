@@ -12,7 +12,6 @@ __all__ = ["FHADPLagrangiannet"]
 from typing import Tuple
 
 import torch
-from torch.optim import Adam
 from gops.algorithm.fhadp import FHADP
 from gops.utils.gops_typing import DataDict, InfoDict
 from gops.utils.tensorboard_setup import tb_tags
@@ -35,10 +34,10 @@ class ApproxContainer(ApprBase):
         multiplier_args = get_apprfunc_dict("multiplier", **kwargs)
         self.policy = create_apprfunc(**policy_args)
         self.multiplier_net = create_apprfunc(**multiplier_args)
-        self.policy_optimizer = Adam(
+        self.policy_optimizer = self.optimizer(
             self.policy.parameters(), lr=policy_learning_rate
         )
-        self.mutiplier_optimizer = Adam(
+        self.mutiplier_optimizer = self.optimizer(
             self.multiplier_net.parameters(), lr=policy_learning_rate*0.1
         )
         self.optimizer_dict = {

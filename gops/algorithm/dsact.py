@@ -23,7 +23,6 @@ from typing import Any, Optional, Tuple
 import torch
 import torch.nn as nn
 from torch.distributions import Normal
-from torch.optim import Adam
 
 from gops.algorithm.base import AlgorithmBase, ApprBase
 from gops.create_pkg.create_apprfunc import create_apprfunc
@@ -64,12 +63,12 @@ class ApproxContainer(ApprBase):
         self.log_alpha = nn.Parameter(torch.tensor(1, dtype=torch.float32))
 
         # create optimizers
-        self.q1_optimizer = Adam(self.q1.parameters(), lr=kwargs["value_learning_rate"])
-        self.q2_optimizer = Adam(self.q2.parameters(), lr=kwargs["value_learning_rate"])
-        self.policy_optimizer = Adam(
+        self.q1_optimizer = self.optimizer(self.q1.parameters(), lr=kwargs["value_learning_rate"])
+        self.q2_optimizer = self.optimizer(self.q2.parameters(), lr=kwargs["value_learning_rate"])
+        self.policy_optimizer = self.optimizer(
             self.policy.parameters(), lr=kwargs["policy_learning_rate"]
         )
-        self.alpha_optimizer = Adam([self.log_alpha], lr=kwargs["alpha_learning_rate"])
+        self.alpha_optimizer = self.optimizer([self.log_alpha], lr=kwargs["alpha_learning_rate"])
 
     def create_action_distributions(self, logits):
         return self.policy.get_act_dist(logits)

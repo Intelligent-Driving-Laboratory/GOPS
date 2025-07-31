@@ -84,6 +84,11 @@ if __name__ == "__main__":
     parser.add_argument("--value_learning_rate", type=float, default=1e-3)
     parser.add_argument("--policy_learning_rate", type=float, default=1e-3)
 
+    # 3.1 Parameters for algorithm
+    parser.add_argument("--optim_name", type=str, default="Adam")
+    parser.add_argument("--optim_param", type=str, default="",
+                        help="Options: 'betas=[0.99,0.999],weight_decay=0.01' (NOTICE: Only '[' is permitted)")
+
     ################################################
     # 4. Parameters for trainer
     parser.add_argument(
@@ -141,6 +146,8 @@ if __name__ == "__main__":
     ################################################
     # Get parameter dictionary
     args = vars(parser.parse_args())
+    if args["optim_param"] == "":
+        args["optim_param"] = {}
     env = create_env(**args)
     args = init_args(env, **args)
 

@@ -16,7 +16,6 @@ __all__ = ["FHADP2"]
 import time
 from copy import deepcopy
 from typing import Tuple
-from torch.optim import Adam
 from gops.create_pkg.create_apprfunc import create_apprfunc
 from gops.create_pkg.create_env_model import create_env_model
 from gops.utils.common_utils import get_apprfunc_dict
@@ -32,7 +31,7 @@ class ApproxContainer(ApprBase):
         policy_args = get_apprfunc_dict("policy", **kwargs)
 
         self.policy = create_apprfunc(**policy_args)
-        self.policy_optimizer = Adam(
+        self.policy_optimizer = self.optimizer(
             self.policy.parameters(), lr=kwargs["policy_learning_rate"]
         )
 

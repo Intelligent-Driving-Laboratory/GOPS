@@ -23,7 +23,6 @@ from typing import Callable, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.optim import Adam
 import torch.autograd
 
 from gops.algorithm.base import AlgorithmBase, ApprBase
@@ -96,7 +95,7 @@ class TRPO(AlgorithmBase):
         self.train_v_iters = train_v_iters
         self.norm_adv = norm_adv
         self.networks = ApproxContainer(**kwargs)
-        self.value_optimizer = Adam(
+        self.value_optimizer = self.optimizer(
             self.networks.value.parameters(), lr=value_learning_rate
         )
 

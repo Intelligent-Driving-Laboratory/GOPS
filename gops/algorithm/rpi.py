@@ -19,7 +19,6 @@ from copy import deepcopy
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.optim import Adam
 from torch.nn.parameter import Parameter
 import time
 
@@ -45,6 +44,10 @@ class ApproxContainer(ApprBase):
         # create value network
         value_args = get_apprfunc_dict("value", **kwargs)
         self.value = create_apprfunc(**value_args)
+        self.approximate_optimizer = self.optimizer(
+            self.value.parameters(),
+            lr=self.learning_rate,
+        )
 
         # initialize value network
         initial_weight = kwargs.get("initial_weight", None)
@@ -150,12 +153,6 @@ class RPI(AlgorithmBase):
 
         self.networks = ApproxContainer(**kwargs)
         self.learning_rate = learning_rate
-        self.approximate_optimizer = Adam(
-            self.networks.parameters(),
-            lr=self.learning_rate,
-            betas=(0.9, 0.99),
-            weight_decay=0,
-        )
 
     # terminal condition for policy evaluation
     def continue_evaluation(self):
@@ -303,7 +300,7 @@ class RPI(AlgorithmBase):
             }
         )
         if self.is_adversary:
-            data_dict.update({"advers": action[:, self.act_dim :]})
+            data_dict.update({"advers": action[:, self.act_dim:]})
         else:
             data_dict.update({"advers": None})
         self.obs = next_obs

@@ -22,7 +22,6 @@ import warnings
 from typing import Dict
 import torch
 import torch.nn.functional as F
-from torch.optim import Adam
 from typing import Tuple
 
 from gops.algorithm.base import AlgorithmBase, ApprBase
@@ -55,7 +54,7 @@ class ApproxContainer(ApprBase):
 
         self.policy = policy_q
         # set optimizers
-        self.q_optimizer = Adam(self.q.parameters(), lr=kwargs["value_learning_rate"])
+        self.q_optimizer = self.optimizer(self.q.parameters(), lr=kwargs["value_learning_rate"])
 
     def create_action_distributions(self, logits):
         return self.q.get_act_dist(logits)

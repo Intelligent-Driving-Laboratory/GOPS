@@ -21,7 +21,6 @@ from typing import Tuple
 
 import numpy as np
 import torch
-from torch.optim import Adam
 
 from gops.algorithm.base import AlgorithmBase, ApprBase
 from gops.create_pkg.create_apprfunc import create_apprfunc
@@ -83,16 +82,16 @@ class ApproxContainer(ApprBase):
                 p.requires_grad = False
 
         # set optimizers
-        self.q1_optimizer = Adam(self.q1.parameters(), lr=kwargs["value_learning_rate"])
-        self.q2_optimizer = Adam(self.q2.parameters(), lr=kwargs["value_learning_rate"])
+        self.q1_optimizer = self.optimizer(self.q1.parameters(), lr=kwargs["value_learning_rate"])
+        self.q2_optimizer = self.optimizer(self.q2.parameters(), lr=kwargs["value_learning_rate"])
         if pge_method == "mixed_state":
-            self.q1_model_optimizer = Adam(
+            self.q1_model_optimizer = self.optimizer(
                 self.q1_model.parameters(), lr=kwargs["value_learning_rate"]
             )
-            self.q2_model_optimizer = Adam(
+            self.q2_model_optimizer = self.optimizer(
                 self.q2_model.parameters(), lr=kwargs["value_learning_rate"]
             )
-        self.policy_optimizer = Adam(
+        self.policy_optimizer = self.optimizer(
             self.policy.parameters(), lr=kwargs["policy_learning_rate"]
         )
 
