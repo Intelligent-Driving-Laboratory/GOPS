@@ -131,7 +131,7 @@ def init_args(env, **args):
         args["additional_info"] = {}
 
     # process optimizer parameters, convert a string parameter input to a dict
-    if isinstance(args["optim_param"], str):
+    if args.get("optim_param") and isinstance(args["optim_param"], str):
         optim_dict = {}
         args["optim_param"] = args["optim_param"].replace(" ", "")
         items = re.findall(r'(\w+)=(\[(?:[^\]\[]|\]\[)*\]|(?:[^,\[\]]+))', args["optim_param"])
