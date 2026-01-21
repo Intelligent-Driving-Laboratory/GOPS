@@ -46,9 +46,9 @@ if __name__ == "__main__":
         help="Options: StateValue/ActionValue/ActionValueDis/ActionValueDistri",
     )
     parser.add_argument("--value_func_type", type=str, default="MLP", help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS")
-    parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
+    parser.add_argument("--value_hidden_sizes", type=list, default=[128, 128, 128])
     parser.add_argument(
-        "--value_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
+        "--value_hidden_activation", type=str, default="gelu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
     )
     parser.add_argument("--value_output_activation", type=str, default="linear", help="Options: linear/tanh")
 
@@ -69,9 +69,9 @@ if __name__ == "__main__":
         help="Options: default/TanhGaussDistribution/GaussDistribution",
     )
     policy_func_type = parser.parse_known_args()[0].policy_func_type
-    parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
+    parser.add_argument("--policy_hidden_sizes", type=list, default=[128, 128, 128])
     parser.add_argument(
-        "--policy_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
+        "--policy_hidden_activation", type=str, default="gelu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
     )
     parser.add_argument("--policy_min_log_std", type=int, default=-20)
     parser.add_argument("--policy_max_log_std", type=int, default=0.5)
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     ################################################
     # 3. Parameters for RL algorithm
     parser.add_argument("--value_learning_rate", type=float, default=1e-3)
-    parser.add_argument("--policy_learning_rate", type=float, default=1e-3)
+    parser.add_argument("--policy_learning_rate", type=float, default=3e-4)
     parser.add_argument("--alpha_learning_rate", type=float, default=1e-3)
     # special parameter
     parser.add_argument("--gamma", type=float, default=0.99)

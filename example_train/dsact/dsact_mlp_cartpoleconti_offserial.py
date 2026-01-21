@@ -6,12 +6,10 @@
 #  Lab Leader: Prof. Shengbo Eben Li
 #  Email: lisb04@gmail.com
 #
-#  Description: example for mpg + cartpoleconti + mlp + off_serial
-#  Update Date: 2022-06-05, Guan Yang: create example
+#  Description: example for dsac-t + cartpoleconti + mlp + offserial
+#  Update Date: 2026-01-21, Zhilong Zheng: create example
 
 import argparse
-import os
-import numpy as np
 
 from gops.create_pkg.create_alg import create_alg
 from gops.create_pkg.create_buffer import create_buffer
@@ -31,31 +29,28 @@ if __name__ == "__main__":
     ################################################
     # Key Parameters for users
     parser.add_argument("--env_id", type=str, default="gym_cartpoleconti", help="id of environment")
-    parser.add_argument("--algorithm", type=str, default="MPG", help="RL algorithm")
+    parser.add_argument("--algorithm", type=str, default="DSACT", help="RL algorithm")
     parser.add_argument("--enable_cuda", default=False, help="Enable CUDA")
+    parser.add_argument("--seed", default=12345, help="Global seed")
     ################################################
     # 1. Parameters for environment
-    parser.add_argument("--obsv_dim", type=int, default=None, help="dim(State)")
-    parser.add_argument("--action_dim", type=int, default=None, help="dim(Action)")
-    parser.add_argument("--action_high_limit", type=list, default=None)
-    parser.add_argument("--action_low_limit", type=list, default=None)
+    parser.add_argument("--reward_scale", type=float, default=0.1, help="reward scale factor")
     parser.add_argument("--is_render", type=bool, default=False, help="Draw environment animation")
     parser.add_argument("--is_adversary", type=bool, default=False, help="Adversary training")
-    # Reward = reward_scale * environment.Reward
-    parser.add_argument("--reward_scale", type=float, default=0.1)
+
     ################################################
     # 2.1 Parameters of value approximate function
     parser.add_argument(
         "--value_func_name",
         type=str,
-        default="ActionValue",
+        default="ActionValueDistri",
         help="Options: StateValue/ActionValue/ActionValueDis/ActionValueDistri",
     )
     parser.add_argument("--value_func_type", type=str, default="MLP", help="Options: MLP/CNN/CNN_SHARED/RNN/POLY/GAUSS")
     value_func_type = parser.parse_known_args()[0].value_func_type
-    parser.add_argument("--value_hidden_sizes", type=list, default=[64, 64])
+    parser.add_argument("--value_hidden_sizes", type=list, default=[128, 128, 128])
     parser.add_argument(
-        "--value_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
+        "--value_hidden_activation", type=str, default="gelu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
     )
     parser.add_argument("--value_output_activation", type=str, default="linear", help="Options: linear/tanh")
 
@@ -63,7 +58,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--policy_func_name",
         type=str,
-        default="DetermPolicy",
+        default="StochaPolicy",
         help="Options: None/DetermPolicy/FiniteHorizonPolicy/StochaPolicy",
     )
     parser.add_argument(
@@ -72,32 +67,30 @@ if __name__ == "__main__":
     parser.add_argument(
         "--policy_act_distribution",
         type=str,
-        default="default",
+        default="TanhGaussDistribution",
         help="Options: default/TanhGaussDistribution/GaussDistribution",
     )
     policy_func_type = parser.parse_known_args()[0].policy_func_type
-    parser.add_argument("--policy_hidden_sizes", type=list, default=[64, 64])
+    parser.add_argument("--policy_hidden_sizes", type=list, default=[128, 128, 128])
     parser.add_argument(
-        "--policy_hidden_activation", type=str, default="relu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
+        "--policy_hidden_activation", type=str, default="gelu", help="Options: relu/gelu/elu/selu/sigmoid/tanh"
     )
-    
+    parser.add_argument(
+        "--policy_output_activation", type=str, default="linear", help="Options: linear/tanh"
+    )
+    parser.add_argument("--policy_min_log_std", type=int, default=-20)
+    parser.add_argument("--policy_max_log_std", type=int, default=0.5)
+
     ################################################
     # 3. Parameters for RL algorithm
-    parser.add_argument("--value_learning_rate", type=float, default=1e-3)
-    parser.add_argument("--policy_learning_rate", type=float, default=5e-4)
+    parser.add_argument("--value_learning_rate", type=float, default=0.001)
+    parser.add_argument("--policy_learning_rate", type=float, default=0.0003)
+    parser.add_argument("--alpha_learning_rate", type=float, default=0.001)
     # special parameter
-    parser.add_argument("--pge_method", type=str, default="mixed_weight", help="mixed_weight/mixed_state")
-    pge_method = parser.parse_known_args()[0].pge_method
-    if pge_method == "mixed_weight":
-        parser.add_argument("--eta", type=float, default=0.3)
-        parser.add_argument("--terminal_iter", type=float, default=1e8)  # always use model because model is accurate
-    else:
-        assert pge_method == "mixed_state"
-        parser.add_argument("--kappa", type=float, default=0.5)
-    parser.add_argument("--forward_step", type=int, default=10)
     parser.add_argument("--gamma", type=float, default=0.99)
-    parser.add_argument("--tau", type=float, default=0.1)
-    parser.add_argument("--delay_update", type=int, default=1, help="")
+    parser.add_argument("--tau", type=float, default=0.005)
+    parser.add_argument("--auto_alpha", type=bool, default=True)
+    parser.add_argument("--delay_update", type=int, default=2)
 
     ################################################
     # 4. Parameters for trainer
@@ -109,8 +102,12 @@ if __name__ == "__main__":
     )
     # Maximum iteration number
     parser.add_argument("--max_iteration", type=int, default=6400)
+    parser.add_argument(
+        "--ini_network_dir",
+        type=str,
+        default=None
+    )
     trainer_type = parser.parse_known_args()[0].trainer
-    parser.add_argument("--ini_network_dir", type=str, default=None)
 
     # 4.1. Parameters for off_serial_trainer
     parser.add_argument(
@@ -121,21 +118,17 @@ if __name__ == "__main__":
     # Max size of reply buffer
     parser.add_argument("--buffer_max_size", type=int, default=100000)
     # Batch size of replay samples from buffer
-    parser.add_argument("--replay_batch_size", type=int, default=256)
+    parser.add_argument("--replay_batch_size", type=int, default=64)
     # Period of sampling
-    parser.add_argument("--sampler_sync_interval", type=int, default=1)
+    parser.add_argument("--sample_interval", type=int, default=1)
 
     ################################################
     # 5. Parameters for sampler
     parser.add_argument("--sampler_name", type=str, default="off_sampler", help="Options: on_sampler/off_sampler")
     # Batch size of sampler for buffer store
-    parser.add_argument("--sample_batch_size", type=int, default=8)
+    parser.add_argument("--sample_batch_size", type=int, default=4)
     # Add noise to action for better exploration
-    parser.add_argument(
-        "--noise_params",
-        type=dict,
-        default={"mean": np.array([0], dtype=np.float32), "std": np.array([0.2], dtype=np.float32),},
-    )
+    parser.add_argument("--noise_params", type=dict, default=None)
 
     ################################################
     # 6. Parameters for evaluator
@@ -146,7 +139,7 @@ if __name__ == "__main__":
 
     ################################################
     # 7. Data savings
-    parser.add_argument("--save_folder", type=str, default=None)
+    parser.add_argument("--save_folder", type=str, default= None)
     # Save value/policy every N updates
     parser.add_argument("--apprfunc_save_interval", type=int, default=5000)
     # Save key info every N updates
@@ -176,7 +169,7 @@ if __name__ == "__main__":
     print("Training is finished!")
 
     ################################################
-    # Plot and save data
+    # Plot and save training figures
     plot_all(args["save_folder"])
     save_tb_to_csv(args["save_folder"])
     print("Plot & Save are finished!")
