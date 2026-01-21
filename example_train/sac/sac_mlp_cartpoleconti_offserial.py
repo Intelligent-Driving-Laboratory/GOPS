@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     ################################################
     # Key Parameters for users
-    parser.add_argument("--env_id", type=str, default="veh3dof_tracking_detour", help="id of environment")
+    parser.add_argument("--env_id", type=str, default="gym_cartpoleconti", help="id of environment")
     parser.add_argument("--algorithm", type=str, default="SAC", help="RL algorithm")
     parser.add_argument("--enable_cuda", default=False, help="Disable CUDA")
 
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     # 3. Parameters for RL algorithm
     parser.add_argument("--tau", type=float, default=0.2)
     parser.add_argument("--q_learning_rate", type=float, default=1e-3)
-    parser.add_argument("--policy_learning_rate", type=float, default=1e-3)
+    parser.add_argument("--policy_learning_rate", type=float, default=3e-4)
     parser.add_argument("--alpha_learning_rate", type=float, default=1e-3)
 
     ################################################
