@@ -106,6 +106,7 @@ class BaseSampler(metaclass=ABCMeta):
             )
         else:
             batch_obs = torch.from_numpy(self.obs.astype("float32"))
+        batch_obs = batch_obs.to(next(self.networks.parameters()).device)
         logits = self.networks.policy(batch_obs)
         action_distribution = self.networks.create_action_distributions(logits)
         action, logp = action_distribution.sample()

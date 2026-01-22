@@ -21,7 +21,6 @@ import time
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.optim import Adam
 
 from gops.algorithm.base import AlgorithmBase, ApprBase
 from gops.create_pkg.create_apprfunc import create_apprfunc
@@ -43,6 +42,13 @@ class ApproxContainer(ApprBase):
         self.policy: nn.Module = create_apprfunc(**policy_args)
         value_args = get_apprfunc_dict("value", **kwargs)
         self.value: nn.Module = create_apprfunc(**value_args)
+
+        self.policy_optimizer = self.optimizer(
+            self.policy.parameters(), lr=kwargs["learning_rate"]
+        )
+        self.value_optimizer = self.optimizer(
+            self.value.parameters(), lr=kwargs["learning_rate"]
+        )
 
     def create_action_distributions(self, logits):
         return self.policy.get_act_dist(logits)
@@ -77,7 +83,7 @@ class PPO(AlgorithmBase):
         loss_coefficient_kl: float = 0.2,
         loss_coefficient_value: float = 1.0,
         loss_coefficient_entropy: float = 0.0,
-        schedule_adam: str = "None",
+        schedule_lr: str = "None",
         schedule_clip: str = "None",
         **kwargs
     ):
@@ -100,14 +106,11 @@ class PPO(AlgorithmBase):
         self.loss_coefficient_kl = loss_coefficient_kl
         self.loss_coefficient_value = loss_coefficient_value
         self.loss_coefficient_entropy = loss_coefficient_entropy
-        self.schedule_adam = schedule_adam
+        self.schedule_lr = schedule_lr
         self.schedule_clip = schedule_clip
 
         self.networks = ApproxContainer(**kwargs)
         self.learning_rate = kwargs["learning_rate"]
-        self.approximate_optimizer = Adam(
-            self.networks.parameters(), lr=self.learning_rate
-        )
         self.EPS = 1e-8
 
     @property
@@ -122,7 +125,7 @@ class PPO(AlgorithmBase):
             "loss_coefficient_kl",
             "loss_coefficient_value",
             "loss_coefficient_entropy",
-            "schedule_adam",
+            "schedule_lr",
             "schedule_clip",
         )
 
@@ -154,7 +157,7 @@ class PPO(AlgorithmBase):
                 self.approximate_optimizer.zero_grad()
                 loss_total.backward()
                 self.approximate_optimizer.step()
-                if self.schedule_adam == "linear":
+                if self.schedule_lr == "linear":
                     decay_rate = 1 - (iteration / self.max_iteration)
                     assert decay_rate >= 0, "the decay_rate is less than 0!"
                     lr_now = self.learning_rate * decay_rate

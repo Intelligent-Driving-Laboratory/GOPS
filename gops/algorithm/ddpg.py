@@ -53,10 +53,10 @@ class ApproxContainer(ApprBase):
             p.requires_grad = False
 
         # set optimizers
-        self.policy_optimizer = Adam(
+        self.policy_optimizer = self.optimizer(
             self.policy.parameters(), lr=kwargs["policy_learning_rate"]
         )
-        self.q_optimizer = Adam(self.q.parameters(), lr=kwargs["value_learning_rate"])
+        self.q_optimizer = self.optimizer(self.q.parameters(), lr=kwargs["value_learning_rate"])
 
     # create action_distributions
     def create_action_distributions(self, logits):

@@ -7,7 +7,7 @@ env_path = os.path.join(gops_path, "env")
 trainer_path = os.path.join(gops_path, "trainer")
 buffer_path = os.path.join(trainer_path, "buffer")
 sampler_path = os.path.join(trainer_path, "sampler")
-
+optim_path = os.path.join(gops_path, "optim")
 
 def underline2camel(s: str, first_upper: bool = False) -> str:
     arr = s.split("_")

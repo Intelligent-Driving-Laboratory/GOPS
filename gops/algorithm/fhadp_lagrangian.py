@@ -13,7 +13,6 @@ from typing import Tuple
 
 import torch
 from torch import nn
-from torch.optim import Adam
 from gops.algorithm.fhadp import ApproxContainer, FHADP
 from gops.utils.gops_typing import DataDict, InfoDict
 from gops.utils.tensorboard_setup import tb_tags
@@ -40,7 +39,7 @@ class FHADPLagrangian(FHADP):
         # inverse of softplus function
         self.multiplier_param = nn.Parameter(torch.tensor(
             math.log(math.exp(multiplier) - 1), dtype=torch.float32))
-        self.multiplier_optim = Adam([self.multiplier_param], lr=multiplier_lr)
+        self.multiplier_optim = self.optimizer([self.multiplier_param], lr=multiplier_lr)
         self.multiplier_delay = multiplier_delay
         self.update_step = 0
 

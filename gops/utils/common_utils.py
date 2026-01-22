@@ -119,13 +119,17 @@ def get_apprfunc_dict(key: str, **kwargs):
         if kwargs["action_type"] == "continu":
             if kwargs["policy_func_name"] == "StochaPolicy":  # todo: add TanhGauss
                 var["action_distribution_cls"] = GaussDistribution
-            elif kwargs["policy_func_name"] == "DetermPolicy" or "FiniteHorizonPolicy":
+            elif kwargs["policy_func_name"] in ("DetermPolicy", "FiniteHorizonPolicy"):
                 var["action_distribution_cls"] = DiracDistribution
+            else:
+                raise ValueError("Invalid policy_func_name")
         else:
             if kwargs["policy_func_name"] == "StochaPolicyDis":
                 var["action_distribution_cls"] = CategoricalDistribution
             elif kwargs["policy_func_name"] == "DetermPolicyDis":
                 var["action_distribution_cls"] = ValueDiracDistribution
+            else:
+                raise ValueError("Invalid policy_func_name")
     else:
 
         var["action_distribution_cls"] = getattr(

@@ -79,8 +79,7 @@ class OffSerialTrainer:
     def step(self):
         # sampling
         if self.iteration % self.sample_interval == 0:
-            with ModuleOnDevice(self.networks, "cpu"):
-                sampler_samples, sampler_tb_dict = self.sampler.sample()
+            sampler_samples, sampler_tb_dict = self.sampler.sample()
             self.buffer.add_batch(sampler_samples)
             self.sampler_tb_dict.add_average(sampler_tb_dict)
 

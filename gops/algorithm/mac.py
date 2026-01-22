@@ -19,7 +19,6 @@ from copy import deepcopy
 from typing import Tuple
 
 import torch
-from torch.optim import Adam
 import time
 
 from gops.create_pkg.create_apprfunc import create_apprfunc
@@ -52,10 +51,10 @@ class ApproxContainer(ApprBase):
         for p in self.policy_target.parameters():
             p.requires_grad = False
 
-        self.policy_optimizer = Adam(
+        self.policy_optimizer = self.optimizer(
             self.policy.parameters(), lr=kwargs["policy_learning_rate"]
         )
-        self.v_optimizer = Adam(self.v.parameters(), lr=kwargs["value_learning_rate"])
+        self.v_optimizer = self.optimizer(self.v.parameters(), lr=kwargs["value_learning_rate"])
 
         self.net_dict = {"v": self.v, "policy": self.policy}
         self.target_net_dict = {"v": self.v_target, "policy": self.policy_target}
