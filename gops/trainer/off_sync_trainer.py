@@ -177,6 +177,8 @@ class OffSyncTrainer:
                         if isinstance(v, list):
                             for i in range(len(v)):
                                 update_information[k][i] = v[i].cpu()
+                        elif isinstance(v, torch.Tensor):
+                            update_information[k] = v.cpu()
 
                 tb_dict.append(alg_tb_dict)
                 update_info.append(update_information)

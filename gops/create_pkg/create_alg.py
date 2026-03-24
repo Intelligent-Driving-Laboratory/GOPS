@@ -89,8 +89,12 @@ def create_alg(**kwargs) -> object:
         import ray
         if _kwargs.get("use_gpu", False):
             import torch
-            EPSILON = 0.001
-            num_gpus = torch.cuda.device_count() / _kwargs["num_algs"] - EPSILON
+            num_gpus = torch.cuda.device_count() / _kwargs["num_algs"]
+            if num_gpus > 1:
+                num_gpus = int(num_gpus)
+            else:
+                EPSILON = 0.001
+                num_gpus = max(0, num_gpus - EPSILON)  # Minus epsilon to avoid float precision issue
         else:
             num_gpus = 0
         algo = [
