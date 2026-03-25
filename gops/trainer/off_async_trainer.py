@@ -169,6 +169,8 @@ class OffAsyncTrainer:
                     if isinstance(v, list):
                         for i in range(len(v)):
                             update_info[k][i] = v[i].cpu()
+                    elif isinstance(v, torch.Tensor):
+                        update_info[k] = v.cpu()
             self.networks.remote_update(update_info)
 
             self.iteration += 1
